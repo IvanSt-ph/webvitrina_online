@@ -149,3 +149,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 });
+
+
+// тесттест2тест3тест4тест5тест6тест7тест8тест9тест10тест11тест12тест13тест14тест
