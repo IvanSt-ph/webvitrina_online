@@ -6,3 +6,12 @@
 [x-cloak] {
     display: none !important;
 }
+
+
+.cat403 {
+    width: 75%;
+    display: flex;
+    justify-content: center;
+    background-color: #cdcdcd87;
+    border-radius: 25px;
+}
