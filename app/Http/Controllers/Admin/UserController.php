@@ -46,14 +46,19 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'role'  => 'required|in:admin,seller,buyer',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email,' . $user->id,
+            'role'     => 'required|in:admin,seller,buyer',
             'password' => 'nullable|string|min:6|confirmed',
+            'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         if ($request->filled('password')) {
             $validated['password'] = bcrypt($request->password);
+        }
+
+        if ($request->hasFile('avatar')) {
+            $validated['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
 
         $user->update($validated);
@@ -87,9 +92,14 @@ class UserController extends Controller
             'email'    => 'required|email|unique:users',
             'password' => 'required|string|min:6|confirmed',
             'role'     => 'required|in:admin,seller,buyer',
+            'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $validated['password'] = bcrypt($validated['password']);
+
+        if ($request->hasFile('avatar')) {
+            $validated['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
 
         User::create($validated);
 

@@ -1,29 +1,114 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+@extends('layouts.app')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-profile-information-form')
-                </div>
-            </div>
+@section('title', 'Мой профиль')
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.update-password-form')
-                </div>
-            </div>
+@section('content')
+<div class="max-w-4xl mx-auto px-6 py-10">
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
+    <h1 class="text-3xl font-bold mb-8">⚙ Настройки профиля</h1>
+
+    {{-- Сообщения --}}
+    @if (session('status') === 'profile-updated')
+        <div class="mb-6 p-4 bg-green-100 text-green-700 rounded-lg">
+            ✅ Профиль успешно обновлён!
         </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
+            <strong>Ошибка!</strong>
+            <ul class="list-disc ml-6 mt-2 text-sm">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{-- Карточка профиля --}}
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-6">
+            @csrf
+            @method('PATCH')
+
+            {{-- Аватар --}}
+            <div class="flex items-center gap-6">
+                <img src="{{ Auth::user()->avatar_url }}" 
+     class="w-20 h-20 rounded-full border shadow" 
+     alt="Аватар">
+
+
+                <div class="flex-1">
+                    <label class="block text-sm font-medium mb-1">Изменить аватар</label>
+                    <input type="file" name="avatar" class="border rounded-lg px-3 py-2 w-full text-sm">
+                </div>
+            </div>
+
+            {{-- Имя --}}
+            <div>
+                <label class="block text-sm font-medium mb-1">Имя</label>
+                <input type="text" name="name" value="{{ old('name', Auth::user()->name) }}"
+                       class="border rounded-lg px-3 py-2 w-full">
+            </div>
+
+            {{-- Email --}}
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input type="email" name="email" value="{{ old('email', Auth::user()->email) }}"
+                       class="border rounded-lg px-3 py-2 w-full">
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    💾 Сохранить
+                </button>
+                <a href="{{ url('/') }}" class="px-5 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    ⬅ На главную
+                </a>
+            </div>
+        </form>
     </div>
-</x-app-layout>
+
+    {{-- Смена пароля --}}
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">🔒 Смена пароля</h2>
+        <form method="POST" action="{{ route('password.update') }}" class="space-y-4">
+            @csrf
+            @method('PUT')
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Новый пароль</label>
+                <input type="password" name="password"
+                       class="border rounded-lg px-3 py-2 w-full">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Подтверждение пароля</label>
+                <input type="password" name="password_confirmation"
+                       class="border rounded-lg px-3 py-2 w-full">
+            </div>
+
+            <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                🔑 Обновить пароль
+            </button>
+        </form>
+    </div>
+
+    {{-- Удаление аккаунта --}}
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4 text-red-600">🗑️ Удаление аккаунта</h2>
+        <form method="POST" action="{{ route('profile.destroy') }}">
+            @csrf
+            @method('DELETE')
+
+            <p class="text-gray-700 mb-4">Удаление аккаунта приведёт к безвозвратной потере данных.</p>
+
+            <button type="submit" class="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    onclick="return confirm('Вы уверены, что хотите удалить аккаунт?')">
+                ❌ Удалить аккаунт
+            </button>
+        </form>
+    </div>
+
+</div>
+@endsection

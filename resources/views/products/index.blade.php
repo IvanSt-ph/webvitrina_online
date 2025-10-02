@@ -30,7 +30,7 @@
         {{ $products->links() }}
       </div>
     @else
-      <p class="text-gray-500">В этой категории пока нет товаров.</p>
+      <p class="text-gray-500">В этой категории пока нет товарцов.</p>
     @endif
   </div>
 </x-app-layout>

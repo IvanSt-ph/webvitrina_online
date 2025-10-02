@@ -42,6 +42,8 @@
             <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">💾 Сохранить</button>
             <a href="{{ route('admin.users.index') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg">⬅ Назад</a>
         </div>
+
+        
     </form>
 </div>
 @endsection
