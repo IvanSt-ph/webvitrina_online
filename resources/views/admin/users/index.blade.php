@@ -25,9 +25,10 @@
             </button>
         </form>
 
-        <a href="#" class="px-4 py-2 bg-green-600 text-white rounded-lg">
-            ➕ Добавить пользователя
-        </a>
+<a href="{{ route('admin.users.create') }}" class="px-4 py-2 bg-green-600 text-white rounded-lg">
+    ➕ Добавить пользователя
+</a>
+
     </div>
 
     <!-- 📋 Таблица пользователей -->
@@ -70,11 +71,23 @@
                                 <span class="text-gray-500">● Оффлайн</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right space-x-2">
-                            <a href="#" class="text-indigo-600 hover:underline">👁️</a>
-                            <a href="#" class="text-yellow-600 hover:underline">✏️</a>
-                            <a href="#" class="text-red-600 hover:underline">🗑️</a>
-                        </td>
+
+<td class="px-4 py-3 text-right space-x-2">
+    <!-- 👁️ Смотреть -->
+    <a href="{{ route('admin.users.show', $user) }}" class="text-indigo-600 hover:underline">👁️</a>
+
+    <!-- ✏️ Редактировать -->
+    <a href="{{ route('admin.users.edit', $user) }}" class="text-yellow-600 hover:underline">✏️</a>
+
+    <!-- 🗑️ Удалить -->
+    <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="text-red-600 hover:underline" onclick="return confirm('Удалить пользователя?')">🗑️</button>
+    </form>
+</td>
+
+
                     </tr>
                 @empty
                     <tr>

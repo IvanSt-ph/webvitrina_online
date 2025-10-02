@@ -119,13 +119,11 @@ use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Middleware\AdminMiddleware;
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::class])->group(function () {
-
-
     // 🏠 Главная
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // 👤 Пользователи
-    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+    // 👤 Пользователи (полный CRUD)
+    Route::resource('users', AdminUserController::class);
 
     // 📂 Категории
     Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
@@ -149,5 +147,3 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 });
-
-
