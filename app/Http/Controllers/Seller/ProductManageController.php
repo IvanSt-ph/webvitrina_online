@@ -47,7 +47,6 @@ class ProductManageController extends Controller
     public function store(Request $request)
     {
         // 1) Валидация входных данных.
-        //    Обрати внимание на 'gallery' => 'array' + 'gallery.*' => 'image'
         $data = $request->validate([
             'title'        => 'required|string|max:255',
             'price'        => 'required|numeric|min:0',
@@ -58,6 +57,10 @@ class ProductManageController extends Controller
             'gallery.*'    => 'nullable|image|max:2048',
             'category_id'  => 'required|exists:categories,id',
             'city_id'      => 'required|exists:cities,id',
+            'country_id'   => 'nullable|exists:countries,id',
+            'address'      => 'nullable|string|max:255',
+            'latitude'     => 'nullable|numeric',
+            'longitude'    => 'nullable|numeric',
         ]);
 
         // 2) Сохраняем главное фото (одно).
@@ -66,7 +69,6 @@ class ProductManageController extends Controller
         }
 
         // 3) Сохраняем галерею (несколько).
-        //    На входе name="gallery[]" → $request->file('gallery') вернёт массив UploadedFile.
         if ($request->hasFile('gallery')) {
             $gallery = [];
             foreach ($request->file('gallery') as $file) {
@@ -74,7 +76,7 @@ class ProductManageController extends Controller
                     $gallery[] = $file->store('products/gallery', 'public');
                 }
             }
-            $data['gallery'] = $gallery; // это массив, в БД попадёт JSON (casts в модели)
+            $data['gallery'] = $gallery;
         }
 
         // 4) Привязываем товар к текущему продавцу.
@@ -119,6 +121,10 @@ class ProductManageController extends Controller
             'gallery.*'    => 'nullable|image|max:2048',
             'category_id'  => 'required|exists:categories,id',
             'city_id'      => 'required|exists:cities,id',
+            'country_id'   => 'nullable|exists:countries,id',
+            'address'      => 'nullable|string|max:255',
+            'latitude'     => 'nullable|numeric',
+            'longitude'    => 'nullable|numeric',
         ]);
 
         // 2) Обновляем главное фото (если загружено)
@@ -126,9 +132,7 @@ class ProductManageController extends Controller
             $data['image'] = $request->file('image')->store('products', 'public');
         }
 
-        // 3) Обновляем галерею:
-        //    - берём уже сохранённые (если были) из модели
-        //    - добавляем новые из запроса
+        // 3) Обновляем галерею
         $currentGallery = (array) ($product->gallery ?? []);
         if ($request->hasFile('gallery')) {
             foreach ($request->file('gallery') as $file) {
@@ -137,7 +141,6 @@ class ProductManageController extends Controller
                 }
             }
         }
-        // Если были новые — кладём обратно в $data
         if (!empty($currentGallery)) {
             $data['gallery'] = $currentGallery;
         }

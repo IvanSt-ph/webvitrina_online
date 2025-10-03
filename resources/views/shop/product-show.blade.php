@@ -1,4 +1,3 @@
-{{-- resources/views/shop/product-show.blade.php --}}
 <x-app-layout :title="$product->title">
 
 <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -54,35 +53,46 @@
         @endif
       </nav>
 
-{{-- Страна и город --}}
-@if($product->city || $product->country)
-  <div class="mt-6 bg-white border rounded-xl p-4">
-    <div class="text-sm text-gray-500">Местоположение</div>
-    <div class="font-medium text-gray-800">
-      {{-- если у товара указана страна напрямую --}}
-      @if($product->country)
-        {{ $product->country->name }}
-      {{-- если нет, то пробуем взять страну из города --}}
-      @elseif($product->city && $product->city->country)
-        {{ $product->city->country->name }}
-      @else
-        —
+      {{-- ====== Местоположение и карта ====== --}}
+      @if($product->city || $product->country || $product->address)
+        <div class="mt-6 bg-white border rounded-xl p-4">
+          <div class="text-sm text-gray-500">Местоположение</div>
+          <div class="font-medium text-gray-800">
+            @if($product->country)
+              {{ $product->country->name }}
+            @elseif($product->city && $product->city->country)
+              {{ $product->city->country->name }}
+            @endif
+            @if($product->city)
+              , {{ $product->city->name }}
+            @endif
+          </div>
+
+          @if($product->address)
+            <div class="mt-1 text-gray-700">
+              {{ $product->address }}
+            </div>
+          @endif
+
+          @if($product->latitude && $product->longitude)
+            <div class="mt-4">
+              <div id="map" class="w-full h-64 md:h-80 rounded-lg border"></div>
+              <a href="https://www.google.com/maps/search/?api=1&query={{ $product->latitude }},{{ $product->longitude }}"
+                 target="_blank"
+                 class="mt-2 inline-block text-indigo-600 hover:underline text-sm">
+                 📍 Открыть в Google Maps
+              </a>
+            </div>
+          @endif
+        </div>
+
+        
       @endif
-
-      @if($product->city)
-        , {{ $product->city->name }}
-      @endif
-    </div>
-  </div>
-@endif
-
-
-
 
       {{-- Название --}}
-      <h1 class="text-3xl font-bold">{{ $product->title }}</h1>
+      <h1 class="text-3xl font-bold mt-4">{{ $product->title }}</h1>
 
-      {{-- Рейтинг и заказы (берём из withAvg и withCount) --}}
+      {{-- Рейтинг и заказы --}}
       <div class="flex items-center gap-2 text-sm text-gray-600 mt-1">
         ⭐ {{ number_format($product->reviews_avg_rating ?? 0, 1) }}
         <span>· {{ $product->reviews_count }} отзывов</span>
@@ -151,13 +161,10 @@
         <div class="mt-6 bg-white border rounded-xl p-4">
           <div class="text-sm text-gray-500">Магазин</div>
           <div class="font-medium">{{ $product->seller->name }}</div>
-
-          {{-- Рейтинг продавца (берём из withAvg и withCount) --}}
           <div class="text-sm text-gray-600">
             ⭐ {{ number_format($product->seller->reviews_avg_rating ?? 0, 1) }}
             ({{ $product->seller->reviews_count }} отзывов)
           </div>
-
           <a href="{{ route('seller.show',$product->seller) }}"
              class="mt-2 inline-block px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">
              Перейти в магазин
@@ -183,11 +190,9 @@
       <div x-show="tab==='desc'">
         <p class="text-gray-700">{{ $product->description }}</p>
       </div>
-
       <div x-show="tab==='sizes'">
         <p class="text-gray-700">Таблица размеров (сюда можно вывести таблицу из БД).</p>
       </div>
-
       <div x-show="tab==='props'">
         <ul class="text-gray-700 list-disc pl-5">
           <li>Материал: {{ $product->material ?? 'Хлопок' }}</li>
@@ -195,7 +200,6 @@
           <li>Бренд: {{ $product->brand->name ?? '—' }}</li>
         </ul>
       </div>
-
       <div x-show="tab==='reviews'">
         @auth
           <form method="post" action="{{ route('review.store',$product) }}" class="mb-4">@csrf
@@ -207,7 +211,6 @@
             <button class="mt-2 px-3 py-1.5 bg-indigo-600 text-white rounded">Отправить</button>
           </form>
         @endauth
-
         <div class="space-y-3">
           @forelse($product->reviews as $r)
             <div class="bg-white border rounded p-3">
@@ -239,4 +242,24 @@
   </div>
 
 </div>
+
+{{-- Leaflet подключение --}}
+@if($product->latitude && $product->longitude)
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+      let lat = {{ $product->latitude }};
+      let lng = {{ $product->longitude }};
+      let map = L.map('map').setView([lat, lng], 15);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      L.marker([lat, lng]).addTo(map).bindPopup("{{ $product->title }}");
+  });
+  </script>
+@endif
+
 </x-app-layout>

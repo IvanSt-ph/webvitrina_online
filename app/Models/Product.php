@@ -21,6 +21,10 @@ class Product extends Model
         'description',
         'city_id',
         'gallery',
+        'country_id',   // 👈 если у тебя в таблице есть
+        'address',      // 👈 новое поле
+        'latitude',     // 👈 новое поле
+        'longitude',    // 👈 новое поле
     ];
 
     protected function casts(): array
@@ -28,6 +32,8 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'gallery' => 'array',
+            'latitude' => 'decimal:6',   // 👈 чтобы работало как число
+            'longitude' => 'decimal:6',  // 👈 чтобы работало как число
         ];
     }
 
@@ -61,8 +67,8 @@ class Product extends Model
         return $this->hasOneThrough(
             Country::class,
             City::class,
-            'id',         // Foreign key в cities (city_id в products → id в cities)
-            'id',         // Foreign key в countries (country_id в cities → id в countries)
+            'id',         // Foreign key в cities
+            'id',         // Foreign key в countries
             'city_id',    // Local key в products
             'country_id'  // Local key в cities
         );
