@@ -128,6 +128,162 @@
                 </select>
             </div>
 
+
+            {{-- === Адрес + карта === --}}
+<div>
+  <label class="block text-sm font-medium text-gray-700">Адрес (улица, дом)</label>
+  <input id="address" name="address" type="text"
+         class="w-full border rounded-lg px-3 py-2"
+         placeholder="Например: ул. Ленина, 2"
+         value="{{ old('address') }}">
+
+  <button type="button" id="searchAddress"
+          class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+    Найти на карте
+  </button>
+
+  <p id="addressError" class="text-red-600 text-sm mt-2 hidden"></p>
+</div>
+
+<div class="mt-4">
+  <label class="block text-sm font-medium text-gray-700 mb-1">Местоположение на карте</label>
+  <div id="map" class="w-full h-64 rounded border"></div>
+
+  <input type="hidden" id="latitude" name="latitude"
+         value="{{ old('latitude') }}">
+  <input type="hidden" id="longitude" name="longitude"
+         value="{{ old('longitude') }}">
+
+  <p class="text-xs text-gray-500 mt-2">
+    📍 Перетащите метку или кликните по карте, чтобы указать координаты.
+  </p>
+</div>
+
+{{-- Подключение leaflet --}}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let lat = {{ old('latitude', 47.0105) }};
+    let lng = {{ old('longitude', 28.8638) }};
+    let zoom = {{ old('latitude') ? 14 : 7 }};
+
+    let map = L.map('map').setView([lat, lng], zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker = L.marker([lat, lng], {draggable:true}).addTo(map);
+
+    function updateCoords(latlng) {
+        document.getElementById('latitude').value = latlng.lat.toFixed(6);
+        document.getElementById('longitude').value = latlng.lng.toFixed(6);
+    }
+    updateCoords(marker.getLatLng());
+
+    function shortAddress(addr) {
+        let parts = [];
+        if (addr.road) parts.push(addr.road);
+        if (addr.house_number) parts.push(addr.house_number);
+        if (addr.city) parts.push(addr.city);
+        else if (addr.town) parts.push(addr.town);
+        else if (addr.village) parts.push(addr.village);
+        if (addr.country) parts.push(addr.country);
+        return parts.join(', ');
+    }
+
+    marker.on('dragend', async function(e) {
+        let latlng = e.target.getLatLng();
+        updateCoords(latlng);
+        let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`;
+        let res = await fetch(url);
+        let data = await res.json();
+        if (data && data.address) {
+            document.getElementById('address').value = shortAddress(data.address);
+        }
+    });
+
+    map.on('click', async function(e) {
+        marker.setLatLng(e.latlng);
+        updateCoords(e.latlng);
+        let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`;
+        let res = await fetch(url);
+        let data = await res.json();
+        if (data && data.address) {
+            document.getElementById('address').value = shortAddress(data.address);
+        }
+    });
+
+    document.getElementById('searchAddress').addEventListener('click', async function() {
+        let query = document.getElementById('address').value.trim();
+        let errorBox = document.getElementById('addressError');
+        errorBox.classList.add('hidden');
+        errorBox.textContent = "";
+
+        let country = document.querySelector('[name="country_id"]');
+        let city    = document.querySelector('[name="city_id"]');
+        let countryText = country?.options[country.selectedIndex]?.text || '';
+        let cityText    = city?.options[city.selectedIndex]?.text || '';
+
+        if (!query && cityText) {
+            query = `${cityText}, ${countryText}`;
+        }
+        if (!query) {
+            errorBox.textContent = "Введите адрес или выберите город";
+            errorBox.classList.remove('hidden');
+            return;
+        }
+
+        let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+        let res = await fetch(url);
+        let data = await res.json();
+
+        if (data.length === 0) {
+            errorBox.textContent = "❌ Такой адрес не найден.";
+            errorBox.classList.remove('hidden');
+            return;
+        }
+
+        let found = data[0];
+        let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
+        map.setView(latlng, 14);
+        marker.setLatLng(latlng);
+        updateCoords({lat: latlng[0], lng: latlng[1]});
+        if (found.address) {
+            document.getElementById('address').value = shortAddress(found.address);
+        }
+    });
+
+    document.querySelector('[name="city_id"]').addEventListener('change', async function() {
+        let country = document.querySelector('[name="country_id"]');
+        let city    = document.querySelector('[name="city_id"]');
+        let countryText = country?.options[country.selectedIndex]?.text || '';
+        let cityText    = city?.options[city.selectedIndex]?.text || '';
+        if (!cityText) return;
+
+        let query = `${cityText}, ${countryText}`;
+        let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+        let res = await fetch(url);
+        let data = await res.json();
+        if (data.length > 0) {
+            let found = data[0];
+            let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
+            map.setView(latlng, 13);
+            marker.setLatLng(latlng);
+            updateCoords({lat: latlng[0], lng: latlng[1]});
+            document.getElementById('address').value = `${cityText}, ${countryText}`;
+        }
+    });
+});
+</script>
+
+
+
+
+
+
+
             {{-- Статус --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700">Статус</label>
