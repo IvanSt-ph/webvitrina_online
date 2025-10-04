@@ -106,136 +106,149 @@
              value="{{ old('longitude', $product->longitude) }}">
     </div>
 
-    {{-- Подключение leaflet --}}
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+   {{-- Подключение leaflet --}}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // === Начальные координаты ===
-        let lat = {{ $product->latitude ?? 47.0105 }};
-        let lng = {{ $product->longitude ?? 28.8638 }};
-        let zoom = {{ $product->latitude ? 14 : 7 }};
+<style>
+  /* аккуратный стиль подписи © OpenStreetMap */
+  #map .leaflet-control-attribution {
+      font-size: 11px !important;
+      color: #666 !important;
+      background: rgba(255,255,255,0.8) !important;
+      border-radius: 6px !important;
+      padding: 2px 6px !important;
+  }
+</style>
 
-        let map = L.map('map').setView([lat, lng], zoom);
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // === Начальные координаты ===
+    const lat = {{ $product->latitude ?? 47.0105 }};
+    const lng = {{ $product->longitude ?? 28.8638 }};
+    const zoom = {{ $product->latitude ? 14 : 7 }};
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+    const map = L.map('map').setView([lat, lng], zoom);
 
-        let marker = L.marker([lat, lng], {draggable:true}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-        // === Обновление скрытых полей (lat/lng) ===
-        function updateCoords(latlng) {
-            document.getElementById('latitude').value = latlng.lat.toFixed(6);
-            document.getElementById('longitude').value = latlng.lng.toFixed(6);
+    // 🔹 только внутри после создания карты
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.setPosition('bottomleft');
+
+    const marker = L.marker([lat, lng], {draggable:true}).addTo(map);
+
+    // === Обновление скрытых полей (lat/lng) ===
+    function updateCoords(latlng) {
+        document.getElementById('latitude').value = latlng.lat.toFixed(6);
+        document.getElementById('longitude').value = latlng.lng.toFixed(6);
+    }
+    updateCoords(marker.getLatLng());
+
+    // === Формирование короткого адреса ===
+    function shortAddress(addr) {
+        if (!addr) return '';
+        const parts = [];
+        if (addr.road) parts.push(addr.road);
+        if (addr.house_number) parts.push(addr.house_number);
+        if (addr.city) parts.push(addr.city);
+        else if (addr.town) parts.push(addr.town);
+        else if (addr.village) parts.push(addr.village);
+        if (addr.country) parts.push(addr.country);
+        return parts.join(', ');
+    }
+
+    // === Обратное геокодирование при перетаскивании ===
+    marker.on('dragend', async (e) => {
+        const latlng = e.target.getLatLng();
+        updateCoords(latlng);
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'ru' } });
+        const data = await res.json();
+        if (data && data.address) {
+            document.getElementById('address').value = shortAddress(data.address);
         }
-        updateCoords(marker.getLatLng());
+    });
 
-        // === Формирование короткого адреса ===
-        function shortAddress(addr) {
-            let parts = [];
-            if (addr.road) parts.push(addr.road);
-            if (addr.house_number) parts.push(addr.house_number);
-            if (addr.city) parts.push(addr.city);
-            else if (addr.town) parts.push(addr.town);
-            else if (addr.village) parts.push(addr.village);
-            if (addr.country) parts.push(addr.country);
-            return parts.join(', ');
+    // === Клик по карте ===
+    map.on('click', async (e) => {
+        marker.setLatLng(e.latlng);
+        updateCoords(e.latlng);
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'ru' } });
+        const data = await res.json();
+        if (data && data.address) {
+            document.getElementById('address').value = shortAddress(data.address);
+        }
+    });
+
+    // === Поиск адреса вручную ===
+    document.getElementById('searchAddress').addEventListener('click', async () => {
+        let query = document.getElementById('address').value.trim();
+        const errorBox = document.getElementById('addressError');
+        errorBox.classList.add('hidden');
+        errorBox.textContent = "";
+
+        const country = document.getElementById('country');
+        const city    = document.getElementById('city');
+        const countryText = country?.options[country.selectedIndex]?.text || '';
+        const cityText    = city?.options[city.selectedIndex]?.text || '';
+
+        if (!query && cityText) query = `${cityText}, ${countryText}`;
+        if (!query) {
+            errorBox.textContent = "Введите адрес или выберите город";
+            errorBox.classList.remove('hidden');
+            return;
         }
 
-        // === Обратное геокодирование при перетаскивании ===
-        marker.on('dragend', async function(e) {
-            let latlng = e.target.getLatLng();
-            updateCoords(latlng);
-            let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`;
-            let res = await fetch(url);
-            let data = await res.json();
-            if (data && data.address) {
-                document.getElementById('address').value = shortAddress(data.address);
-            }
-        });
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(query)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'ru' } });
+        const data = await res.json();
 
-        // === Клик по карте ===
-        map.on('click', async function(e) {
-            marker.setLatLng(e.latlng);
-            updateCoords(e.latlng);
-            let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`;
-            let res = await fetch(url);
-            let data = await res.json();
-            if (data && data.address) {
-                document.getElementById('address').value = shortAddress(data.address);
-            }
-        });
+        if (!data.length) {
+            errorBox.textContent = "❌ Такой адрес не найден.";
+            errorBox.classList.remove('hidden');
+            return;
+        }
 
-        // === Поиск адреса вручную ===
-        document.getElementById('searchAddress').addEventListener('click', async function() {
-            let query = document.getElementById('address').value.trim();
-            let errorBox = document.getElementById('addressError');
-            errorBox.classList.add('hidden');
-            errorBox.textContent = "";
+        const found = data[0];
+        const latlng = [parseFloat(found.lat), parseFloat(found.lon)];
+        map.setView(latlng, 14);
+        marker.setLatLng(latlng);
+        updateCoords({lat: latlng[0], lng: latlng[1]});
 
-            let country = document.getElementById('country');
-            let city    = document.getElementById('city');
-            let countryText = country?.options[country.selectedIndex]?.text || '';
-            let cityText    = city?.options[city.selectedIndex]?.text || '';
+        if (found.address) {
+            document.getElementById('address').value = shortAddress(found.address);
+        } else if (found.display_name) {
+            document.getElementById('address').value = found.display_name;
+        }
+    });
 
-            if (!query && cityText) {
-                query = `${cityText}, ${countryText}`;
-            }
-            if (!query) {
-                errorBox.textContent = "Введите адрес или выберите город";
-                errorBox.classList.remove('hidden');
-                return;
-            }
+    // === Авто-прыжок на выбранный город ===
+    document.getElementById('city').addEventListener('change', async function() {
+        const country = document.getElementById('country');
+        const countryText = country?.options[country.selectedIndex]?.text || '';
+        const cityText    = this?.options[this.selectedIndex]?.text || '';
+        if (!cityText) return;
 
-            let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-            let res = await fetch(url);
-            let data = await res.json();
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(`${cityText}, ${countryText}`)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'ru' } });
+        const data = await res.json();
 
-            if (data.length === 0) {
-                errorBox.textContent = "❌ Такой адрес не найден.";
-                errorBox.classList.remove('hidden');
-                return;
-            }
-
-            let found = data[0];
-            let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
-            map.setView(latlng, 14);
+        if (data.length) {
+            const f = data[0];
+            const latlng = [parseFloat(f.lat), parseFloat(f.lon)];
+            map.setView(latlng, 13);
             marker.setLatLng(latlng);
             updateCoords({lat: latlng[0], lng: latlng[1]});
-
-            // адрес из city, country
-          document.getElementById('address').value = shortAddress(data[0].address);
-
-
-        });
-
-        // === Авто-прыжок на выбранный город ===
-        document.getElementById('city').addEventListener('change', async function() {
-            let country = document.getElementById('country');
-            let city    = document.getElementById('city');
-            let countryText = country?.options[country.selectedIndex]?.text || '';
-            let cityText    = city?.options[city.selectedIndex]?.text || '';
-
-            if (!cityText) return;
-
-            let query = `${cityText}, ${countryText}`;
-            let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-            let res = await fetch(url);
-            let data = await res.json();
-
-            if (data.length > 0) {
-                let found = data[0];
-                let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
-                map.setView(latlng, 13);
-                marker.setLatLng(latlng);
-                updateCoords({lat: latlng[0], lng: latlng[1]});
-                document.getElementById('address').value = `${cityText}, ${countryText}`;
-            }
-        });
+            document.getElementById('address').value = `${cityText}${countryText ? ', ' + countryText : ''}`;
+        }
     });
-    </script>
+});
+</script>
+
 
     {{-- === Главное изображение === --}}
     <div>

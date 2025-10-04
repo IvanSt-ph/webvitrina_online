@@ -243,23 +243,44 @@
 
 </div>
 
+
 {{-- Leaflet подключение --}}
 @if($product->latitude && $product->longitude)
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <style>
+    /* аккуратная стилизация надписи © OpenStreetMap */
+    #map .leaflet-control-attribution {
+      font-size: 11px !important;
+      color: #666 !important;
+      background: rgba(255,255,255,.8) !important;
+      border-radius: 6px !important;
+      padding: 2px 6px !important;
+    }
+  </style>
+
   <script>
-  document.addEventListener("DOMContentLoaded", function() {
-      let lat = {{ $product->latitude }};
-      let lng = {{ $product->longitude }};
-      let map = L.map('map').setView([lat, lng], 15);
+  document.addEventListener("DOMContentLoaded", function () {
+    const lat = {{ $product->latitude }};
+    const lng = {{ $product->longitude }};
+    const map = L.map('map').setView([lat, lng], 15);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-      L.marker([lat, lng]).addTo(map).bindPopup("{{ $product->title }}");
+    // 🔹 убираем слово "Leaflet" из подписи
+    map.attributionControl.setPrefix(false);
+
+    // 🔹 перемещаем блок влево (можно заменить на bottomright/topleft/topright)
+    map.attributionControl.setPosition('bottomleft');
+
+    // 🔹 добавляем метку
+    L.marker([lat, lng]).addTo(map).bindPopup("{{ addslashes($product->title) }}");
   });
   </script>
 @endif
+
 
 </x-app-layout>
