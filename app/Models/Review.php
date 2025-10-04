@@ -24,4 +24,10 @@ class Review extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    // 🔹 Фото, прикреплённые к отзыву
+    public function images()
+    {
+        return $this->hasMany(ReviewImage::class);
+    }
 }
