@@ -61,15 +61,20 @@ Route::middleware('auth')->group(function () {
     // 📝 Отзывы
     Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
 
-    // 🏪 Панель продавца
-    Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
-        Route::get('/products', [SellerProducts::class, 'index'])->name('products.index');
-        Route::get('/products/create', [SellerProducts::class, 'create'])->name('products.create');
-        Route::post('/products', [SellerProducts::class, 'store'])->name('products.store');
-        Route::get('/products/{product}/edit', [SellerProducts::class, 'edit'])->name('products.edit');
-        Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
-        Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
-    });
+// 🏪 Панель продавца
+Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
+    Route::get('/products', [SellerProducts::class, 'index'])->name('products.index');
+    Route::get('/products/create', [SellerProducts::class, 'create'])->name('products.create');
+    Route::post('/products', [SellerProducts::class, 'store'])->name('products.store');
+    Route::get('/products/{product}/edit', [SellerProducts::class, 'edit'])->name('products.edit');
+    Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
+
+    // 👇 вот сюда добавь маршрут удаления фото 👇
+    Route::delete('/products/{product}/gallery', [App\Http\Controllers\ProductController::class, 'deleteGalleryImage'])
+        ->name('products.gallery.delete');
+});
+
 });
 
 /*
@@ -146,4 +151,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     // ⚙ Настройки профиля
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+
+
+
+
+
+
+
 });

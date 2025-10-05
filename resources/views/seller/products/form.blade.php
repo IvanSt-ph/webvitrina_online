@@ -260,19 +260,85 @@ document.addEventListener("DOMContentLoaded", function() {
       @error('image') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
     </div>
 
-    {{-- === Галерея (несколько фото) === --}}
-    <div>
-      <label class="block text-sm">Галерея</label>
-      <input type="file" name="gallery[]" multiple class="w-full border rounded p-2"/>
-      @if(is_array($product->gallery) && count($product->gallery))
-        <div class="flex gap-2 mt-2 flex-wrap">
-          @foreach($product->gallery as $img)
-            <img src="{{ asset('storage/'.$img) }}" class="w-20 h-20 rounded border"/>
-          @endforeach
-        </div>
-      @endif
-      @error('gallery') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+   {{-- === Галерея (несколько фото) === --}}
+<div>
+  <label class="block text-sm">Галерея</label>
+  <input type="file" name="gallery[]" multiple class="w-full border rounded p-2"/>
+
+  {{-- ✅ Отображение уже загруженных фото --}}
+  @php
+      $gallery = is_array($product->gallery)
+          ? $product->gallery
+          : (json_decode($product->gallery, true) ?? []);
+  @endphp
+
+  @if(!empty($gallery))
+    <div id="gallery-container" class="flex gap-2 mt-2 flex-wrap">
+      @foreach($gallery as $img)
+        @if($img)
+          <div class="relative group">
+            <img src="{{ asset('storage/'.$img) }}"
+                 alt="Фото"
+                 class="w-20 h-20 object-cover rounded border">
+            <button type="button"
+                    data-path="{{ $img }}"
+                    class="absolute top-0 right-0 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
+              ✕
+            </button>
+          </div>
+        @endif
+      @endforeach
     </div>
+  @else
+    <p class="text-gray-400 text-sm mt-1">Нет загруженных фото</p>
+  @endif
+
+  @error('gallery') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+</div>
+
+{{-- === JS для удаления фото === --}}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const gallery = document.getElementById('gallery-container');
+  if (!gallery) return;
+
+  gallery.addEventListener('click', async (e) => {
+    if (!e.target.dataset.path) return;
+
+    const url = "{{ $product->exists ? route('seller.products.gallery.delete', $product) : '' }}";
+
+    if (!url) {
+      alert('💡 Сначала сохраните товар, чтобы можно было удалять фото.');
+      return;
+    }
+
+    if (!confirm('Удалить это фото из галереи?')) return;
+
+    const path = e.target.dataset.path;
+
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ path })
+    });
+
+    try {
+      const data = await res.json();
+      if (data.success) {
+        e.target.closest('.relative').remove();
+      } else {
+        alert('Ошибка при удалении изображения');
+      }
+    } catch {
+      alert('Ошибка при удалении изображения');
+    }
+  });
+});
+</script>
+
 
     {{-- === Кнопка сохранить === --}}
     <div class="pt-2">

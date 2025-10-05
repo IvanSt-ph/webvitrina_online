@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -21,10 +22,10 @@ class Product extends Model
         'description',
         'city_id',
         'gallery',
-        'country_id',   // 👈 если у тебя в таблице есть
-        'address',      // 👈 новое поле
-        'latitude',     // 👈 новое поле
-        'longitude',    // 👈 новое поле
+        'country_id',
+        'address',
+        'latitude',
+        'longitude',
     ];
 
     protected function casts(): array
@@ -32,81 +33,108 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'gallery' => 'array',
-            'latitude' => 'decimal:6',   // 👈 чтобы работало как число
-            'longitude' => 'decimal:6',  // 👈 чтобы работало как число
+            'latitude' => 'decimal:6',
+            'longitude' => 'decimal:6',
         ];
     }
 
     // 🔹 Продавец
-    public function seller()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
+    public function seller() { return $this->belongsTo(User::class, 'user_id'); }
 
     // 🔹 Отзывы
-    public function reviews()
-    {
-        return $this->hasMany(Review::class);
-    }
+    public function reviews() { return $this->hasMany(Review::class); }
 
     // 🔹 Категория
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
+    public function category() { return $this->belongsTo(Category::class); }
 
     // 🔹 Город
-    public function city()
-    {
-        return $this->belongsTo(City::class);
-    }
+    public function city() { return $this->belongsTo(City::class); }
 
     // 🔹 Страна через город
-    public function country()
+    public function getCountryAttribute() { return $this->city?->country; }
+
+    // 🔹 Избранное
+    public function favorites() { return $this->hasMany(\App\Models\Favorite::class); }
+
+    public function isFavoritedBy($user)
     {
-        return $this->hasOneThrough(
-            Country::class,
-            City::class,
-            'id',         // Foreign key в cities
-            'id',         // Foreign key в countries
-            'city_id',    // Local key в products
-            'country_id'  // Local key в cities
-        );
+        return $user && $this->favorites()->where('user_id', $user->id)->exists();
     }
 
-    // 🔹 Автогенерация slug
+    /*
+    |--------------------------------------------------------------------------
+    | Хуки модели
+    |--------------------------------------------------------------------------
+    */
     protected static function boot()
     {
         parent::boot();
 
+        // 🆔 Генерация slug
         static::creating(function ($product) {
             if (empty($product->slug)) {
-                $product->slug = Str::slug($product->title) . '-' . uniqid();
+                $base = Str::slug($product->title);
+                $slug = $base;
+                $i = 1;
+                while (self::where('slug', $slug)->exists()) {
+                    $slug = "{$base}-{$i}";
+                    $i++;
+                }
+                $product->slug = $slug;
             }
         });
 
+        // ⚙️ Удаляем только изменённое главное фото, но не галерею
         static::updating(function ($product) {
-            if (empty($product->slug)) {
-                $product->slug = Str::slug($product->title) . '-' . uniqid();
+            if ($product->isDirty('image')) {
+                $old = $product->getOriginal('image');
+                if ($old && Storage::disk('public')->exists($old)) {
+                    Storage::disk('public')->delete($old);
+                }
+            }
+        });
+
+        // ❌ При обновлении товара не трогаем старую галерею (раньше тут была ошибка)
+        // Теперь Laravel не будет удалять все изображения, если одно изменилось.
+
+        // 🧹 При полном удалении товара удаляем только связанные файлы
+        static::deleting(function ($product) {
+            if ($product->image && Storage::disk('public')->exists($product->image)) {
+                Storage::disk('public')->delete($product->image);
+            }
+
+            if (is_array($product->gallery)) {
+                foreach ($product->gallery as $path) {
+                    if ($path && Storage::disk('public')->exists($path)) {
+                        Storage::disk('public')->delete($path);
+                    }
+                }
             }
         });
     }
 
-    // 🔹 Избранное (favorites)
-    public function favorites()
+    /*
+    |--------------------------------------------------------------------------
+    | Акцессоры
+    |--------------------------------------------------------------------------
+    */
+    public function getPriceFormattedAttribute(): string
     {
-        return $this->hasMany(\App\Models\Favorite::class);
+        return number_format($this->price, 2, ',', ' ') . ' ₽';
     }
 
-    // 🔹 Проверка — добавлен ли товар в избранное данным пользователем
-    public function isFavoritedBy($user)
+    public function getImageUrlAttribute(): ?string
     {
-        if (!$user) return false;
+        return $this->image ? asset('storage/' . $this->image) : null;
+    }
 
-        return $this->favorites()
-            ->where('user_id', $user->id)
-            ->exists();
+    public function getCountryNameAttribute(): ?string
+    {
+        return $this->country?->name;
+    }
+
+    public function getCityNameAttribute(): ?string
+    {
+        return $this->city?->name;
     }
 }
-
-
