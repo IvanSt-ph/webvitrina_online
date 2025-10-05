@@ -13,10 +13,10 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    /** Список товаров */
+    /** 🧾 Список товаров */
     public function index()
     {
-        $products = Product::with('category', 'seller', 'city', 'country')
+        $products = Product::with(['category', 'seller', 'city.country'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -25,21 +25,19 @@ class ProductController extends Controller
         return view('admin.products.index', compact('products', 'categories'));
     }
 
-    /** Форма создания */
+    /** ➕ Форма создания */
     public function create()
     {
         $categories = Category::whereNull('parent_id')->orderBy('name')->get();
         $sellers    = User::where('role', 'seller')->orderBy('name')->get();
         $countries  = Country::orderBy('name')->get();
-        $cities     = collect(); // при создании города пустые, подтянутся через AJAX
-
-        // Создаём временный объект $product, чтобы не было ошибки при доступе к $product->latitude в Blade
-        $product = new Product();
+        $cities     = collect(); // города подтянутся через AJAX
+        $product    = new Product(); // чтобы карта не падала при пустых координатах
 
         return view('admin.products.create', compact('categories', 'sellers', 'countries', 'cities', 'product'));
     }
 
-    /** Сохранение нового товара */
+    /** 💾 Сохранение нового товара */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -55,18 +53,17 @@ class ProductController extends Controller
             'image'       => 'nullable|image|max:2048',
             'gallery.*'   => 'nullable|image|max:2048',
             'status'      => 'nullable|boolean',
-
-            // 🗺️ Новые поля
             'address'     => 'nullable|string|max:255',
             'latitude'    => 'nullable|numeric',
             'longitude'   => 'nullable|numeric',
         ]);
 
-        // 📸 Сохраняем изображения
+        // 📸 Главное фото
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');
         }
 
+        // 📸 Галерея
         if ($request->hasFile('gallery')) {
             $gallery = [];
             foreach ($request->file('gallery') as $file) {
@@ -77,29 +74,25 @@ class ProductController extends Controller
 
         Product::create($data);
 
-        return redirect()
-            ->route('admin.products.index')
+        return redirect()->route('admin.products.index')
             ->with('success', '✅ Товар успешно создан.');
     }
 
-    /** Форма редактирования */
+    /** ✏️ Редактирование */
     public function edit(Product $product)
     {
         $categories = Category::whereNull('parent_id')->orderBy('name')->get();
         $sellers    = User::where('role', 'seller')->orderBy('name')->get();
         $countries  = Country::orderBy('name')->get();
 
-        // если у товара есть страна — загрузим только её города
         $cities = $product->country_id
             ? City::where('country_id', $product->country_id)->orderBy('name')->get()
             : collect();
 
-        return view('admin.products.edit', compact(
-            'product', 'categories', 'sellers', 'countries', 'cities'
-        ));
+        return view('admin.products.edit', compact('product', 'categories', 'sellers', 'countries', 'cities'));
     }
 
-    /** Обновление товара */
+    /** 🔄 Обновление */
     public function update(Request $request, Product $product)
     {
         $data = $request->validate([
@@ -115,24 +108,22 @@ class ProductController extends Controller
             'image'       => 'nullable|image|max:2048',
             'gallery.*'   => 'nullable|image|max:2048',
             'status'      => 'nullable|boolean',
-
-            // 🗺️ Новые поля
             'address'     => 'nullable|string|max:255',
             'latitude'    => 'nullable|numeric',
             'longitude'   => 'nullable|numeric',
         ]);
 
-        // 📸 Обновляем изображения
+        // 📸 Обновляем главное фото
         if ($request->hasFile('image')) {
-            // Удаляем старое изображение (по желанию)
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
             $data['image'] = $request->file('image')->store('products', 'public');
         }
 
+        // 📸 Добавляем новую галерею
         if ($request->hasFile('gallery')) {
-            $gallery = [];
+            $gallery = $product->gallery ?? [];
             foreach ($request->file('gallery') as $file) {
                 $gallery[] = $file->store('products/gallery', 'public');
             }
@@ -141,22 +132,20 @@ class ProductController extends Controller
 
         $product->update($data);
 
-        return redirect()
-            ->route('admin.products.index')
+        return redirect()->route('admin.products.index')
             ->with('success', '✅ Товар успешно обновлён.');
     }
 
-    /** Удаление товара */
+    /** 🗑️ Удаление товара */
     public function destroy(Product $product)
     {
-        // Удаляем изображения
         if ($product->image && Storage::disk('public')->exists($product->image)) {
             Storage::disk('public')->delete($product->image);
         }
 
         if (is_array($product->gallery)) {
             foreach ($product->gallery as $img) {
-                if (Storage::disk('public')->exists($img)) {
+                if ($img && Storage::disk('public')->exists($img)) {
                     Storage::disk('public')->delete($img);
                 }
             }
@@ -164,8 +153,38 @@ class ProductController extends Controller
 
         $product->delete();
 
-        return redirect()
-            ->route('admin.products.index')
+        return redirect()->route('admin.products.index')
             ->with('success', '🗑️ Товар удалён.');
     }
+
+    /** 🖼️ Удаление одного фото из галереи (AJAX) */
+public function deleteGalleryImage(Request $request, Product $product)
+{
+    $path = $request->input('path');
+
+    if (!$path || !is_array($product->gallery)) {
+        return response()->json(['error' => 'Неверный путь к файлу'], 400);
+    }
+
+    // Проверяем, принадлежит ли файл этому товару
+    if (!in_array($path, $product->gallery)) {
+        return response()->json(['error' => 'Фото не принадлежит этому товару'], 403);
+    }
+
+    // Удаляем сам файл
+    if (Storage::disk('public')->exists($path)) {
+        Storage::disk('public')->delete($path);
+    }
+
+    // Обновляем массив галереи без удалённого пути
+    $gallery = collect($product->gallery)
+        ->reject(fn($img) => trim($img) === trim($path))
+        ->values()
+        ->all();
+
+    $product->update(['gallery' => $gallery]);
+
+    return response()->json(['success' => true]);
+}
+
 }

@@ -153,6 +153,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
 
+// 🖼️ Удаление отдельного фото из галереи (в админке)
+Route::delete('/products/{product}/gallery', [App\Http\Controllers\Admin\ProductController::class, 'deleteGalleryImage'])
+    ->name('products.gallery.delete');
 
 
 

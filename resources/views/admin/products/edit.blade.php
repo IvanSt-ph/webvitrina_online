@@ -303,18 +303,79 @@ document.addEventListener("DOMContentLoaded", function() {
                     @endif
                     <input type="file" name="image" accept="image/*" class="mt-1 block w-full">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Галерея (несколько)</label>
-                    @if($product->gallery)
-                        <div class="flex flex-wrap gap-2 mb-2">
-                            @foreach($product->gallery as $img)
-                                <img src="{{ asset('storage/' . $img) }}" class="h-16 rounded border">
-                            @endforeach
-                        </div>
-                    @endif
-                    <input type="file" name="gallery[]" multiple accept="image/*" class="mt-1 block w-full">
-                </div>
-            </div>
+              
+
+
+                {{-- Галерея (несколько) --}}
+<div>
+  <label class="block text-sm font-medium text-gray-700">Галерея изображений</label>
+
+  {{-- Отображаем существующие изображения --}}
+  @php
+      $gallery = is_array($product->gallery)
+          ? $product->gallery
+          : (json_decode($product->gallery, true) ?? []);
+  @endphp
+
+  @if(!empty($gallery))
+    <div id="gallery-container" class="flex flex-wrap gap-3 mt-2">
+      @foreach($gallery as $img)
+        <div class="relative group">
+          <img src="{{ asset('storage/' . $img) }}"
+               alt="Фото"
+               class="w-20 h-20 object-cover rounded border">
+          <button type="button"
+                  data-path="{{ $img }}"
+                  class="absolute top-0 right-0 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
+            ✕
+          </button>
+        </div>
+      @endforeach
+    </div>
+  @else
+    <p class="text-gray-400 text-sm mt-1">Нет загруженных фото</p>
+  @endif
+
+  {{-- Загрузка новых фото --}}
+  <input type="file" name="gallery[]" multiple accept="image/*" class="mt-2 block w-full border rounded px-3 py-2">
+</div>
+
+{{-- JS для AJAX удаления --}}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const gallery = document.getElementById('gallery-container');
+  if (!gallery) return;
+
+  gallery.addEventListener('click', async (e) => {
+    if (!e.target.dataset.path) return;
+    if (!confirm('Удалить это фото из галереи?')) return;
+
+    const path = e.target.dataset.path;
+    const url = "{{ route('admin.products.gallery.delete', $product) }}";
+
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ path })
+    });
+
+    try {
+      const data = await res.json();
+      if (data.success) {
+        e.target.closest('.relative').remove();
+      } else {
+        alert('Ошибка: ' + (data.error || 'Не удалось удалить'));
+      }
+    } catch (err) {
+      alert('Ошибка при удалении изображения');
+    }
+  });
+});
+</script>
+
 
             {{-- Описание --}}
             <div>
