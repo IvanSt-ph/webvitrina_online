@@ -91,4 +91,22 @@ class Product extends Model
             }
         });
     }
+
+    // 🔹 Избранное (favorites)
+    public function favorites()
+    {
+        return $this->hasMany(\App\Models\Favorite::class);
+    }
+
+    // 🔹 Проверка — добавлен ли товар в избранное данным пользователем
+    public function isFavoritedBy($user)
+    {
+        if (!$user) return false;
+
+        return $this->favorites()
+            ->where('user_id', $user->id)
+            ->exists();
+    }
 }
+
+
