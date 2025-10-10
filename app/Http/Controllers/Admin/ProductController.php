@@ -187,18 +187,33 @@ public function deleteGalleryImage(Request $request, Product $product)
     return response()->json(['success' => true]);
 }
 
-    /** 🔍 Live поиск товаров (AJAX) */
+/** 🔍 Быстрый поиск товаров (FULLTEXT + fallback) */
 public function search(Request $request)
 {
-    $query = $request->get('q', '');
+    $query = trim($request->get('q', ''));
 
+    // если меньше 2 символов — сразу выходим
+    if (strlen($query) < 2) {
+        return response()->json([]);
+    }
+
+    // ⚡ Пробуем сначала быстрый FULLTEXT-поиск
     $products = Product::query()
-        ->where('title', 'like', "%{$query}%")
+        ->whereRaw("MATCH(title) AGAINST(? IN NATURAL LANGUAGE MODE)", [$query])
         ->limit(10)
         ->get(['id', 'title', 'price', 'image']);
 
+    // 🩹 Если ничего не найдено (или FULLTEXT не работает), fallback на обычный LIKE
+    if ($products->isEmpty()) {
+        $products = Product::query()
+            ->where('title', 'like', "%{$query}%")
+            ->limit(10)
+            ->get(['id', 'title', 'price', 'image']);
+    }
+
     return response()->json($products);
 }
+
 
 
 }
