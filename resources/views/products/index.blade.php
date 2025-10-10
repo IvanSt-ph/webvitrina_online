@@ -1,8 +1,5 @@
-{{-- resources/views/products/index.blade.php    это старица когда влючаешь только категории(конкретную) --}}
-<x-app-layout title="Каталог">
+<x-app-layout title="{{ $category->name ?? 'Каталог' }}">
   <div class="max-w-7xl mx-auto px-4 lg:px-6">
-
-
 
     @php
         $keep = request()->except(['page','sort']);
@@ -17,8 +14,19 @@
         ];
     @endphp
 
+    <!-- Заголовок категории -->
+    @if(isset($category))
+      <h1 class="text-2xl font-semibold text-gray-800 mb-6 fade-in">
+        {{ $category->name }}
+      </h1>
+    @else
+      <h1 class="text-2xl font-semibold text-gray-800 mb-6 fade-in">
+        Каталог товаров
+      </h1>
+    @endif
+
     <!-- Сортировка -->
-    <div class="flex justify-end mb-10">
+    <div class="flex justify-end mb-10 fade-in">
       <div x-data="{ open: false }" class="relative inline-block text-left">
         <button @click="open = !open"
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition">
@@ -55,51 +63,67 @@
 
     <!-- Каталог карточек -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-      @foreach($products as $p)
-        <x-product-card :p="$p" />
-      @endforeach
+      @forelse($products as $p)
+        <div class="fade-card">
+          <x-product-card :p="$p" />
+        </div>
+      @empty
+        <p class="col-span-full text-gray-500 text-center py-20">Нет товаров в этой категории.</p>
+      @endforelse
     </div>
 
     <!-- Пагинация -->
-    <div class="mt-12">
+    <div class="mt-12 fade-in">
       {{ $products->withQueryString()->links() }}
     </div>
 
   </div>
 
-  <!-- 🧃 Контейнер для уведомлений -->
+  <!-- 🧃 Контейнер уведомлений -->
   <div id="toast-container"
        class="fixed bottom-12 right-5 flex flex-col gap-3 z-[9999] pointer-events-none">
   </div>
-
 </x-app-layout>
 
 <style>
-.slide-up {
-  transform: translateY(10px);
+/* 🌿 Эффект плавного появления карточек */
+.fade-card {
   opacity: 0;
-  transition: all 0.4s ease;
-}
-.group:hover .slide-up {
-  transform: translateY(0);
-  opacity: 1;
+  transform: translateY(15px);
+  transition: all 0.7s ease-out;
+  will-change: opacity, transform;
 }
 
-/* 🌈 Всплывающие уведомления */
-.toast-item {
-  position: relative;
-  backdrop-filter: blur(8px);
-  background-color: rgba(255,255,255,0.9);
+.fade-card.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
-.toast-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 4px;
-  background: linear-gradient(180deg, #74bdfd, #4090ee);
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
+
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const cards = document.querySelectorAll('.fade-card');
+
+  const showVisibleCards = () => {
+    cards.forEach(card => {
+      const rect = card.getBoundingClientRect();
+      if (rect.top < window.innerHeight - 100) {
+        card.classList.add('visible');
+      }
+    });
+  };
+
+  // Показываем при загрузке и при прокрутке
+  showVisibleCards();
+  window.addEventListener('scroll', showVisibleCards, { passive: true });
+});
+</script>
