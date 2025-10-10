@@ -1,10 +1,8 @@
-{{-- resources/views/products/index.blade.php --}}
+{{-- resources/views/products/index.blade.php    это старица когда влючаешь только категории(конкретную) --}}
 <x-app-layout title="Каталог">
   <div class="max-w-7xl mx-auto px-4 lg:px-6">
 
-    <h1 class="text-2xl font-semibold text-gray-800 mb-8 tracking-tight">
-      Каталог товаров
-    </h1>
+
 
     @php
         $keep = request()->except(['page','sort']);

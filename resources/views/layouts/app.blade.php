@@ -49,7 +49,7 @@
     @endisset
 
     {{-- Контент --}}
-    <main class="pb-16">
+    <main class="pt-2 md:pt-16 pb-12">
         @hasSection('content')
             @yield('content')
         @else
