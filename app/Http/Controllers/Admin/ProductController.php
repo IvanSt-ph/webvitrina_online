@@ -187,4 +187,18 @@ public function deleteGalleryImage(Request $request, Product $product)
     return response()->json(['success' => true]);
 }
 
+    /** 🔍 Live поиск товаров (AJAX) */
+public function search(Request $request)
+{
+    $query = $request->get('q', '');
+
+    $products = Product::query()
+        ->where('title', 'like', "%{$query}%")
+        ->limit(10)
+        ->get(['id', 'title', 'price', 'image']);
+
+    return response()->json($products);
+}
+
+
 }

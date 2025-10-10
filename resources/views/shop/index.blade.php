@@ -1,32 +1,52 @@
+@php
+use App\Models\Banner;
+
+/*
+|--------------------------------------------------------------------------
+| Подгружаем баннеры из базы (кэш 5 минут)
+|--------------------------------------------------------------------------
+*/
+$bannerItems = cache()->remember('slides_home', 300, function () {
+    return Banner::where('active', true)
+        ->orderBy('sort_order')
+        ->get(['image', 'link']);
+});
+
+$firstBanner = $bannerItems->first();
+$firstImage = $firstBanner
+    ? asset('storage/'.$firstBanner->image)
+    : asset('storage/banners/sale1.jpg'); // запасной баннер, если БД пуста
+@endphp
+
+
 <x-app-layout title="Каталог">
   <div class="max-w-7xl mx-auto px-4 lg:px-6">
 
-    {{-- 🚀 Моментальный слайдер с плавной анимацией --}}
-    <div 
-      class="relative w-full h-40 sm:h-72 lg:h-60 overflow-hidden rounded-2xl mt-6 mb-10 shadow-lg shadow-gray-200/50"
-    >
+    {{-- 🚀 Слайдер с баннерами из базы --}}
+    <div class="relative w-full h-40 sm:h-72 lg:h-60 overflow-hidden rounded-2xl mt-6 mb-10 shadow-lg shadow-gray-200/50">
+
       {{-- ✅ Статичный первый фон для мгновенной загрузки --}}
       <img 
-        src="{{ asset('storage/banners/sale1.jpg') }}" 
-        alt="Горячие скидки"
+        src="{{ $firstImage }}" 
+        alt="Баннер"
         class="absolute inset-0 w-full h-full object-cover"
         style="z-index: 0;"
       >
       <div class="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black/25 via-transparent to-transparent"></div>
       <div class="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/25 via-transparent to-transparent"></div>
 
-      {{-- ⚡ Alpine.js слайдер поверх --}}
+      {{-- ⚡ Alpine.js слайдер --}}
+      @if($bannerItems->isNotEmpty())
       <div 
         x-data="{
           active: 0,
           timer: null,
           paused: false,
           direction: 1,
-          slides: [
-            { img: @js(asset('storage/banners/sale1.jpg')), link: '/products?sort=benefit' },
-            { img: @js(asset('storage/banners/new.jpg')),  link: '/products?sort=new' },
-            { img: @js(asset('storage/banners/hits.jpg')), link: '/products?sort=popular' }
-          ],
+          slides: @js($bannerItems->map(fn($b) => [
+              'img'  => asset('storage/'.$b->image),
+              'link' => $b->link ?: '#',
+          ])),
           next() { this.direction = 1; this.active = (this.active + 1) % this.slides.length },
           prev() { this.direction = -1; this.active = (this.active - 1 + this.slides.length) % this.slides.length },
           start() { this.timer = setInterval(() => { if(!this.paused) this.next() }, 5000) }
@@ -87,6 +107,11 @@
           ›
         </button>
       </div>
+      @else
+        <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+          Нет активных баннеров
+        </div>
+      @endif
     </div>
     {{-- /слайдер --}}
 
