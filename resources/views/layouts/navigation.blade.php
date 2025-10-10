@@ -1,4 +1,5 @@
-<nav class="bg-white border-b border-gray-100">
+<nav class="bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-md shadow-gray-200/40 fixed top-0 left-0 w-full z-50">
+
     <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Основная линия хедера -->
         <div class="hidden lg:flex items-center h-16 gap-6">
