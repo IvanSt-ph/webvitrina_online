@@ -16,7 +16,7 @@
 </head>
 <body class="font-sans antialiased">
 <div
-    class="min-h-screen bg-gray-100"
+    class="min-h-screen bg-white-100"
     x-data="{
         open: false,
         openSearch: false,
@@ -32,10 +32,12 @@
 >
 
     {{-- Верхнее меню (десктоп) --}}
-    @include('layouts.navigation')
+    @unless (request()->routeIs('cabinet') || request()->routeIs('orders.*') || request()->routeIs('profile.edit'))
+        @include('layouts.navigation')
 
-    {{-- Верхний бар (мобилка) --}}
-    @include('layouts.mobile-topbar')
+        {{-- Верхний бар (мобилка) --}}
+        @include('layouts.mobile-topbar')
+    @endunless
 
     {{-- Заголовок --}}
     @isset($header)
@@ -47,14 +49,13 @@
     @endisset
 
     {{-- Контент --}}
-<main class="pb-16">
-    @hasSection('content')
-        @yield('content')
-    @else
-        {{ $slot ?? '' }}
-    @endif
-</main>
-
+    <main class="pb-16">
+        @hasSection('content')
+            @yield('content')
+        @else
+            {{ $slot ?? '' }}
+        @endif
+    </main>
 
     {{-- Нижняя панель (мобилка) --}}
     @include('layouts.mobile-bottom-nav')
