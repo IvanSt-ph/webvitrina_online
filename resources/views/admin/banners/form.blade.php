@@ -4,15 +4,16 @@
 @extends('admin.layout')
 
 @section('content')
-@php $isEdit = $banner->exists; @endphp
+@php
+  $isEdit = $banner->exists;
+@endphp
 
 <div class="flex items-center justify-between mb-8">
   <h1 class="text-2xl font-semibold text-gray-800 tracking-tight">
     {{ $isEdit ? '✏️ Редактирование баннера' : '➕ Добавление нового баннера' }}
   </h1>
-  <a href="{{ route('admin.banners.index') }}" 
-     class="text-sm text-gray-500 hover:text-gray-700 transition">
-     ← Назад к списку
+  <a href="{{ route('admin.banners.index') }}" class="text-sm text-gray-500 hover:text-gray-700 transition">
+    ← Назад к списку
   </a>
 </div>
 
@@ -26,27 +27,12 @@
   </div>
 @endif
 
-
 <form 
-  action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}"
-  method="POST" 
+  method="POST"
   enctype="multipart/form-data"
-  x-data="{
-    preview: '{{ $isEdit ? asset('storage/'.$banner->image) : '' }}',
-    title: '{{ old('title', $banner->title) }}',
-    link: '{{ old('link', $banner->link) }}',
-    active: {{ old('active', $banner->active ? 'true' : 'false') }},
-    mode: 'desktop',
-
-    // 👇 размеры предпросмотра (уменьшенные, но в тех же пропорциях)
-    w: { mobile: 195, tablet: 410, desktop: 825 },
-    h: { mobile: 110, tablet: 190, desktop: 240 },
-
-    get label() {
-      return { mobile: '📱 Мобильный', tablet: '💻 Планшет', desktop: '🖥 Десктоп' }[this.mode];
-    }
-  }"
+  action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}"
   class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8 w-full"
+  autocomplete="off"
 >
   @csrf
   @if($isEdit) @method('PUT') @endif
@@ -55,10 +41,9 @@
   <section>
     <h2 class="text-lg font-semibold text-gray-800 mb-4">Основная информация</h2>
     <div class="grid md:grid-cols-2 gap-8">
-      
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Заголовок баннера</label>
-        <input type="text" name="title" x-model="title"
+        <input type="text" name="title" value="{{ old('title', $banner->title) }}"
                placeholder="Например: Осенние скидки до -30%"
                maxlength="80"
                class="w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-gray-200 transition">
@@ -66,7 +51,7 @@
 
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Ссылка (куда ведёт баннер)</label>
-        <input type="text" name="link" x-model="link"
+        <input type="text" name="link" value="{{ old('link', $banner->link) }}"
                placeholder="/products?sort=new или https://example.com"
                class="w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-gray-200 transition">
         <p class="text-xs text-gray-500 mt-1 leading-snug">
@@ -81,12 +66,12 @@
                value="{{ old('sort_order', $banner->sort_order ?? 0) }}"
                class="w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-gray-200 transition">
         <p class="text-xs text-gray-500 mt-1 leading-snug">
-          Меньшее число — выше в списке. Если одинаково, то по дате добавления.
+          Меньшее число — выше в списке.
         </p>
       </div>
 
       <div class="flex items-center gap-3 pt-5">
-        <input type="checkbox" id="active" name="active" value="1" x-model="active"
+        <input type="checkbox" id="active" name="active" value="1" {{ old('active', $banner->active) ? 'checked' : '' }}
                class="rounded border-gray-300 text-gray-900 focus:ring-gray-400">
         <label for="active" class="text-sm text-gray-700 select-none">
           Отображать баннер на сайте
@@ -95,85 +80,86 @@
     </div>
   </section>
 
-
-  {{-- === Предпросмотр баннера === --}}
-  <section class="space-y-4">
-    <h2 class="text-lg font-semibold text-gray-800 mb-2">Предпросмотр баннера</h2>
+  {{-- === Изображения для разных устройств === --}}
+  <section class="space-y-8">
+    <h2 class="text-lg font-semibold text-gray-800">Изображения баннера</h2>
     <p class="text-xs text-gray-500">
-      Пропорции соответствуют сайту (object-cover). Превью уменьшено для удобства.
+      Загрузите версии для разных устройств:<br>
+      🖥 <b>Десктоп</b> — 1920×500 px<br>
+      💻 <b>Планшет</b> — 1024×400 px<br>
+      📱 <b>Мобильный</b> — 768×480 px
     </p>
 
-    {{-- 🔘 Переключатели устройства --}}
-    <div class="flex gap-2">
-      <template x-for="opt in ['mobile','tablet','desktop']" :key="opt">
-        <button 
-          type="button"
-          @click="mode = opt"
-          class="px-3 py-1.5 rounded-lg text-sm border transition-all duration-150"
-          :class="mode === opt ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-100'">
-          <span x-text="{mobile:'📱 Мобильный', tablet:'💻 Планшет', desktop:'🖥 Десктоп'}[opt]"></span>
-        </button>
-      </template>
-    </div>
+    @foreach ([
+        ['field' => 'image_desktop', 'label' => '🖥 Десктоп', 'size' => '1920×500 px', 'aspect' => 'aspect-[3.84/1] sm:aspect-[2.8/1] md:aspect-[2.5/1] lg:aspect-[3.84/1]'],
+        ['field' => 'image_tablet',  'label' => '💻 Планшет', 'size' => '1024×400 px', 'aspect' => 'aspect-[2.8/1] md:aspect-[2.5/1]'],
+        ['field' => 'image_mobile',  'label' => '📱 Мобильный', 'size' => '768×480 px',  'aspect' => 'aspect-[3.84/1]'],
+    ] as $b)
+      @php
+        $field = $b['field'];
+        $image = $banner->$field ? asset('storage/'.$banner->$field) : '';
+      @endphp
 
-    {{-- 🖼 Контейнер предпросмотра --}}
-    <div class="flex flex-col items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
-      <p class="text-sm text-gray-600" x-text="label"></p>
+      <div x-data="{ preview: '{{ $image }}' }" class="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-medium text-gray-700">{{ $b['label'] }}</h3>
+          <button type="button" @click="preview = ''"
+                  class="text-xs text-gray-500 hover:text-red-600 transition">
+            Очистить превью ✕
+          </button>
+        </div>
 
-      <div
-        class="relative overflow-hidden rounded-xl border border-gray-300 shadow-md mx-auto ring-1 ring-gray-100"
-        :style="`width: ${w[mode]}px; height: ${h[mode]}px`"
-      >
-        <template x-if="preview">
-          <div class="relative w-full h-full">
-            <img :src="preview" alt="Баннер" class="absolute inset-0 w-full h-full object-cover">
-            <div class="absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-black/20 via-transparent to-transparent pointer-events-none"></div>
-            <div class="absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-black/20 via-transparent to-transparent pointer-events-none"></div>
+        {{-- 🖼 Реалистичный предпросмотр (как на сайте) --}}
+        <div class="relative bg-gray-200 border border-gray-300 rounded-xl overflow-hidden shadow-sm mx-auto w-full {{ $b['aspect'] }}">
+          <div class="absolute inset-0 w-full h-full bg-center bg-cover transition-all duration-500"
+               :style="preview ? `background-image: url('${preview}')` : ''"></div>
+
+          <template x-if="!preview">
+            <div class="flex items-center justify-center w-full h-full text-gray-500 text-sm">
+              Нет изображения
+            </div>
+          </template>
+
+          <div class="absolute bottom-0 left-0 right-0 bg-black/30 text-white text-xs py-1 px-3">
+            {{ $b['label'] }} — {{ $b['size'] }}
           </div>
-        </template>
+        </div>
 
-        <template x-if="!preview">
-          <div class="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500 text-sm">
-            Нет изображения
-          </div>
-        </template>
+        {{-- 📤 Загрузка файла --}}
+        <input 
+          type="file"
+          name="{{ $b['field'] }}"
+          accept="image/png,image/jpeg,image/webp"
+          @change="
+            const file = $event.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+              alert('⚠️ Файл слишком большой! Максимум 2 МБ.');
+              $event.target.value = '';
+              return;
+            }
+            preview = URL.createObjectURL(file);
+          "
+          class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 
+                 file:rounded-lg file:border-0 file:bg-gray-900 file:text-white 
+                 hover:file:bg-gray-800 focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 transition"
+        >
+        <p class="text-xs text-gray-500">Рекомендуемый размер: <b>{{ $b['size'] }}</b></p>
       </div>
-    </div>
-
-    {{-- 📤 Загрузка нового файла --}}
-    <div>
-      <input 
-        type="file"
-        name="image"
-        accept="image/png,image/jpeg,image/webp"
-        @change="
-          if ($event.target.files[0].size > 2 * 1024 * 1024) {
-            alert('⚠️ Файл слишком большой! Максимум 2 МБ.');
-            $event.target.value = '';
-            return;
-          }
-          preview = URL.createObjectURL($event.target.files[0]);
-        "
-        class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 
-               file:rounded-lg file:border-0 file:bg-gray-900 file:text-white 
-               hover:file:bg-gray-800 transition mt-3"
-        {{ $isEdit ? '' : 'required' }}>
-      <p class="text-xs text-gray-500 mt-1">
-        Рекомендуемый размер: <b>1920×500 px</b> (≈3.4:1). Формат: JPG/PNG/WebP. До 2 МБ.
-      </p>
-    </div>
+    @endforeach
   </section>
 
-
-  {{-- === Действия === --}}
+  {{-- === Кнопки действий === --}}
   <div class="flex gap-4 pt-2">
-    <button 
-      class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all duration-150 shadow-sm">
+    <button class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 
+                   focus:ring-2 focus:ring-offset-2 focus:ring-gray-300
+                   transition-all duration-150 shadow-sm">
       {{ $isEdit ? '💾 Сохранить изменения' : 'Создать баннер' }}
     </button>
 
     <a href="{{ route('admin.banners.index') }}" 
-       class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-150">
+       class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 
+              transition-all duration-150">
       Отмена
     </a>
   </div>

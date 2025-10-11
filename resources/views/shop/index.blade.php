@@ -3,112 +3,143 @@
 @php
 use App\Models\Banner;
 
-$bannerItems = cache()->remember('slides_home', 300, function () {
+/**
+ * ✅ Кэш баннеров на 1 час (3600 сек)
+ */
+$bannerItems = cache()->remember('slides_home', 3600, function () {
     return Banner::where('active', true)
         ->orderBy('sort_order')
-        ->get(['image', 'link']);
+        ->get(['image_desktop', 'image_tablet', 'image_mobile', 'link']);
 });
 
+/**
+ * ✅ Функция fallback для изображений
+ */
+function bannerImage($banner) {
+    if ($banner->image_desktop) return asset('storage/'.$banner->image_desktop);
+    if ($banner->image_tablet)  return asset('storage/'.$banner->image_tablet);
+    if ($banner->image_mobile)  return asset('storage/'.$banner->image_mobile);
+    return asset('storage/banners/sale1.jpg');
+}
+
 $firstBanner = $bannerItems->first();
-$firstImage = $firstBanner
-    ? asset('storage/'.$firstBanner->image)
-    : asset('storage/banners/sale1.jpg'); // запасной баннер
+$firstImage = $firstBanner ? bannerImage($firstBanner) : asset('storage/banners/sale1.jpg');
 @endphp
 
+{{-- ✅ Предзагрузка первого баннера для ускорения --}}
+<link rel="preload" as="image" href="{{ $firstImage }}">
 
 <x-app-layout title="Каталог">
 
-  {{-- 🚀 Широкий баннер почти на всю ширину (на уровне хедера) --}}
-  <div class="relative w-[92vw] max-w-[1650px] mx-auto h-[220px] sm:h-[380px] lg:h-[480px] 
-              overflow-hidden rounded-b-2xl shadow-lg shadow-gray-200/50 -mt-[0rem] z-[0]">
-
-    {{-- ✅ Первый баннер как фон --}}
-    <img 
-      src="{{ $firstImage }}" 
-      alt="Баннер"
-      class="absolute inset-0 w-full h-full object-cover"
-    >
-
-    {{-- ⚡ Alpine.js слайдер --}}
-    @if($bannerItems->isNotEmpty())
+  {{-- 🚀 Адаптивный баннер с плавной сменой изображений --}}
+  <div class="relative w-full flex justify-center bg-transparent">
     <div 
-      x-data="{
-        active: 0,
-        timer: null,
-        paused: false,
-        direction: 1,
-        slides: @js($bannerItems->map(fn($b) => [
-            'img'  => asset('storage/'.$b->image),
-            'link' => $b->link ?: '#',
-        ])),
-        next() { this.direction = 1; this.active = (this.active + 1) % this.slides.length },
-        prev() { this.direction = -1; this.active = (this.active - 1 + this.slides.length) % this.slides.length },
-        start() { this.timer = setInterval(() => { if(!this.paused) this.next() }, 5000) }
-      }"
-      x-init="start()"
-      @mouseenter="paused = true"
-      @mouseleave="paused = false"
-      class="absolute inset-0 z-[1]"
+      class="w-[90%] max-w-[1920px] overflow-hidden rounded-b-2xl relative
+             aspect-[3.84/1] sm:aspect-[2.8/1] md:aspect-[2.5/1] lg:aspect-[3.84/1]
+             opacity-0 scale-[0.97] animate-[fadeZoomIn_1.6s_ease-out_forwards]" {{-- ✅ чуть дольше для мягкости --}}
     >
 
-      <!-- Слайды -->
-      <template x-for="(slide, index) in slides" :key="index">
-        <a 
-          :href="slide.link"
-          class="absolute inset-0 transition-all duration-700 ease-in-out"
-          x-show="active === index"
-          x-transition:enter="transform opacity ease-in-out duration-700"
-          x-transition:enter-start="opacity-0 translate-x-[calc(var(--dir)*10%)]"
-          x-transition:enter-end="opacity-100 translate-x-0"
-          x-transition:leave="transform opacity ease-in-out duration-700"
-          x-transition:leave-start="opacity-100 translate-x-0"
-          x-transition:leave-end="opacity-0 translate-x-[calc(var(--dir)*-10%)]"
-          :style="`--dir:${direction}`"
-        >
-          <img 
-            :src="slide.img" 
-            alt=""
-            class="w-full h-full object-cover transition-transform duration-700 ease-in-out scale-105 hover:scale-110"
-          >
+      @if($bannerItems->isNotEmpty())
+<div 
+  x-data="{
+    active: 0,
+    timer: null,
+    paused: false,
+    screen: window.innerWidth,
+    slides: @js($bannerItems->map(fn($b) => [
+        'desktop' => $b->image_desktop ? asset('storage/'.$b->image_desktop) : asset('storage/banners/sale1.jpg'),
+        'tablet'  => $b->image_tablet  ? asset('storage/'.$b->image_tablet)  : asset('storage/banners/sale1.jpg'),
+        'mobile'  => $b->image_mobile  ? asset('storage/'.$b->image_mobile)  : asset('storage/banners/sale1.jpg'),
+        'link'    => $b->link ?: '#',
+    ])),
 
-          {{-- затемнение краёв --}}
-          <div class="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-black/20 via-transparent to-transparent pointer-events-none"></div>
-          <div class="absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-black/20 via-transparent to-transparent pointer-events-none"></div>
-        </a>
-      </template>
+    // 👉 Переключение слайдов
+    next() { this.active = (this.active + 1) % this.slides.length },
+    prev() { this.active = (this.active - 1 + this.slides.length) % this.slides.length },
+    start() { this.timer = setInterval(() => { if(!this.paused) this.next() }, 5000) },
 
-      <!-- Индикаторы -->
-      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-        <template x-for="(slide, index) in slides" :key="index">
-          <button 
-            @click="active = index"
-            class="w-3 h-3 rounded-full transition"
-            :class="active === index ? 'bg-white' : 'bg-white/50 hover:bg-white/70'">
-          </button>
-        </template>
-      </div>
+    // 🌐 Определяем подходящее изображение
+    srcFor(slide) {
+      if (this.screen <= 768) return slide.mobile ?? slide.tablet ?? slide.desktop;
+      if (this.screen <= 1280) return slide.tablet ?? slide.desktop;
+      return slide.desktop;
+    }
+  }"
+  x-init="
+    start();
+    // Отслеживаем изменение ширины окна
+    window.addEventListener('resize', () => { screen = window.innerWidth });
+    $watch('active', () => {
+      const el = $el.querySelector('.banner-bg');
+      el.classList.add('changing');
+      setTimeout(() => el.classList.remove('changing'), 400);
+    });
+  "
+  @mouseenter="paused = true"
+  @mouseleave="paused = false"
+  class="absolute inset-0 z-[1] overflow-hidden rounded-b-2xl"
+>
+  <!-- ✅ Один слайд, выбираем версию динамически -->
+  <a 
+    :href="slides[active].link" 
+    class="banner-bg absolute inset-0 w-full h-full object-cover"
+    :style="`background-image: url('${srcFor(slides[active])}'); background-size: cover; background-position: center;`"
+  ></a>
 
-      <!-- ◀ Стрелки ▶ -->
+  <!-- ◀ Стрелки ▶ -->
+  <button 
+    @click="prev()" 
+    class="absolute left-0 top-0 bottom-0 flex items-center px-4 text-white text-6xl font-light 
+           transition-all duration-300 hover:opacity-100 opacity-70 hover:-translate-x-1">‹</button>
+
+  <button 
+    @click="next()" 
+    class="absolute right-0 top-0 bottom-0 flex items-center px-4 text-white text-6xl font-light 
+           transition-all duration-300 hover:opacity-100 opacity-70 hover:translate-x-1">›</button>
+
+  <!-- ⚪ Индикаторы -->
+  <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+    <template x-for="(slide, index) in slides" :key="index">
       <button 
-        @click="prev()" 
-        class="absolute left-0 top-0 bottom-0 flex items-center px-4 text-white text-6xl font-light transition-all duration-300 hover:opacity-100 opacity-70 hover:-translate-x-1"
-      >
-        ‹
-      </button>
-
-      <button 
-        @click="next()" 
-        class="absolute right-0 top-0 bottom-0 flex items-center px-4 text-white text-6xl font-light transition-all duration-300 hover:opacity-100 opacity-70 hover:translate-x-1"
-      >
-        ›
-      </button>
-    </div>
-    @else
-      <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-        Нет активных баннеров
-      </div>
-    @endif
+        @click="active = index"
+        class="w-3 h-3 rounded-full transition"
+        :class="active === index ? 'bg-white' : 'bg-white/50 hover:bg-white/70'"></button>
+    </template>
   </div>
+</div>
+@endif
+
+
+    </div>
+  </div>
+
+  {{-- ✨ Анимации и плавность --}}
+  <style>
+  /* ✅ Более плавное появление */
+  @keyframes fadeZoomIn {
+    0% { opacity: 0; transform: scale(0.96); }
+    50% { opacity: 0.5; transform: scale(0.985); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ✅ Оптимизация: filter меньше, transition объединён */
+  .banner-bg {
+    filter: blur(0px);
+    opacity: 1;
+    transform: scale(1);
+    transition: transform 0.6s ease-in-out, opacity 0.8s ease-in-out, filter 0.6s ease-in-out;
+    will-change: transform, opacity;
+  }
+
+  .banner-bg.changing {
+    filter: blur(2px);
+    opacity: 0.7;
+  }
+
+  .banner-bg:hover {
+    transform: scale(1.01);
+  }
+  </style>
 
   {{-- 📦 Основной контент --}}
   <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-12">
@@ -178,7 +209,6 @@ $firstImage = $firstBanner
 
   </div>
 </x-app-layout>
-
 
 {{-- ⚙️ Анимации карточек --}}
 <style>

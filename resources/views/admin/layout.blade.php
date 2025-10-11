@@ -8,6 +8,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Админка') | {{ config('app.name', 'Laravel') }}</title>
+
+    <link rel="icon" href="{{ asset('favicon.ico') }}">
+<meta name="theme-color" content="#4f46e5">
+<meta name="robots" content="noindex, nofollow">
+
+
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans antialiased">
