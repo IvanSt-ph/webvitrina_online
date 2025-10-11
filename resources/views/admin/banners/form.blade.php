@@ -1,3 +1,6 @@
+{{-- Форма создания и редактирования баннера в админке --}}
+{{-- Страница: resources/views/admin/banners/form.blade.php --}}
+
 @extends('admin.layout')
 
 @section('content')
@@ -23,6 +26,7 @@
   </div>
 @endif
 
+
 <form 
   action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}"
   method="POST" 
@@ -32,9 +36,17 @@
     title: '{{ old('title', $banner->title) }}',
     link: '{{ old('link', $banner->link) }}',
     active: {{ old('active', $banner->active ? 'true' : 'false') }},
-  }"
-class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8 w-full"
+    mode: 'desktop',
 
+    // 👇 размеры предпросмотра (уменьшенные, но в тех же пропорциях)
+    w: { mobile: 195, tablet: 410, desktop: 825 },
+    h: { mobile: 110, tablet: 190, desktop: 240 },
+
+    get label() {
+      return { mobile: '📱 Мобильный', tablet: '💻 Планшет', desktop: '🖥 Десктоп' }[this.mode];
+    }
+  }"
+  class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8 w-full"
 >
   @csrf
   @if($isEdit) @method('PUT') @endif
@@ -48,6 +60,7 @@ class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8 w-ful
         <label class="block text-sm font-medium text-gray-700 mb-1">Заголовок баннера</label>
         <input type="text" name="title" x-model="title"
                placeholder="Например: Осенние скидки до -30%"
+               maxlength="80"
                class="w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-gray-200 transition">
       </div>
 
@@ -83,74 +96,73 @@ class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8 w-ful
   </section>
 
 
+  {{-- === Предпросмотр баннера === --}}
+  <section class="space-y-4">
+    <h2 class="text-lg font-semibold text-gray-800 mb-2">Предпросмотр баннера</h2>
+    <p class="text-xs text-gray-500">
+      Пропорции соответствуют сайту (object-cover). Превью уменьшено для удобства.
+    </p>
 
-    {{-- === Изображение баннера === --}}
-    {{-- === Реалистичный предпросмотр баннера === --}}
-<section 
-  x-data="{
-    preview: '{{ $isEdit ? asset('storage/'.$banner->image) : '' }}',
-    mode: 'desktop',
-    get size() {
-      return { mobile: 'h-40 w-[390px]', tablet: 'h-60 w-[820px]', desktop: 'h-60 w-[1280px]' }[this.mode];
-    },
-    get label() {
-      return { mobile: '📱 Мобильный', tablet: '💻 Планшет', desktop: '🖥 Десктоп' }[this.mode];
-    }
-  }"
-  class="space-y-4"
->
-  <h2 class="text-lg font-semibold text-gray-800 mb-2">Предпросмотр баннера</h2>
-  <p class="text-xs text-gray-500">
-    Здесь показано, как баннер будет обрезан на сайте. 
-    (используется <code>object-cover</code> с фиксированной высотой).
-  </p>
-
-  {{-- 🔘 Переключатели устройства --}}
-  <div class="flex gap-2">
-    <template x-for="opt in ['mobile','tablet','desktop']" :key="opt">
-      <button 
-        type="button"
-        @click="mode = opt"
-        class="px-3 py-1.5 rounded-lg text-sm border transition-all duration-150"
-        :class="mode === opt ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-100'">
-        <span x-text="{mobile:'📱 Мобильный', tablet:'💻 Планшет', desktop:'🖥 Десктоп'}[opt]"></span>
-      </button>
-    </template>
-  </div>
-
-  {{-- 🖼 Контейнер предпросмотра --}}
-  <div class="flex flex-col items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
-    <p class="text-sm text-gray-600" x-text="label"></p>
-
-    <div class="relative overflow-hidden rounded-2xl border border-gray-300 shadow-md"
-         :class="size">
-      <template x-if="preview">
-        <div class="relative w-full h-full">
-          <img :src="preview" alt="Баннер" class="absolute inset-0 w-full h-full object-cover">
-          <div class="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-black/25 via-transparent to-transparent pointer-events-none"></div>
-          <div class="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black/25 via-transparent to-transparent pointer-events-none"></div>
-        </div>
-      </template>
-
-      <template x-if="!preview">
-        <div class="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500 text-sm">
-          Нет изображения
-        </div>
+    {{-- 🔘 Переключатели устройства --}}
+    <div class="flex gap-2">
+      <template x-for="opt in ['mobile','tablet','desktop']" :key="opt">
+        <button 
+          type="button"
+          @click="mode = opt"
+          class="px-3 py-1.5 rounded-lg text-sm border transition-all duration-150"
+          :class="mode === opt ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 hover:bg-gray-100'">
+          <span x-text="{mobile:'📱 Мобильный', tablet:'💻 Планшет', desktop:'🖥 Десктоп'}[opt]"></span>
+        </button>
       </template>
     </div>
-  </div>
 
-  {{-- 📤 Загрузка нового файла --}}
-  <div>
-    <input 
-      type="file" name="image" accept="image/*" 
-      @change="preview = URL.createObjectURL($event.target.files[0])"
-      class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 
-             file:rounded-lg file:border-0 file:bg-gray-900 file:text-white 
-             hover:file:bg-gray-800 transition mt-3"
-      {{ $isEdit ? '' : 'required' }}>
-  </div>
-</section>
+    {{-- 🖼 Контейнер предпросмотра --}}
+    <div class="flex flex-col items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
+      <p class="text-sm text-gray-600" x-text="label"></p>
+
+      <div
+        class="relative overflow-hidden rounded-xl border border-gray-300 shadow-md mx-auto ring-1 ring-gray-100"
+        :style="`width: ${w[mode]}px; height: ${h[mode]}px`"
+      >
+        <template x-if="preview">
+          <div class="relative w-full h-full">
+            <img :src="preview" alt="Баннер" class="absolute inset-0 w-full h-full object-cover">
+            <div class="absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-black/20 via-transparent to-transparent pointer-events-none"></div>
+            <div class="absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-black/20 via-transparent to-transparent pointer-events-none"></div>
+          </div>
+        </template>
+
+        <template x-if="!preview">
+          <div class="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500 text-sm">
+            Нет изображения
+          </div>
+        </template>
+      </div>
+    </div>
+
+    {{-- 📤 Загрузка нового файла --}}
+    <div>
+      <input 
+        type="file"
+        name="image"
+        accept="image/png,image/jpeg,image/webp"
+        @change="
+          if ($event.target.files[0].size > 2 * 1024 * 1024) {
+            alert('⚠️ Файл слишком большой! Максимум 2 МБ.');
+            $event.target.value = '';
+            return;
+          }
+          preview = URL.createObjectURL($event.target.files[0]);
+        "
+        class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 
+               file:rounded-lg file:border-0 file:bg-gray-900 file:text-white 
+               hover:file:bg-gray-800 transition mt-3"
+        {{ $isEdit ? '' : 'required' }}>
+      <p class="text-xs text-gray-500 mt-1">
+        Рекомендуемый размер: <b>1920×500 px</b> (≈3.4:1). Формат: JPG/PNG/WebP. До 2 МБ.
+      </p>
+    </div>
+  </section>
 
 
   {{-- === Действия === --}}

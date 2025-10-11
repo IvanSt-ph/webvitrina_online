@@ -1,11 +1,8 @@
+{{-- Главная / Каталог с баннерами и сортировкой --}}
+
 @php
 use App\Models\Banner;
 
-/*
-|--------------------------------------------------------------------------
-| Подгружаем баннеры из базы (кэш 5 минут)
-|--------------------------------------------------------------------------
-*/
 $bannerItems = cache()->remember('slides_home', 300, function () {
     return Banner::where('active', true)
         ->orderBy('sort_order')
@@ -15,106 +12,106 @@ $bannerItems = cache()->remember('slides_home', 300, function () {
 $firstBanner = $bannerItems->first();
 $firstImage = $firstBanner
     ? asset('storage/'.$firstBanner->image)
-    : asset('storage/banners/sale1.jpg'); // запасной баннер, если БД пуста
+    : asset('storage/banners/sale1.jpg'); // запасной баннер
 @endphp
 
 
 <x-app-layout title="Каталог">
-  <div class="max-w-7xl mx-auto px-4 lg:px-6">
 
-    {{-- 🚀 Слайдер с баннерами из базы --}}
-    <div class="relative w-full h-40 sm:h-72 lg:h-60 overflow-hidden rounded-2xl mt-6 mb-10 shadow-lg shadow-gray-200/50">
+  {{-- 🚀 Широкий баннер почти на всю ширину (на уровне хедера) --}}
+  <div class="relative w-[92vw] max-w-[1650px] mx-auto h-[220px] sm:h-[380px] lg:h-[480px] 
+              overflow-hidden rounded-b-2xl shadow-lg shadow-gray-200/50 -mt-[0rem] z-[0]">
 
-      {{-- ✅ Статичный первый фон для мгновенной загрузки --}}
-      <img 
-        src="{{ $firstImage }}" 
-        alt="Баннер"
-        class="absolute inset-0 w-full h-full object-cover"
-        style="z-index: 0;"
-      >
-      <div class="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black/25 via-transparent to-transparent"></div>
-      <div class="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/25 via-transparent to-transparent"></div>
+    {{-- ✅ Первый баннер как фон --}}
+    <img 
+      src="{{ $firstImage }}" 
+      alt="Баннер"
+      class="absolute inset-0 w-full h-full object-cover"
+    >
 
-      {{-- ⚡ Alpine.js слайдер --}}
-      @if($bannerItems->isNotEmpty())
-      <div 
-        x-data="{
-          active: 0,
-          timer: null,
-          paused: false,
-          direction: 1,
-          slides: @js($bannerItems->map(fn($b) => [
-              'img'  => asset('storage/'.$b->image),
-              'link' => $b->link ?: '#',
-          ])),
-          next() { this.direction = 1; this.active = (this.active + 1) % this.slides.length },
-          prev() { this.direction = -1; this.active = (this.active - 1 + this.slides.length) % this.slides.length },
-          start() { this.timer = setInterval(() => { if(!this.paused) this.next() }, 5000) }
-        }"
-        x-init="start()"
-        @mouseenter="paused = true"
-        @mouseleave="paused = false"
-        class="absolute inset-0 z-[1]"
-      >
-        <!-- Слайды -->
-        <template x-for="(slide, index) in slides" :key="index">
-          <a 
-            :href="slide.link"
-            class="absolute inset-0 transition-all duration-700 ease-in-out"
-            x-show="active === index"
-            x-transition:enter="transform opacity ease-in-out duration-700"
-            x-transition:enter-start="opacity-0 translate-x-[calc(var(--dir)*10%)]"
-            x-transition:enter-end="opacity-100 translate-x-0"
-            x-transition:leave="transform opacity ease-in-out duration-700"
-            x-transition:leave-start="opacity-100 translate-x-0"
-            x-transition:leave-end="opacity-0 translate-x-[calc(var(--dir)*-10%)]"
-            :style="`--dir:${direction}`"
+    {{-- ⚡ Alpine.js слайдер --}}
+    @if($bannerItems->isNotEmpty())
+    <div 
+      x-data="{
+        active: 0,
+        timer: null,
+        paused: false,
+        direction: 1,
+        slides: @js($bannerItems->map(fn($b) => [
+            'img'  => asset('storage/'.$b->image),
+            'link' => $b->link ?: '#',
+        ])),
+        next() { this.direction = 1; this.active = (this.active + 1) % this.slides.length },
+        prev() { this.direction = -1; this.active = (this.active - 1 + this.slides.length) % this.slides.length },
+        start() { this.timer = setInterval(() => { if(!this.paused) this.next() }, 5000) }
+      }"
+      x-init="start()"
+      @mouseenter="paused = true"
+      @mouseleave="paused = false"
+      class="absolute inset-0 z-[1]"
+    >
+
+      <!-- Слайды -->
+      <template x-for="(slide, index) in slides" :key="index">
+        <a 
+          :href="slide.link"
+          class="absolute inset-0 transition-all duration-700 ease-in-out"
+          x-show="active === index"
+          x-transition:enter="transform opacity ease-in-out duration-700"
+          x-transition:enter-start="opacity-0 translate-x-[calc(var(--dir)*10%)]"
+          x-transition:enter-end="opacity-100 translate-x-0"
+          x-transition:leave="transform opacity ease-in-out duration-700"
+          x-transition:leave-start="opacity-100 translate-x-0"
+          x-transition:leave-end="opacity-0 translate-x-[calc(var(--dir)*-10%)]"
+          :style="`--dir:${direction}`"
+        >
+          <img 
+            :src="slide.img" 
+            alt=""
+            class="w-full h-full object-cover transition-transform duration-700 ease-in-out scale-105 hover:scale-110"
           >
-            <img 
-              :src="slide.img" 
-              alt=""
-              class="w-full h-full object-cover transition-transform duration-700 ease-in-out scale-105 hover:scale-110"
-            >
-            <!-- затемнение по краям -->
-            <div class="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black/25 via-transparent to-transparent pointer-events-none"></div>
-            <div class="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/25 via-transparent to-transparent pointer-events-none"></div>
-          </a>
+
+          {{-- затемнение краёв --}}
+          <div class="absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-black/20 via-transparent to-transparent pointer-events-none"></div>
+          <div class="absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-black/20 via-transparent to-transparent pointer-events-none"></div>
+        </a>
+      </template>
+
+      <!-- Индикаторы -->
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        <template x-for="(slide, index) in slides" :key="index">
+          <button 
+            @click="active = index"
+            class="w-3 h-3 rounded-full transition"
+            :class="active === index ? 'bg-white' : 'bg-white/50 hover:bg-white/70'">
+          </button>
         </template>
-
-        <!-- Индикаторы -->
-        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-          <template x-for="(slide, index) in slides" :key="index">
-            <button 
-              @click="active = index"
-              class="w-3 h-3 rounded-full transition"
-              :class="active === index ? 'bg-white' : 'bg-white/50 hover:bg-white/70'">
-            </button>
-          </template>
-        </div>
-
-        <!-- Стрелки -->
-        <button 
-          @click="prev()" 
-          class="absolute left-0 top-0 bottom-0 flex items-center px-4 text-white text-7xl font-light transition-all duration-300 hover:opacity-100 opacity-80 hover:-translate-x-1"
-        >
-          ‹
-        </button>
-
-        <button 
-          @click="next()" 
-          class="absolute right-0 top-0 bottom-0 flex items-center px-4 text-white text-7xl font-light transition-all duration-300 hover:opacity-100 opacity-80 hover:translate-x-1"
-        >
-          ›
-        </button>
       </div>
-      @else
-        <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-          Нет активных баннеров
-        </div>
-      @endif
-    </div>
-    {{-- /слайдер --}}
 
+      <!-- ◀ Стрелки ▶ -->
+      <button 
+        @click="prev()" 
+        class="absolute left-0 top-0 bottom-0 flex items-center px-4 text-white text-6xl font-light transition-all duration-300 hover:opacity-100 opacity-70 hover:-translate-x-1"
+      >
+        ‹
+      </button>
+
+      <button 
+        @click="next()" 
+        class="absolute right-0 top-0 bottom-0 flex items-center px-4 text-white text-6xl font-light transition-all duration-300 hover:opacity-100 opacity-70 hover:translate-x-1"
+      >
+        ›
+      </button>
+    </div>
+    @else
+      <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+        Нет активных баннеров
+      </div>
+    @endif
+  </div>
+
+  {{-- 📦 Основной контент --}}
+  <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-12">
 
     @php
         $keep = request()->except(['page','sort']);
@@ -182,6 +179,8 @@ $firstImage = $firstBanner
   </div>
 </x-app-layout>
 
+
+{{-- ⚙️ Анимации карточек --}}
 <style>
 [x-cloak] { display: block !important; }
 

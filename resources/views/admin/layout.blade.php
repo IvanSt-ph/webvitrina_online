@@ -1,3 +1,7 @@
+{{-- АДМИНКА с боковым меню  --}}
+
+{{-- Страница: resources/views/admin/layout.blade.php--}}
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
