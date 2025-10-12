@@ -6,160 +6,103 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Country;
+use App\Services\ProductService;
 use Illuminate\Http\Request;
 
 class ProductManageController extends Controller
 {
-    /**
-     * Список товаров текущего продавца.
-     */
+    public function __construct(private ProductService $productService) {}
+
     public function index()
     {
         $products = Product::where('user_id', auth()->id())
-            ->with(['category', 'city.country'])
-            ->latest()
-            ->paginate(15);
+            ->with(['category','city.country'])->latest()->paginate(15);
 
         return view('seller.products.index', compact('products'));
     }
 
-    /**
-     * Форма создания товара.
-     */
     public function create()
     {
-        // Корневые категории и список стран для селектов
         $rootCategories = Category::whereNull('parent_id')->orderBy('name')->get();
         $countries = Country::orderBy('name')->get();
 
-        // Передаём "пустую" модель в форму
         return view('seller.products.form', [
-            'product'        => new Product(),
-            'rootCategories' => $rootCategories,
-            'countries'      => $countries,
+            'product'=>new Product(),
+            'rootCategories'=>$rootCategories,
+            'countries'=>$countries,
         ]);
     }
 
-    /**
-     * Сохранение нового товара.
-     * ВАЖНО: здесь обрабатываем и image, и gallery[].
-     */
     public function store(Request $request)
     {
-        // 1) Валидация входных данных.
-        $data = $request->validate([
-            'title'        => 'required|string|max:255',
-            'price'        => 'required|numeric|min:0',
-            'stock'        => 'required|integer|min:0',
-            'description'  => 'nullable|string',
-            'image'        => 'nullable|image|max:2048',
-            'gallery'      => 'nullable|array',
-            'gallery.*'    => 'nullable|image|max:2048',
-            'category_id'  => 'required|exists:categories,id',
-            'city_id'      => 'required|exists:cities,id',
-            'country_id'   => 'nullable|exists:countries,id',
-            'address'      => 'nullable|string|max:255',
-            'latitude'     => 'nullable|numeric',
-            'longitude'    => 'nullable|numeric',
+        $validated = $request->validate([
+            'title'=>'required|string|max:255',
+            'price'=>'required|numeric|min:0',
+            'stock'=>'required|integer|min:0',
+            'description'=>'nullable|string',
+            'image'=>'nullable|image|max:4096',
+            'gallery.*'=>'nullable|image|max:4096',
+            'category_id'=>'required|exists:categories,id',
+            'city_id'=>'required|exists:cities,id',
+            'country_id'=>'nullable|exists:countries,id',
+            'address'=>'nullable|string|max:255',
+            'latitude'=>'nullable|numeric',
+            'longitude'=>'nullable|numeric',
         ]);
 
-        // 2) Сохраняем главное фото (одно).
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('products', 'public');
-        }
+        $this->productService->store(
+            data: $validated,
+            image: $request->file('image'),
+            galleryFiles: $request->file('gallery', []),
+            userId: auth()->id()
+        );
 
-        // 3) Сохраняем галерею (несколько).
-        if ($request->hasFile('gallery')) {
-            $gallery = [];
-            foreach ($request->file('gallery') as $file) {
-                if ($file) {
-                    $gallery[] = $file->store('products/gallery', 'public');
-                }
-            }
-            $data['gallery'] = $gallery;
-        }
-
-        // 4) Привязываем товар к текущему продавцу.
-        $data['user_id'] = auth()->id();
-
-        // 5) Создаём товар.
-        Product::create($data);
-
-        return redirect()->route('seller.products.index')->with('success', 'Товар создан');
+        return redirect()->route('seller.products.index')->with('success','Товар создан');
     }
 
-    /**
-     * Форма редактирования товара.
-     */
     public function edit(Product $product)
     {
-        // Защита: нельзя редактировать чужой товар
         $this->authorize('update', $product);
-
         $rootCategories = Category::whereNull('parent_id')->orderBy('name')->get();
-        $countries      = Country::orderBy('name')->get();
+        $countries = Country::orderBy('name')->get();
 
-        return view('seller.products.form', compact('product', 'rootCategories', 'countries'));
+        return view('seller.products.form', compact('product','rootCategories','countries'));
     }
 
-    /**
-     * Обновление товара.
-     * ВАЖНО: новые фото галереи ДОБАВЛЯЕМ к существующим, а не затираем.
-     */
     public function update(Request $request, Product $product)
     {
         $this->authorize('update', $product);
 
-        // 1) Валидация
-        $data = $request->validate([
-            'title'        => 'required|string|max:255',
-            'price'        => 'required|numeric|min:0',
-            'stock'        => 'required|integer|min:0',
-            'description'  => 'nullable|string',
-            'image'        => 'nullable|image|max:2048',
-            'gallery'      => 'nullable|array',
-            'gallery.*'    => 'nullable|image|max:2048',
-            'category_id'  => 'required|exists:categories,id',
-            'city_id'      => 'required|exists:cities,id',
-            'country_id'   => 'nullable|exists:countries,id',
-            'address'      => 'nullable|string|max:255',
-            'latitude'     => 'nullable|numeric',
-            'longitude'    => 'nullable|numeric',
+        $validated = $request->validate([
+            'title'=>'required|string|max:255',
+            'price'=>'required|numeric|min:0',
+            'stock'=>'required|integer|min:0',
+            'description'=>'nullable|string',
+            'image'=>'nullable|image|max:4096',
+            'gallery.*'=>'nullable|image|max:4096',
+            'category_id'=>'required|exists:categories,id',
+            'city_id'=>'required|exists:cities,id',
+            'country_id'=>'nullable|exists:countries,id',
+            'address'=>'nullable|string|max:255',
+            'latitude'=>'nullable|numeric',
+            'longitude'=>'nullable|numeric',
         ]);
 
-        // 2) Обновляем главное фото (если загружено)
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('products', 'public');
-        }
+        $this->productService->update(
+            product: $product,
+            data: $validated,
+            image: $request->file('image'),
+            galleryNew: $request->file('gallery', [])
+        );
 
-        // 3) Обновляем галерею
-        $currentGallery = (array) ($product->gallery ?? []);
-        if ($request->hasFile('gallery')) {
-            foreach ($request->file('gallery') as $file) {
-                if ($file) {
-                    $currentGallery[] = $file->store('products/gallery', 'public');
-                }
-            }
-        }
-        if (!empty($currentGallery)) {
-            $data['gallery'] = $currentGallery;
-        }
-
-        // 4) Сохраняем изменения
-        $product->update($data);
-
-        return redirect()->route('seller.products.index')->with('success', 'Товар обновлён');
+        return redirect()->route('seller.products.index')->with('success','Товар обновлён');
     }
 
-    /**
-     * Удаление товара.
-     */
     public function destroy(Product $product)
     {
         $this->authorize('delete', $product);
+        $this->productService->delete($product);
 
-        $product->delete();
-
-        return redirect()->route('seller.products.index')->with('success', 'Товар удалён');
+        return redirect()->route('seller.products.index')->with('success','Товар удалён');
     }
 }
