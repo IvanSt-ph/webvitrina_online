@@ -28,9 +28,9 @@
             </div>
 
             <!-- ========== Центр: Поиск + выбор страны/города ========== -->
-            <div class="flex-1 flex justify-center items-center gap-3">
+            <div class="flex-1 flex justify-center items-center gap-3 ">
                 <!-- Поле поиска -->
-                <form action="{{ route('home') }}" method="GET" class="w-full max-w-2xl">
+                <form action="{{ route('home') }}" method="GET" class="w-full max-w-2xl m-0">
                     <div class="relative">
                         <input type="text" name="q" value="{{ request('q') }}"
                                placeholder="Искать товары..."
@@ -51,7 +51,7 @@
                 </form>
 
                 <!-- Фильтры: страна + город -->
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-2 flex-shrink-0 m-0">
                     @php
                         use App\Models\Country;
                         use App\Models\City;
@@ -64,16 +64,16 @@
                     @if($currentCountry)
                         @php $countryObj = $countries->firstWhere('id', $currentCountry); @endphp
                         @if($countryObj && $countryObj->slug)
-                            <img src="{{ asset('flags/' . $countryObj->slug . '.png') }}" alt="{{ $countryObj->name }}" class="h-6 w-6">
+                            <img src="{{ asset('flags/' . $countryObj->slug . '.png') }}" alt="{{ $countryObj->name }}" class="h-6 w-6 m-0">
                         @else
-                            <img src="{{ asset('flags/all.png') }}" alt="Все страны" class="h-6 w-6">
+                            <img src="{{ asset('flags/all.png') }}" alt="Все страны" class="h-6 w-6 ">
                         @endif
                     @else
                         <img src="{{ asset('flags/all.png') }}" alt="Все страны" class="h-6 w-6">
                     @endif
 
                     <!-- Форма фильтрации -->
-                    <form action="{{ route('home') }}" method="GET" class="flex gap-2">
+                    <form action="{{ route('home') }}" method="GET" class="flex gap-2 m-0">
                         <input type="hidden" name="q" value="{{ request('q') }}">
 
                         <!-- Страна -->
