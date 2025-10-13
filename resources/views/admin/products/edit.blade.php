@@ -132,10 +132,11 @@
             {{-- === Адрес + карта === --}}
 <div>
   <label class="block text-sm font-medium text-gray-700">Адрес (улица, дом)</label>
-  <input id="address" name="address" type="text"
-         class="w-full border rounded-lg px-3 py-2"
-         placeholder="Например: ул. Ленина, 2"
-         value="{{ old('address') }}">
+<input id="address" name="address" type="text"
+       class="w-full border rounded-lg px-3 py-2"
+       placeholder="Например: ул. Ленина, 2"
+       value="{{ old('address', $product->address) }}">
+
 
   <button type="button" id="searchAddress"
           class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
@@ -149,10 +150,11 @@
   <label class="block text-sm font-medium text-gray-700 mb-1">Местоположение на карте</label>
   <div id="map" class="w-full h-64 rounded border"></div>
 
-  <input type="hidden" id="latitude" name="latitude"
-         value="{{ old('latitude') }}">
-  <input type="hidden" id="longitude" name="longitude"
-         value="{{ old('longitude') }}">
+<input type="hidden" id="latitude" name="latitude"
+       value="{{ old('latitude', $product->latitude) }}">
+<input type="hidden" id="longitude" name="longitude"
+       value="{{ old('longitude', $product->longitude) }}">
+
 
   <p class="text-xs text-gray-500 mt-2">
     📍 Перетащите метку или кликните по карте, чтобы указать координаты.
@@ -165,9 +167,20 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    let lat = {{ old('latitude', 47.0105) }};
-    let lng = {{ old('longitude', 28.8638) }};
-    let zoom = {{ old('latitude') ? 14 : 7 }};
+    // Координаты из БД (PHP вставит реальные числа)
+    const productLat = {{ $product->latitude ?? 'null' }};
+    const productLng = {{ $product->longitude ?? 'null' }};
+
+    // Приоритет: old() → координаты из БД → дефолт
+    let lat = {{ old('latitude', 'null') }} ?? productLat ?? 47.0105;
+    let lng = {{ old('longitude', 'null') }} ?? productLng ?? 28.8638;
+
+    // Если данные NaN или null — fallback
+    if (!lat || isNaN(lat)) lat = productLat ?? 47.0105;
+    if (!lng || isNaN(lng)) lng = productLng ?? 28.8638;
+
+    let zoom = (lat && lng) ? 13 : 7;
+
 
     let map = L.map('map').setView([lat, lng], zoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -473,41 +486,56 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function cityPicker() {
-            return {
-                country: '',
-                city: '',
-                cities: [],
-                async init(initCountry = '', initCity = '') {
-                    this.country = String(initCountry || '');
-                    this.city = String(initCity || '');
-                    if (this.country) {
-                        await this.loadCities(true);
-                    }
-                },
-                async loadCities(preserveSelected = false) {
-                    if (!this.country) {
-                        this.cities = [];
-                        this.city = '';
-                        return;
-                    }
-                    try {
-                        const res = await fetch(`/countries/${this.country}/cities`);
-                        this.cities = await res.json();
 
-                        if (preserveSelected) {
-                            const exists = this.cities.some(c => String(c.id) === String(this.city));
-                            if (!exists) this.city = '';
-                        } else {
-                            this.city = '';
-                        }
-                    } catch (e) {
-                        console.error('Ошибка загрузки городов', e);
-                        this.cities = [];
-                        this.city = '';
+function cityPicker() {
+    return {
+        country: '',
+        city: '',
+        cities: [],
+        async init(initCountry = '', initCity = '') {
+            this.country = String(initCountry || '');
+            this.city = String(initCity || '');
+
+            // если страна указана, загружаем города
+            if (this.country) {
+                await this.loadCities(true);
+
+                // после загрузки городов проставляем выбранный
+                this.$nextTick(() => {
+                    if (this.city && this.cities.length > 0) {
+                        const citySelect = document.querySelector('[name="city_id"]');
+                        if (citySelect) citySelect.value = this.city;
                     }
+                });
+            }
+
+
+        },
+
+        async loadCities(preserveSelected = false) {
+            if (!this.country) {
+                this.cities = [];
+                this.city = '';
+                return;
+            }
+            try {
+                const res = await fetch(`/countries/${this.country}/cities`);
+                this.cities = await res.json();
+
+                if (preserveSelected) {
+                    const exists = this.cities.some(c => String(c.id) === String(this.city));
+                    if (!exists) this.city = '';
+                } else {
+                    this.city = '';
                 }
+            } catch (e) {
+                console.error('Ошибка загрузки городов', e);
+                this.cities = [];
+                this.city = '';
             }
         }
+    }
+}
+
     </script>
 @endsection
