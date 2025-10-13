@@ -42,25 +42,31 @@ class ProductController extends Controller
         return view('shop.index', compact('products'));
     }
 
-public function show($slug)
+public function show($key)
 {
-    // Ищем товар по основному slug
-    $product = \App\Models\Product::where('slug', $slug)->first();
+    // 🔹 1. Если передано число — ищем по ID
+    if (is_numeric($key)) {
+        $product = \App\Models\Product::find($key);
 
-    // Если не нашли — ищем по старым slug
+        // если нашли — сразу редирект на slug
+        if ($product) {
+            return redirect()->route('product.show', $product->slug, 301);
+        }
+    } else {
+        // 🔹 2. Иначе ищем по slug
+        $product = \App\Models\Product::where('slug', $key)->first();
+    }
+
+    // 🔹 3. Если не нашли — проверяем старые slug
     if (!$product) {
-        $old = \App\Models\ProductSlug::where('slug', $slug)->first();
-
+        $old = \App\Models\ProductSlug::where('slug', $key)->first();
         if ($old && $old->product) {
-            // 🔁 301 редирект на новый slug
             return redirect()->route('product.show', $old->product->slug, 301);
         }
-
         abort(404);
     }
 
     return view('shop.product-show', compact('product'));
-
 }
 
 
