@@ -137,4 +137,16 @@ class Product extends Model
     {
         return $this->city?->name;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Сохрание старых slug для редиректа
+    |--------------------------------------------------------------------------
+    */
+public function oldSlugs()
+{
+    return $this->hasMany(ProductSlug::class);
+}
+
+
 }

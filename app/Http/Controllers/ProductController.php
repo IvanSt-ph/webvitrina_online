@@ -42,20 +42,30 @@ class ProductController extends Controller
         return view('shop.index', compact('products'));
     }
 
-    public function show($slug)
-    {
-        $product = Product::with([
-            'seller' => fn($q)=>$q->withAvg('reviews','rating')->withCount('reviews'),
-            'reviews.user','category.parent'
-        ])
-        ->withAvg('reviews','rating')
-        ->withCount('reviews')
-        ->where('slug',$slug)
-        ->firstOrFail();
+public function show($slug)
+{
+    // Ищем товар по основному slug
+    $product = \App\Models\Product::where('slug', $slug)->first();
 
-        $related = Product::where('category_id',$product->category_id)
-            ->where('id','!=',$product->id)->limit(4)->get();
+    // Если не нашли — ищем по старым slug
+    if (!$product) {
+        $old = \App\Models\ProductSlug::where('slug', $slug)->first();
 
-        return view('shop.product-show', compact('product','related'));
+        if ($old && $old->product) {
+            // 🔁 301 редирект на новый slug
+            return redirect()->route('product.show', $old->product->slug, 301);
+        }
+
+        abort(404);
     }
+
+    return view('shop.product-show', compact('product'));
+
+}
+
+
+
+
+
+
 }

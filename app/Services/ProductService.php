@@ -40,32 +40,47 @@ class ProductService
     /**
      * Обновление товара.
      */
-    public function update(Product $product, array $data, ?UploadedFile $image = null, array $galleryNew = [], array $galleryToDelete = []): Product
-    {
-        return DB::transaction(function () use ($product, $data, $image, $galleryNew, $galleryToDelete) {
-            $payload = $this->prepareData($data, $product->user_id, updating: true);
+public function update(Product $product, array $data, ?UploadedFile $image = null, array $galleryNew = [], array $galleryToDelete = []): Product
+{
+    return DB::transaction(function () use ($product, $data, $image, $galleryNew, $galleryToDelete) {
+        $payload = $this->prepareData($data, $product->user_id, updating: true);
 
-            // новое главное фото
-            if ($image instanceof UploadedFile) {
-                $this->deletePath($product->image);
-                $payload['image'] = $this->uploadImage($image, 'products/'.date('Y/m'));
-            }
+        // 🔹 если slug изменился — сохраняем старый в таблицу product_slugs
+        if (!empty($payload['slug']) && $payload['slug'] !== $product->slug) {
+            \App\Models\ProductSlug::create([
+                'product_id' => $product->id,
+                'slug' => $product->slug,
+            ]);
+        }
 
-            $product->update($payload);
+        // 🔹 если slug не указан — сохраняем прежний
+        if (empty($payload['slug']) && $product->slug) {
+            $payload['slug'] = $product->slug;
+        }
 
-            // удаляем выбранные изображения из галереи
-            if (!empty($galleryToDelete)) {
-                $this->deleteFromGallery($product, $galleryToDelete);
-            }
+        // новое главное фото
+        if ($image instanceof UploadedFile) {
+            $this->deletePath($product->image);
+            $payload['image'] = $this->uploadImage($image, 'products/'.date('Y/m'));
+        }
 
-            // добавляем новые
-            if (!empty($galleryNew)) {
-                $this->appendGallery($product, $galleryNew);
-            }
+        // обновляем запись
+        $product->update($payload);
 
-            return $product;
-        });
-    }
+        // удаляем выбранные изображения из галереи
+        if (!empty($galleryToDelete)) {
+            $this->deleteFromGallery($product, $galleryToDelete);
+        }
+
+        // добавляем новые
+        if (!empty($galleryNew)) {
+            $this->appendGallery($product, $galleryNew);
+        }
+
+        return $product;
+    });
+}
+
 
     /**
      * Удаление товара с файлами.

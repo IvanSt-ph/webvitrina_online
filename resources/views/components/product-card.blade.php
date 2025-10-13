@@ -22,13 +22,14 @@
       <span class="text-gray-400 text-sm">Нет фото</span>
     @endif
 
-    <div class="absolute inset-0 flex items-center justify-center">
-      <a href="{{ route('product.show', $p) }}"
-         class="slide-up px-4 py-2 text-sm font-medium bg-white/90 text-gray-800 
-                rounded-lg shadow hover:bg-white transition">
-        Подробнее
-      </a>
-    </div>
+<div class="absolute inset-0 flex items-center justify-center">
+  <a href="{{ route('product.show', $p->slug) }}"
+     class="slide-up px-4 py-2 text-sm font-medium bg-white/90 text-gray-800 
+            rounded-lg shadow hover:bg-white transition">
+    Подробнее
+  </a>
+</div>Ы
+
 
     <div class="absolute bottom-0 left-0 right-0 bg-[#f1f8ff]/95 backdrop-blur-sm 
                 text-[13px] text-gray-600 py-2 px-3 flex flex-col items-start 
