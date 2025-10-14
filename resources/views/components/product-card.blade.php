@@ -28,7 +28,7 @@
             rounded-lg shadow hover:bg-white transition">
     Подробнее
   </a>
-</div>Ы
+</div>
 
 
     <div class="absolute bottom-0 left-0 right-0 bg-[#f1f8ff]/95 backdrop-blur-sm 

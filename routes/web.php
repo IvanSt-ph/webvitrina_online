@@ -164,4 +164,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 
     // 🖼️ Баннеры (в админке)
     Route::resource('banners', BannerController::class)->except(['show']);
+
+    
 });
+

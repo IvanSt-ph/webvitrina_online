@@ -1,6 +1,11 @@
 {{-- resources/views/products/show.blade.php --}}
 <x-app-layout :title="$product->title">
 
+  @push('meta')
+  <link rel="canonical" href="{{ url()->current() }}" />
+@endpush
+
+
 <div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
 
   {{-- ====== Основной контейнер ====== --}}
