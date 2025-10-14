@@ -122,6 +122,7 @@ use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\ReviewController as AdminReviewController; // ✅ вот так!
 use App\Http\Middleware\AdminMiddleware;
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::class])->group(function () {
@@ -144,9 +145,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])->name('categories.children');
     Route::get('/categories/{id}/parent', [AdminCategoryController::class, 'parent'])->name('categories.parent');
 
-    // 🛒 Live поиск товаров — ⚠️ ОБЯЗАТЕЛЬНО перед resource!
-    Route::get('/products/search', [AdminProductController::class, 'search'])
-        ->name('products.search');
+    // 🛒 Live поиск товаров
+    Route::get('/products/search', [AdminProductController::class, 'search'])->name('products.search');
 
     // 🛒 Товары
     Route::resource('products', AdminProductController::class);
@@ -162,9 +162,19 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
-    // 🖼️ Баннеры (в админке)
+    // 🖼️ Баннеры
     Route::resource('banners', BannerController::class)->except(['show']);
 
-    
-});
 
+    // 📝 Модерация отзывов ✅
+    Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
+    Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
+    Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
+    Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+    Route::get('/reviews/{review}', [AdminReviewController::class, 'show'])->name('reviews.show');
+
+
+    
+
+
+});

@@ -96,6 +96,18 @@
                 Пользователи
             </a>
 
+            <a href="{{ route('admin.reviews.index') }}"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg transition
+            {{ request()->routeIs('admin.reviews.*') ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'hover:bg-indigo-50 hover:text-indigo-700' }}">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 4h16v12H5.17L4 17.17V4zM12 14h4M8 10h8M8 6h8"/>
+            </svg>
+                Отзывы
+            </a>
+
+
             <a href="{{ route('admin.profile') }}"
                class="flex items-center gap-2 px-3 py-2 rounded-lg transition
                       {{ request()->routeIs('admin.profile') ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'hover:bg-indigo-50 hover:text-indigo-700' }}">
