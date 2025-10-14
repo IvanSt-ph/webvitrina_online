@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+
 
 class ProductController extends Controller
 {
@@ -44,25 +46,38 @@ class ProductController extends Controller
 
 public function show($key)
 {
-    // 🔹 1. Если передано число — ищем по ID
+    // 🔹 Если число — ищем по ID
     if (is_numeric($key)) {
         $product = \App\Models\Product::find($key);
 
-        // если нашли — сразу редирект на slug
         if ($product) {
+            // 301 redirect на slug
             return redirect()->route('product.show', $product->slug, 301);
         }
-    } else {
-        // 🔹 2. Иначе ищем по slug
-        $product = \App\Models\Product::where('slug', $key)->first();
     }
 
-    // 🔹 3. Если не нашли — проверяем старые slug
+    // 🔹 Ключ кэша для slug
+    $cacheKey = "product_by_slug:{$key}";
+
+    // 🔹 Пытаемся достать из кэша (10 минут)
+    $product = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($key) {
+        return \App\Models\Product::with(['city.country', 'category', 'user'])
+            ->where('slug', $key)
+            ->first();
+    });
+
+    // 🔹 Если не нашли — ищем по старым slug (тоже с кэшем)
     if (!$product) {
-        $old = \App\Models\ProductSlug::where('slug', $key)->first();
-        if ($old && $old->product) {
-            return redirect()->route('product.show', $old->product->slug, 301);
+        $oldCacheKey = "product_old_slug:{$key}";
+
+        $oldSlug = Cache::remember($oldCacheKey, now()->addMinutes(30), function () use ($key) {
+            return \App\Models\ProductSlug::where('slug', $key)->first();
+        });
+
+        if ($oldSlug && $oldSlug->product) {
+            return redirect()->route('product.show', $oldSlug->product->slug, 301);
         }
+
         abort(404);
     }
 

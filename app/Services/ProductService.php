@@ -8,6 +8,8 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
+
 
 class ProductService
 {
@@ -66,6 +68,10 @@ public function update(Product $product, array $data, ?UploadedFile $image = nul
 
         // обновляем запись
         $product->update($payload);
+        // 🧹 Очищаем кэш, чтобы показать свежие данные
+Cache::forget("product_by_slug:{$product->slug}");
+Cache::forget("product_by_id:{$product->id}");
+
 
         // удаляем выбранные изображения из галереи
         if (!empty($galleryToDelete)) {
