@@ -44,32 +44,38 @@ class ProductController extends Controller
         return view('shop.index', compact('products'));
     }
 
-public function show($key)
-{
-    // 🔹 Если число — ищем по ID
-    if (is_numeric($key)) {
-        $product = \App\Models\Product::find($key);
 
+    public function show($key)
+{
+    // Если передан ID → редиректим на slug
+    if (is_numeric($key)) {
+        $product = Product::find($key);
         if ($product) {
-            // 301 redirect на slug
             return redirect()->route('product.show', $product->slug, 301);
         }
     }
 
-    // 🔹 Ключ кэша для slug
+    // Ключ кэша
     $cacheKey = "product_by_slug:{$key}";
 
-    // 🔹 Пытаемся достать из кэша (10 минут)
+    // Загружаем из кэша или из БД
     $product = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($key) {
-        return \App\Models\Product::with(['city.country', 'category', 'user'])
+        return Product::with([
+                'city.country',
+                'category.parent',
+                'user',
+                'reviews.user',
+                'reviews.images',
+            ])
+            ->withCount('reviews')               // ✅ количество отзывов
+            ->withAvg('reviews', 'rating')       // ✅ средний рейтинг
             ->where('slug', $key)
             ->first();
     });
 
-    // 🔹 Если не нашли — ищем по старым slug (тоже с кэшем)
+    // Если не нашли — ищем по старым slug
     if (!$product) {
         $oldCacheKey = "product_old_slug:{$key}";
-
         $oldSlug = Cache::remember($oldCacheKey, now()->addMinutes(30), function () use ($key) {
             return \App\Models\ProductSlug::where('slug', $key)->first();
         });
@@ -81,7 +87,16 @@ public function show($key)
         abort(404);
     }
 
-    return view('shop.product-show', compact('product'));
+    // Похожие товары
+    $related = Cache::remember("related_products:{$product->id}", now()->addMinutes(10), function () use ($product) {
+        return Product::select('id', 'slug', 'title', 'price', 'image')
+            ->where('category_id', $product->category_id)
+            ->where('id', '!=', $product->id)
+            ->take(4)
+            ->get();
+    });
+
+    return view('shop.product-show', compact('product', 'related'));
 }
 
 
