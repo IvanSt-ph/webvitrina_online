@@ -9,28 +9,55 @@ use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
 {
-    /** 📂 Список категорий */
-    public function index()
+    /** 📂 Главная страница категорий (AJAX + фильтры + пагинация) */
+    public function index(Request $request)
     {
         $query = Category::with('parent');
 
-        if (request()->filled('parent_id')) {
-            $query->where('parent_id', request('parent_id'));
+        // 🔍 Поиск по имени категории
+        if ($request->filled('q')) {
+            $query->where('name', 'like', '%' . $request->q . '%');
         }
 
-        $categories = $query->orderBy('parent_id')->orderBy('name')->paginate(20);
-        $parents    = Category::whereNull('parent_id')->orderBy('name')->get();
+        // 📂 Фильтр по родительской категории
+        if ($request->filled('parent_id')) {
+            $query->where('parent_id', $request->parent_id);
+        }
 
-        return view('admin.categories.index', compact('categories', 'parents'));
+        // ↕️ Сортировка
+        $sort = $request->get('sort', 'name');
+        $direction = $request->get('direction', 'asc');
+
+        if (!in_array($sort, ['id', 'name', 'slug', 'parent_id'])) {
+            $sort = 'name';
+        }
+        if (!in_array($direction, ['asc', 'desc'])) {
+            $direction = 'asc';
+        }
+
+        $categories = $query->orderBy($sort, $direction)
+            ->paginate(20)
+            ->appends($request->query());
+
+        $parents = Category::whereNull('parent_id')->orderBy('name')->get();
+
+        // 🔁 Если это AJAX-запрос, возвращаем только HTML таблицы
+     if ($request->ajax() || $request->boolean('ajax')) {
+    return view('admin.categories.table', compact('categories'))->render();
+}
+
+        // 📄 Обычная загрузка страницы
+        return view('admin.categories.index', compact('categories', 'parents', 'sort', 'direction'));
     }
 
-    /** 🆕 Создание */
+    /** ➕ Форма создания */
     public function create()
     {
-        $parents = Category::orderBy('name')->get();
+        $parents = Category::orderBy('parent_id')->orderBy('name')->get();
         return view('admin.categories.create', compact('parents'));
     }
 
+    /** 💾 Создание категории */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -53,10 +80,14 @@ class CategoryController extends Controller
     /** ✏️ Редактирование */
     public function edit(Category $category)
     {
-        $parents = Category::where('id', '!=', $category->id)->orderBy('name')->get();
+        $parents = Category::whereNull('parent_id')
+            ->orWhere('id', $category->parent_id)
+            ->orderBy('name')->get();
+
         return view('admin.categories.edit', compact('category', 'parents'));
     }
 
+    /** 💾 Обновление */
     public function update(Request $request, Category $category)
     {
         $data = $request->validate([
@@ -93,12 +124,5 @@ class CategoryController extends Controller
             ->get(['id', 'name', 'parent_id']);
 
         return response()->json($children);
-    }
-
-    /** 📥 AJAX: получить родителя категории */
-    public function parent($id): JsonResponse
-    {
-        $category = Category::select('id', 'parent_id')->findOrFail($id);
-        return response()->json($category);
     }
 }
