@@ -429,62 +429,83 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function categorySelect() {
-            return {
-                finalCategory: '{{ old('category_id', $product->category_id) }}',
-                async init() {
-                    if (this.finalCategory) {
-                        await this.loadChain(this.finalCategory);
-                    }
-                },
-                async loadChildren(event, level) {
-                    const parentId = event.target.value;
-                    this.finalCategory = parentId;
-                    document.querySelectorAll('#category-selects select').forEach((el, i) => {
-                        if (i > level) el.remove();
-                    });
-                    if (!parentId) return;
-                    const res = await fetch(`/categories/${parentId}/children`);
-                    const data = await res.json();
-                    if (data.length > 0) {
-                        const select = document.createElement('select');
-                        select.name = `categories[${level + 1}]`;
-                        select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
-                        select.innerHTML = `<option value="">— Выберите подкатегорию —</option>`;
-                        data.forEach(cat => {
-                            select.innerHTML += `<option value="${cat.id}" ${cat.id == this.finalCategory ? 'selected' : ''}>${cat.name}</option>`;
-                        });
-                        select.addEventListener('change', (e) => this.loadChildren(e, level + 1));
-                        document.getElementById('category-selects').appendChild(select);
+function categorySelect() {
+    return {
+        finalCategory: '{{ old('category_id', $product->category_id) }}',
+        selectedChain: [],
 
-                        if (data.some(cat => cat.id == this.finalCategory)) {
-                            await this.loadChildren({target: select}, level + 1);
-                        }
-                    }
-                },
-                async loadChain(categoryId) {
-                    let parentId = categoryId;
-                    let chain = [];
-                    while (parentId) {
-                        const res = await fetch(`/categories/${parentId}/parent`);
-                        const data = await res.json();
-                        if (data && data.parent_id) {
-                            chain.unshift(data.parent_id);
-                            parentId = data.parent_id;
-                        } else break;
-                    }
-                    let level = 0;
-                    for (const id of chain) {
-                        const select = document.querySelector(`#category-selects select[name="categories[${level}]"]`);
-                        if (select) {
-                            select.value = id;
-                            await this.loadChildren({target: select}, level);
-                            level++;
-                        }
-                    }
+        async init() {
+            if (this.finalCategory) {
+                await this.loadChain(this.finalCategory);
+            }
+        },
+
+        async loadChildren(event, level) {
+            const parentId = event.target.value;
+            this.selectedChain = this.selectedChain.slice(0, level);
+            this.selectedChain[level] = parentId;
+            this.finalCategory = parentId;
+
+            // удаляем селекты, которые ниже текущего уровня
+            document.querySelectorAll('#category-selects select').forEach((el, i) => {
+                if (i > level) el.remove();
+            });
+
+            if (!parentId) return;
+
+            const res = await fetch(`/categories/${parentId}/children`);
+            const data = await res.json();
+
+            if (data.length > 0) {
+                const select = document.createElement('select');
+                select.name = `categories[${level + 1}]`;
+                select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
+                select.innerHTML = `<option value="">— Выберите подкатегорию —</option>`;
+                data.forEach(cat => {
+                    select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+                });
+                select.addEventListener('change', (e) => this.loadChildren(e, level + 1));
+                document.getElementById('category-selects').appendChild(select);
+            }
+        },
+
+        async loadChain(categoryId) {
+            // получаем цепочку родителей до самого верха
+            const chain = [];
+            let currentId = categoryId;
+            while (currentId) {
+                const res = await fetch(`/categories/${currentId}/parent`);
+                const data = await res.json();
+                if (data && data.parent_id) {
+                    chain.unshift(data.parent_id);
+                    currentId = data.parent_id;
+                } else {
+                    break;
                 }
             }
+
+            // загружаем селекты от родителя к потомку
+            let level = 0;
+            for (const id of chain) {
+                const select = document.querySelector(`#category-selects select[name="categories[${level}]"]`);
+                if (select) {
+                    select.value = id;
+                    await this.loadChildren({ target: select }, level);
+                }
+                level++;
+            }
+
+            // теперь выбираем саму конечную категорию
+            const lastSelect = document.querySelector(`#category-selects select[name="categories[${level}]"]`);
+            if (lastSelect) {
+                lastSelect.value = categoryId;
+                this.finalCategory = categoryId;
+            }
         }
+    };
+}
+
+        
 
 
 function cityPicker() {

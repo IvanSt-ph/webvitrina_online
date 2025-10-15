@@ -7,27 +7,37 @@ use Illuminate\Support\Facades\Cache;
 
 class ProductRepository
 {
+    /** 🔍 Фильтрация и сортировка товаров (универсальная) */
     public function getFilteredProducts($request)
     {
         $query = Product::query()->with(['city.country']);
 
+        // 🔸 Поиск по названию
         if ($request->filled('q')) {
             $query->where('title', 'like', '%' . $request->q . '%');
         }
 
+        // 🔸 Только товары конкретного продавца (если есть user_id)
+        if ($request->filled('user_id')) {
+            $query->where('user_id', (int) $request->user_id);
+        }
+
+        // 🔸 Фильтрация по стране и городу
         if ($request->filled('country_id')) {
             $countryId = (int) $request->country_id;
             $query->whereHas('city', fn($q) => $q->where('country_id', $countryId));
 
             if ($request->filled('city_id')) {
-                $query->where('city_id', (int)$request->city_id);
+                $query->where('city_id', (int) $request->city_id);
             }
         }
 
+        // 🔸 Фильтрация по категории
         if ($request->filled('category_id')) {
-            $query->where('category_id', (int)$request->category_id);
+            $query->where('category_id', (int) $request->category_id);
         }
 
+        // 🔸 Сортировка
         $sort = $request->get('sort', 'new');
         match ($sort) {
             'price_asc'  => $query->orderBy('price', 'asc'),
@@ -37,9 +47,12 @@ class ProductRepository
             default      => $query->latest(),
         };
 
-        return $query->paginate(12)->withQueryString();
+        // 🔸 Возврат с пагинацией
+        return $query->paginate((int) ($request->get('per_page', 12)) ?: 12)
+                     ->withQueryString();
     }
 
+    /** 🧾 Получение товара по slug или ID (с кэшированием) */
     public function getProductBySlugOrId($key)
     {
         // Если это ID → редиректим на slug
@@ -82,6 +95,7 @@ class ProductRepository
         return $product;
     }
 
+    /** 🔄 Похожие товары (4 штуки, кэшируются) */
     public function getRelatedProducts($product)
     {
         return Cache::remember("related_products:{$product->id}", now()->addMinutes(10), function () use ($product) {
@@ -92,7 +106,4 @@ class ProductRepository
                 ->get();
         });
     }
-    
 }
-
-

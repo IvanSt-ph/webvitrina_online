@@ -89,6 +89,16 @@ Route::get('/categories/{parent}/children', fn(Category $parent) =>
     $parent->children()->select('id','name')->orderBy('name')->get()
 )->name('categories.children');
 
+
+Route::get('/categories/{category}/parent', function (Category $category) {
+    return response()->json([
+        'id' => $category->id,
+        'parent_id' => $category->parent_id,
+    ]);
+})->name('categories.parent');
+
+
+
 Route::get('/countries/{country}/cities', fn(Country $country) =>
     $country->cities()->select('id','name')->orderBy('name')->get()
 )->name('countries.cities');

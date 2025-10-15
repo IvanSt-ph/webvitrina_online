@@ -96,4 +96,25 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')->with('success', '🗑️ Товар удалён.');
     }
+
+    /** 🔍 AJAX-поиск товаров по названию */
+public function search(Request $request)
+{
+    $q = trim($request->get('q', ''));
+
+    // если строка короче 2 символов — не ищем
+    if (strlen($q) < 2) {
+        return response()->json([]);
+    }
+
+    $products = Product::select('id', 'title', 'price', 'image')
+        ->where('title', 'like', "%{$q}%")
+        ->orderByDesc('created_at')
+        ->limit(10)
+        ->get();
+
+    return response()->json($products);
+}
+
+
 }
