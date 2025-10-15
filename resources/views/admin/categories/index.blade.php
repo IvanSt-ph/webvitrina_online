@@ -19,19 +19,23 @@
             📊 Топ-5 категорий по количеству подкатегорий и товаров
         </h2>
 
+        
         @if($topParents->isNotEmpty())
             <!-- 🔘 Переключатели режимов -->
             <div class="flex items-center gap-2 mb-4">
-                @foreach([
-                    'scale' => ['🧱 Масштаб'],
-                    'fill' => ['📦 Заполненность'],
-                    'density' => ['💰 Плотность']
-                ] as $key => [$label])
-                    <a href="{{ route('admin.categories.index', array_merge(request()->query(), ['mode' => $key])) }}"
-                       class="px-3 py-1.5 text-sm rounded-lg {{ $mode === $key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        {{ $label }}
-                    </a>
-                @endforeach
+@foreach([
+    'products'   => ['🛍 Популярные категории', 'Больше всего товаров'],
+    'subcats'    => ['🏗 Ассортимент', 'Больше подкатегорий'],
+    'efficiency' => ['⚖️ Эффективность', 'Больше товаров на подкатегорию']
+] as $key => [$label, $tooltip])
+
+    <a href="{{ route('admin.categories.index', array_merge(request()->query(), ['mode' => $key])) }}"
+       title="{{ $tooltip }}"
+       class="px-3 py-1.5 text-sm rounded-lg {{ $mode === $key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+        {{ $label }}
+    </a>
+@endforeach
+
             </div>
 
             <!-- 📦 Сетка топ-категорий -->
@@ -73,6 +77,9 @@
             <p class="text-gray-500 text-sm">Недостаточно данных для анализа.</p>
         @endif
     </div>
+
+
+
 
     <!-- 📊 Карточки статистики -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

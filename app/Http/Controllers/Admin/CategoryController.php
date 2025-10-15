@@ -43,25 +43,45 @@ class CategoryController extends Controller
         // ⚙️ Режим анализа (scale / fill / density)
         $mode = $request->get('mode', 'scale');
 
-        // 📊 ТОП-5 категорий по выбранному режиму
-        $topParents = Category::whereNull('parent_id')
-            ->withCount(['children', 'products'])
-            ->get(['id', 'name', 'icon'])
-            ->map(function ($cat) use ($mode) {
-                switch ($mode) {
-                    case 'fill': // 📦 заполненность — упор на товары
-                        $cat->score = $cat->products_count * 1.5 + $cat->children_count;
-                        break;
-                    case 'density': // 💰 плотность — товары на одну подкатегорию
-                        $cat->score = $cat->products_count / max($cat->children_count, 1);
-                        break;
-                    default: // 🧱 масштаб — упор на структуру
-                        $cat->score = $cat->children_count * 3 + $cat->products_count;
-                }
-                return $cat;
-            })
-            ->sortByDesc('score')
-            ->take(5);
+
+        
+
+// 📊 ТОП-5 категорий по выбранному критерию
+$mode = $request->get('mode', 'products'); // по умолчанию сортировка по товарам
+
+$topParents = Category::whereNull('parent_id')
+    ->with(['children'])
+    ->withCount(['children'])
+    ->get(['id', 'name', 'icon'])
+    ->map(function ($cat) {
+        // Собираем ID всех подкатегорий (включая саму категорию)
+        $allIds = $cat->allChildrenIds();
+
+        // Подсчитываем товары
+        $cat->products_count = \App\Models\Product::whereIn('category_id', $allIds)->count();
+
+        return $cat;
+    })
+    ->map(function ($cat) use ($mode) {
+        // Определяем "рейтинг" категории в зависимости от выбранного режима
+        switch ($mode) {
+            case 'subcats': // 🧱 по подкатегориям
+                $cat->score = $cat->children_count;
+                break;
+
+            case 'efficiency': // ⚖️ товары / подкатегории
+                $cat->score = round($cat->products_count / max($cat->children_count, 1), 2);
+                break;
+
+            default: // 🛍 по товарам
+                $cat->score = $cat->products_count;
+        }
+        return $cat;
+    })
+    ->sortByDesc('score')
+    ->take(5);
+
+
 
         // 🔁 Если AJAX — вернуть только таблицу
         if ($request->ajax() || $request->boolean('ajax')) {
