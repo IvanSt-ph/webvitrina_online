@@ -1,5 +1,4 @@
 @extends('admin.layout')
-
 @section('title', 'Категории')
 
 @section('content')
@@ -7,69 +6,73 @@
 
     <!-- 🔖 Заголовок -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            📂 Категории
-        </h1>
+        <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">📂 Категории</h1>
         <a href="{{ route('admin.categories.create') }}"
            class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl shadow hover:bg-indigo-700 transition-all">
             ➕ Добавить категорию
         </a>
     </div>
-<!-- 🧮 Аналитика -->
-<div class="space-y-4 mt-10">
-    <h2 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-        📊 Топ-5 категорий по количеству подкатегорий и товаров
-    </h2>
 
-    @if($topParents->isNotEmpty())
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            @foreach($topParents as $cat)
-                <a href="{{ route('admin.categories.index', ['parent_id' => $cat->id]) }}"
-                   class="group block p-4 bg-gradient-to-br from-white to-indigo-50 border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+    <!-- 🧮 Аналитика -->
+    <div class="space-y-4 mt-10">
+        <h2 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+            📊 Топ-5 категорий по количеству подкатегорий и товаров
+        </h2>
 
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-medium text-gray-500 group-hover:text-indigo-600 transition">#{{ $loop->iteration }}</span>
+        @if($topParents->isNotEmpty())
+            <!-- 🔘 Переключатели режимов -->
+            <div class="flex items-center gap-2 mb-4">
+                @foreach([
+                    'scale' => ['🧱 Масштаб'],
+                    'fill' => ['📦 Заполненность'],
+                    'density' => ['💰 Плотность']
+                ] as $key => [$label])
+                    <a href="{{ route('admin.categories.index', array_merge(request()->query(), ['mode' => $key])) }}"
+                       class="px-3 py-1.5 text-sm rounded-lg {{ $mode === $key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
+            </div>
 
-                        @if($cat->icon)
-                            <img src="{{ asset('storage/' . $cat->icon) }}"
-                                 alt="{{ $cat->name }}"
-                                 class="w-9 h-9 object-contain rounded-md border border-gray-200 bg-white shadow-sm">
-                        @else
-                            <span class="text-xl text-gray-400 group-hover:text-indigo-600 transition">🏷️</span>
-                        @endif
-                    </div>
+            <!-- 📦 Сетка топ-категорий -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                @foreach($topParents as $cat)
+                    <a href="{{ route('admin.categories.index', ['parent_id' => $cat->id]) }}"
+                       class="group block p-4 bg-gradient-to-br from-white to-indigo-50 border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-500 group-hover:text-indigo-600 transition">
+                                #{{ $loop->iteration }}
+                            </span>
+                            @if($cat->icon)
+                                <img src="{{ asset('storage/' . $cat->icon) }}" alt="{{ $cat->name }}"
+                                     class="w-9 h-9 object-contain rounded-md border border-gray-200 bg-white shadow-sm">
+                            @else
+                                <span class="text-xl text-gray-400 group-hover:text-indigo-600 transition">🏷️</span>
+                            @endif
+                        </div>
+                        <div class="mt-2 text-lg font-semibold text-gray-800 group-hover:text-indigo-700 transition">
+                            {{ $cat->name }}
+                        </div>
+                        <div class="mt-1 text-sm text-gray-500 leading-tight">
+                            Подкатегорий: <span class="font-medium text-indigo-600">{{ $cat->children_count }}</span><br>
+                            Товаров: <span class="font-medium text-green-600">{{ $cat->products_count ?? 0 }}</span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
 
-                    <div class="mt-2 text-lg font-semibold text-gray-800 group-hover:text-indigo-700 transition">
-                        {{ $cat->name }}
-                    </div>
-
-                    <div class="mt-1 text-sm text-gray-500 leading-tight">
-                        Подкатегорий:
-                        <span class="font-medium text-indigo-600">{{ $cat->children_count }}</span><br>
-                        Товаров:
-                        <span class="font-medium text-green-600">{{ $cat->products_count ?? 0 }}</span>
-                    </div>
-                </a>
-            @endforeach
-        </div>
-    @else
-        <p class="text-gray-500 text-sm">Недостаточно данных для анализа.</p>
-    @endif
-
-    {{-- 🔙 Кнопка возврата к общему списку --}}
-    @if(request('parent_id'))
-        <div class="mt-6">
-            <a href="{{ route('admin.categories.index') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-                ⬅️ Вернуться ко всем категориям
-            </a>
-        </div>
-    @endif
-</div>
-
-
-
-
+            @if(request('parent_id'))
+                <div class="mt-6">
+                    <a href="{{ route('admin.categories.index') }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        ⬅️ Вернуться ко всем категориям
+                    </a>
+                </div>
+            @endif
+        @else
+            <p class="text-gray-500 text-sm">Недостаточно данных для анализа.</p>
+        @endif
+    </div>
 
     <!-- 📊 Карточки статистики -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -78,9 +81,8 @@
         <x-admin.stat-card color="purple" label="Подкатегории" :value="$categories->total() - $parents->count()" icon="🧩" />
     </div>
 
-    <!-- 🔍 Панель поиска и фильтров -->
+    <!-- 🔍 Панель фильтров -->
     <div class="bg-white border border-gray-100 shadow-sm rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <!-- Фильтр по родителю -->
         <div class="flex items-center gap-2">
             <label for="parentFilter" class="text-gray-500 text-sm">Фильтр по родителю:</label>
             <select id="parentFilter"
@@ -94,7 +96,6 @@
             </select>
         </div>
 
-        <!-- Поиск -->
         <div class="flex items-center gap-2 w-full md:w-1/3">
             <div class="relative w-full">
                 <input type="text" id="searchInput"
@@ -110,16 +111,14 @@
         </div>
     </div>
 
-    <!-- 📋 Таблица категорий -->
+    <!-- 📋 Таблица -->
     <div id="categoryTableWrapper"
          class="bg-white shadow rounded-xl border border-gray-100 overflow-hidden transition-all">
         @include('admin.categories.table', ['categories' => $categories])
     </div>
-
-    
 </div>
 
-<!-- ⚙️ JS: AJAX фильтр / поиск / пагинация -->
+<!-- ⚙️ JS -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput  = document.getElementById('searchInput');
