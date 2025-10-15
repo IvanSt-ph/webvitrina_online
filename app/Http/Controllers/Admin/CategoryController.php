@@ -11,44 +11,60 @@ class CategoryController extends Controller
 {
     /** 📂 Главная страница категорий (AJAX + фильтры + пагинация) */
     public function index(Request $request)
-    {
-        $query = Category::with('parent');
+{
+    $query = Category::with('parent');
 
-        // 🔍 Поиск по имени категории
-        if ($request->filled('q')) {
-            $query->where('name', 'like', '%' . $request->q . '%');
-        }
+    // 🔍 Поиск по имени категории
+    if ($request->filled('q')) {
+        $query->where('name', 'like', '%' . $request->q . '%');
+    }
 
-        // 📂 Фильтр по родительской категории
-        if ($request->filled('parent_id')) {
-            $query->where('parent_id', $request->parent_id);
-        }
+    // 📂 Фильтр по родительской категории
+    if ($request->filled('parent_id')) {
+        $query->where('parent_id', $request->parent_id);
+    }
 
-        // ↕️ Сортировка
-        $sort = $request->get('sort', 'name');
-        $direction = $request->get('direction', 'asc');
+    // ↕️ Сортировка
+    $sort = $request->get('sort', 'name');
+    $direction = $request->get('direction', 'asc');
 
-        if (!in_array($sort, ['id', 'name', 'slug', 'parent_id'])) {
-            $sort = 'name';
-        }
-        if (!in_array($direction, ['asc', 'desc'])) {
-            $direction = 'asc';
-        }
+    if (!in_array($sort, ['id', 'name', 'slug', 'parent_id'])) {
+        $sort = 'name';
+    }
+    if (!in_array($direction, ['asc', 'desc'])) {
+        $direction = 'asc';
+    }
 
-        $categories = $query->orderBy($sort, $direction)
-            ->paginate(20)
-            ->appends($request->query());
+    $categories = $query->orderBy($sort, $direction)
+        ->paginate(20)
+        ->appends($request->query());
 
-        $parents = Category::whereNull('parent_id')->orderBy('name')->get();
+    $parents = Category::whereNull('parent_id')->orderBy('name')->get();
 
-        // 🔁 Если это AJAX-запрос, возвращаем только HTML таблицы
-     if ($request->ajax() || $request->boolean('ajax')) {
-    return view('admin.categories.table', compact('categories'))->render();
+
+// 📊 ТОП-5 категорий по количеству подкатегорий и товаров
+$topParents = Category::whereNull('parent_id')
+    ->withCount(['children', 'products']) // 👈 добавлено
+    ->orderByDesc('children_count')
+    ->take(5)
+    ->get(['id', 'name']);
+
+
+    // 🔁 Если это AJAX-запрос — возвращаем только таблицу
+    if ($request->ajax() || $request->boolean('ajax')) {
+        return view('admin.categories.table', compact('categories'))->render();
+    }
+
+    // 📄 Обычная загрузка страницы
+    return view('admin.categories.index', compact(
+        'categories',
+        'parents',
+        'sort',
+        'direction',
+        'topParents' // ✅ добавляем в compact
+    ));
 }
 
-        // 📄 Обычная загрузка страницы
-        return view('admin.categories.index', compact('categories', 'parents', 'sort', 'direction'));
-    }
 
     /** ➕ Форма создания */
     public function create()
