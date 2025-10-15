@@ -8,24 +8,32 @@ use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Country;
+use App\Repositories\ProductRepository;
 use App\Services\ProductService;
+use Illuminate\Http\Request;
 
 class ProductManageController extends Controller
 {
-    public function __construct(private ProductService $productService) {}
+    private ProductService $productService;
+    private ProductRepository $productRepository;
+
+    public function __construct(ProductService $productService, ProductRepository $productRepository)
+    {
+        $this->productService = $productService;
+        $this->productRepository = $productRepository;
+    }
 
     /** 🧾 Список товаров продавца */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::where('user_id', auth()->id())
-            ->with(['category', 'city.country'])
-            ->latest()
-            ->paginate(15);
+        // получаем только товары текущего продавца
+        $request->merge(['user_id' => auth()->id()]);
+        $products = $this->productRepository->getFilteredProducts($request);
 
         return view('seller.products.index', compact('products'));
     }
 
-    /** ➕ Форма создания */
+    /** ➕ Создание */
     public function create()
     {
         $rootCategories = Category::whereNull('parent_id')->orderBy('name')->get();

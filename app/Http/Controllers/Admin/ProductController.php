@@ -5,30 +5,36 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
-use App\Models\Product;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\Country;
 use App\Models\City;
+use App\Models\Product;
 use App\Services\ProductService;
+use App\Repositories\ProductRepository;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function __construct(private ProductService $productService) {}
+    private ProductService $productService;
+    private ProductRepository $productRepository;
+
+    public function __construct(ProductService $productService, ProductRepository $productRepository)
+    {
+        $this->productService = $productService;
+        $this->productRepository = $productRepository;
+    }
 
     /** 🧾 Список товаров */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with(['category', 'seller', 'city.country'])
-            ->orderByDesc('created_at')
-            ->paginate(20);
-
+        $products = $this->productRepository->getFilteredProducts($request);
         $categories = Category::orderBy('name')->get();
 
         return view('admin.products.index', compact('products', 'categories'));
     }
 
-    /** ➕ Форма создания товара */
+    /** ➕ Создание */
     public function create()
     {
         $categories = Category::whereNull('parent_id')->orderBy('name')->get();
@@ -40,7 +46,7 @@ class ProductController extends Controller
         return view('admin.products.create', compact('categories', 'sellers', 'countries', 'cities', 'product'));
     }
 
-    /** 💾 Сохранение нового товара */
+    /** 💾 Сохранение */
     public function store(ProductStoreRequest $request)
     {
         $data = $request->validated();
@@ -55,7 +61,7 @@ class ProductController extends Controller
         return redirect()->route('admin.products.index')->with('success', '✅ Товар создан.');
     }
 
-    /** ✏️ Форма редактирования */
+    /** ✏️ Редактирование */
     public function edit(Product $product)
     {
         $categories = Category::whereNull('parent_id')->orderBy('name')->get();
@@ -68,7 +74,7 @@ class ProductController extends Controller
         return view('admin.products.edit', compact('product', 'categories', 'sellers', 'countries', 'cities'));
     }
 
-    /** 🔄 Обновление товара */
+    /** 🔄 Обновление */
     public function update(ProductUpdateRequest $request, Product $product)
     {
         $data = $request->validated();
@@ -83,7 +89,7 @@ class ProductController extends Controller
         return redirect()->route('admin.products.index')->with('success', '✅ Товар обновлён.');
     }
 
-    /** 🗑 Удаление товара */
+    /** 🗑 Удаление */
     public function destroy(Product $product)
     {
         $this->productService->delete($product);
