@@ -2,7 +2,7 @@
 @section('title', 'Категории')
 
 @section('content')
-<div class="space-y-10">
+<div class="space-y-10 px-2 sm:px-4">
 
     <!-- 🔖 Заголовок -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -16,26 +16,23 @@
     <!-- 🧮 Аналитика -->
     <div class="space-y-4 mt-10">
         <h2 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-            📊 Топ-5 категорий по количеству подкатегорий и товаров
+            📊 Аналитика категорий
         </h2>
 
-        
         @if($topParents->isNotEmpty())
             <!-- 🔘 Переключатели режимов -->
-            <div class="flex items-center gap-2 mb-4">
-@foreach([
-    'products'   => ['🛍 Популярные категории', 'Больше всего товаров'],
-    'subcats'    => ['🏗 Ассортимент', 'Больше подкатегорий'],
-    'efficiency' => ['⚖️ Эффективность', 'Больше товаров на подкатегорию']
-] as $key => [$label, $tooltip])
-
-    <a href="{{ route('admin.categories.index', array_merge(request()->query(), ['mode' => $key])) }}"
-       title="{{ $tooltip }}"
-       class="px-3 py-1.5 text-sm rounded-lg {{ $mode === $key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-        {{ $label }}
-    </a>
-@endforeach
-
+            <div class="flex flex-wrap items-center gap-2 mb-4">
+                @foreach([
+                    'products'   => ['🛍 Популярные категории', 'Больше всего товаров'],
+                    'subcats'    => ['🏗 Ассортимент', 'Больше подкатегорий'],
+                    'efficiency' => ['⚖️ Эффективность', 'Больше товаров на подкатегорию']
+                ] as $key => [$label, $tooltip])
+                    <a href="{{ route('admin.categories.index', array_merge(request()->query(), ['mode' => $key])) }}"
+                       title="{{ $tooltip }}"
+                       class="px-3 py-1.5 text-sm rounded-lg {{ $mode === $key ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        {{ $label }}
+                    </a>
+                @endforeach
             </div>
 
             <!-- 📦 Сетка топ-категорий -->
@@ -78,9 +75,6 @@
         @endif
     </div>
 
-
-
-
     <!-- 📊 Карточки статистики -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <x-admin.stat-card color="blue" label="Всего категорий" :value="$categories->total()" icon="📦" />
@@ -90,10 +84,10 @@
 
     <!-- 🔍 Панель фильтров -->
     <div class="bg-white border border-gray-100 shadow-sm rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 w-full md:w-auto">
             <label for="parentFilter" class="text-gray-500 text-sm">Фильтр по родителю:</label>
             <select id="parentFilter"
-                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400">
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full md:w-auto focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400">
                 <option value="">Все категории</option>
                 @foreach($parents as $parent)
                     <option value="{{ $parent->id }}" {{ (string)request('parent_id') === (string)$parent->id ? 'selected' : '' }}>
@@ -120,10 +114,44 @@
 
     <!-- 📋 Таблица -->
     <div id="categoryTableWrapper"
-         class="bg-white shadow rounded-xl border border-gray-100 overflow-hidden transition-all">
+         class="bg-white shadow rounded-xl border border-gray-100 overflow-x-auto transition-all">
         @include('admin.categories.table', ['categories' => $categories])
     </div>
 </div>
+
+<!-- 📱 Адаптивные стили -->
+<style>
+@media (max-width: 640px) {
+  table thead {
+    display: none;
+  }
+  table, table tbody, table tr, table td {
+    display: block;
+    width: 100%;
+  }
+  table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  table td {
+    text-align: left !important;
+    padding: 0.25rem 0.5rem;
+    border: none !important;
+  }
+  table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+  }
+}
+</style>
 
 <!-- ⚙️ JS -->
 <script>
@@ -175,6 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(res => res.text())
             .then(html => wrapper.innerHTML = html)
+            .catch(err => console.error('Ошибка пагинации:', err));
+    });
+});
+</script>
+@endsection
+TML = html)
             .catch(err => console.error('Ошибка пагинации:', err));
     });
 });
