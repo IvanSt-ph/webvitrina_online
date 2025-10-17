@@ -1,0 +1,168 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+class CategoriesSeeder extends Seeder
+{
+    public function run(): void
+    {
+        DB::table('categories')->insertOrIgnore([
+            [
+                'id' => 7,
+                'name' => 'Электроника',
+                'slug' => 'electronics',
+                'icon' => null,
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 8,
+                'name' => 'Телефоны',
+                'slug' => 'phones',
+                'icon' => null,
+                'parent_id' => 7,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 9,
+                'name' => 'Телевизоры',
+                'slug' => 'tv',
+                'icon' => null,
+                'parent_id' => 7,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 10,
+                'name' => 'Продукты',
+                'slug' => 'food',
+                'icon' => 'categories/8H4uQlXnSC4ZPx5yHKpdWfXzqrCVIquMXhdSQLnl.png',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 11,
+                'name' => 'Фрукты',
+                'slug' => 'fruits',
+                'icon' => null,
+                'parent_id' => 10,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 12,
+                'name' => 'Овощи',
+                'slug' => 'vegetables',
+                'icon' => 'categories/LggIu88P6i9S64CRwXVHZn7hbHWoQx1yMliUKVK7.png',
+                'parent_id' => 10,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 23,
+                'name' => 'Одежда',
+                'slug' => 'clothes',
+                'icon' => 'categories/RTlwdyLDwOJ9r0vJeRNS5JfuPG7nMI1XhbiBQBYk.png',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 24,
+                'name' => 'Мужская',
+                'slug' => 'man',
+                'icon' => 'categories/lbZQz37bsgY77MMTSgo5ZfenvWrKCdxSIGIyPBC5.png',
+                'parent_id' => 23,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 26,
+                'name' => 'Штаны',
+                'slug' => 'pants',
+                'icon' => null,
+                'parent_id' => 24,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 27,
+                'name' => 'Женская',
+                'slug' => 'woman',
+                'icon' => 'categories/pPPfSQhJ74OWn8PAq6nYO2XAgsU46yJYgqVWExa2.png',
+                'parent_id' => 23,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 28,
+                'name' => 'Платье',
+                'slug' => 'dresses',
+                'icon' => null,
+                'parent_id' => 27,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 33,
+                'name' => 'Домашний интерьер',
+                'slug' => 'home_interier',
+                'icon' => 'categories/GrDmhhADaLKK2M8mi289m8ZCKgG6bds0oS1eakl4.png',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 34,
+                'name' => 'Ковры и дорожки',
+                'slug' => 'Carpets and rugs',
+                'icon' => 'categories/NGeCXqy3TIrTJ9j6fnbyRsHalRkqhSwTCgKwEJbn.png',
+                'parent_id' => 33,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 35,
+                'name' => 'Часы',
+                'slug' => 'watch',
+                'icon' => 'categories/UuyBbR6qwtqIo1adMqGyQJojSM8OR4rZEUh45UMg.png',
+                'parent_id' => 7,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 36,
+                'name' => 'Наручные часы',
+                'slug' => 'Wristwatch',
+                'icon' => 'categories/iQvAIbZezkd9KrN4RScpVkzDriGVY6l98H7TbQlj.png',
+                'parent_id' => 35,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 37,
+                'name' => 'Автотовары',
+                'slug' => 'auto',
+                'icon' => 'categories/jUb4Z9duKkaJckG5kBOQUcqSAcQ8EYSpMy9a0tam.png',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => 38,
+                'name' => 'Колесо',
+                'slug' => 'wheel',
+                'icon' => 'categories/bhq2G2oRfsZ2AuuZNxtw4XJ3bpUaHonDTdl3xkmA.png',
+                'parent_id' => 37,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+    }
+}

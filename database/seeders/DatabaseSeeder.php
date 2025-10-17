@@ -6,8 +6,15 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    public function run(): void
-    {
-        $this->call(DemoSeeder::class);
-    }
+public function run(): void
+{
+    $this->call([
+        CountriesSeeder::class,
+        CitiesSeeder::class,
+        CategoriesSeeder::class,
+        UsersSeeder::class,
+        ProductsSeeder::class,
+    ]);
+}
+
 }
