@@ -122,36 +122,109 @@
 <!-- 📱 Адаптивные стили -->
 <style>
 @media (max-width: 640px) {
+  /* 🧹 Убираем стандартную таблицу */
   table thead {
     display: none;
   }
+
   table, table tbody, table tr, table td {
     display: block;
     width: 100%;
-  }
-  table tr {
-    margin-bottom: 1rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    background: #fff;
-    padding: 0.75rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
-  table td {
-    text-align: left !important;
-    padding: 0.25rem 0.5rem;
     border: none !important;
   }
-  table td::before {
-    content: attr(data-label);
-    display: block;
+
+  table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  /* 💡 Каждая категория — компактная строка */
+  table tr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
+  }
+
+  table tr:hover {
+    background: #f9fafb;
+    transform: translateY(-1px);
+  }
+
+  /* 🖼 Левая часть: иконка + текст */
+  table td:first-child {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  table td:first-child img {
+    width: 2rem;
+    height: 2rem;
+    object-fit: contain;
+    border-radius: 0.25rem;
+    background: #fff;
+  }
+
+  /* 🏷 Название + slug */
+  table td:nth-child(2),
+  table td:nth-child(3) {
+    display: inline-block;
+    line-height: 1.2rem;
+  }
+
+  table td:nth-child(2) {
     font-weight: 600;
-    color: #6b7280;
+    font-size: 0.9rem;
+    color: #111827;
+  }
+
+  table td:nth-child(3) {
     font-size: 0.75rem;
-    margin-bottom: 2px;
+    color: #6b7280;
+  }
+
+  /* 🔘 Правая часть — кнопки */
+  table td:last-child {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  table td:last-child button,
+  table td:last-child a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 0.5rem;
+    background: #f3f4f6;
+    transition: background 0.2s ease;
+  }
+
+  table td:last-child a:hover {
+    background: #e0e7ff;
+  }
+
+  table td:last-child button:hover {
+    background: #fee2e2;
+  }
+
+  /* ❌ Прячем лишние столбцы */
+  table td:nth-child(n+4):not(:last-child) {
+    display: none;
   }
 }
 </style>
+
 
 <!-- ⚙️ JS -->
 <script>
@@ -203,12 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(res => res.text())
             .then(html => wrapper.innerHTML = html)
-            .catch(err => console.error('Ошибка пагинации:', err));
-    });
-});
-</script>
-@endsection
-TML = html)
             .catch(err => console.error('Ошибка пагинации:', err));
     });
 });

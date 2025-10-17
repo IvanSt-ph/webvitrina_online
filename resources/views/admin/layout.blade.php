@@ -13,6 +13,9 @@
 <meta name="theme-color" content="#4f46e5">
 <meta name="robots" content="noindex, nofollow">
 
+   {{-- ⚠️ Добавляем CSRF-токен, иначе будет 419 Page Expired --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
 
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
