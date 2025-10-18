@@ -23,24 +23,27 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();
+{
+    $request->authenticate();
+    $request->session()->regenerate();
 
-        $request->session()->regenerate();
+    $user = $request->user();
 
-        $user = $request->user();
+    // ✅ Унифицируем значение роли (вдруг в БД 'Admin' с большой буквы)
+    $role = strtolower($user->role ?? '');
 
-        // 🔻 Определяем, куда вести по роли
-        $fallback = match ($user->role) {
-            'admin'  => route('admin.dashboard'),
-            'seller' => route('seller.products.index'),
-            default  => route('cabinet'),
-        };
+    // 🔻 Определяем, куда вести по роли
+    $fallback = match ($role) {
+        'admin'  => route('admin.dashboard'),
+        'seller' => route('seller.products.index'),
+        default  => route('cabinet'),
+    };
 
-        // Если был "intended" URL (например, защищённая страница) — пойдём туда,
-        // иначе на fallback по роли
-        return redirect()->intended($fallback);
-    }
+    // ⚙️ Если есть "intended" URL (например, пытался зайти на страницу без входа)
+    // Laravel вернёт туда, иначе — в fallback
+    return redirect()->intended($fallback);
+}
+
 
     /**
      * Destroy an authenticated session.
