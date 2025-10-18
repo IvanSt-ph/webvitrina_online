@@ -5,70 +5,126 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CategoryController extends Controller
 {
-    // 🔹 Показать товары категории
+    /**
+     * 🔹 Показать категорию — товары или подкатегории
+     */
     public function show(string $slug)
     {
-        $category = Category::with('children')->where('slug', $slug)->firstOrFail();
+        // 🧠 Кэшируем категорию с родителями и потомками
+        $category = Cache::remember("category:{$slug}", 3600, function () use ($slug) {
+            return Category::with(['children', 'parent'])->where('slug', $slug)->firstOrFail();
+        });
 
+        /**
+         * 🧭 Генерация хлебных крошек
+         */
+        $breadcrumbs = [
+            'Категории' => route('category.index'),
+        ];
+
+        $parent = $category->parent;
+        $stack = [];
+
+        while ($parent) {
+            $stack[$parent->name] = route('category.show', $parent->slug);
+            $parent = $parent->parent;
+        }
+
+        $breadcrumbs = array_merge($breadcrumbs, array_reverse($stack));
+        $breadcrumbs[$category->name] = '#';
+
+        /**
+         * 📂 Если есть подкатегории — показываем их плитками
+         */
+        if ($category->children->isNotEmpty()) {
+            return view('categories.subcategories', compact('category', 'breadcrumbs'));
+        }
+
+        /**
+         * 🛒 Если подкатегорий нет — показываем товары
+         */
         $categoryIds = $category->allChildrenIds();
 
-        $query = Product::whereIn('category_id', $categoryIds)
-            ->with(['city.country'])
-            ->latest();
+        // ⚙️ Создаём уникальный ключ для кэша на основе фильтров и сортировки
+        $cacheKey = 'products:' . md5(json_encode([
+            'category' => $categoryIds,
+            'country' => request('country_id'),
+            'city' => request('city_id'),
+            'search' => request('q'),
+            'sort' => request('sort', 'popular'),
+            'page' => request('page', 1),
+        ]));
 
-        // Фильтры
-        if (request()->filled('country_id')) {
-            $countryId = (int) request('country_id');
-            $query->whereHas('city', function ($q) use ($countryId) {
-                $q->where('country_id', $countryId);
-            });
+        $products = Cache::remember($cacheKey, 600, function () use ($categoryIds) {
+            $query = Product::whereIn('category_id', $categoryIds)
+                ->with(['city.country']);
 
-            if (request()->filled('city_id')) {
-                $query->where('city_id', (int) request('city_id'));
+            // 🔍 Фильтры
+            if (request()->filled('country_id')) {
+                $countryId = (int) request('country_id');
+                $query->whereHas('city', fn($q) => $q->where('country_id', $countryId));
+
+                if (request()->filled('city_id')) {
+                    $query->where('city_id', (int) request('city_id'));
+                }
             }
-        }
 
-        // Поиск
-        if (request()->filled('q')) {
-            $query->where('title', 'like', '%' . request('q') . '%');
-        }
-
-        // Сортировка
-        if (request()->filled('sort')) {
-            switch (request('sort')) {
-                case 'price_asc':
-                    $query->orderBy('price', 'asc');
-                    break;
-                case 'price_desc':
-                    $query->orderBy('price', 'desc');
-                    break;
-                case 'rating':
-                    $query->withAvg('reviews', 'rating')->orderBy('reviews_avg_rating', 'desc');
-                    break;
-                case 'new':
-                    $query->latest();
-                    break;
-                case 'benefit':
-                    $query->orderByRaw('(stock / price) desc');
-                    break;
-                default:
-                    $query->latest();
+            if (request()->filled('q')) {
+                $query->where('title', 'like', '%' . request('q') . '%');
             }
-        }
 
-        $products = $query->paginate(20)->withQueryString();
+           
+// ⚙️ Сортировка
+$sort = request('sort', 'popular'); // значение по умолчанию
+
+match ($sort) {
+    'price_asc'  => $query->orderBy('price', 'asc'),
+    'price_desc' => $query->orderBy('price', 'desc'),
+    'rating'     => $query->withAvg('reviews', 'rating')->orderByDesc('reviews_avg_rating'),
+    'new'        => $query->orderByDesc('created_at'),
+    'benefit'    => $query->orderByRaw('(stock / NULLIF(price, 0)) DESC'),
+    default      => $query->orderByDesc('created_at'), // ← исправлено! вместо views
+};
+
+
+            return $query->paginate(20)->withQueryString();
+        });
 
         return view('products.index', [
             'category' => $category,
             'products' => $products,
+            'breadcrumbs' => $breadcrumbs,
             'activeCategoryId' => $category->id,
         ]);
     }
 
-    // 🔹 Сохранение новой категории
+    /**
+     * 🔹 Показать все категории плитками
+     */
+    public function index()
+    {
+        // 🧠 Кэшируем список всех корневых категорий с потомками
+        $categories = Cache::remember('categories:root', 3600, function () {
+            return Category::whereNull('parent_id')
+                ->with('children')
+                ->orderBy('name')
+                ->get();
+        });
+
+        $breadcrumbs = [
+            'Категории' => '#',
+        ];
+
+        return view('categories.index', compact('categories', 'breadcrumbs'));
+    }
+
+    /**
+     * 🔹 Сохранение новой категории
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -86,10 +142,17 @@ class CategoryController extends Controller
 
         $category->save();
 
-        return redirect()->route('categories.index')->with('success', 'Категория добавлена');
+        // ❌ Очистим кэш категорий
+        Cache::forget('categories:root');
+
+        return redirect()
+            ->route('categories.index')
+            ->with('success', 'Категория добавлена');
     }
 
-    // 🔹 Обновление категории
+    /**
+     * 🔹 Обновление категории
+     */
     public function update(Request $request, Category $category)
     {
         $request->validate([
@@ -107,6 +170,12 @@ class CategoryController extends Controller
 
         $category->save();
 
-        return redirect()->route('categories.index')->with('success', 'Категория обновлена');
+        // ❌ Очистим кэш категорий
+        Cache::forget('categories:root');
+        Cache::forget("category:{$category->slug}");
+
+        return redirect()
+            ->route('categories.index')
+            ->with('success', 'Категория обновлена');
     }
 }

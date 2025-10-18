@@ -31,7 +31,11 @@ Route::get('/p/{key}', [ProductController::class, 'show'])->name('product.show')
 
 
 // Категория
+Route::get('/category', [CategoryController::class, 'index'])->name('category.index');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
+
+
+
 
 // Кабинет пользователя
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
