@@ -20,16 +20,27 @@ class ProductController extends Controller
         return view('shop.index', compact('products'));
     }
 
-    public function show($key)
-    {
-        $product = $this->products->getProductBySlugOrId($key);
+public function show($key)
+{
+    $product = $this->products->getProductBySlugOrId($key);
 
-        // если метод getProductBySlugOrId() вернул redirect — Laravel его выполнит
-        if ($product instanceof \Illuminate\Http\RedirectResponse) {
-            return $product;
-        }
-
-        $related = $this->products->getRelatedProducts($product);
-        return view('shop.product-show', compact('product', 'related'));
+    // если метод getProductBySlugOrId() вернул redirect — Laravel его выполнит
+    if ($product instanceof \Illuminate\Http\RedirectResponse) {
+        return $product;
     }
+
+    // ✅ Загружаем только одобренные отзывы с пользователями
+    $reviews = $product->reviews()
+        ->where('status', 'approved')
+        ->latest()
+        ->with('user')
+        ->get();
+
+    // ✅ Подгружаем похожие товары
+    $related = $this->products->getRelatedProducts($product);
+
+    // ✅ Передаём всё в шаблон
+    return view('shop.product-show', compact('product', 'related', 'reviews'));
+}
+
 }

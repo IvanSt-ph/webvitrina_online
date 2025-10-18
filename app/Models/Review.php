@@ -46,4 +46,21 @@ class Review extends Model
             default               => '—',
         };
     }
+
+
+    protected static function booted()
+{
+    static::saved(function ($review) {
+        if ($review->product) {
+            \App\Repositories\ProductRepository::clearProductCache($review->product);
+        }
+    });
+
+    static::deleted(function ($review) {
+        if ($review->product) {
+            \App\Repositories\ProductRepository::clearProductCache($review->product);
+        }
+    });
+}
+
 }
