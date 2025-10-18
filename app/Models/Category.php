@@ -43,4 +43,10 @@ class Category extends Model
 
         return $ids->unique();
     }
+
+    public function attributes()
+{
+    return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_category');
+}
+
 }

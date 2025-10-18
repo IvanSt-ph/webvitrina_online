@@ -169,4 +169,15 @@ class Product extends Model
     {
         return $query->where('city_id', $cityId);
     }
+
+
+
+
+    public function attributes()
+{
+    return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_values')
+                ->withPivot('value')
+                ->withTimestamps();
+}
+
 }

@@ -13,8 +13,12 @@ public function run(): void
         CitiesSeeder::class,
         CategoriesSeeder::class,
         UsersSeeder::class,
+        CategoryAttributesSeeder::class,
         ProductsSeeder::class,
+        
     ]);
 }
+
+
 
 }
