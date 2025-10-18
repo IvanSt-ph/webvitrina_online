@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -22,31 +23,21 @@ class Product extends Model
         'description',
         'city_id',
         'gallery',
-        'country_id',
+        'status',
         'address',
         'latitude',
         'longitude',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'price' => 'decimal:2',
-            'gallery' => 'array',
-            'latitude' => 'decimal:6',
-            'longitude' => 'decimal:6',
-        ];
-    }
+    protected $casts = [
+        'price' => 'decimal:2',
+        'gallery' => 'array',
+        'latitude' => 'decimal:6',
+        'longitude' => 'decimal:6',
+    ];
 
     // 🔹 Продавец
     public function seller() { return $this->belongsTo(User::class, 'user_id'); }
-
-    // 🔹 Пользователь
-    public function user()
-{
-    return $this->belongsTo(User::class, 'user_id');
-}
-
 
     // 🔹 Отзывы
     public function reviews() { return $this->hasMany(Review::class); }
@@ -61,7 +52,7 @@ class Product extends Model
     public function getCountryAttribute() { return $this->city?->country; }
 
     // 🔹 Избранное
-    public function favorites() { return $this->hasMany(\App\Models\Favorite::class); }
+    public function favorites() { return $this->hasMany(Favorite::class); }
 
     public function isFavoritedBy($user)
     {
@@ -91,7 +82,7 @@ class Product extends Model
             }
         });
 
-        // ⚙️ Удаляем только изменённое главное фото, но не галерею
+        // ⚙️ Удаляем только изменённое главное фото
         static::updating(function ($product) {
             if ($product->isDirty('image')) {
                 $old = $product->getOriginal('image');
@@ -100,9 +91,6 @@ class Product extends Model
                 }
             }
         });
-
-        // ❌ При обновлении товара не трогаем старую галерею (раньше тут была ошибка)
-        // Теперь Laravel не будет удалять все изображения, если одно изменилось.
 
         // 🧹 При полном удалении товара удаляем только связанные файлы
         static::deleting(function ($product) {
@@ -145,15 +133,34 @@ class Product extends Model
         return $this->city?->name;
     }
 
+    // 🔹 Старые slug для редиректа
+    public function oldSlugs()
+    {
+        return $this->hasMany(ProductSlug::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
-    | Сохрание старых slug для редиректа
+    | Scopes для фильтров
     |--------------------------------------------------------------------------
     */
-public function oldSlugs()
-{
-    return $this->hasMany(ProductSlug::class);
-}
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
 
+    public function scopeDraft($query)
+    {
+        return $query->where('status', 'draft');
+    }
 
+    public function scopeByCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    public function scopeByCity($query, $cityId)
+    {
+        return $query->where('city_id', $cityId);
+    }
 }

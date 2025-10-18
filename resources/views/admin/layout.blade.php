@@ -34,7 +34,7 @@
         :class="{ '-translate-x-full': !sidebarOpen }"
     >
         <div class="p-4 text-center border-b border-gray-200 flex items-center justify-between">
-            <h1 class="text-xl font-bold text-indigo-600">Админ-панель</h1>
+            <h1 class="text-xl font-bold text-indigo-600">WebVitrina</h1>
             <!-- Кнопка закрытия на мобилке -->
             <button 
                 @click="sidebarOpen = false"
