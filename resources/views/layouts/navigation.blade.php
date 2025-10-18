@@ -56,8 +56,9 @@
                         use App\Models\Country;
                         use App\Models\City;
                         $countries = Country::orderBy('name')->get();
-                        $currentCountry = request('country_id');
-                        $currentCity = request('city_id');
+$currentCountry = request('country_id', session('country_id'));
+$currentCity = request('city_id', session('city_id'));
+
                     @endphp
 
                     <!-- Флаг -->

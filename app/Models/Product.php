@@ -39,6 +39,12 @@ class Product extends Model
     // 🔹 Продавец
     public function seller() { return $this->belongsTo(User::class, 'user_id'); }
 
+    
+    // 🔹 Была ошибка Где-то в коде (скорее всего в ProductRepository или ProductController@show) Laravel пытается подгрузить связь:
+
+    public function user(){ return $this->belongsTo(User::class, 'user_id');}
+
+
     // 🔹 Отзывы
     public function reviews() { return $this->hasMany(Review::class); }
 
