@@ -21,20 +21,32 @@
 
           {{-- 🔹 Плитка изображения --}}
           <div class="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
-              {{-- 1️⃣ Если есть изображение для плитки --}}
+
+              {{-- 1️⃣ Если есть изображение --}}
               @if(!empty($child->image))
-                  <img src="{{ asset('storage/'.$child->image) }}"
-                       alt="{{ $child->name }}"
-                       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                       loading="lazy"
-                       onerror="this.src='/images/no-image.webp'">
+                  <picture>
+                      <source srcset="{{ asset('storage/'.$child->image) }}" type="image/webp">
+                      <img
+                          src="{{ asset('storage/'.$child->image) }}"
+                          alt="{{ $child->name }}"
+                          class="w-full h-full object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-105"
+                          loading="lazy"
+                          decoding="async"
+                          onload="this.style.opacity=1"
+                          onerror="this.src='/images/no-image.webp'"
+                      >
+                  </picture>
+
               {{-- 2️⃣ Если нет изображения, но есть иконка --}}
               @elseif(!empty($child->icon))
-                  <img src="{{ asset('storage/'.$child->icon) }}"
-                       alt="{{ $child->name }}"
-                       class="w-20 h-20 object-contain transition-transform duration-300 group-hover:scale-110 opacity-60"
-                       loading="lazy"
-                       onerror="this.src='/images/no-image.webp'">
+                  <img
+                      src="{{ asset('storage/'.$child->icon) }}"
+                      alt="{{ $child->name }}"
+                      class="w-20 h-20 object-contain opacity-60 transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
+                      onerror="this.src='/images/no-image.webp'">
+              
               {{-- 3️⃣ Если ничего нет — заглушка --}}
               @else
                   <svg class="w-10 h-10 text-gray-300 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5"

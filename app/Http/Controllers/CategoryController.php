@@ -6,6 +6,9 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class CategoryController extends Controller
 {
@@ -14,19 +17,19 @@ class CategoryController extends Controller
      */
     public function show(string $slug)
     {
-        // 🧠 Подгружаем категорию с родителем и подкатегориями
-        $category = Category::query()
-            ->select('id', 'name', 'slug', 'parent_id', 'icon', 'image')
-            ->with([
-                'children' => function ($query) {
-                    $query->select('id', 'name', 'slug', 'parent_id', 'icon', 'image');
-                },
-                'parent' => function ($query) {
-                    $query->select('id', 'name', 'slug');
-                }
-            ])
-            ->where('slug', $slug)
-            ->firstOrFail();
+        // Кэшируем категорию и все связи
+        $cacheKey = "category_page:{$slug}";
+
+        $category = Cache::remember($cacheKey, 3600, function () use ($slug) {
+            return Category::query()
+                ->select('id', 'name', 'slug', 'parent_id', 'icon', 'image')
+                ->with([
+                    'children:id,name,slug,parent_id,icon,image',
+                    'parent:id,name,slug'
+                ])
+                ->where('slug', $slug)
+                ->firstOrFail();
+        });
 
         // 🧭 Хлебные крошки
         $breadcrumbs = ['Категории' => route('category.index')];
@@ -41,34 +44,32 @@ class CategoryController extends Controller
         $breadcrumbs = array_merge($breadcrumbs, array_reverse($stack));
         $breadcrumbs[$category->name] = '#';
 
-        // 📂 Если есть подкатегории — показываем их плитками
+        // Если есть подкатегории
         if ($category->children->isNotEmpty()) {
             return view('categories.subcategories', compact('category', 'breadcrumbs'));
         }
 
-        // 🛒 Если подкатегорий нет — показываем товары
+        // 📦 Если товаров нет — кэшируем и их
         $categoryIds = $category->allChildrenIds();
-
-        $cacheKey = 'products:' . md5(json_encode([
+        $productKey = 'products:' . md5(json_encode([
             'category' => $categoryIds,
-            'country' => request('country_id'),
-            'city' => request('city_id'),
-            'search' => request('q'),
-            'sort' => request('sort', 'popular'),
-            'page' => request('page', 1),
+            'country'  => request('country_id'),
+            'city'     => request('city_id'),
+            'search'   => request('q'),
+            'sort'     => request('sort', 'popular'),
+            'page'     => request('page', 1),
         ]));
 
-        $products = Cache::remember($cacheKey, 600, function () use ($categoryIds) {
+        $products = Cache::remember($productKey, 600, function () use ($categoryIds) {
             $query = Product::whereIn('category_id', $categoryIds)
                 ->with(['city.country']);
 
-            // 🔍 Фильтры
             if (request()->filled('country_id')) {
                 $countryId = (int) request('country_id');
                 $query->whereHas('city', fn($q) => $q->where('country_id', $countryId));
 
                 if (request()->filled('city_id')) {
-                    $query->where('city_id', (int) request('city_id'));
+                    $query->where('city_id', (int)request('city_id'));
                 }
             }
 
@@ -76,14 +77,12 @@ class CategoryController extends Controller
                 $query->where('title', 'like', '%' . request('q') . '%');
             }
 
-            // ⚙️ Сортировка
             $sort = request('sort', 'popular');
             match ($sort) {
                 'price_asc'  => $query->orderBy('price', 'asc'),
                 'price_desc' => $query->orderBy('price', 'desc'),
                 'rating'     => $query->withAvg('reviews', 'rating')->orderByDesc('reviews_avg_rating'),
                 'new'        => $query->orderByDesc('created_at'),
-                'benefit'    => $query->orderByRaw('(stock / NULLIF(price, 0)) DESC'),
                 default      => $query->orderByDesc('created_at'),
             };
 
@@ -129,11 +128,25 @@ class CategoryController extends Controller
         ]);
 
         if ($request->hasFile('icon')) {
-            $data['icon'] = $request->file('icon')->store('categories', 'public');
+            $data['icon'] = $request->file('icon')->store('categories/icons', 'public');
         }
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('categories', 'public');
+            $file = $request->file('image');
+
+            // сохраняем оригинал
+            $path = $file->store('categories/original', 'public');
+            $thumbPath = 'categories/thumbs/' . basename($path);
+
+            // создаем миниатюру через ImageManager
+            $manager = new ImageManager(new Driver());
+            $img = $manager->read($file->getRealPath())
+                ->scale(width: 300)
+                ->toWebp(80);
+
+            Storage::disk('public')->put($thumbPath, $img->toString());
+
+            $data['image'] = $thumbPath;
         }
 
         Category::create($data);
@@ -157,11 +170,22 @@ class CategoryController extends Controller
         ]);
 
         if ($request->hasFile('icon')) {
-            $data['icon'] = $request->file('icon')->store('categories', 'public');
+            $data['icon'] = $request->file('icon')->store('categories/icons', 'public');
         }
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('categories', 'public');
+            $file = $request->file('image');
+            $path = $file->store('categories/original', 'public');
+            $thumbPath = 'categories/thumbs/' . basename($path);
+
+            $manager = new ImageManager(new Driver());
+            $img = $manager->read($file->getRealPath())
+                ->scale(width: 300)
+                ->toWebp(80);
+
+            Storage::disk('public')->put($thumbPath, $img->toString());
+
+            $data['image'] = $thumbPath;
         }
 
         $category->update($data);

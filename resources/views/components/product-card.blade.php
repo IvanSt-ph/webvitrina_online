@@ -72,7 +72,9 @@
 
     @if($showDescription)
       <p class="text-xs text-neutral-500 mb-3">
-        {{ Str::limit($p->description, 60) }}
+       {{ str($p->description ?? 'Описание отсутствует')->limit(60) }}
+
+
       </p>
     @endif
 

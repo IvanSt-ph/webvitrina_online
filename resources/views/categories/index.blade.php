@@ -23,11 +23,19 @@
           <div class="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
               {{-- 1️⃣ Если есть изображение для плитки --}}
               @if(!empty($cat->image))
-                  <img src="{{ asset('storage/'.$cat->image) }}"
-                       alt="{{ $cat->name }}"
-                       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                       loading="lazy"
-                       onerror="this.src='/images/no-image.webp'">
+<picture>
+    <source srcset="{{ asset('storage/'.$cat->image) }}" type="image/webp">
+    <img
+        src="{{ asset('storage/'.$cat->image) }}"
+        alt="{{ $cat->name }}"
+        class="w-full h-full object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-105"
+        loading="lazy"
+        decoding="async"
+        onload="this.style.opacity=1"
+        onerror="this.src='/images/no-image.webp'"
+    >
+</picture>
+
               {{-- 2️⃣ Если нет изображения, но есть иконка --}}
               @elseif(!empty($cat->icon))
                   <img src="{{ asset('storage/'.$cat->icon) }}"

@@ -25,8 +25,12 @@ use App\Models\Country;
 Route::get('/', [ProductController::class, 'index'])->name('home');
 
 // Товар
+// Основной маршрут
 Route::get('/p/{slug}', [ProductController::class, 'show'])->name('product.show');
-Route::get('/p/{key}', [ProductController::class, 'show'])->name('product.show');
+
+// Альтернативный (короткий)
+Route::get('/p/{key}', [ProductController::class, 'show'])->name('product.short');
+
 
 
 
