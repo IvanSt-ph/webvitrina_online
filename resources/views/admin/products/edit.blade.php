@@ -105,8 +105,7 @@
             {{-- Страна и город --}}
             <div 
                 x-data="cityPicker()" 
-                x-init="init('{{ old('country_id', $product->country_id) }}','{{ old('city_id', $product->city_id) }}')"
-            >
+                x-init="init('{{ old('country_id', optional($product->city)->country_id) }}','{{ old('city_id', $product->city_id) }}')">
                 <label class="block text-sm font-medium text-gray-700">Страна</label>
                 <select name="country_id" x-model="country" @change="loadCities()"
                         class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">

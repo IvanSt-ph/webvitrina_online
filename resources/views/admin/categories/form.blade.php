@@ -1,7 +1,10 @@
+{{-- resources\views\admin\categories\form.blade.php --}}
+
 @php
     /** @var \App\Models\Category $category */
     $category = $category ?? new \App\Models\Category();
     $submit   = $submit ?? 'Сохранить';
+    $chainIds = isset($chain) ? $chain->pluck('id') : collect();
 @endphp
 
 {{-- 🏷️ Название + Slug --}}
@@ -30,18 +33,8 @@
 <div x-data="categorySelect()" x-init="init()" class="mt-6 space-y-2">
     <label class="block text-sm font-medium text-gray-700">Родительская категория</label>
 
-    <div id="category-selects" class="space-y-2">
-        <select @change="loadChildren($event, 0)"
-                name="categories[0]"
-                class="w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="">— Нет —</option>
-            @foreach($parents->whereNull('parent_id') as $parent)
-                <option value="{{ $parent->id }}" @selected(old('parent_id', $category->parent_id) == $parent->id)>
-                    {{ $parent->name }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+<div id="category-selects" class="space-y-2"></div>
+
 
     <input type="hidden" name="parent_id" x-model="finalCategory"
            value="{{ old('parent_id', $category->parent_id) }}">
@@ -102,52 +95,91 @@ function slugHelper() {
 function categorySelect() {
     return {
         finalCategory: '{{ old('parent_id', $category->parent_id) }}',
+        chain: @json(isset($chain) ? $chain->pluck('id') : []),
+        initialized: false, // 🧩 защита от повторной инициализации
+
         async init() {
-            if (this.finalCategory) await this.loadChain(this.finalCategory);
-        },
-        async loadChildren(event, level) {
-            const parentId = event.target.value;
-            this.finalCategory = parentId;
-            document.querySelectorAll('#category-selects select').forEach((el, i) => {
-                if (i > level) el.remove();
-            });
-            if (!parentId) return;
-            const res = await fetch(`/categories/${parentId}/children`);
-            const data = await res.json();
-            if (data.length > 0) {
-                const select = document.createElement('select');
-                select.name = `categories[${level + 1}]`;
-                select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
-                select.innerHTML = `<option value="">— Выберите подкатегорию —</option>`;
-                data.forEach(cat => select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
-                select.addEventListener('change', (e) => this.loadChildren(e, level + 1));
+            if (this.initialized) return; // 🔒 предотвращаем дубли
+            this.initialized = true;
+
+            if (this.chain.length > 0) {
+                await this.buildChain();
+            } else {
+                // Если это новая категория — просто загрузим первый селект
+                const roots = await this.fetchRoot();
+                const select = this.createSelect(0, roots);
                 document.getElementById('category-selects').appendChild(select);
             }
         },
-        async loadChain(categoryId) {
-            let current = categoryId, chain = [];
-            while (current) {
-                const res = await fetch(`/categories/${current}/parent`);
-                const data = await res.json();
-                if (data.parent_id) { chain.unshift(data.parent_id); current = data.parent_id; } else break;
+
+
+        /** 🔗 Построить всю цепочку */
+        async buildChain() {
+            let prevId = null;
+            for (let i = 0; i < this.chain.length; i++) {
+                const parentId = prevId ?? null;
+                const data = parentId
+                    ? await this.fetchChildren(parentId)
+                    : await this.fetchRoot();
+
+                const select = this.createSelect(i, data);
+                document.getElementById('category-selects').appendChild(select);
+                select.value = this.chain[i];
+                prevId = this.chain[i];
             }
-            let level = 0;
-            for (const id of chain) {
-                const res = await fetch(`/categories/${id}/children`);
-                const data = await res.json();
-                if (data.length > 0) {
-                    const select = document.createElement('select');
-                    select.name = `categories[${level}]`;
-                    select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
-                    select.innerHTML = `<option value="">— Выберите —</option>`;
-                    data.forEach(cat => select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
-                    select.addEventListener('change', (e) => this.loadChildren(e, level));
-                    document.getElementById('category-selects').appendChild(select);
-                    select.value = id;
-                    level++;
-                }
+
+            // Загружаем последний уровень (если есть дочерние)
+            const lastChildren = await this.fetchChildren(prevId);
+            if (lastChildren.length > 0) {
+                const lastSelect = this.createSelect(this.chain.length, lastChildren);
+                document.getElementById('category-selects').appendChild(lastSelect);
             }
+
+            this.finalCategory = prevId;
+        },
+
+        /** ⚙️ Обработка изменения */
+        async loadChildren(event, level) {
+            const parentId = event.target.value;
+            this.finalCategory = parentId;
+
+            // Удаляем все селекты ниже выбранного уровня
+            document.querySelectorAll('#category-selects select').forEach((el, i) => {
+                if (i > level) el.remove();
+            });
+
+            if (!parentId) return;
+
+            const data = await this.fetchChildren(parentId);
+            if (data.length > 0) {
+                const select = this.createSelect(level + 1, data);
+                document.getElementById('category-selects').appendChild(select);
+            }
+        },
+
+        /** 📡 Запросы к API */
+        async fetchRoot() {
+            const res = await fetch(`/admin/categories/root`);
+            return res.json();
+        },
+        async fetchChildren(id) {
+            const res = await fetch(`/admin/categories/${id}/children`);
+            return res.json();
+        },
+
+        /** 🧱 Создание select */
+        createSelect(level, data) {
+            const select = document.createElement('select');
+            select.name = `categories[${level}]`;
+            select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 transition';
+            select.innerHTML = `<option value="">— Выберите подкатегорию —</option>`;
+            data.forEach(cat => {
+                select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+            });
+            select.addEventListener('change', (e) => this.loadChildren(e, level));
+            return select;
         }
     }
 }
 </script>
+

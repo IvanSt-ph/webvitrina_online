@@ -1,3 +1,6 @@
+{{-- resources\views\admin\categories\edit.blade.php --}}
+
+
 @extends('admin.layout')
 
 @section('title','Редактировать категорию')

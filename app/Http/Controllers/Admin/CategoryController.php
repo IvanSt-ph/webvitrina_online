@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
+
 class CategoryController extends Controller
 {
     /** 📂 Главная страница категорий */
@@ -120,15 +121,22 @@ class CategoryController extends Controller
     }
 
     /** ✏️ Редактирование категории */
-    public function edit(Category $category)
-    {
-        $parents = Category::whereNull('parent_id')
-            ->orWhere('id', $category->parent_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return view('admin.categories.edit', compact('category', 'parents'));
+public function edit(Category $category)
+{
+    // Загружаем всех родителей до самого верха
+    $chain = collect();
+    $current = $category->parent;
+    while ($current) {
+        $chain->prepend($current);
+        $current = $current->parent;
     }
+
+    // Берём все категории, чтобы каскад мог построить цепочку
+    $parents = Category::orderBy('parent_id')->orderBy('name')->get(['id', 'name', 'parent_id']);
+
+    return view('admin.categories.edit', compact('category', 'parents', 'chain'));
+}
+
 
     /** 💾 Обновление категории */
     public function update(Request $request, Category $category)
@@ -165,21 +173,48 @@ class CategoryController extends Controller
             ->with('success', 'Категория успешно обновлена.');
     }
 
-    /** 🗑 Удаление категории */
+        /** 🗑 Удаление категории */
     public function destroy(Category $category)
     {
         $category->delete();
+
         return redirect()->route('admin.categories.index')
             ->with('success', 'Категория удалена.');
     }
 
-    /** 📥 AJAX: Получить подкатегории */
+    /*
+    |--------------------------------------------------------------------------
+    | AJAX: Каскадные категории
+    |--------------------------------------------------------------------------
+    */
+
+    /** 📁 Получить корневые категории (parent_id = null) */
+    public function root(): JsonResponse
+    {
+        $roots = Category::whereNull('parent_id')
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($roots);
+    }
+
+    /** 📂 Получить подкатегории по ID родителя */
     public function children($id): JsonResponse
     {
         $children = Category::where('parent_id', $id)
+            ->select('id', 'name', 'parent_id')
             ->orderBy('name')
-            ->get(['id', 'name', 'parent_id']);
+            ->get();
 
         return response()->json($children);
     }
+
+    /** 🧭 Получить родителя категории */
+    public function parent($id): JsonResponse
+    {
+        $category = Category::find($id, ['id', 'parent_id']);
+        return response()->json($category);
+    }
 }
+

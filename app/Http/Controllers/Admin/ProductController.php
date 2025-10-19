@@ -62,17 +62,24 @@ class ProductController extends Controller
     }
 
     /** ✏️ Редактирование */
-    public function edit(Product $product)
-    {
-        $categories = Category::whereNull('parent_id')->orderBy('name')->get();
-        $sellers = User::where('role', 'seller')->orderBy('name')->get();
-        $countries = Country::orderBy('name')->get();
-        $cities = $product->country_id
-            ? City::where('country_id', $product->country_id)->get()
-            : collect();
+public function edit(Product $product)
+{
+    $categories = Category::whereNull('parent_id')->orderBy('name')->get();
+    $sellers = User::where('role', 'seller')->orderBy('name')->get();
+    $countries = Country::orderBy('name')->get();
 
-        return view('admin.products.edit', compact('product', 'categories', 'sellers', 'countries', 'cities'));
-    }
+    // корректно определяем страну через связь города
+    $countryId = optional($product->city)->country_id;
+
+    $cities = $countryId
+        ? City::where('country_id', $countryId)->get()
+        : collect();
+
+    return view('admin.products.edit', compact(
+        'product', 'categories', 'sellers', 'countries', 'cities'
+    ));
+}
+
 
     /** 🔄 Обновление */
     public function update(ProductUpdateRequest $request, Product $product)

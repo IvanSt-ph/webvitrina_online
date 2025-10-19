@@ -41,6 +41,10 @@ Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('categ
 
 
 
+
+
+
+
 // Кабинет пользователя
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
 
@@ -93,17 +97,9 @@ Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(funct
 | Вспомогательные API
 |--------------------------------------------------------------------------
 */
-Route::get('/categories/{parent}/children', fn(Category $parent) =>
-    $parent->children()->select('id','name')->orderBy('name')->get()
-)->name('categories.children');
 
 
-Route::get('/categories/{category}/parent', function (Category $category) {
-    return response()->json([
-        'id' => $category->id,
-        'parent_id' => $category->parent_id,
-    ]);
-})->name('categories.parent');
+
 
 
 
@@ -159,9 +155,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
 
-    // 📂 AJAX для каскадных категорий
-    Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])->name('categories.children');
-    Route::get('/categories/{id}/parent', [AdminCategoryController::class, 'parent'])->name('categories.parent');
+
+    
+
+// 📂 AJAX для каскадных категорий
+Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])
+    ->name('categories.children');
+
+    // 📂 Корневые категории (первый уровень)
+Route::get('/categories/root', [AdminCategoryController::class, 'root'])
+    ->name('categories.root');
+
+
+Route::get('/categories/{id}/parent', [AdminCategoryController::class, 'parent'])
+    ->name('categories.parent');
+
+
+
+    
 
     // 🛒 Live поиск товаров
     Route::get('/products/search', [AdminProductController::class, 'search'])->name('products.search');
