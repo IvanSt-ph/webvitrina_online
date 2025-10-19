@@ -120,6 +120,16 @@ $topParents = Category::whereNull('parent_id')
             $data['icon'] = $request->file('icon')->store('categories', 'public');
         }
 
+        if ($request->hasFile('image')) {
+    $data['image'] = $request->file('image')->storeAs(
+    'categories',
+    uniqid().'.'.$request->file('image')->getClientOriginalExtension(),
+    'public'
+);
+
+}
+
+
         Category::create($data);
 
         return redirect()->route('admin.categories.index')
@@ -136,25 +146,51 @@ $topParents = Category::whereNull('parent_id')
         return view('admin.categories.edit', compact('category', 'parents'));
     }
 
-    /** 💾 Обновление категории */
-    public function update(Request $request, Category $category)
-    {
-        $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'slug'      => 'required|string|max:255|unique:categories,slug,' . $category->id,
-            'icon'      => 'nullable|image',
-            'parent_id' => 'nullable|exists:categories,id',
-        ]);
 
-        if ($request->hasFile('icon')) {
-            $data['icon'] = $request->file('icon')->store('categories', 'public');
-        }
+/** 💾 Обновление категории */
+public function update(Request $request, Category $category)
+{
+    $data = $request->validate([
+        'name'      => 'required|string|max:255',
+        'slug'      => 'required|string|max:255|unique:categories,slug,' . $category->id,
+        'icon'      => 'nullable|image',
+        'image'     => 'nullable|image',
+        'parent_id' => 'nullable|exists:categories,id',
+    ]);
 
-        $category->update($data);
+// 🖼️ Иконка (для меню)
+if ($request->hasFile('icon') && $request->file('icon')->isValid()) {
+    $data['icon'] = $request->file('icon')->storeAs(
+        'categories',
+        uniqid().'.'.$request->file('icon')->getClientOriginalExtension(),
+        'public'
+    );
+}
 
-        return redirect()->route('admin.categories.index')
-            ->with('success', 'Категория обновлена.');
-    }
+// 🖼️ Изображение (для плитки)
+if ($request->hasFile('image') && $request->file('image')->isValid()) {
+    $data['image'] = $request->file('image')->storeAs(
+        'categories',
+        uniqid().'.'.$request->file('image')->getClientOriginalExtension(),
+        'public'
+    );
+}
+
+
+    // 💾 Обновление категории
+    $category->update($data);
+
+    return redirect()->route('admin.categories.index')
+        ->with('success', 'Категория успешно обновлена.');
+}
+
+
+
+
+
+
+
+
 
     /** 🗑 Удаление категории */
     public function destroy(Category $category)

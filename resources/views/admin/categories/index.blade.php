@@ -112,118 +112,38 @@
         </div>
     </div>
 
-    <!-- 📋 Таблица -->
-    <div id="categoryTableWrapper"
-         class="bg-white shadow rounded-xl border border-gray-100 overflow-x-auto transition-all">
-        @include('admin.categories.table', ['categories' => $categories])
-    </div>
+<!-- 📋 Таблица категорий (только для ПК) -->
+<div id="categoryTableWrapper" class="hidden md:block transition-all">
+  <div class="bg-white shadow rounded-xl border border-gray-100 overflow-x-auto">
+      @include('admin.categories.table', ['categories' => $categories])
+  </div>
 </div>
 
-<!-- 📱 Адаптивные стили -->
-<style>
-@media (max-width: 640px) {
-  /* 🧹 Убираем стандартную таблицу */
-  table thead {
-    display: none;
-  }
+<!-- 📱 Мобильные карточки -->
+<div class="block md:hidden space-y-3">
+    @foreach($categories as $category)
+        <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-center gap-3">
+            @if($category->image)
+                <img src="{{ asset('storage/'.$category->image) }}" class="w-16 h-16 rounded-lg object-cover" alt="">
+            @endif
+            <div class="flex-1">
+                <h3 class="font-semibold text-gray-800">{{ $category->name }}</h3>
+                <p class="text-xs text-gray-500">
+                    ID: {{ $category->id }} | Родитель: {{ $category->parent?->name ?? '—' }}
+                </p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ route('admin.categories.edit', $category) }}" class="text-indigo-600 hover:text-indigo-800">✏️</a>
+                <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" onsubmit="return confirm('Удалить категорию?')">
+                    @csrf @method('DELETE')
+                    <button class="text-red-500 hover:text-red-700">🗑️</button>
+                </form>
+            </div>
+        </div>
+    @endforeach
+</div>
 
-  table, table tbody, table tr, table td {
-    display: block;
-    width: 100%;
-    border: none !important;
-  }
 
-  table tbody {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-  }
-
-  /* 💡 Каждая категория — компактная строка */
-  table tr {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    padding: 0.6rem 0.8rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-    transition: all 0.2s ease;
-  }
-
-  table tr:hover {
-    background: #f9fafb;
-    transform: translateY(-1px);
-  }
-
-  /* 🖼 Левая часть: иконка + текст */
-  table td:first-child {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-  }
-
-  table td:first-child img {
-    width: 2rem;
-    height: 2rem;
-    object-fit: contain;
-    border-radius: 0.25rem;
-    background: #fff;
-  }
-
-  /* 🏷 Название + slug */
-  table td:nth-child(2),
-  table td:nth-child(3) {
-    display: inline-block;
-    line-height: 1.2rem;
-  }
-
-  table td:nth-child(2) {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #111827;
-  }
-
-  table td:nth-child(3) {
-    font-size: 0.75rem;
-    color: #6b7280;
-  }
-
-  /* 🔘 Правая часть — кнопки */
-  table td:last-child {
-    display: flex;
-    gap: 0.4rem;
-    justify-content: flex-end;
-    align-items: center;
-  }
-
-  table td:last-child button,
-  table td:last-child a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.9rem;
-    height: 1.9rem;
-    border-radius: 0.5rem;
-    background: #f3f4f6;
-    transition: background 0.2s ease;
-  }
-
-  table td:last-child a:hover {
-    background: #e0e7ff;
-  }
-
-  table td:last-child button:hover {
-    background: #fee2e2;
-  }
-
-  /* ❌ Прячем лишние столбцы */
-  table td:nth-child(n+4):not(:last-child) {
-    display: none;
-  }
-}
-</style>
 
 
 <!-- ⚙️ JS -->

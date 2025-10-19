@@ -4,20 +4,20 @@
     $submit   = $submit ?? 'Сохранить';
 @endphp
 
-{{-- Название + slug --}}
+{{-- 🏷️ Название + Slug --}}
 <div class="grid md:grid-cols-2 gap-4" x-data="slugHelper()">
     <div>
         <label class="block text-sm font-medium text-gray-700">Название</label>
         <input type="text" name="name" x-model="title"
                value="{{ old('name', $category->name) }}"
-               class="mt-1 block w-full border rounded-lg px-3 py-2" required>
+               class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500" required>
     </div>
     <div>
         <label class="block text-sm font-medium text-gray-700">Slug</label>
         <div class="flex gap-2">
             <input type="text" name="slug" x-model="slug"
                    value="{{ old('slug', $category->slug) }}"
-                   class="mt-1 block w-full border rounded-lg px-3 py-2" required>
+                   class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500" required>
             <button type="button" @click="makeSlug()"
                     class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
                 Сгенерировать
@@ -26,19 +26,17 @@
     </div>
 </div>
 
-{{-- Родительская категория (каскадно) --}}
+{{-- 🧭 Родительская категория (каскадно) --}}
 <div x-data="categorySelect()" x-init="init()" class="mt-6 space-y-2">
     <label class="block text-sm font-medium text-gray-700">Родительская категория</label>
 
     <div id="category-selects" class="space-y-2">
-        {{-- Только корневые категории --}}
         <select @change="loadChildren($event, 0)"
                 name="categories[0]"
                 class="w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
             <option value="">— Нет —</option>
             @foreach($parents->whereNull('parent_id') as $parent)
-                <option value="{{ $parent->id }}"
-                    {{ old('parent_id', $category->parent_id) == $parent->id ? 'selected' : '' }}>
+                <option value="{{ $parent->id }}" @selected(old('parent_id', $category->parent_id) == $parent->id)>
                     {{ $parent->name }}
                 </option>
             @endforeach
@@ -49,26 +47,43 @@
            value="{{ old('parent_id', $category->parent_id) }}">
 </div>
 
-{{-- Иконка --}}
-<div class="mt-6">
-    <label class="block text-sm font-medium text-gray-700">Иконка</label>
-    @if($category->icon)
-        <div class="mb-2">
-            <img src="{{ asset('storage/'.$category->icon) }}" alt="icon" class="h-12 rounded border">
+{{-- 🖼 Изображение для плитки --}}
+<div class="mt-8 border-t pt-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3">🖼 Изображение для плитки</h3>
+    @if($category->image)
+        <div class="mb-3">
+            <p class="text-sm text-gray-500 mb-1">Текущее изображение:</p>
+            <img src="{{ asset('storage/'.$category->image) }}" alt="image"
+                 class="w-32 h-32 object-cover rounded-lg border shadow-sm">
         </div>
     @endif
-    <input type="file" name="icon" class="mt-1 block w-full border rounded p-2">
+    <input type="file" name="image" class="block w-full text-sm border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+    <p class="text-xs text-gray-500 mt-1">Используется как картинка плитки на странице категорий.</p>
 </div>
 
-{{-- Кнопка --}}
-<div class="mt-6">
+{{-- 🔖 Иконка для меню --}}
+<div class="mt-8 border-t pt-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-3">🔖 Иконка для меню</h3>
+    @if($category->icon)
+        <div class="mb-3">
+            <p class="text-sm text-gray-500 mb-1">Текущая иконка:</p>
+            <img src="{{ asset('storage/'.$category->icon) }}" alt="icon"
+                 class="w-16 h-16 object-contain opacity-90 rounded">
+        </div>
+    @endif
+    <input type="file" name="icon" class="block w-full text-sm border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+    <p class="text-xs text-gray-500 mt-1">Используется в навигации, боковом меню или заголовках категорий.</p>
+</div>
+
+{{-- 💾 Кнопка --}}
+<div class="mt-8 border-t pt-6">
     <button type="submit"
-            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-        {{ $submit }}
+            class="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition">
+        💾 {{ $submit }}
     </button>
 </div>
 
-{{-- JS helpers --}}
+{{-- ⚙️ JS helpers --}}
 <script>
 function slugHelper() {
     return {
@@ -88,51 +103,34 @@ function categorySelect() {
     return {
         finalCategory: '{{ old('parent_id', $category->parent_id) }}',
         async init() {
-            if (this.finalCategory) {
-                await this.loadChain(this.finalCategory);
-            }
+            if (this.finalCategory) await this.loadChain(this.finalCategory);
         },
         async loadChildren(event, level) {
             const parentId = event.target.value;
             this.finalCategory = parentId;
-
-            // удаляем селекты ниже текущего уровня
             document.querySelectorAll('#category-selects select').forEach((el, i) => {
                 if (i > level) el.remove();
             });
-
             if (!parentId) return;
-
             const res = await fetch(`/categories/${parentId}/children`);
             const data = await res.json();
-
             if (data.length > 0) {
                 const select = document.createElement('select');
                 select.name = `categories[${level + 1}]`;
                 select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
                 select.innerHTML = `<option value="">— Выберите подкатегорию —</option>`;
-                data.forEach(cat => {
-                    select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
-                });
+                data.forEach(cat => select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
                 select.addEventListener('change', (e) => this.loadChildren(e, level + 1));
                 document.getElementById('category-selects').appendChild(select);
             }
         },
         async loadChain(categoryId) {
-            let current = categoryId;
-            let chain = [];
-
-            // получаем цепочку родителей
+            let current = categoryId, chain = [];
             while (current) {
                 const res = await fetch(`/categories/${current}/parent`);
                 const data = await res.json();
-                if (data.parent_id) {
-                    chain.unshift(data.parent_id);
-                    current = data.parent_id;
-                } else break;
+                if (data.parent_id) { chain.unshift(data.parent_id); current = data.parent_id; } else break;
             }
-
-            // строим выпадающие списки по цепочке
             let level = 0;
             for (const id of chain) {
                 const res = await fetch(`/categories/${id}/children`);
@@ -142,9 +140,7 @@ function categorySelect() {
                     select.name = `categories[${level}]`;
                     select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
                     select.innerHTML = `<option value="">— Выберите —</option>`;
-                    data.forEach(cat => {
-                        select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
-                    });
+                    data.forEach(cat => select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
                     select.addEventListener('change', (e) => this.loadChildren(e, level));
                     document.getElementById('category-selects').appendChild(select);
                     select.value = id;

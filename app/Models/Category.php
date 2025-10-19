@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class Category extends Model
 {
     protected $fillable = [
-    'name',
-    'slug',
-    'parent_id',
-    'icon', // 👈 добавляем
-];
-
+        'name',
+        'slug',
+        'parent_id',
+        'icon',
+        'image', // ✅ добавил сюда
+    ];
 
     public function parent()
     {
@@ -31,7 +31,6 @@ class Category extends Model
 
     /**
      * Рекурсивно собрать все ID потомков (включая саму категорию).
-     * Работает с уже загруженными children (если вызвать with('children')).
      */
     public function allChildrenIds()
     {
@@ -45,8 +44,14 @@ class Category extends Model
     }
 
     public function attributes()
+    {
+        return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_category');
+    }
+
+
+    public function getImageUrlAttribute()
 {
-    return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_category');
+    return $this->image ? asset('storage/'.$this->image) : null;
 }
 
 }
