@@ -69,16 +69,35 @@ class ProductManageController extends Controller
             ->with('success', '✅ Товар создан.');
     }
 
-    /** ✏️ Редактирование */
-    public function edit(Product $product)
-    {
-        $this->authorize('update', $product);
 
-        $rootCategories = Category::whereNull('parent_id')->orderBy('name')->get();
-        $countries = Country::orderBy('name')->get();
+/** ✏️ Редактирование */
+public function edit(Product $product)
+{
+    $this->authorize('update', $product);
 
-        return view('seller.products.form', compact('product', 'rootCategories', 'countries'));
+    $rootCategories = Category::whereNull('parent_id')->orderBy('name')->get();
+    $countries = Country::orderBy('name')->get();
+
+    // ✅ Получаем всю цепочку категорий (родители → текущая)
+    $categoryChain = collect();
+    if ($product->category) {
+        $chain = [];
+        $current = $product->category;
+        while ($current) {
+            $chain[] = $current;
+            $current = $current->parent;
+        }
+        $categoryChain = collect(array_reverse($chain)); // от корня к потомку
     }
+
+    return view('seller.products.form', [
+        'product' => $product,
+        'rootCategories' => $rootCategories,
+        'countries' => $countries,
+        'categoryChain' => $categoryChain,
+    ]);
+}
+
 
     /** 🔄 Обновление */
     public function update(ProductUpdateRequest $request, Product $product)

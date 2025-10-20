@@ -41,19 +41,64 @@
       @error('description') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
     </div>
 
-    {{-- === Категории (каскад) === --}}
-    <div id="categories-wrapper">
-      <label class="block text-sm">Категория</label>
-      <select id="category-root" name="category_id" class="w-full border rounded p-2">
-        <option value="">-- выберите категорию --</option>
-        @foreach(($rootCategories ?? []) as $cat)
-          <option value="{{ $cat->id }}"
-            @selected(old('category_level_1', $product->category_id ?? null) == $cat->id)>
-            {{ $cat->name }}
+    {{-- === Категории (каскад, без подгрузок) === --}}
+<div id="categories-wrapper">
+  <label class="block text-sm mb-1">Категория</label>
+
+  @php
+      $currentParent = null;
+  @endphp
+
+  {{-- 🟢 1. Корневая категория --}}
+  <select name="category_level_1" id="category-root" class="w-full border rounded p-2 mb-2">
+      <option value="">-- выберите категорию --</option>
+      @foreach($rootCategories as $root)
+          <option value="{{ $root->id }}"
+              @selected(($categoryChain->first()?->id ?? $product->category_id) == $root->id)>
+              {{ $root->name }}
           </option>
-        @endforeach
+      @endforeach
+  </select>
+
+  {{-- 🟢 2. Промежуточные уровни --}}
+@foreach($categoryChain->slice(1)->unique('id') as $index => $cat)
+
+      @php
+          $parentId = $cat->parent_id;
+         $siblings = \App\Models\Category::where('parent_id', $parentId)
+    ->where('id', '!=', $parentId)
+    ->orderBy('name')
+    ->get();
+
+      @endphp
+      <select name="category_level_{{ $index + 2 }}" class="w-full border rounded p-2 mb-2">
+          <option value="">-- выберите подкатегорию --</option>
+          @foreach($siblings as $sibling)
+              <option value="{{ $sibling->id }}" @selected($sibling->id == $cat->id)>
+                  {{ $sibling->name }}
+              </option>
+          @endforeach
       </select>
-    </div>
+  @endforeach
+
+  {{-- 🟢 Скрытое итоговое поле --}}
+  <input type="hidden" name="category_id" id="category_id"
+         value="{{ old('category_id', $product->category_id) }}">
+</div>
+
+{{-- 🔹 JS для обновления скрытого поля --}}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const wrapper = document.getElementById('categories-wrapper');
+    wrapper.addEventListener('change', () => {
+        const selects = wrapper.querySelectorAll('select');
+        let lastValue = '';
+        selects.forEach(s => { if (s.value) lastValue = s.value; });
+        document.getElementById('category_id').value = lastValue;
+    });
+});
+</script>
+
 
     {{-- === Страна === --}}
     <div>
@@ -360,62 +405,6 @@ if (!res.ok) {
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // === Каскадные категории ===
-    const wrapper = document.getElementById('categories-wrapper');
-
-    async function fetchChildren(parentId) {
-        if (!parentId) return [];
-        try {
-            const res = await fetch(`/categories/${parentId}/children`, {
-                headers: { 'Accept': 'application/json' }
-            });
-            if (!res.ok) {
-                console.warn('Ошибка при загрузке подкатегорий:', res.status);
-                return [];
-            }
-            return await res.json();
-        } catch (err) {
-            console.error('Ошибка сети при получении подкатегорий:', err);
-            return [];
-        }
-    }
-
-    function createSelect(level, placeholder) {
-        const div = document.createElement('div');
-        div.className = "mt-2";
-        const label = document.createElement('label');
-        label.className = 'block text-sm';
-        label.textContent = placeholder;
-        const select = document.createElement('select');
-        select.className = 'w-full border rounded p-2 mt-1';
-        select.name = `category_level_${level}`;
-        select.innerHTML = `<option value="">-- выберите --</option>`;
-        div.appendChild(label);
-        div.appendChild(select);
-        wrapper.appendChild(div);
-        return select;
-    }
-
-    wrapper.addEventListener('change', async (e) => {
-        if (e.target.tagName !== 'SELECT') return;
-        const currentDiv = e.target.closest('div');
-        const allDivs = Array.from(wrapper.querySelectorAll('div'));
-        const index = allDivs.indexOf(currentDiv);
-        allDivs.slice(index + 1).forEach(div => div.remove());
-
-        const children = await fetchChildren(e.target.value);
-        if (children.length > 0) {
-            const nextLevel = wrapper.querySelectorAll('select').length + 1;
-            const placeholders = ['Категория','Подкатегория','Под-подкатегория','Под-уровень'];
-            const select = createSelect(nextLevel, placeholders[nextLevel - 1] || `Уровень ${nextLevel}`);
-            children.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.textContent = c.name;
-                select.appendChild(opt);
-            });
-        }
-    });
 
     // === AJAX загрузка городов по стране ===
     const countrySelect = document.getElementById('country');
@@ -447,66 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCities(preselectedCountryId, preselectedCityId);
     }
 
-    // === 🧩 Восстановление категорий при редактировании ===
-   (async function restoreCategoryChain() {
-    const savedCategoryId = "{{ old('category_id', $product->category_id) }}";
-    if (!savedCategoryId) return;
-
-    const rootSelect = document.getElementById('category-root'); // ✅ добавили
-
-const loader = document.createElement('p');
-    loader.textContent = '⚙️ Восстановление категории...';
-    loader.className = 'text-gray-500 text-sm mt-1';
-    wrapper.appendChild(loader);
-
-    async function getParent(id) {
-        try {
-            const res = await fetch(`/categories/${id}/parent`);
-            if (!res.ok) return null;
-            return await res.json();
-        } catch {
-            return null;
-        }
-    }
-
-    let chain = [];
-    let currentId = savedCategoryId;
-    while (currentId) {
-        const parent = await getParent(currentId);
-        chain.unshift(currentId);
-        currentId = parent?.parent_id ?? null;
-    }
-
-    let parentId = null;
-    for (const id of chain) {
-        // ✅ если это корень — выбрать в первом селекте
-        if (parentId === null && rootSelect) {
-            for (const option of rootSelect.options) {
-                if (String(option.value) === String(id)) {
-                    option.selected = true;
-                    break;
-                }
-            }
-        }
-
-        const children = await fetchChildren(parentId);
-        if (children.length > 0) {
-            const nextLevel = wrapper.querySelectorAll('select').length + 1;
-            const placeholders = ['Категория','Подкатегория','Под-подкатегория','Под-уровень'];
-            const select = createSelect(nextLevel, placeholders[nextLevel - 1] || `Уровень ${nextLevel}`);
-            children.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.textContent = c.name;
-                if (String(c.id) === String(id)) opt.selected = true;
-                select.appendChild(opt);
-            });
-        }
-
-        parentId = id;
-    }
-    loader.remove(); // ✅ убрать сообщение после загрузки
-})();
 
 
 
