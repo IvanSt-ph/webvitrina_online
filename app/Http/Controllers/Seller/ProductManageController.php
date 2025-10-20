@@ -3,152 +3,163 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ProductStoreRequest;
-use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Country;
-use App\Repositories\ProductRepository;
-use App\Services\ProductService;
+use App\Models\City;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class ProductManageController extends Controller
+
 {
-    private ProductService $productService;
-    private ProductRepository $productRepository;
-
-    public function __construct(ProductService $productService, ProductRepository $productRepository)
-    {
-        $this->productService = $productService;
-        $this->productRepository = $productRepository;
-    }
-
-    /** 🧾 Список товаров продавца */
-    public function index(Request $request)
-    {
-        $request->merge(['user_id' => auth()->id()]);
-        $products = $this->productRepository->getFilteredProducts($request);
-
-        return view('seller.products.index', compact('products'));
-    }
-
-    /** ➕ Создание */
-    public function create()
-    {
-        $rootCategories = Category::whereNull('parent_id')->orderBy('name')->get();
-        $countries = Country::orderBy('name')->get();
-
-        return view('seller.products.form', [
-            'product' => new Product(),
-            'rootCategories' => $rootCategories,
-            'countries' => $countries,
-        ]);
-    }
-
-    /** 💾 Сохранение */
-    public function store(ProductStoreRequest $request)
-    {
-        $data = $request->validated();
-
-        // 🧭 Определяем последнюю выбранную категорию
-        $data['category_id'] = $request->input('category_level_4')
-            ?? $request->input('category_level_3')
-            ?? $request->input('category_level_2')
-            ?? $request->input('category_level_1')
-            ?? $request->input('category_id');
-
-        $this->productService->store(
-            data: $data,
-            image: $request->file('image'),
-            galleryFiles: $request->file('gallery', []),
-            userId: auth()->id()
-        );
-
-        return redirect()
-            ->route('seller.products.index')
-            ->with('success', '✅ Товар создан.');
-    }
-
-
-/** ✏️ Редактирование */
-public function edit(Product $product)
+    /** 📋 Список товаров продавца */
+public function index()
 {
-    $this->authorize('update', $product);
+    $products = Product::where('user_id', Auth::id())
+        ->with(['category', 'city.country'])
+        ->orderByDesc('created_at')
+        ->paginate(20);
 
-    $rootCategories = Category::whereNull('parent_id')->orderBy('name')->get();
-    $countries = Country::orderBy('name')->get();
-
-    // ✅ Получаем всю цепочку категорий (родители → текущая)
-    $categoryChain = collect();
-    if ($product->category) {
-        $chain = [];
-        $current = $product->category;
-        while ($current) {
-            $chain[] = $current;
-            $current = $current->parent;
-        }
-        $categoryChain = collect(array_reverse($chain)); // от корня к потомку
-    }
-
-    return view('seller.products.form', [
-        'product' => $product,
-        'rootCategories' => $rootCategories,
-        'countries' => $countries,
-        'categoryChain' => $categoryChain,
-    ]);
+    return view('seller.products.index', compact('products'));
 }
 
 
-    /** 🔄 Обновление */
-    public function update(ProductUpdateRequest $request, Product $product)
+    /** ➕ Создание нового товара */
+    public function create()
+    {
+        return $this->formView(new Product());
+    }
+
+    /** ✏️ Редактирование */
+    public function edit(Product $product)
     {
         $this->authorize('update', $product);
+        return $this->formView($product);
+    }
 
-        $data = $request->validated();
-
-        // 🧭 Определяем последнюю выбранную категорию
-        $data['category_id'] = $request->input('category_level_4')
-            ?? $request->input('category_level_3')
-            ?? $request->input('category_level_2')
-            ?? $request->input('category_level_1')
-            ?? $request->input('category_id');
-
-        $this->productService->update(
-            product: $product,
-            data: $data,
-            image: $request->file('image'),
-            galleryNew: $request->file('gallery', [])
+    /** 🧩 Вынесенная логика общей формы (чтобы не дублировать код) */
+    protected function formView(Product $product)
+    {
+        // ⚙️ Кэшируем корневые категории и страны
+        $rootCategories = Cache::remember('root_categories', 3600, fn() =>
+            Category::whereNull('parent_id')->orderBy('name')->get()
         );
 
-        return redirect()
-            ->route('seller.products.index')
-            ->with('success', '✅ Товар обновлён.');
+        $countries = Cache::remember('countries_list', 3600, fn() =>
+            Country::orderBy('name')->get()
+        );
+
+        // 🧩 Определяем цепочку категорий (чтобы вывести правильно подкатегории)
+        $categoryChain = collect();
+        if ($product->category_id) {
+            $cat = Category::with('parent')->find($product->category_id);
+            while ($cat) {
+                $categoryChain->prepend($cat);
+                $cat = $cat->parent;
+            }
+        }
+
+        return view('seller.products.form', compact('product', 'rootCategories', 'categoryChain', 'countries'));
     }
 
-    /** 🖼️ Удаление изображения из галереи (AJAX) */
-    public function deleteGalleryImage(Request $request, Product $product)
+    /** 💾 Сохранение нового товара */
+    public function store(Request $request)
+    {
+        $data = $this->validateProduct($request);
+        $$data['user_id'] = Auth::id();
+
+
+        // 🖼️ Сохранение фото
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        // 📸 Галерея
+        if ($request->hasFile('gallery')) {
+            $data['gallery'] = collect($request->file('gallery'))->map(fn($f) =>
+                $f->store('products/gallery', 'public')
+            )->values()->toArray();
+        }
+
+        Product::create($data);
+
+        return redirect()->route('seller.products.index')->with('success', 'Товар добавлен');
+    }
+
+    /** 🔄 Обновление существующего товара */
+    public function update(Request $request, Product $product)
     {
         $this->authorize('update', $product);
 
-        $path = trim($request->input('path'));
-        if (!$path) {
-            return response()->json(['success' => false, 'message' => 'Путь не указан']);
+        $data = $this->validateProduct($request);
+
+        if ($request->hasFile('image')) {
+            if ($product->image) Storage::disk('public')->delete($product->image);
+            $data['image'] = $request->file('image')->store('products', 'public');
         }
 
-        $this->productService->deleteFromGallery($product, [$path]);
+        if ($request->hasFile('gallery')) {
+            $newGallery = collect($request->file('gallery'))->map(fn($f) =>
+                $f->store('products/gallery', 'public')
+            )->values()->toArray();
 
-        return response()->json(['success' => true]);
+            $data['gallery'] = array_merge($product->gallery ?? [], $newGallery);
+        }
+
+        $product->update($data);
+
+        return back()->with('success', 'Изменения сохранены');
     }
 
-    /** 🗑 Удаление товара */
+    /** 🗑️ Удаление */
     public function destroy(Product $product)
     {
         $this->authorize('delete', $product);
 
-        $this->productService->delete($product);
+        if ($product->image) Storage::disk('public')->delete($product->image);
+        if ($product->gallery) {
+            foreach ($product->gallery as $img) {
+                Storage::disk('public')->delete($img);
+            }
+        }
 
-        return redirect()
-            ->route('seller.products.index')
-            ->with('success', '🗑️ Товар удалён.');
+        $product->delete();
+        return back()->with('success', 'Товар удалён');
+    }
+
+    /** 🧽 Удаление одного фото из галереи */
+    public function deleteGalleryImage(Product $product, Request $request)
+    {
+        $this->authorize('update', $product);
+
+        $path = $request->input('path');
+        $gallery = collect($product->gallery)->reject(fn($p) => $p === $path)->values();
+        $product->update(['gallery' => $gallery]);
+
+        Storage::disk('public')->delete($path);
+
+        return response()->json(['success' => true]);
+    }
+
+    /** ✅ Валидация */
+    protected function validateProduct(Request $request)
+    {
+        return $request->validate([
+            'title'        => 'required|string|max:255',
+            'price'        => 'required|numeric|min:0',
+            'stock'        => 'required|integer|min:0',
+            'description'  => 'nullable|string|max:1000',
+            'category_id'  => 'required|exists:categories,id',
+            'country_id'   => 'required|exists:countries,id',
+            'city_id'      => 'required|exists:cities,id',
+            'address'      => 'nullable|string|max:255',
+            'latitude'     => 'nullable|numeric',
+            'longitude'    => 'nullable|numeric',
+            'image'        => 'nullable|image|max:4096',
+            'gallery.*'    => 'nullable|image|max:4096',
+        ]);
     }
 }
