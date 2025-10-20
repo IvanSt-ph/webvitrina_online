@@ -38,6 +38,14 @@ Route::get('/countries/{country}/cities', fn (Country $country) =>
     $country->cities()->select('id','name')->orderBy('name')->get()
 )->name('countries.cities');
 
+// 🔹 Публичный JSON для продавцов (переопределяет админский)
+Route::get('/categories/{id}/children', function ($id) {
+    return \App\Models\Category::where('parent_id', $id)
+        ->orderBy('name')
+        ->get(['id', 'name']);
+})->name('categories.children.public');
+
+
 // 🔹 Публичный API для каскадных категорий (для продавцов и редактирования товаров)
 Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])
     ->name('categories.children.public');
@@ -106,6 +114,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/products/{product}/gallery', [SellerProducts::class, 'deleteGalleryImage'])
             ->name('products.gallery.delete');
     });
+    
 });
 
 /*

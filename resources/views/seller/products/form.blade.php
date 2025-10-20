@@ -85,6 +85,62 @@
   <input type="hidden" name="category_id" id="category_id"
          value="{{ old('category_id', $product->category_id) }}">
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const wrapper = document.getElementById('categories-wrapper');
+  const hiddenInput = document.getElementById('category_id');
+
+  // Очистить все селекты после выбранного
+  function removeNextSelects(currentSelect) {
+    let next = currentSelect.nextElementSibling;
+    while (next && next.tagName === 'SELECT') {
+      next.remove();
+      next = currentSelect.nextElementSibling;
+    }
+  }
+
+  // Загрузить подкатегории
+  async function loadChildren(parentId, afterSelect) {
+    removeNextSelects(afterSelect);
+    hiddenInput.value = parentId; // временно — текущий id
+
+    if (!parentId) return;
+
+    const res = await fetch(`/categories/${parentId}/children`);
+    if (!res.ok) return;
+    const categories = await res.json();
+
+    if (!categories.length) return; // если подкатегорий нет
+
+    const select = document.createElement('select');
+    select.className = "w-full border rounded p-2 mb-2";
+    select.innerHTML = `<option value="">-- выберите подкатегорию --</option>`;
+
+    categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = cat.name;
+      select.appendChild(opt);
+    });
+
+    // обработчик выбора подкатегории
+    select.addEventListener('change', e => {
+      hiddenInput.value = e.target.value || parentId;
+      loadChildren(e.target.value, select);
+    });
+
+    afterSelect.insertAdjacentElement('afterend', select);
+  }
+
+  // слушаем выбор верхнего уровня
+  wrapper.querySelector('#category-root').addEventListener('change', e => {
+    const id = e.target.value;
+    hiddenInput.value = id;
+    loadChildren(id, e.target);
+  });
+});
+</script>
+
 
 {{-- 🔹 JS для обновления скрытого поля --}}
 <script>

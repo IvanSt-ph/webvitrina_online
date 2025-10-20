@@ -69,7 +69,7 @@ public function index()
     public function store(Request $request)
     {
         $data = $this->validateProduct($request);
-        $$data['user_id'] = Auth::id();
+        $data['user_id'] = Auth::id();
 
 
         // 🖼️ Сохранение фото
@@ -89,30 +89,37 @@ public function index()
         return redirect()->route('seller.products.index')->with('success', 'Товар добавлен');
     }
 
-    /** 🔄 Обновление существующего товара */
-    public function update(Request $request, Product $product)
-    {
-        $this->authorize('update', $product);
+//** 🔄 Обновление существующего товара */
+public function update(Request $request, Product $product)
+{
+    $this->authorize('update', $product);
 
-        $data = $this->validateProduct($request);
+    $data = $this->validateProduct($request);
 
-        if ($request->hasFile('image')) {
-            if ($product->image) Storage::disk('public')->delete($product->image);
-            $data['image'] = $request->file('image')->store('products', 'public');
+    // 🖼 Главное изображение
+    if ($request->hasFile('image')) {
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
         }
-
-        if ($request->hasFile('gallery')) {
-            $newGallery = collect($request->file('gallery'))->map(fn($f) =>
-                $f->store('products/gallery', 'public')
-            )->values()->toArray();
-
-            $data['gallery'] = array_merge($product->gallery ?? [], $newGallery);
-        }
-
-        $product->update($data);
-
-        return back()->with('success', 'Изменения сохранены');
+        $data['image'] = $request->file('image')->store('products', 'public');
     }
+
+    // 📸 Галерея
+    if ($request->hasFile('gallery')) {
+        $newGallery = collect($request->file('gallery'))->map(fn($f) =>
+            $f->store('products/gallery', 'public')
+        )->values()->toArray();
+
+        $data['gallery'] = array_merge($product->gallery ?? [], $newGallery);
+    }
+
+    $product->update($data);
+
+    // 🚀 Просто редиректим обратно к списку без сообщений
+    return redirect()->route('seller.products.index');
+}
+
+
 
     /** 🗑️ Удаление */
     public function destroy(Product $product)
