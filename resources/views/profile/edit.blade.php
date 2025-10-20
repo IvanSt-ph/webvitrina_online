@@ -7,7 +7,7 @@
 
     <h1 class="text-3xl font-bold mb-8">⚙ Настройки профиля</h1>
 
-    {{-- Сообщения --}}
+    {{-- ✅ Уведомления --}}
     @if (session('status') === 'profile-updated')
         <div class="mb-6 p-4 bg-green-100 text-green-700 rounded-lg">
             ✅ Профиль успешно обновлён!
@@ -25,18 +25,16 @@
         </div>
     @endif
 
-    {{-- Карточка профиля --}}
+    {{-- 👤 Общие поля --}}
     <div class="bg-white shadow rounded-lg p-6 mb-8">
         <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @method('PATCH')
 
-            {{-- Аватар --}}
             <div class="flex items-center gap-6">
                 <img src="{{ Auth::user()->avatar_url }}" 
-     class="w-20 h-20 rounded-full border shadow" 
-     alt="Аватар">
-
+                     class="w-20 h-20 rounded-full border shadow" 
+                     alt="Аватар">
 
                 <div class="flex-1">
                     <label class="block text-sm font-medium mb-1">Изменить аватар</label>
@@ -44,19 +42,46 @@
                 </div>
             </div>
 
-            {{-- Имя --}}
             <div>
                 <label class="block text-sm font-medium mb-1">Имя</label>
                 <input type="text" name="name" value="{{ old('name', Auth::user()->name) }}"
                        class="border rounded-lg px-3 py-2 w-full">
             </div>
 
-            {{-- Email --}}
             <div>
                 <label class="block text-sm font-medium mb-1">Email</label>
                 <input type="email" name="email" value="{{ old('email', Auth::user()->email) }}"
                        class="border rounded-lg px-3 py-2 w-full">
             </div>
+
+            {{-- 🔹 Дополнительные поля для продавцов --}}
+            @if(Auth::user()->role === 'seller')
+                <hr class="my-6">
+                <h2 class="text-xl font-semibold mb-2">🏪 Информация о магазине</h2>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Название магазина</label>
+                    <input type="text" name="shop_name" 
+                           value="{{ old('shop_name', Auth::user()->shop_name) }}"
+                           placeholder="Например: ТехноМаркет 24"
+                           class="border rounded-lg px-3 py-2 w-full">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Описание магазина</label>
+                    <textarea name="shop_description" rows="3"
+                              class="border rounded-lg px-3 py-2 w-full"
+                              placeholder="Кратко опишите, чем вы занимаетесь...">{{ old('shop_description', Auth::user()->shop_description) }}</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Контактный номер</label>
+                    <input type="text" name="phone" 
+                           value="{{ old('phone', Auth::user()->phone) }}"
+                           placeholder="+373 777 77 777"
+                           class="border rounded-lg px-3 py-2 w-full">
+                </div>
+            @endif
 
             <div class="flex gap-3">
                 <button type="submit" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
@@ -69,7 +94,7 @@
         </form>
     </div>
 
-    {{-- Смена пароля --}}
+    {{-- 🔒 Смена пароля --}}
     <div class="bg-white shadow rounded-lg p-6 mb-8">
         <h2 class="text-xl font-semibold mb-4">🔒 Смена пароля</h2>
         <form method="POST" action="{{ route('password.update') }}" class="space-y-4">
@@ -78,14 +103,12 @@
 
             <div>
                 <label class="block text-sm font-medium mb-1">Новый пароль</label>
-                <input type="password" name="password"
-                       class="border rounded-lg px-3 py-2 w-full">
+                <input type="password" name="password" class="border rounded-lg px-3 py-2 w-full">
             </div>
 
             <div>
                 <label class="block text-sm font-medium mb-1">Подтверждение пароля</label>
-                <input type="password" name="password_confirmation"
-                       class="border rounded-lg px-3 py-2 w-full">
+                <input type="password" name="password_confirmation" class="border rounded-lg px-3 py-2 w-full">
             </div>
 
             <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
@@ -94,7 +117,7 @@
         </form>
     </div>
 
-    {{-- Удаление аккаунта --}}
+    {{-- 🗑 Удаление аккаунта --}}
     <div class="bg-white shadow rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4 text-red-600">🗑️ Удаление аккаунта</h2>
         <form method="POST" action="{{ route('profile.destroy') }}">

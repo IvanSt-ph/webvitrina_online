@@ -26,7 +26,6 @@ class ProductManageController extends Controller
     /** 🧾 Список товаров продавца */
     public function index(Request $request)
     {
-        // получаем только товары текущего продавца
         $request->merge(['user_id' => auth()->id()]);
         $products = $this->productRepository->getFilteredProducts($request);
 
@@ -51,6 +50,13 @@ class ProductManageController extends Controller
     {
         $data = $request->validated();
 
+        // 🧭 Определяем последнюю выбранную категорию
+        $data['category_id'] = $request->input('category_level_4')
+            ?? $request->input('category_level_3')
+            ?? $request->input('category_level_2')
+            ?? $request->input('category_level_1')
+            ?? $request->input('category_id');
+
         $this->productService->store(
             data: $data,
             image: $request->file('image'),
@@ -58,7 +64,9 @@ class ProductManageController extends Controller
             userId: auth()->id()
         );
 
-        return redirect()->route('seller.products.index')->with('success', '✅ Товар создан.');
+        return redirect()
+            ->route('seller.products.index')
+            ->with('success', '✅ Товар создан.');
     }
 
     /** ✏️ Редактирование */
@@ -79,6 +87,13 @@ class ProductManageController extends Controller
 
         $data = $request->validated();
 
+        // 🧭 Определяем последнюю выбранную категорию
+        $data['category_id'] = $request->input('category_level_4')
+            ?? $request->input('category_level_3')
+            ?? $request->input('category_level_2')
+            ?? $request->input('category_level_1')
+            ?? $request->input('category_id');
+
         $this->productService->update(
             product: $product,
             data: $data,
@@ -86,16 +101,35 @@ class ProductManageController extends Controller
             galleryNew: $request->file('gallery', [])
         );
 
-        return redirect()->route('seller.products.index')->with('success', '✅ Товар обновлён.');
+        return redirect()
+            ->route('seller.products.index')
+            ->with('success', '✅ Товар обновлён.');
     }
 
-    /** 🗑 Удаление */
+    /** 🖼️ Удаление изображения из галереи (AJAX) */
+    public function deleteGalleryImage(Request $request, Product $product)
+    {
+        $this->authorize('update', $product);
+
+        $path = trim($request->input('path'));
+        if (!$path) {
+            return response()->json(['success' => false, 'message' => 'Путь не указан']);
+        }
+
+        $this->productService->deleteFromGallery($product, [$path]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /** 🗑 Удаление товара */
     public function destroy(Product $product)
     {
         $this->authorize('delete', $product);
 
         $this->productService->delete($product);
 
-        return redirect()->route('seller.products.index')->with('success', '🗑️ Товар удалён.');
+        return redirect()
+            ->route('seller.products.index')
+            ->with('success', '🗑️ Товар удалён.');
     }
 }

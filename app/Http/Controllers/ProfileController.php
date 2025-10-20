@@ -29,32 +29,37 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        // Заполняем модель новыми данными из формы (имя, email и т.д.)
-        $user->fill($request->validated());
+        // ✅ Добавляем дополнительные поля для продавцов
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'avatar' => 'nullable|image|max:2048',
+            'shop_name' => 'nullable|string|max:255',
+            'shop_description' => 'nullable|string|max:1000',
+            'phone' => 'nullable|string|max:50',
+        ]);
+
+        // Заполняем модель
+        $user->fill($data);
 
         // Если email был изменён — сбрасываем подтверждение
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
 
-        // Проверяем — был ли загружен новый аватар
+        // Если загружен новый аватар — сохраняем
         if ($request->hasFile('avatar')) {
-            // Если у пользователя уже есть аватар — удаляем старый файл
             if ($user->avatar) {
                 Storage::disk('public')->delete($user->avatar);
             }
 
-            // Сохраняем новый аватар в папку storage/app/public/avatars
             $path = $request->file('avatar')->store('avatars', 'public');
-
-            // Записываем путь в базу данных
             $user->avatar = $path;
         }
 
-        // Сохраняем изменения в БД
+        // Сохраняем
         $user->save();
 
-        // Возвращаем обратно на страницу профиля с уведомлением
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
@@ -63,25 +68,20 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        // Проверка пароля перед удалением
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);
 
         $user = $request->user();
 
-        // Выходим из аккаунта
         Auth::logout();
 
-        // Удаляем аватар, если он есть
         if ($user->avatar) {
             Storage::disk('public')->delete($user->avatar);
         }
 
-        // Удаляем пользователя из базы
         $user->delete();
 
-        // Чистим сессию
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -95,14 +95,11 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
 
-        // Если пользователь не авторизован — показываем гостевую страницу
         if (!$user) {
             return view('profile.guest-cabinet');
         }
 
-        // Если это продавец
         if ($user->isSeller()) {
-            // Получаем все заказы, в которых есть товары данного продавца
             $orders = \App\Models\Order::whereHas('items.product', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             })->latest()->paginate(10);
@@ -110,7 +107,6 @@ class ProfileController extends Controller
             return view('seller.cabinet', compact('user', 'orders'));
         }
 
-        // Если это покупатель — показываем его кабинет
         return view('profile.buyer-cabinet', compact('user'));
     }
 }

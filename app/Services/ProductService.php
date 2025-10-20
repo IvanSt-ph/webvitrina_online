@@ -62,9 +62,10 @@ public function update(Product $product, array $data, ?UploadedFile $image = nul
 
         // новое главное фото
         if ($image instanceof UploadedFile) {
-            $this->deletePath($product->image);
-            $payload['image'] = $this->uploadImage($image, 'products/'.date('Y/m'));
-        }
+    $this->deletePath(trim((string) $product->image)); // 🧹 гарантируем чистоту пути
+    $payload['image'] = $this->uploadImage($image, 'products/' . date('Y/m'));
+}
+
 
         // обновляем запись
         $product->update($payload);
@@ -137,12 +138,25 @@ Cache::forget("product_by_id:{$product->id}");
         return $file->store($dir, 'public');
     }
 
-    protected function deletePath(?string $path): void
-    {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
-        }
+ protected function deletePath(?string $path): void
+{
+    if (!$path) return;
+
+    // 🧹 Убираем пробелы, переносы, слэши в начале и конце
+    $cleanPath = trim($path);
+    $cleanPath = ltrim($cleanPath, '/\\');
+
+    // 🚫 Проверка на некорректные или пустые пути
+    if ($cleanPath === '' || str_contains($cleanPath, '[') || str_contains($cleanPath, ']')) {
+        return;
     }
+
+    // ✅ Удаляем, если файл существует
+    if (Storage::disk('public')->exists($cleanPath)) {
+        Storage::disk('public')->delete($cleanPath);
+    }
+}
+
 
     protected function appendGallery(Product $product, array $files): void
     {
@@ -157,15 +171,27 @@ Cache::forget("product_by_id:{$product->id}");
         $product->update(['gallery' => array_values(array_unique($gallery))]);
     }
 
-    protected function deleteFromGallery(Product $product, array $pathsToDelete): void
-    {
-        $gallery = (array) $product->gallery;
+public function deleteFromGallery(Product $product, array $pathsToDelete): void
 
-        foreach ($pathsToDelete as $path) {
-            $this->deletePath($path);
-            $gallery = array_values(array_filter($gallery, fn($p) => $p !== $path));
-        }
+{
+    $gallery = (array) $product->gallery;
 
-        $product->update(['gallery' => $gallery]);
+    foreach ($pathsToDelete as $path) {
+        // 🧹 Убираем "storage/" если оно есть в пути
+        $clean = str_replace(['storage/', '/storage/'], '', trim($path));
+
+        // 🗑 Удаляем файл физически
+        $this->deletePath($clean);
+
+        // 🧹 Удаляем ссылку из массива галереи (и оригинальный, и очищенный вариант)
+        $gallery = array_values(array_filter($gallery, fn($p) =>
+            $p !== $path && $p !== $clean
+        ));
     }
+
+    // 💾 Обновляем модель товара без лишних событий
+    $product->update(['gallery' => $gallery]);
+}
+
+
 }

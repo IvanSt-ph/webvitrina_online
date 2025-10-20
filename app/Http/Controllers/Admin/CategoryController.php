@@ -200,15 +200,18 @@ public function edit(Category $category)
     }
 
     /** 📂 Получить подкатегории по ID родителя */
-    public function children($id): JsonResponse
-    {
-        $children = Category::where('parent_id', $id)
+public function children($id): JsonResponse
+{
+    $children = \Cache::remember("categories_children_$id", 600, function () use ($id) {
+        return Category::where('parent_id', $id)
             ->select('id', 'name', 'parent_id')
             ->orderBy('name')
             ->get();
+    });
 
-        return response()->json($children);
-    }
+    return response()->json($children);
+}
+
 
     /** 🧭 Получить родителя категории */
     public function parent($id): JsonResponse

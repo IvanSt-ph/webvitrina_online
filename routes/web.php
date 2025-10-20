@@ -8,16 +8,17 @@ use App\Http\Controllers\{
     OrderController,
     ReviewController,
     ProfileController,
-    CategoryController
+    CategoryController,
+    SellerController
 };
 use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
-use App\Http\Controllers\SellerController;
 use App\Models\Category;
 use App\Models\Country;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 
 /*
 |--------------------------------------------------------------------------
-| Публичные маршруты
+| 🌍 Публичные маршруты
 |--------------------------------------------------------------------------
 */
 
@@ -25,35 +26,45 @@ use App\Models\Country;
 Route::get('/', [ProductController::class, 'index'])->name('home');
 
 // Товар
-// Основной маршрут
 Route::get('/p/{slug}', [ProductController::class, 'show'])->name('product.show');
-
-// Альтернативный (короткий)
 Route::get('/p/{key}', [ProductController::class, 'show'])->name('product.short');
 
-
-
-
-// Категория
+// Категории
 Route::get('/category', [CategoryController::class, 'index'])->name('category.index');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 
+// 🌎 Страны → Города
+Route::get('/countries/{country}/cities', fn (Country $country) =>
+    $country->cities()->select('id','name')->orderBy('name')->get()
+)->name('countries.cities');
+
+// 🔹 Публичный API для каскадных категорий (для продавцов и редактирования товаров)
+Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])
+    ->name('categories.children.public');
+
+Route::get('/categories/{id}/parent', function ($id) {
+    $category = \App\Models\Category::find($id);
+    if (!$category) {
+        return response()->json(null, 404);
+    }
+    return response()->json([
+        'id' => $category->id,
+        'parent_id' => $category->parent_id,
+    ]);
+})->name('categories.parent.public');
 
 
 
-
-
-
-
-// Кабинет пользователя
+// Кабинет пользователя (общая точка входа)
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
 
 /*
 |--------------------------------------------------------------------------
-| Авторизованные маршруты
+| 👤 Авторизованные маршруты
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
+
     // 👤 Профиль
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -76,37 +87,30 @@ Route::middleware('auth')->group(function () {
     // 📝 Отзывы
     Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
 
-// 🏪 Панель продавца
-Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
-    Route::get('/products', [SellerProducts::class, 'index'])->name('products.index');
-    Route::get('/products/create', [SellerProducts::class, 'create'])->name('products.create');
-    Route::post('/products', [SellerProducts::class, 'store'])->name('products.store');
-    Route::get('/products/{product}/edit', [SellerProducts::class, 'edit'])->name('products.edit');
-    Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
+    /*
+    |--------------------------------------------------------------------------
+    | 🏪 Панель продавца
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
 
-    // 👇 вот сюда добавь маршрут удаления фото 👇
-    Route::delete('/products/{product}/gallery', [App\Http\Controllers\ProductController::class, 'deleteGalleryImage'])
-        ->name('products.gallery.delete');
-});
+        Route::get('/products', [SellerProducts::class, 'index'])->name('products.index');
+        Route::get('/products/create', [SellerProducts::class, 'create'])->name('products.create');
+        Route::post('/products', [SellerProducts::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit', [SellerProducts::class, 'edit'])->name('products.edit');
+        Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
+        Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
+        
 
+        // 🖼️ Удаление фото из галереи (для продавца)
+        Route::delete('/products/{product}/gallery', [SellerProducts::class, 'deleteGalleryImage'])
+            ->name('products.gallery.delete');
+    });
 });
 
 /*
 |--------------------------------------------------------------------------
-| Вспомогательные API
-|--------------------------------------------------------------------------
-*/
-
-
-
-Route::get('/countries/{country}/cities', fn(Country $country) =>
-    $country->cities()->select('id','name')->orderBy('name')->get()
-)->name('countries.cities');
-
-/*
-|--------------------------------------------------------------------------
-| Магазин продавца
+| 🧾 Магазин продавца (публичный)
 |--------------------------------------------------------------------------
 */
 Route::get('/seller/{user}', [SellerController::class, 'show'])->name('seller.show');
@@ -119,21 +123,20 @@ Route::get('/seller/{user}', [SellerController::class, 'show'])->name('seller.sh
 Route::get('/dashboard', fn() => redirect()->route('home'))->name('dashboard');
 require __DIR__ . '/auth.php';
 
-
-
 /*
 |--------------------------------------------------------------------------
-| Админка
+| 🛠 Админка
 |--------------------------------------------------------------------------
 */
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
-use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
-use App\Http\Controllers\Admin\ProductController as AdminProductController;
-use App\Http\Controllers\Admin\OrderController as AdminOrderController;
-use App\Http\Controllers\Admin\AdminProfileController;
-use App\Http\Controllers\Admin\BannerController;
-use App\Http\Controllers\Admin\ReviewController as AdminReviewController; // ✅ вот так!
+use App\Http\Controllers\Admin\{
+    DashboardController,
+    UserController as AdminUserController,
+    ProductController as AdminProductController,
+    OrderController as AdminOrderController,
+    AdminProfileController,
+    BannerController,
+    ReviewController as AdminReviewController
+};
 use App\Http\Middleware\AdminMiddleware;
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::class])->group(function () {
@@ -152,32 +155,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
 
-
-    
-
-// 📂 AJAX для каскадных категорий
-Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])
-    ->name('categories.children');
-
-    // 📂 Корневые категории (первый уровень)
-Route::get('/categories/root', [AdminCategoryController::class, 'root'])
-    ->name('categories.root');
-
-
-Route::get('/categories/{id}/parent', [AdminCategoryController::class, 'parent'])
-    ->name('categories.parent');
-
-
-
-    
-
-    // 🛒 Live поиск товаров
-    Route::get('/products/search', [AdminProductController::class, 'search'])->name('products.search');
+    // 📂 AJAX для каскадных категорий
+    Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])->name('categories.children');
+    Route::get('/categories/root', [AdminCategoryController::class, 'root'])->name('categories.root');
+    Route::get('/categories/{id}/parent', [AdminCategoryController::class, 'parent'])->name('categories.parent');
 
     // 🛒 Товары
     Route::resource('products', AdminProductController::class);
 
-    // 🖼️ Удаление фото из галереи
+    // 🖼️ Удаление фото из галереи (админ)
     Route::delete('/products/{product}/gallery', [AdminProductController::class, 'deleteGalleryImage'])
         ->name('products.gallery.delete');
 
@@ -191,16 +177,10 @@ Route::get('/categories/{id}/parent', [AdminCategoryController::class, 'parent']
     // 🖼️ Баннеры
     Route::resource('banners', BannerController::class)->except(['show']);
 
-
-    // 📝 Модерация отзывов ✅
+    // 📝 Модерация отзывов
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
     Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
     Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
     Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::get('/reviews/{review}', [AdminReviewController::class, 'show'])->name('reviews.show');
-
-
-    
-
-
 });

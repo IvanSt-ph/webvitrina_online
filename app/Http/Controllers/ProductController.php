@@ -29,6 +29,12 @@ public function show($key)
         return $product;
     }
 
+    // 🧩 Страховка: если gallery — строка, конвертируем в массив
+    if (!is_array($product->gallery)) {
+        $decoded = json_decode($product->gallery, true);
+        $product->gallery = is_array($decoded) ? $decoded : [];
+    }
+
     // ✅ Загружаем только одобренные отзывы с пользователями
     $reviews = $product->reviews()
         ->where('status', 'approved')
