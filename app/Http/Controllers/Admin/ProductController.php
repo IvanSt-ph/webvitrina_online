@@ -123,5 +123,30 @@ public function search(Request $request)
     return response()->json($products);
 }
 
+/** 🖼️ Удаление изображения из галереи товара (AJAX) */
+public function deleteGalleryImage(Request $request, Product $product)
+{
+    $path = $request->input('path');
+
+    if (!$path) {
+        return response()->json(['error' => 'Путь к изображению не указан'], 400);
+    }
+
+    if (\Storage::disk('public')->exists($path)) {
+        \Storage::disk('public')->delete($path);
+    }
+
+    $gallery = is_array($product->gallery)
+        ? $product->gallery
+        : json_decode($product->gallery ?? '[]', true);
+
+    $gallery = array_values(array_filter($gallery, fn($img) => $img !== $path));
+
+    $product->gallery = json_encode($gallery);
+    $product->save();
+
+    return response()->json(['success' => true]);
+}
+
 
 }

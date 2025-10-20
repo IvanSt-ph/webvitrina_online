@@ -352,8 +352,11 @@ document.addEventListener("DOMContentLoaded", function() {
   <input type="file" name="gallery[]" multiple accept="image/*" class="mt-2 block w-full border rounded px-3 py-2">
 </div>
 
+
+
 {{-- JS для AJAX удаления --}}
 <script>
+    
 document.addEventListener('DOMContentLoaded', () => {
   const gallery = document.getElementById('gallery-container');
   if (!gallery) return;
@@ -386,6 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
 </script>
 
 
@@ -428,6 +432,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+
+
+
+
 function categorySelect() {
     return {
         finalCategory: '{{ old('category_id', $product->category_id) }}',
@@ -452,7 +460,8 @@ function categorySelect() {
 
             if (!parentId) return;
 
-            const res = await fetch(`/categories/${parentId}/children`);
+            // ⚙️ Берём подкатегории
+            const res = await fetch(`/admin/categories/${parentId}/children`);
             const data = await res.json();
 
             if (data.length > 0) {
@@ -469,11 +478,11 @@ function categorySelect() {
         },
 
         async loadChain(categoryId) {
-            // получаем цепочку родителей до самого верха
+            // ⚙️ Получаем всю цепочку родителей (для открытия edit)
             const chain = [];
             let currentId = categoryId;
             while (currentId) {
-                const res = await fetch(`/categories/${currentId}/parent`);
+                const res = await fetch(`/admin/categories/${currentId}/parent`);
                 const data = await res.json();
                 if (data && data.parent_id) {
                     chain.unshift(data.parent_id);
@@ -483,7 +492,7 @@ function categorySelect() {
                 }
             }
 
-            // загружаем селекты от родителя к потомку
+            // строим селекты от родителя к потомку
             let level = 0;
             for (const id of chain) {
                 const select = document.querySelector(`#category-selects select[name="categories[${level}]"]`);
@@ -494,7 +503,7 @@ function categorySelect() {
                 level++;
             }
 
-            // теперь выбираем саму конечную категорию
+            // выбираем саму конечную категорию
             const lastSelect = document.querySelector(`#category-selects select[name="categories[${level}]"]`);
             if (lastSelect) {
                 lastSelect.value = categoryId;
@@ -504,7 +513,10 @@ function categorySelect() {
     };
 }
 
+
         
+
+
 
 
 function cityPicker() {

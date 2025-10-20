@@ -351,7 +351,8 @@ document.addEventListener("DOMContentLoaded", function() {
                         if (i > level) el.remove();
                     });
                     if (!parentId) return;
-                    const res = await fetch(`/categories/${parentId}/children`);
+                    const res = await fetch(`/admin/categories/${parentId}/children`);
+
                     const data = await res.json();
                     if (data.length > 0) {
                         const select = document.createElement('select');

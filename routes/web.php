@@ -100,9 +100,6 @@ Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(funct
 
 
 
-
-
-
 Route::get('/countries/{country}/cities', fn(Country $country) =>
     $country->cities()->select('id','name')->orderBy('name')->get()
 )->name('countries.cities');
