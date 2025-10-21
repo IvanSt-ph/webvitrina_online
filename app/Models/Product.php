@@ -170,6 +170,8 @@ class Product extends Model
         return $query->where('city_id', $cityId);
     }
 
+    
+
 
 
 
@@ -179,5 +181,16 @@ class Product extends Model
                 ->withPivot('value')
                 ->withTimestamps();
 }
+
+
+// 🔹 Заказы, в которых присутствует этот товар
+public function orders()
+{
+    return $this->belongsToMany(\App\Models\Order::class, 'order_items', 'product_id', 'order_id')
+                ->withPivot(['quantity', 'price']) // если есть
+                ->withTimestamps();
+}
+
+
 
 }

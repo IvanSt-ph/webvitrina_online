@@ -184,8 +184,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::get('/categories/root', [AdminCategoryController::class, 'root'])->name('categories.root');
     Route::get('/categories/{id}/parent', [AdminCategoryController::class, 'parent'])->name('categories.parent');
 
-    // 🛒 Товары
+
+    // Сначала поиск — чтобы не конфликтовал с {product}
+    Route::get('/products/search', [AdminProductController::class, 'search'])->name('products.search');
     Route::resource('products', AdminProductController::class);
+
+
+
 
     // 🖼️ Удаление фото из галереи (админ)
     Route::delete('/products/{product}/gallery', [AdminProductController::class, 'deleteGalleryImage'])
