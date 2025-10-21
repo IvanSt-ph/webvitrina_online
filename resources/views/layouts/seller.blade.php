@@ -11,29 +11,39 @@
             <span class="font-semibold text-gray-900 text-sm">WebVitrina Seller</span>
           </a>
 
-          <!-- Навигация -->
-          <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-            <a href="{{ route('cabinet') }}" 
-               class="hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition">
-              Главная
-            </a>
-            <a href="{{ route('seller.products.index') }}"
-               class="{{ request()->routeIs('seller.products.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
-              Товары
-            </a>
-            <a href="{{ route('seller.orders.index') }}"
-               class="{{ request()->routeIs('seller.orders.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
-              Заказы
-            </a>
-            <a href="{{ route('seller.finance.index') }}"
-               class="{{ request()->routeIs('seller.finance.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
-              Финансы
-            </a>
-            <a href="{{ route('seller.analytics.index') }}"
-               class="{{ request()->routeIs('seller.analytics.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
-              Аналитика
-            </a>
-          </nav>
+<!-- Навигация -->
+<nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
+  <a href="{{ route('cabinet') }}" 
+     class="{{ request()->routeIs('cabinet') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
+    Главная
+  </a>
+
+  <a href="{{ route('seller.products.index') }}"
+     class="{{ request()->routeIs('seller.products.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
+    Товары
+  </a>
+
+  <a href="{{ route('seller.orders.index') }}"
+     class="{{ request()->routeIs('seller.orders.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
+    Заказы
+  </a>
+
+  <a href="{{ route('seller.finance.index') }}"
+     class="{{ request()->routeIs('seller.finance.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
+    Финансы
+  </a>
+
+  <a href="{{ route('seller.analytics.index') }}"
+     class="{{ request()->routeIs('seller.analytics.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
+    Аналитика
+  </a>
+
+  <a href="{{ route('profile.edit') }}"
+     class="{{ request()->routeIs('profile.*') ? 'text-indigo-600 border-b-2 border-indigo-500 font-semibold' : 'hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-500 transition' }}">
+    Профиль
+  </a>
+</nav>
+
         </div>
 
         <div class="flex items-center gap-3">

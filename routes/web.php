@@ -105,7 +105,7 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
-
+        // 📦 Товары
         Route::get('/products', [SellerProducts::class, 'index'])->name('products.index');
         Route::get('/products/create', [SellerProducts::class, 'create'])->name('products.create');
         Route::post('/products', [SellerProducts::class, 'store'])->name('products.store');
@@ -117,9 +117,9 @@ Route::middleware('auth')->group(function () {
 
         
             // 🧾 Заглушки для будущих разделов
-    Route::view('/orders', 'seller.orders.index')->name('orders.index');
-    Route::view('/finance', 'seller.finance.index')->name('finance.index');
-    Route::view('/analytics', 'seller.analytics.index')->name('analytics.index');
+        Route::view('/orders', 'seller.orders.index')->name('orders.index');
+        Route::view('/finance', 'seller.finance.index')->name('finance.index');
+        Route::view('/analytics', 'seller.analytics.index')->name('analytics.index');
 
 
 
