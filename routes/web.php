@@ -61,6 +61,10 @@ Route::get('/categories/{id}/parent', function ($id) {
     ]);
 })->name('categories.parent.public');
 
+// 🔹 Страница "В разроботке" (Заглушка)
+Route::view('/coming-soon', 'errors.coming-soon')->name('coming.soon');
+
+
 
 
 // Кабинет пользователя (общая точка входа)

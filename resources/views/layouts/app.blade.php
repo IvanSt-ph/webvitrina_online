@@ -1,3 +1,5 @@
+@props(['title' => null, 'hideHeader' => false])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -5,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-     @stack('meta') {{-- ← сюда попадёт canonical --}}
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    @stack('meta')
+    <title>{{ $title ? $title . ' — ' . config('app.name', 'Laravel') : config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -32,40 +34,34 @@
     }"
 >
 
-    {{-- Верхнее меню (десктоп) --}}
-    @unless (request()->routeIs('cabinet') || request()->routeIs('orders.*') || request()->routeIs('profile.edit'))
-        @include('layouts.navigation')
+{{-- 🌐 Верхнее меню (десктоп) --}}
+@unless($hideHeader)
+    @include('layouts.navigation')
+    @include('layouts.mobile-topbar')
+@endunless
 
-        {{-- Верхний бар (мобилка) --}}
-        @include('layouts.mobile-topbar')
-    @endunless
+{{-- Заголовок --}}
+@isset($header)
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            {{ $header }}
+        </div>
+    </header>
+@endisset
 
-    {{-- Заголовок --}}
-    @isset($header)
-        <header class="bg-white shadow">
-            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {{ $header }}
-            </div>
-        </header>
-    @endisset
+{{-- Контент --}}
+<main class="pt-2 md:pt-16 pb-12">
+    {{ $slot }}
+</main>
 
-    {{-- Контент --}}
-    <main class="pt-2 md:pt-16 pb-12">
-        @hasSection('content')
-            @yield('content')
-        @else
-            {{ $slot ?? '' }}
-        @endif
-    </main>
+{{-- Нижняя панель (мобилка) --}}
+@include('layouts.mobile-bottom-nav')
 
-    {{-- Нижняя панель (мобилка) --}}
-    @include('layouts.mobile-bottom-nav')
+{{-- Боковое меню категорий --}}
+@include('profile.partials.category-menu')
 
-    {{-- Боковое меню категорий --}}
-    @include('profile.partials.category-menu')
-
-    {{-- Модалки (поиск, фильтры, настройки) --}}
-    @include('layouts.modals')
+{{-- Модалки (поиск, фильтры, настройки) --}}
+@include('layouts.modals')
 
 </div>
 </body>
