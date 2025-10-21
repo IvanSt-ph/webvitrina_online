@@ -112,6 +112,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/{product}/edit', [SellerProducts::class, 'edit'])->name('products.edit');
         Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
         Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
+
+
+
+        
+            // 🧾 Заглушки для будущих разделов
+    Route::view('/orders', 'seller.orders.index')->name('orders.index');
+    Route::view('/finance', 'seller.finance.index')->name('finance.index');
+    Route::view('/analytics', 'seller.analytics.index')->name('analytics.index');
+
+
+
         
 
         // 🖼️ Удаление фото из галереи (для продавца)
