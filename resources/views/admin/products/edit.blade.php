@@ -29,39 +29,29 @@
             @method('PUT')
 
             {{-- Название + slug --}}
-            <div class="grid md:grid-cols-2 gap-4" x-data="slugHelper()">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Название</label>
-                    <input type="text" name="title" x-model="title"
-                           value="{{ old('title', $product->title) }}"
-                           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                           required>
-                </div>
-                <div>
-  <label for="sku" class="block text-sm font-medium text-gray-700 mb-1">
-    Артикул (SKU)
-  </label>
-  <input type="text" name="sku" id="sku"
-         value="{{ old('sku', $product->sku ?? '') }}"
-         placeholder="Напр. TV-43-SMART-2024"
-         class="w-full border-gray-300 rounded-lg text-sm px-3 py-2 focus:ring-indigo-200 focus:border-indigo-400">
-  <p class="text-xs text-gray-400 mt-1">Необязательно. Используется для внутреннего учёта.</p>
+       <div class="grid md:grid-cols-2 gap-4" x-data="slugHelper()">
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Название</label>
+    <input type="text" name="title" x-model="title"
+           value="{{ old('title', $product->title) }}"
+           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+           required>
+  </div>
+
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Slug</label>
+    <div class="flex gap-2">
+      <input type="text" name="slug" x-model="slug"
+             value="{{ old('slug', $product->slug) }}"
+             class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
+      <button type="button" @click="makeSlug()"
+              class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
+        Сгенерировать
+      </button>
+    </div>
+  </div>
 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Slug</label>
-                    <div class="flex gap-2">
-                        <input type="text" name="slug" x-model="slug"
-                               value="{{ old('slug', $product->slug) }}"
-                               class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <button type="button" @click="makeSlug()"
-                                class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
-                            Сгенерировать
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
 
             {{-- Артикул (SKU) --}}
 <div x-data="{
@@ -609,4 +599,10 @@ function cityPicker() {
 }
 
     </script>
+
+    <style>
+  #map { border-radius: 0.75rem; box-shadow: 0 0 0 1px #e5e7eb; }
+  .leaflet-control-attribution { font-size: 10px; }
+</style>
+
 @endsection
