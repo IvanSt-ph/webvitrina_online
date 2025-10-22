@@ -17,27 +17,37 @@ class ProductService
      * Создание нового товара.
      */
     public function store(array $data, ?UploadedFile $image = null, array $galleryFiles = [], ?int $userId = null): Product
-    {
-        return DB::transaction(function () use ($data, $image, $galleryFiles, $userId) {
-            $payload = $this->prepareData($data, $userId);
+{
+    return DB::transaction(function () use ($data, $image, $galleryFiles, $userId) {
+        $payload = $this->prepareData($data, $userId);
 
-            // главное фото
-            if ($image instanceof UploadedFile) {
-                $payload['image'] = $this->uploadImage($image, 'products/'.date('Y/m'));
-            }
+        // главное фото
+        if ($image instanceof UploadedFile) {
+            $payload['image'] = $this->uploadImage($image, 'products/'.date('Y/m'));
+        }
 
-            // создаём товар
-            /** @var Product $product */
-            $product = Product::create($payload);
+        // если артикул (SKU) не указан, генерируем уникальный
+        if (empty($data['sku'])) {
+            do {
+                $data['sku'] = 'PRD-' . random_int(10000, 99999);
+            } while (Product::withTrashed()->where('sku', $data['sku'])->exists());
+        }
 
-            // галерея
-            if (!empty($galleryFiles)) {
-                $this->appendGallery($product, $galleryFiles);
-            }
+        // добавляем sku в payload
+        $payload['sku'] = $data['sku'];
 
-            return $product;
-        });
-    }
+        // создаём товар
+        $product = Product::create($payload);
+
+        // галерея
+        if (!empty($galleryFiles)) {
+            $this->appendGallery($product, $galleryFiles);
+        }
+
+        return $product;
+    });
+}
+
 
     /**
      * Обновление товара.
@@ -109,29 +119,30 @@ Cache::forget("product_by_id:{$product->id}");
     // Вспомогательные
     // -----------------------------------------------
 
-    protected function prepareData(array $data, ?int $userId = null, bool $updating = false): array
-    {
-        $payload = Arr::only($data, [
-            'title','slug','price','stock','description',
-            'category_id','city_id','country_id','address',
-            'latitude','longitude','status','active','user_id'
-        ]);
+protected function prepareData(array $data, ?int $userId = null, bool $updating = false): array
+{
+    $payload = Arr::only($data, [
+        'title','slug','sku','price','stock','description', // ✅ добавь sku сюда
+        'category_id','city_id','country_id','address',
+        'latitude','longitude','status','active','user_id'
+    ]);
 
-        if ($userId) $payload['user_id'] = $userId;
+    if ($userId) $payload['user_id'] = $userId;
 
-        if (empty($payload['slug']) && !empty($payload['title'])) {
-            $payload['slug'] = Str::slug($payload['title']).'-'.Str::random(5);
-        }
-
-        if (isset($payload['price']))  $payload['price']  = (float) str_replace(',', '.', $payload['price']);
-        if (isset($payload['stock']))  $payload['stock']  = (int) $payload['stock'];
-
-        if ($updating) {
-            $payload = array_filter($payload, fn($v) => $v !== null && $v !== '');
-        }
-
-        return $payload;
+    if (empty($payload['slug']) && !empty($payload['title'])) {
+        $payload['slug'] = Str::slug($payload['title']).'-'.Str::random(5);
     }
+
+    if (isset($payload['price']))  $payload['price']  = (float) str_replace(',', '.', $payload['price']);
+    if (isset($payload['stock']))  $payload['stock']  = (int) $payload['stock'];
+
+    if ($updating) {
+        $payload = array_filter($payload, fn($v) => $v !== null && $v !== '');
+    }
+
+    return $payload;
+}
+
 
     protected function uploadImage(UploadedFile $file, string $dir): string
     {

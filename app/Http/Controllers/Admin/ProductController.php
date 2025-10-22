@@ -107,24 +107,28 @@ public function edit(Product $product)
         return redirect()->route('admin.products.index')->with('success', '🗑️ Товар удалён.');
     }
 
-    /** 🔍 AJAX-поиск товаров по названию */
+    /** 🔍 Live-поиск по названию и артикулу (SKU) */
 public function search(Request $request)
 {
     $q = trim($request->get('q', ''));
 
-    // если строка короче 2 символов — не ищем
+    // Не ищем, если запрос короткий
     if (strlen($q) < 2) {
         return response()->json([]);
     }
 
-    $products = Product::select('id', 'title', 'price', 'image')
-        ->where('title', 'like', "%{$q}%")
+    $products = Product::select('id', 'title', 'price', 'image', 'sku')
+        ->where(function ($query) use ($q) {
+            $query->where('title', 'like', "%{$q}%")
+                  ->orWhere('sku', 'like', "%{$q}%");
+        })
         ->orderByDesc('created_at')
         ->limit(10)
         ->get();
 
     return response()->json($products);
 }
+
 
 /** 🖼️ Удаление изображения из галереи товара (AJAX) */
 public function deleteGalleryImage(Request $request, Product $product)

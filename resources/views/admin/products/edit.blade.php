@@ -51,6 +51,33 @@
                 </div>
             </div>
 
+            {{-- Артикул (SKU) --}}
+<div x-data="{
+      sku: '{{ old('sku', $product->sku) }}',
+      generate() {
+        const num = Math.floor(Math.random() * 90000) + 10000;
+        this.sku = 'PRD-' + num;
+      }
+    }">
+  <label for="sku" class="block text-sm font-medium text-gray-700 mb-1">
+    Артикул (SKU)
+  </label>
+  <div class="flex gap-2">
+    <input type="text" name="sku" id="sku" x-model="sku"
+           placeholder="Напр. TV-43-SMART-2024"
+           value="{{ old('sku', $product->sku) }}"
+           class="w-full border-gray-300 rounded-lg text-sm px-3 py-2 focus:ring-indigo-200 focus:border-indigo-400">
+    <button type="button" @click="generate()"
+            class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
+       Сгенерировать
+    </button>
+  </div>
+  <p class="text-xs text-gray-400 mt-1">
+    Можно изменить вручную. Если оставить пустым — при сохранении система создаст новый код.
+  </p>
+</div>
+
+
             {{-- Цена + Количество + Продавец --}}
             <div class="grid md:grid-cols-3 gap-4">
                 <div>
