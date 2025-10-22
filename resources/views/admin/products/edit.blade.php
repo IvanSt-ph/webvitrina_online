@@ -38,6 +38,17 @@
                            required>
                 </div>
                 <div>
+  <label for="sku" class="block text-sm font-medium text-gray-700 mb-1">
+    Артикул (SKU)
+  </label>
+  <input type="text" name="sku" id="sku"
+         value="{{ old('sku', $product->sku ?? '') }}"
+         placeholder="Напр. TV-43-SMART-2024"
+         class="w-full border-gray-300 rounded-lg text-sm px-3 py-2 focus:ring-indigo-200 focus:border-indigo-400">
+  <p class="text-xs text-gray-400 mt-1">Необязательно. Используется для внутреннего учёта.</p>
+</div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700">Slug</label>
                     <div class="flex gap-2">
                         <input type="text" name="slug" x-model="slug"
@@ -50,6 +61,7 @@
                     </div>
                 </div>
             </div>
+            
 
             {{-- Цена + Количество + Продавец --}}
             <div class="grid md:grid-cols-3 gap-4">
