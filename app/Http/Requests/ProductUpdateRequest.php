@@ -12,22 +12,28 @@ class ProductUpdateRequest extends FormRequest
     }
 
     public function rules(): array
-    {
-        return [
-            'title'       => 'sometimes|required|string|max:255',
-            'price'       => 'sometimes|required|numeric|min:0',
-            'stock'       => 'sometimes|required|integer|min:0',
-            'category_id' => 'sometimes|exists:categories,id',
-            'user_id'     => 'sometimes|exists:users,id',
-            'country_id'  => 'sometimes|exists:countries,id',
-            'city_id'     => 'sometimes|exists:cities,id',
-            'description' => 'nullable|string',
-            'image'       => 'nullable|image|max:4096',
-            'gallery.*'   => 'nullable|image|max:4096',
-            'status'      => 'nullable|boolean',
-            'address'     => 'nullable|string|max:255',
-            'latitude'    => 'nullable|numeric',
-            'longitude'   => 'nullable|numeric',
-        ];
-    }
+{
+    $productId = $this->product->id ?? null;
+
+    return [
+        'title'       => ['sometimes', 'required', 'string', 'max:255'],
+        'slug'        => ['nullable', 'string', 'max:255'],
+        'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku,' . $productId],
+        'price'       => ['sometimes', 'required', 'numeric', 'min:0'],
+        'stock'       => ['sometimes', 'required', 'integer', 'min:0'],
+        'user_id'     => ['sometimes', 'exists:users,id'],
+        'category_id' => ['sometimes', 'exists:categories,id'],
+        'country_id'  => ['sometimes', 'exists:countries,id'],
+        'city_id'     => ['sometimes', 'exists:cities,id'],
+        'address'     => ['nullable', 'string', 'max:255'],
+        'latitude'    => ['nullable', 'numeric'],
+        'longitude'   => ['nullable', 'numeric'],
+        'description' => ['nullable', 'string'],
+        'status'      => ['nullable', 'boolean'],
+        'image'       => ['nullable', 'image', 'max:4096'],
+        'gallery.*'   => ['nullable', 'image', 'max:4096'],
+    ];
+}
+
+
 }

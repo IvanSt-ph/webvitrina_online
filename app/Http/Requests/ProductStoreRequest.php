@@ -12,23 +12,26 @@ class ProductStoreRequest extends FormRequest
         return true;
     }
 
-    public function rules(): array
-    {
-        return [
-            'title'       => 'required|string|max:255',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'user_id'     => 'nullable|exists:users,id',
-            'country_id'  => 'required|exists:countries,id',
-            'city_id'     => 'required|exists:cities,id',
-            'description' => 'nullable|string',
-            'image'       => 'nullable|image|max:4096',
-            'gallery.*'   => 'nullable|image|max:4096',
-            'status'      => 'nullable|boolean',
-            'address'     => 'nullable|string|max:255',
-            'latitude'    => 'nullable|numeric',
-            'longitude'   => 'nullable|numeric',
-        ];
-    }
+public function rules(): array
+{
+    return [
+        'title'       => ['required', 'string', 'max:255'],
+        'slug'        => ['nullable', 'string', 'max:255'],
+        'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku'],
+        'price'       => ['required', 'numeric', 'min:0'],
+        'stock'       => ['required', 'integer', 'min:0'],
+        'user_id'     => ['nullable', 'exists:users,id'],
+        'category_id' => ['required', 'exists:categories,id'],
+        'country_id'  => ['required', 'exists:countries,id'],
+        'city_id'     => ['required', 'exists:cities,id'],
+        'address'     => ['nullable', 'string', 'max:255'],
+        'latitude'    => ['nullable', 'numeric'],
+        'longitude'   => ['nullable', 'numeric'],
+        'description' => ['nullable', 'string'],
+        'status'      => ['nullable', 'boolean'],
+        'image'       => ['nullable', 'image', 'max:4096'],
+        'gallery.*'   => ['nullable', 'image', 'max:4096'],
+    ];
+}
+
 }
