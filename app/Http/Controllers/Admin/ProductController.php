@@ -58,7 +58,10 @@ class ProductController extends Controller
             userId: $data['user_id']
         );
 
-        return redirect()->route('admin.products.index')->with('success', '✅ Товар создан.');
+      return redirect()
+        ->route('admin.products.index')
+        ->with('success', '✅ Товар успешно создан!');
+
     }
 
     /** ✏️ Редактирование */
