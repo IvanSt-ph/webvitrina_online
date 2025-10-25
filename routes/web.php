@@ -9,7 +9,11 @@ use App\Http\Controllers\{
     ReviewController,
     ProfileController,
     CategoryController,
-    SellerController
+    UserAddressController, 
+    SellerController,
+     CheckoutController 
+    
+    
 };
 use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
 use App\Models\Category;
@@ -92,11 +96,40 @@ Route::middleware('auth')->group(function () {
     Route::patch('/cart/{item}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{item}', [CartController::class, 'remove'])->name('cart.remove');
 
-    // 📦 Заказы
-    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-    Route::post('/checkout', [OrderController::class, 'checkout'])->name('checkout');
-        // 👇 Новый маршрут для страницы "Подробнее"
-    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+// 📦 Заказы
+Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+Route::post('/checkout', [OrderController::class, 'checkout'])->name('checkout');
+// 👇 Новый маршрут для страницы "Подробнее"
+Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+// 💳 Страница оформления и "Купить сейчас"
+Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+Route::post('/checkout/quick/{product}', [CheckoutController::class, 'quick'])->name('checkout.quick');
+
+
+
+
+
+
+
+
+
+        /*
+    |------------------------------------------------------------------
+    | 📬 Адреса доставки
+    |------------------------------------------------------------------
+    */
+
+
+    Route::get('/addresses', [UserAddressController::class, 'index'])->name('addresses.index');
+    Route::post('/addresses', [UserAddressController::class, 'store'])->name('addresses.store');
+    Route::put('/addresses/{address}', [UserAddressController::class, 'update'])->name('addresses.update');
+    Route::delete('/addresses/{address}', [UserAddressController::class, 'destroy'])->name('addresses.destroy');
+    Route::post('/addresses/{address}/default', [UserAddressController::class, 'makeDefault'])->name('addresses.default');
+
+
+
+
 
     // 📝 Отзывы
     Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
@@ -215,3 +248,4 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::get('/reviews/{review}', [AdminReviewController::class, 'show'])->name('reviews.show');
 });
+

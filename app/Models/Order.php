@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Model; // ✅ вот эта строка важна
+use App\Models\UserAddress;
 
 class Order extends Model
 {
@@ -13,14 +14,19 @@ class Order extends Model
         'status',
         'total_price',
         'currency',
-        'delivery_address',
-        'payment_method',
+          'payment_method',
         'delivery_method',
         'paid_at',
+        'address_id',
     ];
 
     public function items()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function address()
+    {
+        return $this->belongsTo(UserAddress::class);
     }
 }

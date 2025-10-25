@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\CartItem;
+use App\Models\UserAddress;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
@@ -14,7 +15,7 @@ class OrderController extends Controller
     {
         $orders = Order::where('user_id', auth()->id())
             ->latest()
-            ->with('items.product')
+            ->with(['items.product', 'address'])
             ->get();
 
         return view('shop.orders', compact('orders'));
@@ -31,35 +32,52 @@ class OrderController extends Controller
 
         abort_if($items->isEmpty(), 400, 'Корзина пуста');
 
-        return DB::transaction(function () use ($items, $userId) {
-            // 💰 Подсчёт общей суммы
+        // 1) пробуем дефолтный адрес
+        $address = UserAddress::where('user_id', $userId)->where('is_default', true)->first();
+
+        // 2) если адреса нет — лучше отправить пользователя заполнить адреса
+        if (!$address) {
+            return redirect()
+                ->route('addresses.index')
+                ->with('warning', 'Добавьте адрес доставки, прежде чем оформлять заказ.');
+        }
+
+        return DB::transaction(function () use ($items, $userId, $address) {
+            // 💰 сумма (DECIMAL, т.к. у тебя price уже decimal(10,2))
             $total = $items->sum(fn($i) => $i->qty * $i->product->price);
 
-            // 🧾 Генерация номера заказа
+            // 🧾 номер заказа
             $nextId = (Order::max('id') ?? 0) + 1;
             $orderNumber = 'ORD-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
 
-            // 🧾 Создаём заказ
+            // 🧾 создаём заказ (и фиксируем "снимок" адреса в текстовом поле)
             $order = Order::create([
-                'user_id'      => $userId,
-                'total_price'  => $total,
-                'currency'     => 'RUB',
-                'status'       => 'pending',
-                'number'       => $orderNumber,
+                'user_id'          => $userId,
+                'address_id'       => $address->id,
+                'number'           => $orderNumber,
+                'total_price'      => $total,
+                'currency'         => 'RUB',
+                'status'           => 'pending',
+                'delivery_address' => trim(
+                    "{$address->country}, {$address->city}, {$address->street} {$address->house}" .
+                    ($address->apartment ? ", кв. {$address->apartment}" : '') .
+                    ($address->entrance ? ", подъезд {$address->entrance}" : '') .
+                    ($address->postal_code ? " ({$address->postal_code})" : '')
+                ),
             ]);
 
-            // 📦 Добавляем товары в заказ
+            // 📦 позиции заказа (ВАЖНО: quantity/total)
             foreach ($items as $i) {
                 OrderItem::create([
                     'order_id'   => $order->id,
                     'product_id' => $i->product_id,
-                    'price'      => $i->product->price,
-                    'quantity'   => $i->qty,
-                    'total'      => $i->qty * $i->product->price,
+                    'price'      => $i->product->price,                 // decimal(10,2)
+                    'quantity'   => $i->qty,                            // <-- ИМЕННО quantity
+                    'total'      => $i->qty * $i->product->price,       // decimal(10,2)
                 ]);
             }
 
-            // 🧹 Очищаем корзину
+            // 🧹 чистим корзину
             CartItem::where('user_id', $userId)->delete();
 
             return redirect()
@@ -68,12 +86,12 @@ class OrderController extends Controller
         });
     }
 
-    /** 📄 Просмотр конкретного заказа */
+    /** 📄 Просмотр заказа */
     public function show(Order $order)
     {
         abort_unless($order->user_id === auth()->id(), 403);
 
-        $order->load('items.product');
+        $order->load(['items.product', 'address']);
 
         return view('shop.order-show', compact('order'));
     }

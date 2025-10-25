@@ -1,82 +1,10 @@
-<x-app-layout title="Личный кабинет" :hideHeader="true">
-  <div class="flex min-h-screen bg-neutral-50 text-gray-800">
+<x-buyer-layout title="Личный кабинет">
+  <div class="space-y-8">
+    <h1 class="text-2xl font-semibold text-gray-800">Здравствуйте, {{ $user->name }} 👋</h1> 
+    <p class="text-gray-500 text-sm">Добро пожаловать в ваш личный кабинет!</p>
 
-    <!-- 🧭 Sidebar -->
-    <aside class="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 justify-between fixed left-0 top-0 bottom-0 shadow-sm">
-      <div>
-        <!-- Логотип -->
-        <div class="flex items-center gap-2 px-6 py-6 border-b border-gray-100">
-          <img src="{{ asset('images/logo.png') }}" alt="WebVitrina" class="w-8 h-8 rounded-lg shadow-sm">
-          <span class="font-semibold text-gray-800 text-sm tracking-tight">WebVitrina</span>
-        </div>
 
-        <!-- Навигация -->
-        <nav class="flex flex-col mt-6 text-[17px] font-normal text-gray-700">
-          @php
-            $active = 'bg-indigo-50 text-indigo-600 font-medium border-l-4 border-indigo-500';
-            $link = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
-          @endphp
-
-          <a href="{{ route('home') }}" class="{{ $link }}">
-            <i class="ri-arrow-left-line text-[22px]"></i>
-            <span>На главную</span>
-          </a>
-          <a href="{{ route('cabinet') }}" class="{{ request()->routeIs('cabinet') ? $active : '' }} {{ $link }}">
-            <i class="ri-home-5-line text-[22px]"></i>
-            <span>Статистика</span>
-          </a>
-          <a href="{{ route('orders.index') }}" class="{{ request()->routeIs('orders.*') ? $active : '' }} {{ $link }}">
-            <i class="ri-shopping-bag-3-line text-[22px]"></i>
-            <span>Заказы</span>
-          </a>
-          <a href="{{ route('favorites.index') }}" class="{{ request()->routeIs('favorites.*') ? $active : '' }} {{ $link }}">
-            <i class="ri-heart-line text-[22px]"></i>
-            <span>Избранное</span>
-          </a>
-          <a href="{{ route('cart.index') }}" class="{{ request()->routeIs('cart.*') ? $active : '' }} {{ $link }}">
-            <i class="ri-shopping-cart-2-line text-[22px]"></i>
-            <span>Корзина</span>
-          </a>
-          <a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.*') ? $active : '' }} {{ $link }}">
-            <i class="ri-settings-3-line text-[22px]"></i>
-            <span>Настройки</span>
-          </a>
-        </nav>
-      </div>
-
-      <!-- Нижняя панель -->
-      <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-gray-400 text-lg">
-        <a href="#" class="hover:text-indigo-600"><i class="ri-telegram-line"></i></a>
-        <a href="#" class="hover:text-indigo-600"><i class="ri-instagram-line"></i></a>
-        <a href="#" class="hover:text-indigo-600"><i class="ri-github-line"></i></a>
-      </div>
-    </aside>
-
-    <!-- 🌤 Основная часть -->
-    <main class="flex-1 md:ml-64 p-6 md:p-10 bg-neutral-50">
-
-      <!-- Верх -->
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-10">
-        <div>
-          <h1 class="text-2xl font-semibold text-gray-800">Здравствуйте, {{ $user->name }} 👋</h1>
-          <p class="text-gray-500 text-sm mt-1">Добро пожаловать в ваш личный кабинет</p>
-        </div>
-
-        <div class="flex items-center gap-3 mt-4 md:mt-0">
-          <img src="{{ $user->avatar ? asset('storage/'.$user->avatar) : 'https://ui-avatars.com/api/?name='.urlencode($user->name) }}"
-               class="w-10 h-10 rounded-full border border-gray-200 shadow-sm" alt="Аватар">
-
-          <button class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
-            Мой профиль
-          </button>
-
-          <a href="{{ route('profile.edit') }}"
-             class="md:hidden flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition">
-            <i class="ri-settings-3-line text-[18px]"></i>
-            <span>Настройки</span>
-          </a>
-        </div>
-      </div>
+    
 
       <!-- Статистика -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">

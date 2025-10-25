@@ -1,11 +1,11 @@
-<x-app-layout title="Мои заказы">
+<x-buyer-layout title="Мои заказы">
 
-  <div class="max-w-5xl mx-auto px-4 mt-8 py-8">
-    <h1 class="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">🧾 Мои заказы</h1>
-    <p class="text-gray-500 mb-8">Здесь собраны все ваши покупки — от новых до доставленных.</p>
+  <div class="space-y-8">
+    <h1 class="text-2xl sm:text-3xl font-semibold text-gray-900">🧾 Мои заказы</h1>
+    <p class="text-gray-500 mb-6">Здесь собраны все ваши покупки — от новых до доставленных.</p>
 
     @forelse($orders as $order)
-      <div class="bg-white shadow-sm hover:shadow-md transition rounded-2xl p-5 mb-6 border border-gray-100">
+      <div class="bg-white shadow-sm hover:shadow-md transition rounded-2xl p-5 border border-gray-100">
 
         {{-- Верхняя строка --}}
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
@@ -90,4 +90,4 @@
     @endforelse
   </div>
 
-</x-app-layout>
+</x-buyer-layout>
