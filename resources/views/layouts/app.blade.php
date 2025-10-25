@@ -55,7 +55,14 @@
 </main>
 
 {{-- Нижняя панель (мобилка) --}}
-@include('layouts.mobile-bottom-nav')
+@unless(
+    request()->routeIs('seller.*') ||   {{-- все маршруты seller/... --}}
+    request()->routeIs('cabinet')   ||   {{-- личный кабинет --}}
+    request()->routeIs('profile.*')      {{-- профиль продавца --}}
+)
+    @include('layouts.mobile-bottom-nav')
+@endunless
+
 
 {{-- Боковое меню категорий --}}
 @include('profile.partials.category-menu')

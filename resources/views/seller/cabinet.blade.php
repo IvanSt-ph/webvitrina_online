@@ -6,7 +6,10 @@
 
 
     <!-- 🌤 Основной контент -->
-    <main class="max-w-7xl mx-auto px-6 py-1 space-y-10">
+    <main class="max-w-7xl mx-auto px-6 pt-2 pb-10 space-y-10">
+
+
+
 
       <!-- 📈 График и новости -->
       <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -128,7 +131,10 @@
         </div>
       </section>
 
-
+      <!-- FOOTER -->
+      <footer class="text-center text-xs text-gray-400 pt-6 border-t">
+        © {{ date('Y') }} WebVitrina — Панель продавца
+      </footer>
 
     </main>
   </div>
@@ -163,4 +169,5 @@
 
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
 
+@include('layouts.mobile-bottom-seller-nav')
 </x-app-layout>

@@ -5,7 +5,10 @@
 
 
     <!-- 🌤 Основной контент -->
-    <main class="max-w-7xl mx-auto px-6 py-10 space-y-10">
+    <main class="max-w-7xl mx-auto px-6 pt-2 pb-10 space-y-10">
+
+
+
 
       <!-- Заголовок -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -135,4 +138,7 @@
   </div>
 
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+
+  
+@include('layouts.mobile-bottom-seller-nav')
 </x-app-l>

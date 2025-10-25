@@ -23,4 +23,6 @@
             {{ $products->links() }}
         </div>
     </div>
+    
+@include('layouts.mobile-bottom-seller-nav')
 </x-app-layout>

@@ -535,4 +535,6 @@
     }
   });
   </script>
+  
+@include('layouts.mobile-bottom-seller-nav')
 </x-app-layout>
