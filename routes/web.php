@@ -95,6 +95,8 @@ Route::middleware('auth')->group(function () {
     // 📦 Заказы
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::post('/checkout', [OrderController::class, 'checkout'])->name('checkout');
+        // 👇 Новый маршрут для страницы "Подробнее"
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 
     // 📝 Отзывы
     Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
