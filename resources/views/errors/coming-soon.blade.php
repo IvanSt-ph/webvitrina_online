@@ -1,14 +1,14 @@
 <x-app-layout title="Раздел в разработке" :hideHeader="true">
   <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white via-gray-50 to-white text-gray-700">
 
-    <div class="max-w-lg w-full text-center px- py-20 animate-fade-in">
+    <div class="max-w-lg w-full text-center px- py-0 animate-fade-in">
 
       <!-- 🧩 Иллюстрация -->
       <div class="relative mb-10">
         <div class="absolute inset-0 blur-3xl bg-indigo-100/50 rounded-full -z-10 scale-125"></div>
-        <img src="{{ asset('images/soon-illustration.svg') }}"
+        <img src="{{ asset('images/soon.png') }}"
              alt="В разработке"
-             class="w-56 h-56 mx-auto drop-shadow-md opacity-95 transition-transform duration-500 hover:scale-105">
+             class="w-106 h-106 mx-auto drop-shadow-md opacity-95 transition-transform duration-500 hover:scale-105">
       </div>
 
       <!-- 🏗 Заголовок -->
@@ -39,7 +39,7 @@
 
       <!-- 💬 Футер -->
       <p class="mt-10 text-xs text-gray-400">
-        © {{ date('Y') }} WebVitrina — мы создаём лучшие решения для продавцов.
+       WebVitrina — мы создаём лучшие решения для продавцов.
       </p>
     </div>
   </div>

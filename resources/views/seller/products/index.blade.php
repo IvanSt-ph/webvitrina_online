@@ -130,10 +130,6 @@
         @endif
       </section>
 
-      <!-- FOOTER -->
-      <footer class="text-center text-xs text-gray-400 pt-6 border-t">
-        © {{ date('Y') }} WebVitrina — Мои товары
-      </footer>
 
     </main>
   </div>

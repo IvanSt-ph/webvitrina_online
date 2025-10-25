@@ -59,7 +59,7 @@
       {{ $slot }}
     </main>
 
-    <!-- FOOTER -->
+    <!-- FOOTER общий продовцы-->
     <footer class="text-center text-xs text-gray-400 pt-6 border-t">
       © {{ date('Y') }} WebVitrina — Панель продавца
     </footer>
