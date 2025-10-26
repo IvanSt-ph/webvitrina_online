@@ -65,18 +65,41 @@ class ProductManageController extends Controller
     }
 
     /** 💾 Создание нового товара */
-    public function store(Request $request)
-    {
-        $data = $this->validateProduct($request);
-        $userId = Auth::id();
+  public function store(Request $request)
+{
+    $data = $this->validateProduct($request);
+    $userId = Auth::id();
 
-        $image   = $request->file('image');
-        $gallery = $request->file('gallery', []);
+    // 🔹 Получаем валюту страны продавца
+    $city = \App\Models\City::with('country')->findOrFail($request->city_id);
+    $currencyBase = $city->country->currency ?? 'MDL';
 
-        $this->products->store($data, $image, $gallery, $userId);
+    // 🔹 Создаём модель продукта и добавляем валюту
+    $product = new \App\Models\Product($data);
+    $product->user_id = $userId;
+    $product->currency_base = $currencyBase;
+    $product->price = $request->price;
+    $product->price_prb = $request->price_prb;
+    $product->price_mdl = $request->price_mdl;
+    $product->price_uah = $request->price_uah;
 
-        return redirect()->route('seller.products.index')->with('success', '✅ Товар добавлен');
+    // 🔹 Автопересчёт, если пусто
+    $svc = app(\App\Services\CurrencyService::class);
+    $map = ['PRB' => 'price_prb', 'MDL' => 'price_mdl', 'UAH' => 'price_uah'];
+    foreach ($map as $code => $field) {
+        if (is_null($product->{$field})) {
+            $product->{$field} = $svc->convert((float)$product->price, $currencyBase, $code);
+        }
     }
+
+    // 🔹 Сохраняем через сервис
+    $image   = $request->file('image');
+    $gallery = $request->file('gallery', []);
+    $this->products->store($product->toArray(), $image, $gallery, $userId);
+
+    return redirect()->route('seller.products.index')->with('success', '✅ Товар добавлен');
+}
+
 
     /** 🔄 Обновление существующего товара */
     public function update(Request $request, Product $product)
@@ -132,3 +155,5 @@ class ProductManageController extends Controller
         ]);
     }
 }
+
+

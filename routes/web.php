@@ -49,6 +49,11 @@ Route::get('/categories/{id}/children', function ($id) {
         ->get(['id', 'name']);
 })->name('categories.children.public');
 
+// 🔹 Установка валюты пользователя
+Route::post('/currency', [\App\Http\Controllers\CurrencyController::class, 'set'])
+     ->name('currency.set');
+
+
 
 // 🔹 Публичный API для каскадных категорий (для продавцов и редактирования товаров)
 Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])

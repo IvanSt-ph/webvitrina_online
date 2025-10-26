@@ -13,69 +13,105 @@ class Product extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'user_id',
-        'category_id',
-        'title',
-        'slug',
-        'sku',
-        'price',
-        'stock',
-        'image',
-        'description',
-        'city_id',
-        'gallery',
-        'status',
-        'address',
-        'latitude',
-        'longitude',
+        'user_id','category_id','title','slug','sku','price','stock','image',
+        'description','city_id','gallery','status','address','latitude','longitude',
+        'currency_base','price_prb','price_mdl','price_uah',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'price_prb' => 'decimal:2',
+        'price_mdl' => 'decimal:2',
+        'price_uah' => 'decimal:2',
         'gallery' => 'array',
         'latitude' => 'decimal:6',
         'longitude' => 'decimal:6',
     ];
 
-    // 🔹 Продавец
+    /* -------------------------------------------------
+     | 💰 Валютные методы
+     |--------------------------------------------------*/
+    public static function currencySymbol(string $code): string
+    {
+        return match (strtoupper($code)) {
+            'PRB' => '₽ ПМР',
+            'MDL' => 'L',
+            'UAH' => '₴',
+            default => $code,
+        };
+    }
+
+    public function getPriceForCurrentCurrencyAttribute(): array
+    {
+        $code = session('currency', $this->currency_base ?: 'MDL');
+        $map = [
+            'PRB' => $this->price_prb,
+            'MDL' => $this->price_mdl,
+            'UAH' => $this->price_uah,
+        ];
+
+        $amount = $map[$code] ?? $this->price;
+
+        return [
+            'amount' => (float) $amount,
+            'code'   => $code,
+            'symbol' => self::currencySymbol($code),
+        ];
+    }
+
+    public function getPriceFormattedAttribute(): string
+    {
+        $code = $this->currency_base ?: 'MDL';
+        $symbol = self::currencySymbol($code);
+        return number_format($this->price, 2, ',', ' ') . ' ' . $symbol;
+    }
+
+    /* -------------------------------------------------
+     | 🧩 Связи
+     |--------------------------------------------------*/
     public function seller() { return $this->belongsTo(User::class, 'user_id'); }
-
-    
-    // 🔹 Была ошибка Где-то в коде (скорее всего в ProductRepository или ProductController@show) Laravel пытается подгрузить связь:
-
-    public function user(){ return $this->belongsTo(User::class, 'user_id');}
-
-
-    // 🔹 Отзывы
+    public function user() { return $this->belongsTo(User::class, 'user_id'); }
     public function reviews() { return $this->hasMany(Review::class); }
-
-    // 🔹 Категория
     public function category() { return $this->belongsTo(Category::class); }
-
-    // 🔹 Город
     public function city() { return $this->belongsTo(City::class); }
-
-    // 🔹 Страна через город
     public function getCountryAttribute() { return $this->city?->country; }
-
-    // 🔹 Избранное
     public function favorites() { return $this->hasMany(Favorite::class); }
+    
+    /* -------------------------------------------------
+ | 🕓 Старые slug-и (редиректы)
+ |--------------------------------------------------*/
+public function oldSlugs()
+{
+    return $this->hasMany(\App\Models\ProductSlug::class);
+}
+
 
     public function isFavoritedBy($user)
     {
         return $user && $this->favorites()->where('user_id', $user->id)->exists();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Хуки модели
-    |--------------------------------------------------------------------------
-    */
+    public function attributes()
+    {
+        return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_values')
+                    ->withPivot('value')
+                    ->withTimestamps();
+    }
+
+    public function orders()
+    {
+        return $this->belongsToMany(\App\Models\Order::class, 'order_items', 'product_id', 'order_id')
+                    ->withPivot(['quantity', 'price'])
+                    ->withTimestamps();
+    }
+
+    /* -------------------------------------------------
+     | ⚙️ Хуки и служебные методы
+     |--------------------------------------------------*/
     protected static function boot()
     {
         parent::boot();
 
-        // 🆔 Генерация slug
         static::creating(function ($product) {
             if (empty($product->slug)) {
                 $base = Str::slug($product->title);
@@ -89,7 +125,6 @@ class Product extends Model
             }
         });
 
-        // ⚙️ Удаляем только изменённое главное фото
         static::updating(function ($product) {
             if ($product->isDirty('image')) {
                 $old = $product->getOriginal('image');
@@ -99,7 +134,6 @@ class Product extends Model
             }
         });
 
-        // 🧹 При полном удалении товара удаляем только связанные файлы
         static::deleting(function ($product) {
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
@@ -115,16 +149,9 @@ class Product extends Model
         });
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Акцессоры
-    |--------------------------------------------------------------------------
-    */
-    public function getPriceFormattedAttribute(): string
-    {
-        return number_format($this->price, 2, ',', ' ') . ' ₽';
-    }
-
+    /* -------------------------------------------------
+     | 🌍 Доп. атрибуты
+     |--------------------------------------------------*/
     public function getImageUrlAttribute(): ?string
     {
         return $this->image ? asset('storage/' . $this->image) : null;
@@ -140,58 +167,11 @@ class Product extends Model
         return $this->city?->name;
     }
 
-    // 🔹 Старые slug для редиректа
-    public function oldSlugs()
-    {
-        return $this->hasMany(ProductSlug::class);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Scopes для фильтров
-    |--------------------------------------------------------------------------
-    */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
-
-    public function scopeDraft($query)
-    {
-        return $query->where('status', 'draft');
-    }
-
-    public function scopeByCategory($query, $categoryId)
-    {
-        return $query->where('category_id', $categoryId);
-    }
-
-    public function scopeByCity($query, $cityId)
-    {
-        return $query->where('city_id', $cityId);
-    }
-
-    
-
-
-
-
-    public function attributes()
-{
-    return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_values')
-                ->withPivot('value')
-                ->withTimestamps();
-}
-
-
-// 🔹 Заказы, в которых присутствует этот товар
-public function orders()
-{
-    return $this->belongsToMany(\App\Models\Order::class, 'order_items', 'product_id', 'order_id')
-                ->withPivot(['quantity', 'price']) // если есть
-                ->withTimestamps();
-}
-
-
-
+    /* -------------------------------------------------
+     | 🔍 Скоупы
+     |--------------------------------------------------*/
+    public function scopeActive($q)  { return $q->where('status', 'active'); }
+    public function scopeDraft($q)   { return $q->where('status', 'draft'); }
+    public function scopeByCategory($q, $id) { return $q->where('category_id', $id); }
+    public function scopeByCity($q, $id)     { return $q->where('city_id', $id); }
 }

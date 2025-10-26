@@ -27,3 +27,7 @@ Alpine.start();
 
 
 
+
+// app.js
+import './bootstrap';
+import './seller-product-form.js'; // ✅ твой файл для формы
