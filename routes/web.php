@@ -91,6 +91,14 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // 👤 Профиль покупателя
+    Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/buyer/profile', function () {
+        return view('buyer.profile');
+    })->name('buyer.profile');
+});
+
+
     // ⭐ Избранное
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{product}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');

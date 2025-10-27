@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model; // ✅ вот эта строка важна
+use Illuminate\Database\Eloquent\Model;
 use App\Models\UserAddress;
+use App\Models\User;
+use App\Models\Product;
 
 class Order extends Model
 {
@@ -14,7 +16,7 @@ class Order extends Model
         'status',
         'total_price',
         'currency',
-          'payment_method',
+        'payment_method',
         'delivery_method',
         'paid_at',
         'address_id',
@@ -28,5 +30,23 @@ class Order extends Model
     public function address()
     {
         return $this->belongsTo(UserAddress::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function seller()
+    {
+        return $this->belongsTo(User::class, 'seller_id');
+    }
+
+    // ✅ Добавляем связь с товарами
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'order_items')
+                    ->withPivot('quantity', 'price')
+                    ->withTimestamps();
     }
 }

@@ -41,10 +41,12 @@
             <i class="ri-map-pin-line text-[22px]"></i>
             <span>Адреса доставки</span>
           </a>
-          <a href="{{ route('profile.edit') }}" class="{{ request()->routeIs('profile.*') ? $active : '' }} {{ $link }}">
-            <i class="ri-settings-3-line text-[22px]"></i>
-            <span>Настройки</span>
-          </a>
+<a href="{{ route('buyer.profile') }}" 
+   class="{{ request()->routeIs('buyer.profile') ? $active : '' }} {{ $link }}">
+  <i class="ri-settings-3-line text-[22px]"></i>
+  <span>Настройки</span>
+</a>
+
         </nav>
       </div>
 
