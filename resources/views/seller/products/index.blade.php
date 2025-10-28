@@ -3,10 +3,8 @@
   <div class="min-h-screen bg-white text-gray-800">
 
 
-
     <!-- 🌤 Основной контент -->
-    <main class="max-w-7xl mx-auto px-6 pt-2 pb-10 space-y-10">
-
+<main class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8">
 
 
 
@@ -141,4 +139,4 @@
 
   
 @include('layouts.mobile-bottom-seller-nav')
-</x-app-l>
+</x-seller-layout>

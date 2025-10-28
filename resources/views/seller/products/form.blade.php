@@ -1,9 +1,10 @@
 {{-- resources/views/seller/products/form.blade.php --}}
-<x-app-layout :title="$product->exists ? 'Редактирование товара' : 'Добавление товара'">
+<x-seller-layout :title="$product->exists ? 'Редактирование товара' : 'Добавление товара'">
 
-  <div class="max-w-3xl mx-auto my-8 space-y-6"
-       data-country="{{ old('country_id', optional($product->city)->country_id) }}"
-       data-city="{{ old('city_id', $product->city_id) }}">
+<div class="pt-4 pb-10 px-4 sm:px-6 lg:px-8 space-y-6"
+     data-country="{{ old('country_id', optional($product->city)->country_id) }}"
+     data-city="{{ old('city_id', $product->city_id) }}">
+
 
     {{-- ===== Заголовок ===== --}}
     <div class="flex items-center justify-between">
@@ -148,9 +149,9 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Базовая валюта</label>
             <select id="currency_base" name="currency_base"
                     class="w-full border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-              <option value="PRB" @selected(old('currency_base', $product->currency_base) === 'PRB')>₽ ПМР</option>
-              <option value="MDL" @selected(old('currency_base', $product->currency_base) === 'MDL')>L Молдова</option>
-              <option value="UAH" @selected(old('currency_base', $product->currency_base) === 'UAH')>₴ Украина</option>
+              <option value="PRB" @selected(old('currency_base', $product->currency_base) === 'PRB')>₽ Рубль ПМР</option>
+              <option value="MDL" @selected(old('currency_base', $product->currency_base) === 'MDL')>L Молдавский Лей</option>
+              <option value="UAH" @selected(old('currency_base', $product->currency_base) === 'UAH')>₴ Украинская Гривна</option>
             </select>
             <p class="text-sm text-gray-500 mt-1">Определяется автоматически по стране.</p>
           </div>
@@ -263,4 +264,4 @@
   @vite('resources/js/seller-product-form.js')
   @include('layouts.mobile-bottom-seller-nav')
 
-</x-app-layout>
+</x-seller-layout>

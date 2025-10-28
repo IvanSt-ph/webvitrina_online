@@ -76,6 +76,17 @@ class Product extends Model
     public function city() { return $this->belongsTo(City::class); }
     public function getCountryAttribute() { return $this->city?->country; }
     public function favorites() { return $this->hasMany(Favorite::class); }
+    // --- 🔹 Реальные связи для аналитики ---
+public function views()
+{
+    return $this->hasMany(\App\Models\ProductStat::class);
+}
+
+public function cartItems()
+{
+    return $this->hasMany(\App\Models\CartItem::class);
+}
+
     
     /* -------------------------------------------------
  | 🕓 Старые slug-и (редиректы)
@@ -149,6 +160,7 @@ public function oldSlugs()
         });
     }
 
+    
     /* -------------------------------------------------
      | 🌍 Доп. атрибуты
      |--------------------------------------------------*/

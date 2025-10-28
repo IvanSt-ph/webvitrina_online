@@ -231,7 +231,16 @@ $currentCity = request('city_id', session('city_id'));
                             </button>
                         </x-slot>
                         <x-slot name="content">
-                            <x-dropdown-link :href="route('cabinet')">Личный кабинет</x-dropdown-link>
+                             @php
+                                $dashboard = match (strtolower(auth()->user()->role ?? '')) {
+                                    'admin'  => route('admin.dashboard'),
+                                    'seller' => route('seller.cabinet'),
+                                    default  => route('cabinet'),
+                                };
+                             @endphp
+
+                    <x-dropdown-link :href="$dashboard">Личный кабинет</x-dropdown-link>
+
                             <x-dropdown-link :href="route('profile.edit')">Редактировать профиль</x-dropdown-link>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
