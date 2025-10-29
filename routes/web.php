@@ -119,13 +119,12 @@ Route::middleware('auth')->group(function () {
         
 
 
-           // 📊 Реальная аналитика
+    // 📊 Реальная аналитика
     Route::get('/analytics', [\App\Http\Controllers\Seller\AnalyticsController::class, 'index'])
-        ->name('analytics.index')
-        ->middleware('auth');
+        ->name('analytics.index');
+    Route::get('/analytics/day/{date}', [\App\Http\Controllers\Seller\AnalyticsController::class, 'dayStats'])
+        ->name('analytics.day');
 
-        Route::get('/seller/analytics/day/{date}', [\App\Http\Controllers\Seller\AnalyticsController::class, 'dayStats'])
-    ->name('seller.analytics.day');
 
 
 

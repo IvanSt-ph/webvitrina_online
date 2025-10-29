@@ -1,6 +1,6 @@
 <x-seller-layout title="Аналитика продавца">
   <div x-data="sellerAnalytics()" class="bg-gray-50">
-    <main class="w-full pt-4 pb-10 space-y-10 px-4 sm:px-6 lg:px-10 xl:px-16 bg-gray-50">
+<main class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8">
 
       <!-- Заголовок + фильтры -->
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -13,23 +13,20 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <select x-model="period" @change="reloadData"
-                  class="h-10 border-gray-300 rounded-lg text-sm px-3">
+          <select x-model="period" @change="reloadData" class="h-10 border-gray-300 rounded-lg text-sm px-3">
             <option value="7">7 дней</option>
             <option value="30">30 дней</option>
             <option value="90">90 дней</option>
           </select>
 
-          <select x-model="productId" @change="reloadData"
-                  class="h-10 border-gray-300 rounded-lg text-sm px-3 min-w-[220px]">
+          <select x-model="productId" @change="reloadData" class="h-10 border-gray-300 rounded-lg text-sm px-3 min-w-[220px]">
             <option value="all">Все товары</option>
             @foreach($products as $product)
               <option value="{{ $product->id }}">{{ Str::limit($product->title, 60) }}</option>
             @endforeach
           </select>
 
-          <button @click="exportCSV"
-                  class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+          <button @click="exportCSV" class="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
             <i class="ri-download-2-line"></i> Экспорт
           </button>
         </div>
@@ -44,8 +41,7 @@
                   :class="active === m.key ? 'ring-2 ring-indigo-400' : ''">
             <div class="flex items-start justify-between">
               <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl flex items-center justify-center"
-                     :class="m.bg + ' ' + m.text">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center" :class="m.bg + ' ' + m.text">
                   <i :class="m.icon + ' text-xl'"></i>
                 </div>
                 <div>
@@ -113,20 +109,15 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    @keyframes fadeIn {
-  from {opacity:0; transform:scale(0.95);}
-  to {opacity:1; transform:scale(1);}
-}
-
-
+    @keyframes fadeIn { from {opacity:0; transform:scale(.98)} to {opacity:1; transform:scale(1)} }
     .metric-card{min-height:124px}
     @media (min-width:1024px){.metric-card{min-height:132px}}
   </style>
 
   <script>
   function sellerAnalytics(){
-    const stats = @json($stats);
-    const topProducts = @json($topProducts);
+    const stats = @json($stats);          // [{date, views, favs, carts}]
+    const topProducts = @json($topProducts); // [{id,title,image,views,favs,carts,score}]
 
     return {
       period: 7,
@@ -137,10 +128,10 @@
       sparkCharts: {},
 
       metrics: [
-        {key:'views', label:'Просмотры', value: {{ (int)($summary['views'] ?? 0) }}, growth:12, icon:'ri-eye-line', bg:'bg-indigo-100', text:'text-indigo-600'},
-        {key:'favorites', label:'Избранное', value: {{ (int)($summary['favorites'] ?? 0) }}, growth:3, icon:'ri-heart-line', bg:'bg-pink-100', text:'text-pink-600'},
-        {key:'carts', label:'Корзина', value: {{ (int)($summary['cart_adds'] ?? 0) }}, growth:7, icon:'ri-shopping-cart-line', bg:'bg-emerald-100', text:'text-emerald-600'},
-        {key:'total', label:'Товаров', value: {{ (int)($summary['total'] ?? 0) }}, growth:0, icon:'ri-store-2-line', bg:'bg-amber-100', text:'text-amber-600'},
+        {key:'views',     label:'Просмотры', value: {{ (int)($summary['views'] ?? 0) }},     growth:12, icon:'ri-eye-line',           bg:'bg-indigo-100',  text:'text-indigo-600'},
+        {key:'favorites', label:'Избранное', value: {{ (int)($summary['favorites'] ?? 0) }}, growth:3,  icon:'ri-heart-line',         bg:'bg-pink-100',    text:'text-pink-600'},
+        {key:'carts',     label:'Корзина',   value: {{ (int)($summary['cart_adds'] ?? 0) }}, growth:7,  icon:'ri-shopping-cart-line', bg:'bg-emerald-100', text:'text-emerald-600'},
+        {key:'total',     label:'Товаров',   value: {{ (int)($summary['total'] ?? 0) }},     growth:0,  icon:'ri-store-2-line',       bg:'bg-amber-100',   text:'text-amber-600'},
       ],
 
       format(n){ try{ return new Intl.NumberFormat('ru-RU').format(n) }catch{ return n } },
@@ -155,6 +146,7 @@
       reloadData(){},
       exportCSV(){ window.location.href = `/seller/analytics/export?days=${this.period}` },
 
+      // мини-спарклайны
       initSparks(){
         const series = {
           views: stats.map(s=>s.views ?? 0),
@@ -179,6 +171,7 @@
         });
       },
 
+      // основной график
       renderMain(){
         const map = {views:'views', favorites:'favs', carts:'carts', total:null};
         const key = map[this.active];
@@ -203,182 +196,162 @@
               pointHoverRadius: 6
             }]
           },
-          options: {
-            responsive:true,
-            maintainAspectRatio:false,
-            plugins:{
-              legend:{display:false},
-              tooltip:{
-                backgroundColor:'rgba(99,102,241,0.9)',
-                displayColors:false,
-                padding:10,
-                titleFont:{weight:'bold'},
-                callbacks:{
-                  title:(ctx)=> `📅 ${ctx[0].label}`,
-                  label:(ctx)=> {
-                    const v = ctx.formattedValue;
-                    return this.active==='views'
-                      ? `👁 Просмотров: ${v}`
-                      : this.active==='favorites'
-                      ? `💗 В избранное: ${v}`
-                      : this.active==='carts'
-                      ? `🛒 В корзину: ${v}`
-                      : `Активность: ${v}`;
-                  }
-                }
-              }
-            },
-            interaction:{mode:'nearest',intersect:true},
-            scales:{
-              x:{grid:{color:'#F3F4F6'}},
-              y:{grid:{color:'#F3F4F6'},beginAtZero:true,ticks:{precision:0}}
-            },
-            // 👇 Клик по точке — модальное окно
-onClick:(e,els)=>{
-  if(!els.length) return;
-  const index = els[0].index;
-  const date = labels[index];
-
-  fetch(`/seller/analytics/day/${date}`)
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.length){ alert(`Нет данных за ${date}`); return; }
-
-      // HTML содержимое
-      const rows = data.map(d=>`
-        <div class='flex justify-between items-center py-2'>
-          <div class='flex flex-col'>
-            <span class='font-medium text-gray-800'>${d.title}</span>
-            <span class='text-xs text-gray-400'>ID: ${d.id ?? '-'}</span>
-          </div>
-          <div class='text-sm text-gray-600 flex gap-3'>
-            <span title='Просмотры'>👁 ${d.views}</span>
-            <span title='Избранное'>💗 ${d.favorites}</span>
-            <span title='Корзина'>🛒 ${d.carts}</span>
-          </div>
-        </div>
-      `).join('');
-
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm animate-[fadeIn_0.25s_ease-out]';
-      modal.innerHTML = `
-        <div class='bg-white rounded-2xl shadow-2xl w-[92%] max-w-lg p-6 relative'>
-          <button class='absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl'>&times;</button>
-          <h3 class='text-xl font-semibold mb-4 text-indigo-600 flex items-center gap-2'>
-            <i class="ri-calendar-line"></i>
-            ${date}
-          </h3>
-          <div class='divide-y divide-gray-100 max-h-80 overflow-y-auto'>
-            ${rows}
-          </div>
-          <div class='mt-4 text-right'>
-            <button class='bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700'>Закрыть</button>
-          </div>
-        </div>
-      `;
-      modal.querySelectorAll('button').forEach(btn => btn.onclick = ()=> modal.remove());
-      document.body.appendChild(modal);
-    });
-}
-
-          }
-        });
+options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  events: ['click', 'mousemove'], // важно
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: 'rgba(99,102,241,0.9)',
+      displayColors: false,
+      padding: 10,
+      titleFont: { weight: 'bold' },
+      callbacks: {
+        title: (ctx) => `📅 ${ctx[0].label}`,
+        label: (ctx) => {
+          const v = ctx.formattedValue;
+          return this.active === 'views'
+            ? `👁 Просмотров: ${v}`
+            : this.active === 'favorites'
+            ? `💗 В избранное: ${v}`
+            : this.active === 'carts'
+            ? `🛒 В корзину: ${v}`
+            : `Активность: ${v}`;
+        },
       },
+    },
+  },
+  interaction: { mode: 'nearest', intersect: false }, // <-- intersect: false
+  scales: {
+    x: { grid: { color: '#F3F4F6' } },
+    y: { grid: { color: '#F3F4F6' }, beginAtZero: true, ticks: { precision: 0 } },
+  },
 
+  // 👇 Клик по точке (или близко к ней)
+  onClick: (evt, activeEls, chart) => {
+    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
+    if (!points.length) return;
+
+    const index = points[0].index;
+    const date = chart.data.labels[index];
+
+    // загрузка данных
+    fetch(`/seller/analytics/day/${date}`)
+      .then(r => r.json())
+      .then(rows => {
+        if (!rows.length) { alert(`Нет данных за ${date}`); return; }
+
+        const metricKey = this.active === 'favorites' ? 'favorites'
+                        : this.active === 'carts'     ? 'carts'
+                        : 'views';
+        const metricName = this.active === 'favorites' ? 'В избранное'
+                         : this.active === 'carts'     ? 'В корзину'
+                         : 'Просмотры';
+        const metricIcon = this.active === 'favorites' ? '💗'
+                         : this.active === 'carts'     ? '🛒'
+                         : '👁';
+
+        const filtered = rows
+          .filter(r => (r[metricKey] || 0) > 0)
+          .sort((a,b) => (b[metricKey] || 0) - (a[metricKey] || 0));
+
+        const list = (filtered.length ? filtered : rows).map(d => `
+          <div class="flex justify-between items-center py-2">
+            <div class="flex flex-col">
+              <span class="font-medium text-gray-800">${d.title}</span>
+              <span class="text-xs text-gray-400">${metricIcon} ${d[metricKey] ?? 0}</span>
+            </div>
+            ${d.id ? `<a href="/p/${d.id}" class="text-indigo-600 text-sm hover:underline">Открыть</a>` : ''}
+          </div>
+        `).join('');
+
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50';
+        modal.style.animation = 'fadeIn .2s ease-out';
+        modal.innerHTML = `
+          <div class="bg-white rounded-2xl shadow-2xl w-[92%] max-w-lg p-6 relative">
+            <button class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            <h3 class="text-lg font-bold mb-4 text-indigo-600 flex items-center gap-2">
+              <i class="ri-calendar-line"></i> ${date} • ${metricIcon} ${metricName}
+            </h3>
+            <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+              ${list}
+            </div>
+            <div class="mt-5 text-right">
+              <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Закрыть</button>
+            </div>
+          </div>`;
+        modal.querySelectorAll('button').forEach(b => b.onclick = () => modal.remove());
+        modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+        document.body.appendChild(modal);
+      });
+  }
+} // <-- конец options
+}); // <-- конец new Chart
+}, // <-- конец renderMain()
+
+
+      // топ-5
       initTop(){
         const ctx = document.getElementById('topProductsChart').getContext('2d');
         const render = (metric='score')=>{
           if(!Array.isArray(topProducts) || topProducts.length===0){ return; }
 
-          const sorted = [...topProducts]
-            .sort((a,b)=> (b[metric]||0)-(a[metric]||0))
-            .slice(0,5);
-
+          const sorted = [...topProducts].sort((a,b)=> (b[metric]||0)-(a[metric]||0)).slice(0,5);
           const labels = sorted.map(p => p.title.length > 48 ? p.title.slice(0,48)+'…' : p.title);
           const values = sorted.map(p => p[metric] || 0);
 
-          // ✅ Без ошибок
           window.topProductsChart?.destroy?.();
-
           window.topProductsChart = new Chart(ctx, {
             type:'bar',
-            data:{
-              labels,
-              datasets:[{
-                data: values,
-                borderRadius:10,
-                backgroundColor:['#6366F1','#EC4899','#10B981','#FBBF24','#9333EA']
-              }]
-            },
+            data:{ labels, datasets:[{ data: values, borderRadius:10, backgroundColor:['#6366F1','#EC4899','#10B981','#FBBF24','#9333EA'] }]},
             options:{
-              indexAxis:'y',
-              responsive:true,
-              maintainAspectRatio:false,
-              plugins:{
-                legend:{display:false},
-                tooltip:{
-                  callbacks:{
-                    title:(tt)=> labels[tt[0].dataIndex],
-                    label:(tt)=> {
-                      return ` ${
-                        metric==='score' ? 'Индекс' :
-                        metric==='views' ? 'Просмотры' :
-                        metric==='favs' ? 'Избранное' : 'Корзина'
-                      }: ${tt.raw}`;
-                    }
-                  }
-                }
-              },
-              scales:{
-                x:{beginAtZero:true, grid:{color:'#F3F4F6'}},
-                y:{grid:{display:false}}
-              },
-onClick(_, els){
-  if(!els.length) return;
-  const idx = els[0].index;
-  const product = sorted[idx];
-
-  // Формируем HTML модалки
-  const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50';
-  modal.innerHTML = `
-    <div class='bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-6 relative'>
-      <button class='absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl'>&times;</button>
-      <h3 class='text-lg font-bold mb-3 text-indigo-600'>${product.title}</h3>
-      <div class='space-y-2 mb-4'>
-        <div class='flex justify-between text-gray-700'><span>👁 Просмотры:</span><span>${product.views ?? 0}</span></div>
-        <div class='flex justify-between text-gray-700'><span>💗 В избранное:</span><span>${product.favs ?? 0}</span></div>
-        <div class='flex justify-between text-gray-700'><span>🛒 В корзину:</span><span>${product.carts ?? 0}</span></div>
-        <div class='flex justify-between text-gray-700 border-t pt-2 mt-2'><span>📊 Индекс:</span><span>${product.score ?? 0}</span></div>
-      </div>
-      <div class='flex gap-3'>
-        <a href='/p/${product.id}' class='flex-1 text-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700'>Перейти к товару</a>
-        <button class='flex-1 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-100'>Закрыть</button>
-      </div>
-    </div>
-  `;
-
-  // Закрытие окна
-  modal.querySelectorAll('button').forEach(btn => btn.onclick = () => modal.remove());
-  document.body.appendChild(modal);
-}
-
+              indexAxis:'y', responsive:true, maintainAspectRatio:false,
+              plugins:{legend:{display:false}, tooltip:{callbacks:{
+                title:(tt)=> labels[tt[0].dataIndex],
+                label:(tt)=> ` ${metric==='score'?'Индекс':metric==='views'?'Просмотры':metric==='favs'?'Избранное':'Корзина'}: ${tt.raw}`
+              }}},
+              scales:{ x:{beginAtZero:true, grid:{color:'#F3F4F6'}}, y:{grid:{display:false}} },
+              onClick(_, els){
+                if(!els.length) return;
+                const idx=els[0].index;
+                const p = sorted[idx];
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50';
+                modal.style.animation = 'fadeIn .2s ease-out';
+                modal.innerHTML = `
+                  <div class="bg-white rounded-2xl shadow-xl w-[90%] max-w-md p-6 relative">
+                    <button class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                    <h3 class="text-lg font-bold mb-3 text-indigo-600">${p.title}</h3>
+                    <div class="space-y-2 mb-4">
+                      <div class="flex justify-between text-gray-700"><span>👁 Просмотры:</span><span>${p.views ?? 0}</span></div>
+                      <div class="flex justify-between text-gray-700"><span>💗 В избранное:</span><span>${p.favs ?? 0}</span></div>
+                      <div class="flex justify-between text-gray-700"><span>🛒 В корзину:</span><span>${p.carts ?? 0}</span></div>
+                      <div class="flex justify-between text-gray-700 border-t pt-2 mt-2"><span>📊 Индекс:</span><span>${p.score ?? 0}</span></div>
+                    </div>
+                    <div class="flex gap-3">
+                      <a href="/p/${p.id}" class="flex-1 text-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Перейти к товару</a>
+                      <button class="flex-1 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-100">Закрыть</button>
+                    </div>
+                  </div>`;
+                modal.querySelectorAll('button').forEach(b => b.onclick = () => modal.remove());
+                document.body.appendChild(modal);
+              }
             }
           });
         };
-
         render();
         document.getElementById('topMetric').addEventListener('change', e=> render(e.target.value));
       },
 
-      // 👇 Закрываем return и функцию
       init(){
         this.initSparks();
         this.renderMain();
         this.initTop();
       }
-    } // ← конец return
-  } // ← конец функции sellerAnalytics
+    }
+  }
 
   document.addEventListener('alpine:init', ()=>{});
   </script>

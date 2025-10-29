@@ -13,25 +13,44 @@ use Carbon\Carbon;
 class AnalyticsController extends Controller
 {
 
-    public function dayStats($date)
+public function dayStats($date)
 {
     $user = Auth::user();
+
+    // создаём уникальный ключ для кэша
+    $cacheKey = "seller_analytics_day_{$user->id}_{$date}";
+
+    // если данные уже есть в кэше — возвращаем сразу
+    if (cache()->has($cacheKey)) {
+        return response()->json(cache($cacheKey));
+    }
+
+    // товары продавца
     $productIds = Product::where('user_id', $user->id)->pluck('id');
 
+    // статистика за указанный день
     $stats = ProductStat::whereIn('product_id', $productIds)
-        ->where('date', $date)
+        ->whereDate('date', $date)
         ->with('product:id,title')
-        ->get(['product_id','views','favorites','carts']);
+        ->get(['product_id', 'views', 'favorites', 'carts']);
 
+    // формируем результат
     $data = $stats->map(fn($s) => [
-        'title' => $s->product->title ?? 'Без названия',
-        'views' => $s->views,
-        'favorites' => $s->favorites,
-        'carts' => $s->carts,
-    ]);
+        'id'        => (int) $s->product_id,
+        'title'     => $s->product->title ?? 'Без названия',
+        'views'     => (int) $s->views,
+        'favorites' => (int) $s->favorites,
+        'carts'     => (int) $s->carts,
+    ])->values();
+
+    // кладём в кэш на 5 минут (можно поменять)
+    cache()->put($cacheKey, $data, now()->addMinutes(5));
 
     return response()->json($data);
 }
+
+
+
 
 
     public function index()
