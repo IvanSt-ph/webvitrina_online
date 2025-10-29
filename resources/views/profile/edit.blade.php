@@ -181,4 +181,5 @@
   </div>
 
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  @include('layouts.mobile-bottom-seller-nav')
 </x-seller-layout>

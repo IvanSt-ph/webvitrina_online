@@ -149,4 +149,5 @@
     });
   </script>
 
+@include('layouts.mobile-bottom-seller-nav')
 </x-seller-layout>
