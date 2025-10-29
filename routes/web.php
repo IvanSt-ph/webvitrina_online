@@ -124,6 +124,9 @@ Route::middleware('auth')->group(function () {
         ->name('analytics.index');
     Route::get('/analytics/day/{date}', [\App\Http\Controllers\Seller\AnalyticsController::class, 'dayStats'])
         ->name('analytics.day');
+Route::get('/analytics/products-on/{date}', [\App\Http\Controllers\Seller\AnalyticsController::class, 'productsOn']);
+
+
 
 
 

@@ -129,9 +129,9 @@
 
       metrics: [
         {key:'views',     label:'Просмотры', value: {{ (int)($summary['views'] ?? 0) }},     growth:12, icon:'ri-eye-line',           bg:'bg-indigo-100',  text:'text-indigo-600'},
-        {key:'favorites', label:'Избранное', value: {{ (int)($summary['favorites'] ?? 0) }}, growth:3,  icon:'ri-heart-line',         bg:'bg-pink-100',    text:'text-pink-600'},
-        {key:'carts',     label:'Корзина',   value: {{ (int)($summary['cart_adds'] ?? 0) }}, growth:7,  icon:'ri-shopping-cart-line', bg:'bg-emerald-100', text:'text-emerald-600'},
-        {key:'total',     label:'Товаров',   value: {{ (int)($summary['total'] ?? 0) }},     growth:0,  icon:'ri-store-2-line',       bg:'bg-amber-100',   text:'text-amber-600'},
+        {key:'favorites', label:'Всего в избранном', value: {{ (int)($summary['favorites'] ?? 0) }}, growth:3,  icon:'ri-heart-line',         bg:'bg-pink-100',    text:'text-pink-600'},
+        {key:'carts',     label:'Всего в корзине',   value: {{ (int)($summary['cart_adds'] ?? 0) }}, growth:7,  icon:'ri-shopping-cart-line', bg:'bg-emerald-100', text:'text-emerald-600'},
+        {key:'total',     label:'Всего товаров',   value: {{ (int)($summary['total'] ?? 0) }},     growth:0,  icon:'ri-store-2-line',       bg:'bg-amber-100',   text:'text-amber-600'},
       ],
 
       format(n){ try{ return new Intl.NumberFormat('ru-RU').format(n) }catch{ return n } },
@@ -175,7 +175,10 @@
       renderMain(){
         const map = {views:'views', favorites:'favs', carts:'carts', total:null};
         const key = map[this.active];
-        const data = key ? stats.map(s=>s[key]||0) : stats.map(s=>(s.views||0)+(s.favs||0)+(s.carts||0));
+const data = key 
+  ? stats.map(s=>s[key]||0)
+  : stats.map(s=>s.total_products||0);
+
         const labels = stats.map(s=>s.date);
 
         const ctx = document.getElementById('mainChart').getContext('2d');
@@ -217,7 +220,7 @@ options: {
             ? `💗 В избранное: ${v}`
             : this.active === 'carts'
             ? `🛒 В корзину: ${v}`
-            : `Активность: ${v}`;
+            : `Колличество ваших товаров: ${v}`;
         },
       },
     },
@@ -229,64 +232,136 @@ options: {
   },
 
   // 👇 Клик по точке (или близко к ней)
-  onClick: (evt, activeEls, chart) => {
-    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
-    if (!points.length) return;
+ onClick: (evt, activeEls, chart) => {
+  const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
+  if (!points.length) return;
 
-    const index = points[0].index;
-    const date = chart.data.labels[index];
+  const index = points[0].index;
+  const date = chart.data.labels[index];
 
-    // загрузка данных
-    fetch(`/seller/analytics/day/${date}`)
-      .then(r => r.json())
-      .then(rows => {
-        if (!rows.length) { alert(`Нет данных за ${date}`); return; }
+  // 📦 Если активная метрика — "total", показываем список товаров
+if (this.active === 'total') {
+  fetch(`/seller/analytics/products-on/${date}`)
+    .then(r => r.json())
+    .then(products => {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50';
+      modal.style.animation = 'fadeIn .2s ease-out';
 
-        const metricKey = this.active === 'favorites' ? 'favorites'
-                        : this.active === 'carts'     ? 'carts'
-                        : 'views';
-        const metricName = this.active === 'favorites' ? 'В избранное'
-                         : this.active === 'carts'     ? 'В корзину'
-                         : 'Просмотры';
-        const metricIcon = this.active === 'favorites' ? '💗'
-                         : this.active === 'carts'     ? '🛒'
-                         : '👁';
-
-        const filtered = rows
-          .filter(r => (r[metricKey] || 0) > 0)
-          .sort((a,b) => (b[metricKey] || 0) - (a[metricKey] || 0));
-
-        const list = (filtered.length ? filtered : rows).map(d => `
-          <div class="flex justify-between items-center py-2">
-            <div class="flex flex-col">
-              <span class="font-medium text-gray-800">${d.title}</span>
-              <span class="text-xs text-gray-400">${metricIcon} ${d[metricKey] ?? 0}</span>
-            </div>
-            ${d.id ? `<a href="/p/${d.id}" class="text-indigo-600 text-sm hover:underline">Открыть</a>` : ''}
-          </div>
-        `).join('');
-
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50';
-        modal.style.animation = 'fadeIn .2s ease-out';
+      // 🧮 если ничего не добавлено
+      if (!products.length) {
         modal.innerHTML = `
-          <div class="bg-white rounded-2xl shadow-2xl w-[92%] max-w-lg p-6 relative">
+          <div class="bg-white rounded-2xl shadow-2xl w-[92%] max-w-md p-6 relative text-center">
             <button class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
-            <h3 class="text-lg font-bold mb-4 text-indigo-600 flex items-center gap-2">
-              <i class="ri-calendar-line"></i> ${date} • ${metricIcon} ${metricName}
+            <h3 class="text-lg font-bold mb-4 text-indigo-600 flex items-center justify-center gap-2">
+              <i class="ri-store-2-line"></i> ${date}
             </h3>
-            <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
-              ${list}
-            </div>
-            <div class="mt-5 text-right">
-              <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Закрыть</button>
-            </div>
+            <p class="text-gray-600 mb-4">В этот день не было добавлено новых товаров.</p>
+            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Закрыть</button>
           </div>`;
         modal.querySelectorAll('button').forEach(b => b.onclick = () => modal.remove());
-        modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
         document.body.appendChild(modal);
-      });
-  }
+        return;
+      }
+
+      // 🧾 если есть новые товары
+      const list = products.map(p => `
+        <tr>
+          <td class="p-2"><img src="${p.image}" class="w-10 h-10 rounded object-cover shadow-sm"></td>
+          <td class="p-2 font-medium text-gray-800">${p.title}</td>
+          <td class="p-2 text-sm text-gray-500">${new Date(p.created_at).toLocaleDateString('ru-RU')}</td>
+          <td class="p-2 text-right">
+            <a href="/p/${p.id}" class="text-indigo-600 text-sm hover:underline">Открыть</a>
+          </td>
+        </tr>
+      `).join('');
+
+      modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl w-[95%] max-w-2xl p-6 relative">
+          <button class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+          <h3 class="text-lg font-bold mb-4 text-indigo-600 flex items-center gap-2">
+            <i class="ri-store-2-line"></i> ${date} • Новые товары (${products.length})
+          </h3>
+          <div class="max-h-96 overflow-y-auto rounded-lg border border-gray-100">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-50 text-gray-500 text-left">
+                <tr>
+                  <th class="p-2 w-12"></th>
+                  <th class="p-2">Название</th>
+                  <th class="p-2">Дата добавления</th>
+                  <th class="p-2"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 bg-white">
+                ${list}
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-5 text-right">
+            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Закрыть</button>
+          </div>
+        </div>`;
+      modal.querySelectorAll('button').forEach(b => b.onclick = () => modal.remove());
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+      document.body.appendChild(modal);
+    });
+  return;
+}
+
+
+  // 🧭 иначе (просмотры, избранное, корзина)
+  fetch(`/seller/analytics/day/${date}`)
+    .then(r => r.json())
+    .then(rows => {
+      if (!rows.length) { alert(`Нет данных за ${date}`); return; }
+
+      const metricKey = this.active === 'favorites' ? 'favorites'
+                      : this.active === 'carts'     ? 'carts'
+                      : 'views';
+      const metricName = this.active === 'favorites' ? 'В избранное'
+                       : this.active === 'carts'     ? 'В корзину'
+                       : 'Просмотры';
+      const metricIcon = this.active === 'favorites' ? '💗'
+                       : this.active === 'carts'     ? '🛒'
+                       : '👁';
+
+      const filtered = rows
+        .filter(r => (r[metricKey] || 0) > 0)
+        .sort((a,b) => (b[metricKey] || 0) - (a[metricKey] || 0));
+
+      const list = (filtered.length ? filtered : rows).map(d => `
+        <div class="flex justify-between items-center py-2">
+          <div class="flex flex-col">
+            <span class="font-medium text-gray-800">${d.title}</span>
+            <span class="text-xs text-gray-400">${metricIcon} ${d[metricKey] ?? 0}</span>
+          </div>
+          ${d.id ? `<a href="/p/${d.id}" class="text-indigo-600 text-sm hover:underline">Открыть</a>` : ''}
+        </div>
+      `).join('');
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50';
+      modal.style.animation = 'fadeIn .2s ease-out';
+      modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl w-[92%] max-w-lg p-6 relative">
+          <button class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+          <h3 class="text-lg font-bold mb-4 text-indigo-600 flex items-center gap-2">
+            <i class="ri-calendar-line"></i> ${date} • ${metricIcon} ${metricName}
+          </h3>
+          <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+            ${list}
+          </div>
+          <div class="mt-5 text-right">
+            <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">Закрыть</button>
+          </div>
+        </div>`;
+      modal.querySelectorAll('button').forEach(b => b.onclick = () => modal.remove());
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+      document.body.appendChild(modal);
+    });
+}
+
+  
 } // <-- конец options
 }); // <-- конец new Chart
 }, // <-- конец renderMain()

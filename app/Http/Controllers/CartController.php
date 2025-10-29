@@ -4,52 +4,61 @@ namespace App\Http\Controllers;
 
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ProductStat;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class CartController extends Controller
 {
-public function index()
-{
-    $items = CartItem::with('product')
-        ->where('user_id', auth()->id())
-        ->get();
+    public function index()
+    {
+        $items = CartItem::with('product')
+            ->where('user_id', auth()->id())
+            ->get();
 
-    // считаем общую сумму
-    $total = 0;
-    foreach ($items as $item) {
-        if ($item->product) {
-            // если цена хранится в копейках (int)
-            $total += $item->product->price * $item->qty;
+        // считаем общую сумму
+        $total = 0;
+        foreach ($items as $item) {
+            if ($item->product) {
+                $total += $item->product->price * $item->qty;
+            }
         }
+
+        return view('shop.cart', compact('items', 'total'));
     }
 
-    return view('shop.cart', compact('items', 'total'));
-}
+    public function add(Product $product, Request $request)
+    {
+        $request->validate([
+            'qty' => ['nullable', 'integer', 'min:1', 'max:999'],
+        ]);
 
-   public function add(Product $product, Request $request)
-{
-    $request->validate([
-        'qty' => ['nullable', 'integer', 'min:1', 'max:999'],
-    ]);
+        $qty = (int)($request->input('qty', 1));
 
-    $qty = (int)($request->input('qty', 1));
+        $item = CartItem::firstOrNew([
+            'user_id'    => auth()->id(),
+            'product_id' => $product->id,
+        ]);
 
-    $item = CartItem::firstOrNew([
-        'user_id'    => auth()->id(),
-        'product_id' => $product->id,
-    ]);
+        $today = Carbon::today()->toDateString();
 
-    // если пользователь впервые добавляет этот товар в корзину
-    if (! $item->exists) {
-        $product->increment('cart_adds_count');
+        // если пользователь впервые добавляет этот товар в корзину
+        if (! $item->exists) {
+            $product->increment('cart_adds_count');
+
+            // ✅ обновляем или создаём статистику за сегодня
+            ProductStat::updateOrCreate(
+                ['product_id' => $product->id, 'date' => $today],
+                ['carts' => DB::raw('carts + 1')]
+            );
+        }
+
+        $item->qty = max(1, (int)$item->qty + $qty);
+        $item->save();
+
+        return back()->with('success', 'Товар добавлен в корзину');
     }
-
-    $item->qty = max(1, (int)$item->qty + $qty);
-    $item->save();
-
-    return back()->with('success', 'Товар добавлен в корзину');
-}
-
 
     public function update(CartItem $item, Request $request)
     {

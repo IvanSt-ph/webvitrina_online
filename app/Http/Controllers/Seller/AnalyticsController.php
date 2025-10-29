@@ -50,6 +50,20 @@ public function dayStats($date)
 }
 
 
+public function productsOn($date)
+{
+    $user = auth()->user();
+
+    $products = Product::where('user_id', $user->id)
+        ->whereDate('created_at', $date)
+
+        ->select('id', 'title', 'image', 'created_at')
+
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json($products);
+}
 
 
 
@@ -80,17 +94,26 @@ public function dayStats($date)
         ];
 
         // === 3️⃣ Динамика активности за 7 дней (из таблицы product_stats) ===
-        $stats = ProductStat::selectRaw('
-                date,
-                SUM(views) as views,
-                SUM(favorites) as favs,
-                SUM(carts) as carts
-            ')
-            ->whereIn('product_id', $productIds)
-            ->where('date', '>=', Carbon::now()->subDays(6)->toDateString())
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+// === 3️⃣ Динамика активности + количество товаров за 7 дней ===
+$stats = ProductStat::selectRaw('
+        date,
+        SUM(views) as views,
+        SUM(favorites) as favs,
+        SUM(carts) as carts
+    ')
+    ->whereIn('product_id', $productIds)
+    ->where('date', '>=', Carbon::now()->subDays(6)->toDateString())
+    ->groupBy('date')
+    ->orderBy('date')
+    ->get()
+    ->map(function ($day) use ($user) {
+        // считаем количество активных товаров на этот день
+        $day->total_products = Product::where('user_id', $user->id)
+            ->whereDate('created_at', '<=', $day->date)
+            ->count();
+        return $day;
+    });
+
 
         // === 4️⃣ Топ-5 товаров по активности ===
         $topProducts = Product::whereIn('id', $productIds)

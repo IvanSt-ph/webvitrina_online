@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Favorite;
 use App\Models\Product;
+use App\Models\ProductStat;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class FavoriteController extends Controller
 {
-    /**
-     * Отображение списка избранных товаров
-     */
     public function index()
     {
         $items = Favorite::with('product')
@@ -20,42 +20,54 @@ class FavoriteController extends Controller
         return view('shop.favorites', compact('items'));
     }
 
-    /**
-     * Добавление или удаление товара из избранного
-     */
-public function toggle(Product $product)
-{
-    $fav = Favorite::where([
-        'user_id'    => auth()->id(),
-        'product_id' => $product->id
-    ])->first();
-
-    if ($fav) {
-        // если уже есть — удаляем
-        $fav->delete();
-        $product->decrement('favorites_count'); // 👈 уменьшаем счётчик
-        $state = false;
-    } else {
-        // если нет — добавляем
-        Favorite::create([
+    public function toggle(Product $product)
+    {
+        $fav = Favorite::where([
             'user_id'    => auth()->id(),
             'product_id' => $product->id
-        ]);
-        $product->increment('favorites_count'); // 👈 увеличиваем счётчик
-        $state = true;
+        ])->first();
+
+        $today = Carbon::today()->toDateString();
+
+        if ($fav) {
+            // ❌ Удаляем из избранного
+            $fav->delete();
+            $product->decrement('favorites_count');
+
+            // 📊 уменьшаем счётчик за день (но не ниже 0)
+            ProductStat::updateOrCreate(
+                ['product_id' => $product->id, 'date' => $today],
+                ['favorites' => DB::raw('GREATEST(favorites - 1, 0)')]
+            );
+
+            $state = false;
+        } else {
+            // ✅ Добавляем в избранное
+            Favorite::create([
+                'user_id'    => auth()->id(),
+                'product_id' => $product->id
+            ]);
+            $product->increment('favorites_count');
+
+            // 📊 увеличиваем счётчик за день
+            ProductStat::updateOrCreate(
+                ['product_id' => $product->id, 'date' => $today],
+                ['favorites' => DB::raw('favorites + 1')]
+            );
+
+            $state = true;
+        }
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'status'  => $state ? 'added' : 'removed',
+                'message' => $state ? 'Добавлено в избранное' : 'Удалено из избранного'
+            ]);
+        }
+
+        return back()->with(
+            'success',
+            $state ? 'Добавлено в избранное' : 'Удалено из избранного'
+        );
     }
-
-    if (request()->expectsJson()) {
-        return response()->json([
-            'status'  => $state ? 'added' : 'removed',
-            'message' => $state ? 'Добавлено в избранное' : 'Удалено из избранного'
-        ]);
-    }
-
-    return back()->with(
-        'success',
-        $state ? 'Добавлено в избранное' : 'Удалено из избранного'
-    );
-}
-
 }
