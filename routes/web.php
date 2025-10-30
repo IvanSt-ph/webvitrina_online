@@ -17,6 +17,13 @@ use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
 use App\Models\Country;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 
+use App\Http\Controllers\Seller\CabinetController;
+use App\Http\Controllers\Seller\AnalyticsController;
+
+use App\Http\Controllers\Seller\HelpController as SellerHelpController;
+
+
+
 /*
 |--------------------------------------------------------------------------
 | 🌍 Публичные маршруты
@@ -95,55 +102,42 @@ Route::middleware('auth')->group(function () {
     // 📝 Отзывы
     Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
 
-    /*
-    |--------------------------------------------------------------------------
-    | 🏪 Панель продавца
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
+/*
+|--------------------------------------------------------------------------
+| 🏪 Панель продавца
+|--------------------------------------------------------------------------
+*/
+Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
 
-        // 📰 Справка и новости для продавцов
-        Route::get('/help/{slug}', [\App\Http\Controllers\Seller\HelpController::class, 'show'])
-    ->name('help');
+    // 📰 Справка и новости для продавцов
+    Route::get('/help/{slug}', [SellerHelpController::class, 'show'])->name('help');
+    Route::get('/help', [SellerHelpController::class, 'index'])->name('help.index');
 
-    Route::get('/help', [\App\Http\Controllers\Seller\HelpController::class, 'index'])
-    ->name('help.index');
+    // ✅ Главная панель продавца — теперь через контроллер
+    Route::get('/cabinet', [CabinetController::class, 'index'])->name('cabinet');
 
+    // 📦 Товары
+    Route::get('/products', [SellerProducts::class, 'index'])->name('products.index');
+    Route::get('/products/create', [SellerProducts::class, 'create'])->name('products.create');
+    Route::post('/products', [SellerProducts::class, 'store'])->name('products.store');
+    Route::get('/products/{product}/edit', [SellerProducts::class, 'edit'])->name('products.edit');
+    Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
 
-        // ✅ Главная панель
-        Route::view('/cabinet', 'seller.cabinet')->name('cabinet');
+    // 🧾 Заглушки для будущих разделов
+    Route::view('/orders', 'seller.orders.index')->name('orders.index');
+    Route::view('/finance', 'seller.finance.index')->name('finance.index');
 
-        // 📦 Товары
-        Route::get('/products', [SellerProducts::class, 'index'])->name('products.index');
-        Route::get('/products/create', [SellerProducts::class, 'create'])->name('products.create');
-        Route::post('/products', [SellerProducts::class, 'store'])->name('products.store');
-        Route::get('/products/{product}/edit', [SellerProducts::class, 'edit'])->name('products.edit');
-        Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
-        Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
+    // 📊 Аналитика продавца
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+    Route::get('/analytics/day/{date}', [AnalyticsController::class, 'dayStats'])->name('analytics.day');
+    Route::get('/analytics/products-on/{date}', [AnalyticsController::class, 'productsOn']);
 
-        // 🧾 Заглушки для будущих разделов
-        Route::view('/orders', 'seller.orders.index')->name('orders.index');
-        Route::view('/finance', 'seller.finance.index')->name('finance.index');
-        
-
-
-    // 📊 Реальная аналитика
-    Route::get('/analytics', [\App\Http\Controllers\Seller\AnalyticsController::class, 'index'])
-        ->name('analytics.index');
-    Route::get('/analytics/day/{date}', [\App\Http\Controllers\Seller\AnalyticsController::class, 'dayStats'])
-        ->name('analytics.day');
-Route::get('/analytics/products-on/{date}', [\App\Http\Controllers\Seller\AnalyticsController::class, 'productsOn']);
-
-
-
-
-
-
-        // 🖼️ Удаление фото из галереи
-        Route::delete('/products/{product}/gallery', [SellerProducts::class, 'deleteGalleryImage'])
-            ->name('products.gallery.delete');
-    });
-}); // 🔹 ← вот это закрывает блок "auth"
+    // 🖼️ Удаление фото из галереи
+    Route::delete('/products/{product}/gallery', [SellerProducts::class, 'deleteGalleryImage'])
+        ->name('products.gallery.delete');
+});
+});
 
 
 /*

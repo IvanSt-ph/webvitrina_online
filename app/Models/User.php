@@ -71,17 +71,24 @@ class User extends Authenticatable
     }
 
 
-    // 🔹 Средний рейтинг продавца
+// 🔹 Средний рейтинг продавца
 public function getReviewsAvgRatingAttribute(): float
 {
-    return round($this->reviews()->avg('rating') ?? 0, 1);
+    // Берём только одобренные отзывы
+    $avg = $this->reviews()
+        ->where('reviews.status', \App\Models\Review::STATUS_APPROVED) // ✅ уточняем таблицу
+        ->avg('reviews.rating'); // ✅ тоже уточняем таблицу
+
+    return $avg ? round((float)$avg, 2) : 0.00;
 }
 
-// 🔹 Количество отзывов продавца
 public function getReviewsCountAttribute(): int
 {
-    return $this->reviews()->count();
+    return $this->reviews()
+        ->where('reviews.status', \App\Models\Review::STATUS_APPROVED) // ✅ уточняем таблицу
+        ->count();
 }
+
 
     
 }

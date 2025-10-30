@@ -12,7 +12,7 @@ use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
-    // 📊 Данные по дню
+    // 📊 Данные по конкретному дню (для модалок)
     public function dayStats($date)
     {
         $user = Auth::user();
@@ -55,7 +55,7 @@ class AnalyticsController extends Controller
         return response()->json($products);
     }
 
-    // 📈 Главная аналитика
+    // 📈 Главная страница аналитики
     public function index()
     {
         $user = Auth::user();
@@ -148,5 +148,50 @@ class AnalyticsController extends Controller
             'products'    => $products,
             'categories'  => $categories,
         ]);
+    }
+
+    // 📊 Краткая сводка для панели продавца (7 дней)
+    public function summary()
+    {
+        $user = auth()->user();
+        $productIds = Product::where('user_id', $user->id)->pluck('id');
+
+        if ($productIds->isEmpty()) {
+            return [
+                'views' => 0,
+                'favorites' => 0,
+                'cart_adds' => 0,
+                'total' => 0,
+                'engagement' => 0,
+            ];
+        }
+
+        $lastWeek = now()->subDays(7)->toDateString();
+
+        $views = ProductStat::whereIn('product_id', $productIds)
+            ->where('date', '>=', $lastWeek)
+            ->sum('views');
+
+        $favorites = ProductStat::whereIn('product_id', $productIds)
+            ->where('date', '>=', $lastWeek)
+            ->sum('favorites');
+
+        $carts = ProductStat::whereIn('product_id', $productIds)
+            ->where('date', '>=', $lastWeek)
+            ->sum('carts');
+
+        $total = $productIds->count();
+
+        $engagement = $views > 0
+            ? round((($favorites + $carts) / $views) * 100, 1)
+            : 0;
+
+        return [
+            'views' => $views,
+            'favorites' => $favorites,
+            'cart_adds' => $carts,
+            'total' => $total,
+            'engagement' => $engagement,
+        ];
     }
 }

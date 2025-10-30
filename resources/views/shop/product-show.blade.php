@@ -120,21 +120,22 @@
         @endauth
       </div>
 
-      {{-- Продавец --}}
-      @if($product->seller)
-        <div class="mt-8 bg-gray-50 border rounded-xl p-4">
-          <div class="text-sm text-gray-500">Магазин</div>
-          <div class="font-medium text-gray-900">{{ $product->seller->name }}</div>
-          <div class="text-sm text-gray-600">
-            ⭐ {{ number_format($product->seller->reviews_avg_rating ?? 0, 1) }}
-            ({{ $product->seller->reviews_count }} отзывов)
-          </div>
-          <a href="{{ route('seller.show',$product->seller) }}"
-             class="mt-2 inline-block text-indigo-600 text-sm hover:underline">
-             Перейти в магазин →
-          </a>
-        </div>
-      @endif
+{{-- Продавец --}}
+@if($product->seller)
+  <div class="mt-8 bg-gray-50 border rounded-xl p-4">
+    <div class="text-sm text-gray-500">Магазин</div>
+    <div class="font-medium text-gray-900">{{ $product->seller->name }}</div>
+    <div class="text-sm text-gray-600">
+      ⭐ {{ number_format($product->seller->reviews_avg_rating ?? 0, 2) }}
+      ({{ $product->seller->reviews_count }} отзывов)
+    </div>
+    <a href="{{ route('seller.show', $product->seller) }}"
+       class="mt-2 inline-block text-indigo-600 text-sm hover:underline">
+       Перейти в магазин →
+    </a>
+  </div>
+@endif
+
 
       {{-- Местоположение и карта --}}
       @if($product->city || $product->country || $product->address)
