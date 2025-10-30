@@ -7,7 +7,7 @@
       <div>
         <!-- Логотип -->
         <div class="flex items-center gap-2 px-6 py-6 border-b border-gray-100">
-          <img src="{{ asset('images/logo.png') }}" alt="WebVitrina" class="w-8 h-8 rounded-lg shadow-sm">
+          <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="w-8 h-8 rounded-lg shadow-sm">
           <span class="font-semibold text-gray-800 text-sm tracking-tight">WebVitrina</span>
         </div>
 

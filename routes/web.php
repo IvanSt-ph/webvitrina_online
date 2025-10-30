@@ -102,6 +102,14 @@ Route::middleware('auth')->group(function () {
     */
     Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
 
+        // 📰 Справка и новости для продавцов
+        Route::get('/help/{slug}', [\App\Http\Controllers\Seller\HelpController::class, 'show'])
+    ->name('help');
+
+    Route::get('/help', [\App\Http\Controllers\Seller\HelpController::class, 'index'])
+    ->name('help.index');
+
+
         // ✅ Главная панель
         Route::view('/cabinet', 'seller.cabinet')->name('cabinet');
 

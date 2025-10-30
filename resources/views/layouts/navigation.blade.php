@@ -9,7 +9,7 @@
             <div class="flex items-center gap-4 flex-shrink-0">
                 <!-- Логотип -->
                 <a href="{{ route('home') }}" class="flex items-center gap-2">
-                    <img src="{{ asset('images/logo.png') }}" alt="WebVitrina" class="h-9 w-auto" />
+                    <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-9 w-auto" />
                     <span class="font-semibold text-gray-800">WebVitrina</span>
                 </a>
 

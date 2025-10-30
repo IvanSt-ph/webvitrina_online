@@ -6,6 +6,27 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+<!-- 🌐 Favicon -->
+
+<link rel="icon" type="image/x-icon" href="{{ asset('icons/favicon.ico') }}">
+<!-- Основной favicon в формате .ico — используется в старых браузерах и для обратной совместимости. -->
+
+<link rel="icon" type="image/svg+xml" href="{{ asset('icons/favicon.svg') }}">
+<!-- Современный вариант favicon в формате SVG — масштабируется без потери качества и используется в новых браузерах. -->
+
+<link rel="icon" type="image/png" sizes="96x96" href="{{ asset('icons/favicon-96x96.png') }}">
+<!-- Альтернативный PNG favicon с размером 96x96 пикселей — обычно нужен для Android и некоторых десктопных систем. -->
+
+<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-touch-icon.png') }}">
+<!-- Специальная иконка для устройств Apple (iPhone, iPad). Отображается при добавлении сайта на домашний экран. -->
+
+<link rel="manifest" href="{{ asset('icons/site.webmanifest') }}">
+<!-- Файл манифеста Progressive Web App (PWA) — содержит метаданные сайта (иконки, название, цвета и т.д.) для установки как приложение. -->
+
+<meta name="theme-color" content="#4F46E5">
+<!-- Цвет оформления для мобильных браузеров (адресная строка и системные элементы интерфейса). Помогает создать фирменный стиль. -->
 
     @stack('meta')
     <title>{{ $title ? $title . ' — ' . config('app.name', 'Laravel') : config('app.name', 'Laravel') }}</title>

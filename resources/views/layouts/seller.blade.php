@@ -8,7 +8,7 @@
         <!-- Логотип / бренд -->
         <div class="flex items-center gap-2 px-6 py-6 border-b border-gray-100">
           <a href="{{ route('home') }}" class="flex items-center gap-2">
-            <img src="{{ asset('images/logo.png') }}" class="w-8 h-8 rounded-lg shadow-sm" alt="WebVitrina">
+            <img src="{{ asset('images/icon.png') }}" class="w-8 h-8 rounded-lg shadow-sm" alt="WebVitrina">
             <span class="font-semibold text-gray-900 text-sm tracking-tight">WebVitrina Seller</span>
           </a>
         </div>
