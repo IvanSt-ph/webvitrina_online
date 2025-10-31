@@ -68,6 +68,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/shop', [ProfileController::class, 'updateShop'])->name('profile.shop.update');
+
+
+    // 🔐 Смена пароля
+    Route::put('/password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])
+    ->name('password.update');
+
     
     // 👤 Профиль покупателя
     Route::middleware(['verified'])->group(function () {

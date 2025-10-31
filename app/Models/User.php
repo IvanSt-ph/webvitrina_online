@@ -17,9 +17,6 @@ protected $fillable = [
     'password',
     'role',
     'avatar',
-    'phone',
-    'shop_name',
-    'shop_description',
 ];
 
 
@@ -93,6 +90,13 @@ public function getReviewsCountAttribute(): int
         ->where('reviews.status', \App\Models\Review::STATUS_APPROVED) // ✅ уточняем таблицу
         ->count();
 }
+
+
+public function shop()
+{
+    return $this->hasOne(Shop::class);
+}
+
 
 
     

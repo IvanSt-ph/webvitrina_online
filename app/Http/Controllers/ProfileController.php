@@ -23,7 +23,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Обновление личной информации пользователя.
+     * Обновление личной информации пользователя (имя, email, аватар).
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -32,49 +32,73 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name'   => 'required|string|max:255',
             'email'  => 'required|email|max:255',
-            'phone'  => 'nullable|string|max:50',
             'avatar' => 'nullable|image|max:2048',
         ]);
 
-        // Если email был изменён — сбрасываем подтверждение
-        if ($user->isDirty('email')) {
+        // Если email изменён — сбрасываем верификацию
+        if ($user->email !== $data['email']) {
             $user->email_verified_at = null;
         }
 
-        // Если загружен новый аватар — сохраняем
+        // Загрузка аватара
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
                 Storage::disk('public')->delete($user->avatar);
             }
 
-            $path = $request->file('avatar')->store('avatars', 'public');
-            $data['avatar'] = $path;
+            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
 
-        // Сохраняем обновлённые данные
         $user->update($data);
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**
-     * Обновление информации о магазине (отдельная форма).
+     * Обновление информации о магазине.
      */
-    public function updateShop(Request $request): RedirectResponse
-    {
-        $user = $request->user();
+  public function updateShop(Request $request): RedirectResponse
+{
+    $user = $request->user();
 
-        $data = $request->validate([
-            'shop_name'        => 'nullable|string|max:255',
-            'city'             => 'nullable|string|max:255',
-            'shop_description' => 'nullable|string|max:1000',
-            'phone'            => 'nullable|string|max:50',
-        ]);
+    $data = $request->validate([
+        'name'           => 'nullable|string|max:255',
+        'city'           => 'nullable|string|max:255',
+        'description'    => 'nullable|string|max:1000',
+        'phone'          => 'nullable|string|max:50',
+        'banner'         => 'nullable|image|max:4096',
+        'remove_banner'  => 'nullable|boolean',
+    ]);
 
-        $user->update($data);
+    // ✅ если магазин есть — обновляем, если нет — создаём
+    $shop = $user->shop ?? $user->shop()->create([]);
 
+    // ❌ Удаление баннера
+    if ($request->has('remove_banner')) {
+        if ($shop->banner) {
+            Storage::disk('public')->delete($shop->banner);
+        }
+        $shop->update(['banner' => null]);
         return Redirect::route('profile.edit')->with('status', 'shop-updated');
     }
+
+    // 🖼️ Загрузка нового баннера
+    if ($request->hasFile('banner')) {
+        if ($shop->banner) {
+            Storage::disk('public')->delete($shop->banner);
+        }
+
+        $path = $request->file('banner')->store('banners', 'public');
+        $shop->update(['banner' => $path]);
+        return Redirect::route('profile.edit')->with('status', 'shop-updated');
+    }
+
+    // 🏪 Обновляем остальные данные
+    $shop->update($data);
+
+    return Redirect::route('profile.edit')->with('status', 'shop-updated');
+}
+
 
     /**
      * Удаление аккаунта пользователя.
@@ -93,6 +117,7 @@ class ProfileController extends Controller
             Storage::disk('public')->delete($user->avatar);
         }
 
+        // каскадно удалится shop
         $user->delete();
 
         $request->session()->invalidate();
@@ -102,7 +127,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Личный кабинет (продавца или покупателя).
+     * Личный кабинет продавца или покупателя.
      */
     public function cabinet()
     {

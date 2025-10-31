@@ -1,218 +1,257 @@
+{{-- resources/views/profile/edit.blade.php --}}
 <x-seller-layout title="Профиль продавца">
 
-  <main x-data="{ tab: 'main' }"
-        class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8 text-gray-800">
+  <div class="min-h-screen bg-white text-gray-800">
+    <main x-data="{ tab: 'main', mobileOpen: null }"
+          class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
 
-    <!-- 🔝 Заголовок -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-2">
-          <i class="ri-user-settings-line text-indigo-600"></i>
-          Профиль продавца
-        </h1>
-        <p class="text-sm text-gray-500 mt-1">Редактируйте данные компании, контакты и безопасность аккаунта</p>
-      </div>
+      {{-- 🏪 Баннер магазина --}}
+      <section id="banner-box"
+               class="relative w-full rounded-2xl overflow-hidden mb-8
+                      border border-indigo-100 shadow-md bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div class="relative w-full" style="padding-top:21%;">
+          <img id="banner-preview"
+               src="{{ Auth::user()->shop?->banner_url }}"
+               alt="Баннер магазина"
+               class="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>
 
-      <a href="{{ route('seller.products.index') }}"
-         class="inline-flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-        <i class="ri-arrow-left-line text-gray-400 text-lg"></i>
-        Вернуться к товарам
-      </a>
-    </div>
+          <div class="absolute bottom-3 left-4 sm:left-6 text-white drop-shadow-lg">
+            <h2 class="text-xl sm:text-2xl font-semibold tracking-wide">
+              {{ Auth::user()->shop?->name ?? 'Ваш магазин' }}
+            </h2>
+            <p class="text-sm opacity-90">{{ Auth::user()->shop?->city ?? 'Город не указан' }}</p>
+          </div>
 
-    <!-- 🔖 Вкладки -->
-    <div class="flex border-b border-gray-200 overflow-x-auto">
-      <button @click="tab = 'main'"
-              :class="tab === 'main' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
-              class="px-4 py-2 text-sm font-medium whitespace-nowrap">
-        Основная информация
-      </button>
-      <button @click="tab = 'shop'"
-              :class="tab === 'shop' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
-              class="px-4 py-2 text-sm font-medium whitespace-nowrap">
-        Информация о магазине
-      </button>
-      <button @click="tab = 'security'"
-              :class="tab === 'security' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
-              class="px-4 py-2 text-sm font-medium whitespace-nowrap">
-        Безопасность
-      </button>
-    </div>
-
-    <!-- ✅ Уведомления -->
-    @if (session('status'))
-      @php
-        $messages = [
-          'profile-updated' => ['bg-green-50 border-green-200 text-green-700', 'ri-check-line', 'Личные данные успешно обновлены'],
-          'shop-updated'    => ['bg-blue-50 border-blue-200 text-blue-700', 'ri-store-2-line', 'Информация о магазине обновлена'],
-        ];
-        [$classes, $icon, $text] = $messages[session('status')] ?? ['bg-gray-50 border-gray-200 text-gray-700', 'ri-information-line', 'Изменения сохранены'];
-      @endphp
-      <div class="flex items-center gap-2 p-4 rounded-lg border text-sm {{ $classes }}">
-        <i class="{{ $icon }} text-lg"></i>
-        <span>{{ $text }}</span>
-      </div>
-    @endif
-
-    @if ($errors->any())
-      <div class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-        <strong class="block mb-1">Ошибка при сохранении:</strong>
-        <ul class="list-disc ml-5 space-y-0.5">
-          @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-          @endforeach
-        </ul>
-      </div>
-    @endif
-
-    <!-- 🧾 Основная информация -->
-    <section x-show="tab === 'main'" x-transition
-             class="bg-white border border-gray-100 rounded-xl shadow-sm p-6 sm:p-8 space-y-6">
-      <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-        <i class="ri-account-circle-line text-indigo-500"></i> Основная информация
-      </h2>
-
-      <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-6">
-        @csrf
-        @method('PATCH')
-
-        <div class="flex flex-col sm:flex-row items-center gap-6">
-          <div class="relative shrink-0">
-            <img src="{{ Auth::user()->avatar_url ?? 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name ?? 'U') }}"
-                 alt="avatar"
-                 class="w-24 h-24 rounded-full border border-gray-200 shadow-sm object-cover">
-            <label
-              class="absolute bottom-0 right-0 bg-indigo-600 text-white text-xs px-2 py-1 rounded-md cursor-pointer hover:bg-indigo-700 transition">
-              Изменить
-              <input type="file" name="avatar" class="hidden">
+          <div class="absolute top-3 right-3 flex gap-2 z-10">
+            <label class="bg-white/80 hover:bg-white px-3 py-2 rounded-lg text-sm text-gray-700 cursor-pointer shadow-sm border border-gray-200 transition-all flex items-center gap-1 backdrop-blur-sm">
+              <i class="ri-image-add-line text-indigo-500"></i> Изменить
+              <input type="file" id="banner-input" class="hidden" accept="image/*">
             </label>
-          </div>
-          <div class="flex-1 w-full">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Имя пользователя</label>
-            <input type="text" name="name" value="{{ old('name', Auth::user()->name) }}"
-                   class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-          </div>
-        </div>
 
-        <div class="grid sm:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input type="email" name="email" value="{{ old('email', Auth::user()->email) }}"
-                   class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
-            <input type="text" name="phone" value="{{ old('phone', Auth::user()->phone) }}"
-                   placeholder="+373 777 77 777"
-                   class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            @if (Auth::user()->shop?->banner)
+              <form method="POST" action="{{ route('profile.shop.update') }}" onsubmit="return confirm('Удалить баннер магазина?')">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="remove_banner" value="1">
+                <button type="submit"
+                        class="bg-white/80 hover:bg-white px-3 py-2 rounded-lg text-sm text-red-600 font-medium shadow-sm border border-gray-200 transition-all flex items-center gap-1 backdrop-blur-sm">
+                  <i class="ri-delete-bin-line"></i> Удалить
+                </button>
+              </form>
+            @endif
           </div>
         </div>
 
-        <div class="flex justify-end pt-4 border-t border-gray-100">
-          <button type="submit"
-                  class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition">
-            Сохранить изменения
-          </button>
-        </div>
-      </form>
-    </section>
+        {{-- ✂️ Модалка обрезки --}}
+        <div id="cropper-modal"
+             class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-all">
+          <div class="bg-white rounded-2xl shadow-2xl p-5 sm:p-6 w-[95%] sm:w-[600px] max-w-[90vw] animate-fade-in">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <i class="ri-crop-line text-indigo-500"></i> Обрезка баннера
+            </h3>
 
-    <!-- 🏬 Информация о магазине -->
-    <section x-show="tab === 'shop'" x-transition
-             class="bg-white border border-gray-100 rounded-xl shadow-sm p-6 sm:p-8 space-y-6">
-      <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-        <i class="ri-store-2-line text-indigo-500"></i> Информация о магазине
-      </h2>
+            <div class="max-h-[60vh] overflow-hidden rounded-lg border border-gray-200 flex justify-center bg-gray-50">
+              <img id="cropper-image" class="max-w-full select-none">
+            </div>
 
-      <form method="POST" action="{{ route('profile.shop.update') }}" class="space-y-6">
-        @csrf
-        @method('PATCH')
-
-        <div class="grid sm:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Название магазина</label>
-            <input type="text" name="shop_name"
-                   value="{{ old('shop_name', Auth::user()->shop_name) }}"
-                   placeholder="Например: ТехноМаркет 24"
-                   class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Город</label>
-            <input type="text" name="city"
-                   value="{{ old('city', Auth::user()->city) }}"
-                   placeholder="Тирасполь"
-                   class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <div class="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-100">
+              <button id="cancel-crop"
+                      class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition">
+                Отмена
+              </button>
+              <button id="save-crop"
+                      class="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg font-medium shadow-sm transition">
+                Сохранить
+              </button>
+            </div>
           </div>
         </div>
+      </section>
 
+      {{-- 🔝 Заголовок --}}
+      <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Описание магазина</label>
-          <textarea name="shop_description" rows="4"
-                    placeholder="Кратко опишите ассортимент, преимущества или условия доставки"
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">{{ old('shop_description', Auth::user()->shop_description) }}</textarea>
+          <h1 class="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-2">
+            <i class="ri-user-settings-line text-indigo-600"></i>
+            Профиль продавца
+          </h1>
+          <p class="text-sm text-gray-500 mt-1">Редактируйте данные компании, контакты и безопасность аккаунта</p>
         </div>
-
-        <div class="flex justify-end pt-4 border-t border-gray-100">
-          <button type="submit"
-                  class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm transition">
-            Обновить данные магазина
-          </button>
-        </div>
-      </form>
-    </section>
-
-    <!-- 🔒 Безопасность -->
-    <section x-show="tab === 'security'" x-transition
-             class="bg-white border border-gray-100 rounded-xl shadow-sm p-6 sm:p-8 space-y-6">
-      <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-        <i class="ri-lock-password-line text-indigo-500"></i> Безопасность аккаунта
-      </h2>
-
-      <form method="POST" action="{{ route('password.update') }}" class="space-y-6">
-        @csrf
-        @method('PUT')
-
-        <div class="grid sm:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Новый пароль</label>
-            <input type="password" name="password"
-                   class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Подтверждение пароля</label>
-            <input type="password" name="password_confirmation"
-                   class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-          </div>
-        </div>
-
-        <div class="flex justify-end pt-4 border-t border-gray-100">
-          <button type="submit"
-                  class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium shadow-sm transition">
-            Сменить пароль
-          </button>
-        </div>
-      </form>
-
-      <div class="border-t border-gray-100 pt-6">
-        <h3 class="text-lg font-semibold text-red-600 flex items-center gap-2">
-          <i class="ri-delete-bin-6-line"></i> Удаление аккаунта
-        </h3>
-        <p class="text-sm text-gray-500 mt-1 max-w-md">
-          При удалении аккаунта все данные будут безвозвратно удалены, включая товары, заказы и статистику.
-        </p>
-        <form method="POST" action="{{ route('profile.destroy') }}" class="mt-4">
-          @csrf
-          @method('DELETE')
-          <button type="submit"
-                  onclick="return confirm('Вы уверены, что хотите удалить аккаунт?')"
-                  class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium shadow-sm transition">
-            Удалить аккаунт
-          </button>
-        </form>
       </div>
-    </section>
-  </main>
 
+      {{-- ✅ Уведомления --}}
+      @if (session('status'))
+        @php
+          $messages = [
+            'profile-updated' => ['bg-blue-50 border-blue-200 text-blue-700', 'ri-store-2-line', 'Личные данные обновлены'],
+            'shop-updated'    => ['bg-blue-50 border-blue-200 text-blue-700', 'ri-store-2-line', 'Информация о магазине обновлена'],
+          ];
+          [$classes, $icon, $text] = $messages[session('status')] ?? ['bg-gray-50 border-gray-200 text-gray-700', 'ri-information-line', 'Изменения сохранены'];
+        @endphp
+        <div class="flex items-center gap-2 p-4 rounded-lg border text-sm {{ $classes }}">
+          <i class="{{ $icon }} text-lg"></i>
+          <span>{{ $text }}</span>
+        </div>
+      @endif
+
+      @if ($errors->any())
+        <div class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          <strong class="block mb-1">Ошибка при сохранении:</strong>
+          <ul class="list-disc ml-5 space-y-0.5">
+            @foreach ($errors->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
+
+      {{-- 🧭 Вкладки (десктоп) --}}
+      <div class="hidden md:flex border-b border-gray-200 overflow-x-auto">
+        <button @click="tab = 'main'" :class="tab === 'main' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
+                class="px-4 py-2 text-sm font-medium whitespace-nowrap">
+          Основная информация
+        </button>
+        <button @click="tab = 'shop'" :class="tab === 'shop' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
+                class="px-4 py-2 text-sm font-medium whitespace-nowrap">
+          Информация о магазине
+        </button>
+        <button @click="tab = 'security'" :class="tab === 'security' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
+                class="px-4 py-2 text-sm font-medium whitespace-nowrap">
+          Безопасность
+        </button>
+      </div>
+
+      {{-- 📱 Гармошки (мобильная версия) --}}
+      <div class="block md:hidden space-y-4">
+        <template x-for="section in ['main', 'shop', 'security']" :key="section">
+          <div class="border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <header @click="mobileOpen = mobileOpen === section ? null : section"
+                    class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer">
+              <span class="text-sm font-medium text-gray-800" x-text="
+                section === 'main' ? 'Основная информация' :
+                section === 'shop' ? 'Информация о магазине' :
+                'Безопасность аккаунта'"></span>
+              <i class="ri-arrow-down-s-line text-lg text-gray-500 transition"
+                 :class="mobileOpen === section ? 'rotate-180' : ''"></i>
+            </header>
+            <div x-show="mobileOpen === section" x-collapse class="bg-white">
+              <div class="p-4">
+                <template x-if="section === 'main'">
+                  @include('seller.partials.main')
+                </template>
+                <template x-if="section === 'shop'">
+                  @include('seller.partials.shop')
+                </template>
+                <template x-if="section === 'security'">
+                  @include('seller.partials.security')
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      {{-- 💻 Контент вкладок (десктоп) --}}
+      <div class="hidden md:block">
+        <div x-show="tab === 'main'" x-transition>
+          @include('seller.partials.main')
+        </div>
+        <div x-show="tab === 'shop'" x-transition>
+          @include('seller.partials.shop')
+        </div>
+        <div x-show="tab === 'security'" x-transition>
+          @include('seller.partials.security')
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  {{-- ✅ Cropper.js --}}
+  <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+
   @include('layouts.mobile-bottom-seller-nav')
+
+ <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('banner-input');
+  const modal = document.getElementById('cropper-modal');
+  const img = document.getElementById('cropper-image');
+  const cancelBtn = document.getElementById('cancel-crop');
+  const saveBtn = document.getElementById('save-crop');
+  let cropper;
+
+  // 🖼️ Загрузка файла
+  input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.src = reader.result;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+      cropper && cropper.destroy();
+      cropper = new Cropper(img, {
+        aspectRatio: 16 / 3.36,
+        viewMode: 2,
+        dragMode: 'move',
+        background: false,
+        autoCropArea: 1,
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ❌ Отмена
+  cancelBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+    cropper?.destroy();
+    input.value = '';
+  });
+
+  // 💾 Сохранение
+  saveBtn.addEventListener('click', () => {
+    saveBtn.textContent = 'Сохраняем...';
+    saveBtn.disabled = true;
+    const canvas = cropper.getCroppedCanvas({
+      width: 1600,
+      height: 1600 / (16 / 3.36),
+    });
+    canvas.toBlob(blob => {
+      const formData = new FormData();
+      formData.append('_token', '{{ csrf_token() }}');
+      formData.append('_method', 'PATCH'); // 🔹 именно PATCH!
+      formData.append('banner', blob, 'banner.jpg');
+
+      fetch('{{ route('profile.shop.update') }}', {
+        method: 'POST', // Laravel примет как PATCH, т.к. есть _method
+        body: formData
+      })
+        .then(response => {
+          if (!response.ok) throw new Error('Ошибка сохранения');
+          saveBtn.textContent = 'Сохранено!';
+          setTimeout(() => location.reload(), 700);
+        })
+        .catch(() => {
+          saveBtn.textContent = 'Ошибка!';
+          saveBtn.disabled = false;
+        });
+    }, 'image/jpeg', 0.9);
+  });
+});
+</script>
+
+
+  <style>
+    @keyframes fade-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+    .animate-fade-in { animation: fade-in 0.25s ease-out; }
+    [x-cloak] { display: none !important; }
+  </style>
+
 </x-seller-layout>
