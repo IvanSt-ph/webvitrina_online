@@ -23,24 +23,18 @@ class ProfileController extends Controller
     }
 
     /**
-     * Обновление информации профиля пользователя.
+     * Обновление личной информации пользователя.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
 
-        // ✅ Добавляем дополнительные поля для продавцов
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'name'   => 'required|string|max:255',
+            'email'  => 'required|email|max:255',
+            'phone'  => 'nullable|string|max:50',
             'avatar' => 'nullable|image|max:2048',
-            'shop_name' => 'nullable|string|max:255',
-            'shop_description' => 'nullable|string|max:1000',
-            'phone' => 'nullable|string|max:50',
         ]);
-
-        // Заполняем модель
-        $user->fill($data);
 
         // Если email был изменён — сбрасываем подтверждение
         if ($user->isDirty('email')) {
@@ -54,13 +48,32 @@ class ProfileController extends Controller
             }
 
             $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $path;
+            $data['avatar'] = $path;
         }
 
-        // Сохраняем
-        $user->save();
+        // Сохраняем обновлённые данные
+        $user->update($data);
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    }
+
+    /**
+     * Обновление информации о магазине (отдельная форма).
+     */
+    public function updateShop(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'shop_name'        => 'nullable|string|max:255',
+            'city'             => 'nullable|string|max:255',
+            'shop_description' => 'nullable|string|max:1000',
+            'phone'            => 'nullable|string|max:50',
+        ]);
+
+        $user->update($data);
+
+        return Redirect::route('profile.edit')->with('status', 'shop-updated');
     }
 
     /**
@@ -100,7 +113,7 @@ class ProfileController extends Controller
         }
 
         if ($user->isSeller()) {
-            $orders = \App\Models\Order::whereHas('items.product', function($q) use ($user) {
+            $orders = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             })->latest()->paginate(10);
 
