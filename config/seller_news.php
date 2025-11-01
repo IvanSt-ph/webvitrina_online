@@ -23,4 +23,9 @@ return [
         'date'  => '12.10.2025',
         'url'   => '/seller/help/reviews-and-rating',
     ],
+        [
+        'title' => 'НОВАЯ СТАТЬЯ',
+        'url'   => '/seller/help/updates-2026', // ✅ обязательно такой же путь, как в маршруте
+        'date'  => '2025-11-01',
+    ],
 ];

@@ -1,125 +1,124 @@
 <x-seller-layout :title="$news['title']">
 
   @php
-    // Определяем slug статьи и картинку для обложки
     $slug = last(explode('/', $news['url']));
     $image = asset("images/help/{$slug}.webp");
   @endphp
 
-  <section class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8">
+  <section class="pt-2 pb-16 space-y-10 px-4 sm:px-6 lg:px-8">
 
-    <!-- 🖼️ Обложка -->
+    {{-- 🖼️ Обложка --}}
     <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-10">
-      <img src="{{ $image }}" alt="Обновления WebVitrina 2025" class="w-full h-64 sm:h-96 object-cover">
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent"></div>
-      <div class="absolute bottom-5 left-8 text-white">
+      <img src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent"></div>
+      <div class="absolute bottom-6 left-8 text-white">
         <h1 class="text-3xl sm:text-4xl font-bold drop-shadow-lg">{{ $news['title'] }}</h1>
         <p class="text-sm text-gray-200 mt-1">{{ $news['date'] }}</p>
       </div>
     </div>
 
-    <!-- 📄 Контент -->
-    <article class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-10 leading-relaxed text-gray-800 space-y-8">
+    {{-- 📄 Контент --}}
+    <article class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-10 leading-relaxed text-gray-800 space-y-10">
 
       <p class="text-lg">
-        В 2025 году <strong>WebVitrina</strong> выходит на новый уровень.  
-        Мы обновили дизайн, улучшили аналитику, ускорили работу сайта и добавили полезные инструменты для продавцов.  
-        Всё это — чтобы вам было проще продавать и зарабатывать.
+        В <strong>2025 году</strong> WebVitrina вышла на новый уровень.  
+        Мы обновили интерфейс, ускорили загрузку, улучшили аналитику и добавили новые инструменты для продавцов —  
+        всё для того, чтобы вы продавали быстрее и удобнее.
       </p>
 
-      <h2 class="text-2xl font-semibold text-indigo-600">🚀 Новый интерфейс и удобная навигация</h2>
-      <p>
-        Панель продавца стала проще и быстрее:  
-        мы переработали меню, добавили быстрые кнопки действий и сделали интерфейс адаптивным для всех устройств.
-      </p>
+      {{-- Раздел 1 --}}
+      <x-help-section icon="ri-rocket-2-line" title="Новый интерфейс и навигация">
+        <p>Панель продавца стала быстрее и удобнее: обновлённое меню, быстрые кнопки и адаптация под все устройства.</p>
 
-      <ul class="list-disc pl-6 space-y-2 text-gray-700">
-        <li>Новая шапка и боковое меню;</li>
-        <li>Тёмный режим (в бета-тесте);</li>
-        <li>Адаптивный дизайн под смартфоны и планшеты;</li>
-        <li>Мгновенные переходы между разделами.</li>
-      </ul>
+        <ul class="list-disc pl-6 space-y-2 text-gray-700 mt-3">
+          <li>Новая шапка и боковое меню;</li>
+          <li>Тёмный режим (в бета-тесте);</li>
+          <li>Полная адаптация под смартфоны и планшеты;</li>
+          <li>Мгновенные переходы между разделами.</li>
+        </ul>
 
-      <img src="{{ asset('images/help/new-dashboard.jpg') }}" alt="Новый интерфейс панели продавца" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/help/new-dashboard.jpg') }}" alt="Интерфейс панели продавца" class="rounded-2xl shadow-md mt-6">
 
-      <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800">
-        💡 <strong>Совет:</strong> попробуйте закрепить часто используемые страницы — теперь панель поддерживает быстрые закладки!
-      </div>
+        <x-help-tip color="indigo" icon="ri-lightbulb-flash-line">
+          Закрепляйте часто используемые страницы — теперь панель поддерживает быстрые закладки!
+        </x-help-tip>
+      </x-help-section>
 
-      <h2 class="text-2xl font-semibold text-indigo-600">📊 Новая аналитика продавца</h2>
-      <p>
-        Добавлены расширенные графики и фильтры, чтобы вы могли отслеживать эффективность своих товаров.  
-        Теперь можно видеть динамику просмотров, добавлений в корзину и заказов за любой период.
-      </p>
+      {{-- Раздел 2 --}}
+      <x-help-section icon="ri-bar-chart-box-line" title="Новая аналитика продавца">
+        <p>Добавлены детальные графики и фильтры — отслеживайте эффективность товаров по любому периоду.</p>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6">
-        <img src="{{ asset('images/help/analytics-dashboard.jpg') }}" alt="Аналитика продавца" class="rounded-2xl shadow-md">
-        <img src="{{ asset('images/help/analytics-charts.jpg') }}" alt="Графики продаж" class="rounded-2xl shadow-md">
-      </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6">
+          <img src="{{ asset('images/help/analytics-dashboard.jpg') }}" alt="Аналитика продавца" class="rounded-2xl shadow-md">
+          <img src="{{ asset('images/help/analytics-charts.jpg') }}" alt="Графики продаж" class="rounded-2xl shadow-md">
+        </div>
 
-      <ul class="list-disc pl-6 text-gray-700 space-y-1">
-        <li>Фильтрация по дате, категории и городу;</li>
-        <li>Показ динамики добавлений в корзину и заказов;</li>
-        <li>Отображение популярности товаров в категории.</li>
-      </ul>
+        <ul class="list-disc pl-6 text-gray-700 space-y-1">
+          <li>Фильтрация по дате, категории и городу;</li>
+          <li>Отслеживание добавлений в корзину и заказов;</li>
+          <li>Отображение популярности товаров в категории.</li>
+        </ul>
 
-      <div class="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-800">
-        📈 <strong>Новое:</strong> теперь аналитика обновляется ежедневно, а не раз в неделю.
-      </div>
+        <x-help-note color="green" icon="ri-line-chart-line">
+          Теперь аналитика обновляется ежедневно, а не раз в неделю.
+        </x-help-note>
+      </x-help-section>
 
-      <h2 class="text-2xl font-semibold text-indigo-600">💬 Обновлённая система отзывов</h2>
-      <p>
-        Продавцы теперь могут отмечать отзывы как “решённые”, оставлять комментарии администраторам  
-        и получать уведомления о новых оценках прямо в панели.
-      </p>
+      {{-- Раздел 3 --}}
+      <x-help-section icon="ri-chat-1-line" title="Обновлённая система отзывов">
+        <p>Теперь продавцы могут помечать отзывы как решённые, оставлять комментарии и получать уведомления.</p>
 
-      <ul class="list-disc pl-6 text-gray-700 space-y-1">
-        <li>Пометка “Проблема решена”;</li>
-        <li>Автоматическая статистика по отзывам;</li>
-        <li>Уведомления о новых откликах клиентов.</li>
-      </ul>
+        <ul class="list-disc pl-6 text-gray-700 space-y-1 mt-3">
+          <li>Пометка “Проблема решена”;</li>
+          <li>Автоматическая статистика по отзывам;</li>
+          <li>Оповещения о новых оценках.</li>
+        </ul>
 
-      <img src="{{ asset('images/help/reviews-dashboard.jpg') }}" alt="Новая система отзывов" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/help/reviews-dashboard.jpg') }}" alt="Система отзывов" class="rounded-2xl shadow-md my-6">
 
-      <div class="bg-yellow-50 border border-yellow-100 rounded-xl p-4 text-sm text-yellow-800">
-        💡 <strong>Совет:</strong> отвечайте на отзывы быстрее — алгоритм теперь учитывает активность продавца при показе товаров в поиске.
-      </div>
+        <x-help-tip color="yellow" icon="ri-timer-flash-line">
+          Отвечайте на отзывы оперативно — активность продавца теперь влияет на позицию товара в поиске.
+        </x-help-tip>
+      </x-help-section>
 
-      <h2 class="text-2xl font-semibold text-indigo-600">💰 Новая система подписок и бонусов</h2>
-      <p>
-        Мы добавили подписки для продавцов, чтобы дать больше гибкости в размещении товаров и продвижении.  
-        Теперь можно выбрать оптимальный план и получить дополнительные возможности.
-      </p>
+      {{-- Раздел 4 --}}
+      <x-help-section icon="ri-vip-crown-line" title="Система подписок и бонусов">
+        <p>Добавлены новые тарифы для гибкости размещения и продвижения.</p>
 
-      <ul class="list-disc pl-6 text-gray-700 space-y-2">
-        <li><strong>Базовый:</strong> до 10 товаров, без комиссии.</li>
-        <li><strong>Продвинутый:</strong> до 50 товаров, приоритет в поиске.</li>
-        <li><strong>Премиум:</strong> неограниченно, доступ к аналитике PRO и рекламным инструментам.</li>
-      </ul>
+        <ul class="list-disc pl-6 text-gray-700 space-y-2 mt-3">
+          <li><strong>Базовый:</strong> до 10 товаров, без комиссии;</li>
+          <li><strong>Продвинутый:</strong> до 50 товаров, приоритет в поиске;</li>
+          <li><strong>Премиум:</strong> неограниченно, доступ к аналитике PRO и рекламе.</li>
+        </ul>
 
-      <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800">
-        💎 <strong>Бонус:</strong> первые 30 дней на тарифе “Продвинутый” — бесплатно для всех новых продавцов.
-      </div>
+        <x-help-note color="indigo" icon="ri-gift-line">
+          Первые 30 дней тарифа “Продвинутый” — бесплатно для всех новых продавцов.
+        </x-help-note>
+      </x-help-section>
 
-      <h2 class="text-2xl font-semibold text-indigo-600">🌐 Расширение географии</h2>
-      <p>
-        WebVitrina теперь официально работает в <strong>Молдове, Украине и Приднестровье</strong>.  
-        Добавлены локальные валюты, языки и флаги в шапке сайта.
-      </p>
+      {{-- Раздел 5 --}}
+      <x-help-section icon="ri-global-line" title="Расширение географии">
+        <p>
+          WebVitrina теперь работает в <strong>Молдове</strong>, <strong>Украине</strong> и <strong>Приднестровье</strong>.  
+          Добавлены локальные валюты, языки и флаги в интерфейсе.
+        </p>
 
-      <img src="{{ asset('images/help/countries-update.jpg') }}" alt="Мультивалютность и регионы" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/help/countries-update.jpg') }}" alt="Мультивалютность и регионы" class="rounded-2xl shadow-md my-6">
 
-      <div class="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-800">
-        🌍 <strong>Новое:</strong> автоматическое определение региона по IP и отображение цен в локальной валюте.
-      </div>
+        <x-help-note color="green" icon="ri-map-pin-2-line">
+          Реализовано автоматическое определение региона по IP и показ цен в локальной валюте.
+        </x-help-note>
+      </x-help-section>
 
-      <h2 class="text-2xl font-semibold text-indigo-600">🎥 Обзор обновлений</h2>
-      <div class="relative aspect-video rounded-2xl overflow-hidden shadow-md my-6">
-        <iframe class="w-full h-full"
-                src="https://www.youtube.com/embed/DXUAyRRkI6k"
-                title="Обзор обновлений WebVitrina 2025"
-                frameborder="0" allowfullscreen></iframe>
-      </div>
+      {{-- Раздел 6 --}}
+      <x-help-section icon="ri-play-circle-line" title="Обзор обновлений">
+        <div class="relative aspect-video rounded-2xl overflow-hidden shadow-md my-4">
+          <iframe class="w-full h-full"
+                  src="https://www.youtube.com/embed/DXUAyRRkI6k"
+                  title="Обзор обновлений WebVitrina 2025"
+                  frameborder="0" allowfullscreen></iframe>
+        </div>
+      </x-help-section>
 
       <blockquote class="border-l-4 border-indigo-500 pl-4 text-gray-600 italic">
         “WebVitrina развивается вместе с вами. Мы слушаем продавцов и делаем платформу лучше каждый месяц.”
@@ -127,7 +126,7 @@
 
     </article>
 
-    <!-- 🔙 Навигация -->
+    {{-- 🔙 Навигация --}}
     <div class="mt-10 flex items-center justify-between text-sm text-gray-500">
       <a href="{{ route('seller.help', ['slug' => 'product-optimization']) }}" class="hover:text-indigo-600 flex items-center gap-1">
         <i class="ri-arrow-left-line"></i> Предыдущая статья

@@ -3,7 +3,7 @@
 
   <div class="min-h-screen bg-white text-gray-800">
     <main x-data="{ tab: 'main', mobileOpen: null }"
-          class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8 max-w-none   mx-auto">
 
       {{-- 🏪 Баннер магазина --}}
       <section id="banner-box"

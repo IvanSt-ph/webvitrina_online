@@ -2,7 +2,107 @@
 <x-seller-layout title="Панель продавца" :hideHeader="true">
   <div class="pt-2 pb-10 space-y-10 pl-4 pr-6">
 
-    {{-- 📈 Блок: график заказов и новости --}}
+    @php
+      $user = auth()->user();
+      $shop = $user->shop;
+      $rating = $user->reviews_avg_rating ?? 0;
+    @endphp
+
+    {{-- 🏪 БАННЕР МАГАЗИНА --}}
+    <section id="banner-box"
+             class="relative w-full rounded-2xl overflow-hidden mb-6
+                    border border-indigo-100 shadow-md bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <div class="relative w-full" style="padding-top:21%;">
+        <img src="{{ $shop?->banner_url ?? asset('images/default-shop-banner.jpg') }}"
+             alt="Баннер магазина"
+             class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-in-out hover:scale-105">
+        {{-- 🔹 более контрастный градиент для читаемости текста --}}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
+
+        {{-- 🔹 Инфо о магазине --}}
+        <div class="absolute bottom-3 left-4 sm:left-6 text-white drop-shadow-lg flex items-center gap-3">
+          <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-semibold">
+            {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="text-xl sm:text-2xl font-semibold tracking-wide">
+                {{ $shop->name ?? 'Ваш магазин' }}
+              </h3>
+
+              {{-- ⭐ Рейтинг прямо в заголовке --}}
+              @if($rating > 0)
+                <div class="flex items-center gap-1 ml-1">
+                  @for ($i = 1; $i <= 5; $i++)
+                    @if ($rating >= $i)
+                      <i class="ri-star-fill text-yellow-400 text-2xl"></i>
+                    @elseif ($rating >= $i - 0.5)
+                      <i class="ri-star-half-fill text-yellow-400 text-2xl"></i>
+                    @else
+                      <i class="ri-star-line text-white/40 text-2xl"></i>
+                    @endif
+                  @endfor
+                  <span class="text-sm font-semibold text-white ml-1">
+                    {{ number_format($rating, 2) }}
+                  </span>
+                </div>
+              @else
+                <div class="flex items-center gap-1 opacity-70 text-white text-sm ml-1">
+                  <i class="ri-star-line text-white/40 text-xl"></i>
+                  <span>Нет оценок</span>
+                </div>
+              @endif
+            </div>
+
+            <p class="text-sm opacity-90">{{ $shop->city ?? 'Город не указан' }}</p>
+          </div>
+        </div>
+
+        {{-- ✏️ Изящная кнопка "Редактировать" --}}
+        <a href="{{ route('profile.edit') }}"
+           class="absolute top-3 right-3 bg-white/80 hover:bg-white px-3 py-2 rounded-lg text-sm text-gray-700 font-medium shadow-sm border border-gray-200 flex items-center gap-1 backdrop-blur-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+          <i class="ri-edit-2-line text-indigo-500 text-base"></i>
+          <span>Редактировать</span>
+        </a>
+      </div>
+    </section>
+
+    {{-- 📋 Основная информация --}}
+    <section class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="p-6 space-y-5">
+        <p class="text-sm text-gray-600 leading-relaxed border-b pb-4">
+          {{ $shop->description ?? 'Добавьте краткое описание вашей компании и ассортимента.' }}
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600">
+          <div>
+            <p class="text-gray-500">📞 <strong class="text-gray-800">Телефон:</strong></p>
+            <p>{{ $shop->phone ?? '+373 XX XXX XXX' }}</p>
+          </div>
+
+          <div>
+            <p class="text-gray-500">✉️ <strong class="text-gray-800">Email:</strong></p>
+            <p>{{ $user->email }}</p>
+          </div>
+
+          <div>
+            <p class="text-gray-500">📍 <strong class="text-gray-800">Адрес:</strong></p>
+            <p>{{ $shop->city ?? 'Не указан' }}</p>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center pt-4 border-t text-sm">
+          <span class="px-3 py-1 rounded bg-green-100 text-green-700 font-medium flex items-center gap-1">
+            <i class="ri-check-line text-green-600"></i> Активен
+          </span>
+          @if($shop?->updated_at)
+            <span class="text-gray-400 text-xs">Обновлено: {{ $shop->updated_at->format('d.m.Y H:i') }}</span>
+          @endif
+        </div>
+      </div>
+    </section>
+
+    {{-- 📈 График и новости --}}
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 bg-white border border-gray-100 rounded-xl shadow-sm p-6">
         <div class="flex items-center justify-between mb-1">
@@ -13,7 +113,7 @@
         <canvas id="salesChart" height="100"></canvas>
       </div>
 
-      {{-- Новости и советы --}}
+      {{-- Новости --}}
       <div class="bg-white border border-gray-100 rounded-xl shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Новости и советы</h2>
@@ -35,66 +135,20 @@
       </div>
     </section>
 
-    {{-- 📊 Статистика продавца --}}
+    {{-- 📊 СТАТИСТИКА ПРОДАВЦА (без рейтинга) --}}
     @if (!empty($stats))
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-      @foreach ($stats as $item)
-        <div class="bg-gray-50 rounded-xl border border-gray-100 p-6 hover:shadow transition">
-          <p class="text-sm text-gray-500">{{ $item['label'] }}</p>
-
-          {{-- ⭐ Блок рейтинга --}}
-          @if (str_contains($item['label'], 'Рейтинг'))
-            @php
-              $rating = (float) ($item['raw'] ?? preg_replace('/[^\d.]/', '', $item['value']) ?? 0);
-            @endphp
-
-            @if ($rating <= 0)
-              <div class="flex items-center gap-1 mt-3 text-gray-300">
-                @for ($i = 1; $i <= 5; $i++)
-                  <i class="ri-star-line text-gray-300 text-xl"></i>
-                @endfor
-                <span class="text-sm text-gray-400 ml-1 font-medium">(нет оценок)</span>
-              </div>
-            @else
-              <div class="flex items-center gap-1 mt-3 group">
-                @for ($i = 1; $i <= 5; $i++)
-                  @if ($rating >= $i)
-                    <i class="ri-star-fill text-yellow-400 text-xl star-anim"></i>
-                  @elseif ($rating >= $i - 0.5)
-                    <i class="ri-star-half-fill text-yellow-400 text-xl star-anim"></i>
-                  @else
-                    <i class="ri-star-line text-gray-300 text-xl star-anim"></i>
-                  @endif
-                @endfor
-                <span class="text-sm text-gray-600 ml-1 font-medium">({{ number_format($rating, 2) }})</span>
-              </div>
-            @endif
-
-          @else
-            {{-- Обычные карточки --}}
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+        @foreach ($stats as $item)
+          @continue(str_contains($item['label'], 'Рейтинг')) {{-- рейтинг уже показан вверху --}}
+          {{-- 🌟 Hover-анимация добавлена --}}
+          <div class="bg-gray-50 rounded-xl border border-gray-100 p-6 hover:bg-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+            <p class="text-sm text-gray-500">{{ $item['label'] }}</p>
             <h3 class="text-2xl font-semibold mt-2 {{ $item['color'] }}">{{ $item['value'] }}</h3>
-          @endif
-
-          <p class="text-xs text-gray-400 mt-1">Обновлено {{ now()->format('d.m.Y') }}</p>
-        </div>
-      @endforeach
-    </section>
+            <p class="text-xs text-gray-400 mt-1">Обновлено {{ now()->format('d.m.Y') }}</p>
+          </div>
+        @endforeach
+      </section>
     @endif
-
-    {{-- ⭐ Стили для анимации звёзд --}}
-    <style>
-      .star-anim {
-        transition: transform 0.3s ease, text-shadow 0.3s ease;
-      }
-      .star-anim:hover {
-        transform: scale(1.2);
-        text-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
-      }
-      .group:hover .star-anim {
-        transform: scale(1.15);
-        text-shadow: 0 0 6px rgba(250, 204, 21, 0.5);
-      }
-    </style>
 
     {{-- ⚙️ Быстрые действия --}}
     <section>
@@ -129,39 +183,9 @@
       </div>
     </section>
 
-    {{-- 🧾 Блок профиля --}}
-    <section>
-      <h2 class="text-lg font-semibold mb-4">Ваш профиль</h2>
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
-
-        <div class="flex items-center gap-4">
-          <div class="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xl font-semibold">
-            {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
-          </div>
-          <div>
-            <h3 class="text-xl font-semibold text-gray-800">{{ auth()->user()->shop_name ?? 'Название компании' }}</h3>
-            <p class="text-sm text-gray-500">
-              {{ auth()->user()->city ?? 'Город не указан' }}, {{ auth()->user()->country ?? 'Страна' }}
-            </p>
-          </div>
-          <span class="ml-auto px-3 py-1 text-xs font-medium rounded bg-green-100 text-green-700">Активен</span>
-        </div>
-
-        <p class="text-sm text-gray-600 leading-relaxed border-t pt-4">
-          {{ auth()->user()->shop_description ?? 'Добавьте краткое описание вашей компании и ассортимента.' }}
-        </p>
-
-        <div class="text-sm text-gray-500 border-t pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div><strong class="text-gray-700">Телефон:</strong> {{ auth()->user()->phone ?? '+373 XX XXX XXX' }}</div>
-          <div><strong class="text-gray-700">Email:</strong> {{ auth()->user()->email }}</div>
-          <div><strong class="text-gray-700">Адрес:</strong> {{ auth()->user()->address ?? 'Не указан' }}</div>
-        </div>
-      </div>
-    </section>
-
   </div>
 
-  {{-- 📊 Chart.js (демо-график) --}}
+  {{-- 📊 Chart.js --}}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     const ctx = document.getElementById('salesChart');
@@ -189,6 +213,5 @@
     });
   </script>
 
-  {{-- 📱 Мобильная нижняя навигация --}}
   @include('layouts.mobile-bottom-seller-nav')
 </x-seller-layout>

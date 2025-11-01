@@ -32,4 +32,10 @@ class Shop extends Model
             ? Storage::url($this->banner)
             : asset('images/default-shop-banner.jpg');
     }
+
+    public function shop()
+{
+    return $this->hasOne(\App\Models\Shop::class);
+}
+
 }

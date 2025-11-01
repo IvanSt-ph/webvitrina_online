@@ -1,6 +1,6 @@
 <x-seller-layout title="Центр помощи продавца">
 
-  <section class="pt-4 pb-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+  <section class="pt- pb-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
 
     <!-- Заголовок -->
     <div class="mb-10 text-center">
@@ -48,6 +48,9 @@
                   @break
                 @case('updates-2025')
                   Последние обновления и новые инструменты, упрощающие работу продавцов.
+                  @break
+                @case('updates-2026')
+                  нововедения в 2026 году.
                   @break
                 @case('reviews-and-rating')
                   Как управлять отзывами и рейтингом, чтобы завоевать доверие покупателей.
