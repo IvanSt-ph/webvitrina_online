@@ -219,12 +219,14 @@ use Illuminate\Support\Facades\Artisan;
 
 Route::get('/migrate-now', function () {
     try {
-        // 🚀 Запускаем миграции прямо через Laravel, без mysql CLI
+        // 🚀 Запуск миграций внутри Laravel (без mysql CLI)
         Artisan::call('migrate', ['--force' => true]);
+
+        // Показываем вывод artisan
         $output = Artisan::output();
 
-        return "<h1>✅ Миграции успешно выполнены!</h1><pre>{$output}</pre>";
+        return "<h2>✅ Миграции успешно выполнены!</h2><pre>{$output}</pre>";
     } catch (\Exception $e) {
-        return "<h1>❌ Ошибка миграции:</h1><pre>{$e->getMessage()}</pre>";
+        return "<h2>❌ Ошибка миграции:</h2><pre>{$e->getMessage()}</pre>";
     }
 });
