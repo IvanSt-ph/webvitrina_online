@@ -213,34 +213,43 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 });
 
 // временная маршрутизация для выполнения миграций
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Schema;
 
+use Illuminate\Support\Facades\Artisan;
+
+/**
+ * 1) Сброс конфиг-кэша и кэша ПРИНУДИТЕЛЬНО через file
+ */
+Route::get('/config-fix', function () {
+    try {
+        // Жёстко принудим драйверы на время запроса
+        config(['cache.default' => 'file']);
+        config(['session.driver' => 'file']);
+        config(['queue.default' => 'sync']);
+
+        // Сначала чистим app cache (используя file), затем конфиг-кэш
+        Artisan::call('cache:clear');    // теперь не тронет таблицу "cache"
+        Artisan::call('config:clear');
+
+        return "<h2>✅ Готово: cache:clear и config:clear</h2><pre>" . e(Artisan::output()) . "</pre>";
+    } catch (\Throwable $e) {
+        return "<h2>❌ Ошибка:</h2><pre>" . e($e->getMessage()) . "</pre>";
+    }
+});
+
+/**
+ * 2) Запуск миграций (после фикса конфигов)
+ */
 Route::get('/migrate-now', function () {
     try {
-        // Очищаем кеш и конфигурацию
-        Artisan::call('config:clear');
-        Artisan::call('cache:clear');
+        // На всякий случай ещё раз принудим драйверы
+        config(['cache.default' => 'file']);
+        config(['session.driver' => 'file']);
+        config(['queue.default' => 'sync']);
 
-        // ⚙️ Создаём системные таблицы, если их нет
-        if (!Schema::hasTable('cache')) {
-            Artisan::call('cache:table');
-        }
-
-        if (!Schema::hasTable('jobs')) {
-            Artisan::call('queue:table');
-        }
-
-        if (!Schema::hasTable('sessions')) {
-            Artisan::call('session:table');
-        }
-
-        // 🚀 Запускаем все миграции
         Artisan::call('migrate', ['--force' => true]);
 
-        $output = Artisan::output();
-        return "<h2>✅ Миграции успешно выполнены!</h2><pre>{$output}</pre>";
+        return "<h2>✅ Миграции выполнены</h2><pre>" . e(Artisan::output()) . "</pre>";
     } catch (\Throwable $e) {
-        return "<h2>❌ Ошибка миграции:</h2><pre>{$e->getMessage()}</pre>";
+        return "<h2>❌ Ошибка миграции:</h2><pre>" . e($e->getMessage()) . "</pre>";
     }
 });
