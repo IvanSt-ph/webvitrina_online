@@ -164,6 +164,7 @@ Route::get('/dashboard', fn() => redirect()->route('home'))->name('dashboard');
 require __DIR__ . '/auth.php';
 
 
+
 /*
 |--------------------------------------------------------------------------
 | 🛠 Админка
@@ -209,4 +210,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
     Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::get('/reviews/{review}', [AdminReviewController::class, 'show'])->name('reviews.show');
+});
+
+
+use Illuminate\Support\Facades\Artisan;
+
+Route::get('/migrate', function () {
+    Artisan::call('migrate', ['--force' => true]);
+    return '✅ Migrations completed successfully!';
 });
