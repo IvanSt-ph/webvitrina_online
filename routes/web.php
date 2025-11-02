@@ -211,27 +211,3 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::get('/reviews/{review}', [AdminReviewController::class, 'show'])->name('reviews.show');
 });
-
-// временная маршрутизация для выполнения миграций
-
-use Illuminate\Support\Facades\Artisan;
-
-Route::get('/migrate-now', function () {
-    try {
-        // Принудительно выставляем безопасные драйверы
-        config(['cache.default' => 'file']);
-        config(['session.driver' => 'file']);
-        config(['queue.default' => 'sync']);
-
-        // ✅ Чистим кэш, чтобы Laravel использовал свежие ENV
-        Artisan::call('config:clear');
-        Artisan::call('cache:clear');
-
-        // 🚀 Запускаем миграции НОРМАЛЬНО через Laravel
-        Artisan::call('migrate', ['--force' => true]);
-
-        return "<h2>✅ Миграции выполнены успешно!</h2><pre>" . e(Artisan::output()) . "</pre>";
-    } catch (\Throwable $e) {
-        return "<h2>❌ Ошибка миграции:</h2><pre>" . e($e->getMessage()) . "</pre>";
-    }
-});
