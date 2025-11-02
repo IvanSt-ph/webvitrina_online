@@ -214,29 +214,32 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 
 // временная маршрутизация для выполнения миграций
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 
 Route::get('/migrate-now', function () {
     try {
-        // ✅ Чистим конфиги, чтобы Laravel подхватил ENV из Railway
+        // Очищаем кеш и конфигурацию
         Artisan::call('config:clear');
         Artisan::call('cache:clear');
 
-        // ✅ Создаём таблицы для сессий, кэша и очередей, если их нет
-        if (!\Schema::hasTable('sessions')) {
-            Artisan::call('session:table');
-        }
-        if (!\Schema::hasTable('cache')) {
+        // ⚙️ Создаём системные таблицы, если их нет
+        if (!Schema::hasTable('cache')) {
             Artisan::call('cache:table');
         }
-        if (!\Schema::hasTable('jobs')) {
+
+        if (!Schema::hasTable('jobs')) {
             Artisan::call('queue:table');
         }
 
-        // 🚀 Запускаем миграции без вызова mysql CLI
+        if (!Schema::hasTable('sessions')) {
+            Artisan::call('session:table');
+        }
+
+        // 🚀 Запускаем все миграции
         Artisan::call('migrate', ['--force' => true]);
 
         $output = Artisan::output();
-        return "<h2>✅ Все миграции успешно выполнены!</h2><pre>{$output}</pre>";
+        return "<h2>✅ Миграции успешно выполнены!</h2><pre>{$output}</pre>";
     } catch (\Throwable $e) {
         return "<h2>❌ Ошибка миграции:</h2><pre>{$e->getMessage()}</pre>";
     }
