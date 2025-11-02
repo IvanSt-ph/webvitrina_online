@@ -215,11 +215,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 // временная маршрутизация для выполнения миграций
 use Illuminate\Support\Facades\Artisan;
 
-Route::get('/migrate', function () {
+Route::get('/migrate-now', function () {
     try {
         Artisan::call('migrate', ['--force' => true]);
-        return nl2br(Artisan::output());
-    } catch (\Throwable $e) {
-        return '❌ Ошибка миграции: ' . $e->getMessage();
+        return '✅ Миграции успешно выполнены!';
+    } catch (Exception $e) {
+        return '❌ Ошибка: ' . $e->getMessage();
     }
 });
