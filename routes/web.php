@@ -213,13 +213,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 });
 
 // временная маршрутизация для выполнения миграций
+
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/migrate-now', function () {
     try {
         Artisan::call('migrate', ['--force' => true]);
-        return '✅ Миграции успешно выполнены!';
-    } catch (Exception $e) {
-        return '❌ Ошибка: ' . $e->getMessage();
+        return '<h1>✅ Миграции успешно выполнены!</h1>';
+    } catch (\Exception $e) {
+        return '<h1>❌ Ошибка миграции:</h1><pre>' . $e->getMessage() . '</pre>';
     }
 });
