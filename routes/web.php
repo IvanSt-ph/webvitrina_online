@@ -212,7 +212,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
     Route::get('/reviews/{review}', [AdminReviewController::class, 'show'])->name('reviews.show');
 });
 
-
+// временная маршрутизация для выполнения миграций
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/migrate', function () {
