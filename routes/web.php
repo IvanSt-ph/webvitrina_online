@@ -214,13 +214,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 
 // временная маршрутизация для выполнения миграций
 
+
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/migrate-now', function () {
     try {
+        // 🚀 Запускаем миграции прямо через Laravel, без mysql CLI
         Artisan::call('migrate', ['--force' => true]);
-        return '<h1>✅ Миграции успешно выполнены!</h1>';
+        $output = Artisan::output();
+
+        return "<h1>✅ Миграции успешно выполнены!</h1><pre>{$output}</pre>";
     } catch (\Exception $e) {
-        return '<h1>❌ Ошибка миграции:</h1><pre>' . $e->getMessage() . '</pre>';
+        return "<h1>❌ Ошибка миграции:</h1><pre>{$e->getMessage()}</pre>";
     }
 });
