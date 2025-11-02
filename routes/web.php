@@ -216,6 +216,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/migrate', function () {
-    Artisan::call('migrate', ['--force' => true]);
-    return '✅ Migrations completed successfully!';
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        return nl2br(Artisan::output());
+    } catch (\Throwable $e) {
+        return '❌ Ошибка миграции: ' . $e->getMessage();
+    }
 });
