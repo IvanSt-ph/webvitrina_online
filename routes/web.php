@@ -214,22 +214,23 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::cla
 
 // временная маршрутизация для выполнения миграций
 
-
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/migrate-now', function () {
     try {
-        // ✅ Чистим кеши на всякий случай
-        Artisan::call('config:clear');
-        Artisan::call('cache:clear');
+        // 🧱 Генерируем недостающие таблицы для кэша, сессий и очередей
+        Artisan::call('cache:table');
+        Artisan::call('session:table');
+        Artisan::call('queue:table');
 
-        // 🚀 Запуск миграций внутри Laravel
+        // 🚀 Выполняем все миграции
         Artisan::call('migrate', ['--force' => true]);
 
-        return response('<h2>✅ Миграции успешно выполнены!</h2><pre>' . Artisan::output() . '</pre>', 200)
-            ->header('Content-Type', 'text/html');
-    } catch (\Throwable $e) {
-        return response('<h2>❌ Ошибка миграции:</h2><pre>' . $e->getMessage() . '</pre>', 500)
-            ->header('Content-Type', 'text/html');
+        // Показываем результат
+        $output = Artisan::output();
+        return "<h2>✅ Миграции успешно выполнены!</h2><pre>{$output}</pre>";
+    } catch (\Exception $e) {
+        return "<h2>❌ Ошибка миграции:</h2><pre>{$e->getMessage()}</pre>";
     }
 });
+
