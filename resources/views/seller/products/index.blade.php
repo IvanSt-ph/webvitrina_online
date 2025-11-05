@@ -1,10 +1,9 @@
 <x-seller-layout title="Мои товары" :hideHeader="true">
-
-  {{-- ✅ Глобальный fix для Alpine --}}
   <style>[x-cloak]{display:none!important}</style>
 
-  <div class="min-h-screen bg-white text-gray-800" 
+  <div class="min-h-screen bg-white text-gray-800 pb-[5.5rem]"
        x-data="{ viewMode: localStorage.getItem('seller_view') || 'grid' }">
+       {{-- ↑ безопасный нижний отступ под мобильную навигацию --}}
 
     <!-- 🔹 Заголовок страницы -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -49,7 +48,8 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div class="flex items-center gap-3">
             <h2 class="text-lg font-semibold text-gray-800">Все товары</h2>
-            <!-- Переключатель -->
+
+            <!-- 🔘 Переключатель -->
             <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden">
               <button 
                 @click="viewMode='grid'; localStorage.setItem('seller_view','grid')" 
@@ -128,41 +128,61 @@
           </div>
         @endforeach
       </div>
+{{-- 🟧 Список --}}
+<div 
+  x-show="viewMode==='list'" 
+  x-cloak 
+  class="flex flex-col gap-2 transition-all duration-300 ease-in-out">
+  @foreach($products as $p)
+    <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg hover:shadow transition
+                w-[315px] lg:w-full h-[78px] overflow-hidden px-3">
+      <div class="flex items-center gap-3 w-full overflow-hidden">
+        @if($p->image)
+          <img src="{{ asset('storage/'.$p->image) }}" alt="{{ $p->title }}"
+               class="w-12 h-12 object-cover rounded-md flex-shrink-0">
+        @else
+          <div class="w-12 h-12 bg-gray-100 flex items-center justify-center text-[10px] text-gray-400">Нет</div>
+        @endif
 
-      {{-- 🟧 Список --}}
-      <div 
-        x-show="viewMode==='list'" 
-        x-cloak 
-        class="flex flex-col gap-2 transition-all duration-300 ease-in-out">
-        @foreach($products as $p)
-          <div class="flex items-center justify-between gap-2 p-2 sm:p-3 bg-white border border-gray-200 rounded-xl hover:shadow transition">
-            <div class="flex items-center gap-3 w-full min-w-0">
-              <div class="w-14 h-14 sm:w-16 sm:h-16 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-                @if($p->image)
-                  <img src="{{ asset('storage/'.$p->image) }}" alt="{{ $p->title }}" class="object-cover w-full h-full">
-                @else
-                  <div class="flex items-center justify-center h-full text-gray-400 text-xs">Без фото</div>
-                @endif
-              </div>
-              <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-medium text-gray-800 truncate">{{ $p->title }}</h3>
-                <p class="text-xs text-gray-500 truncate">{{ $p->category->name ?? '—' }} • {{ $p->city->name ?? '' }}</p>
-              </div>
-            </div>
-
-            <div class="flex flex-col items-end justify-center gap-1 text-right">
-              <div class="text-sm font-semibold text-gray-800 whitespace-nowrap">{{ number_format($p->price,0,',',' ') }} ₽</div>
-              <div class="flex items-center gap-2">
-                <a href="{{ route('seller.products.edit',$p) }}" class="text-[11px] sm:text-xs text-indigo-600 hover:underline whitespace-nowrap">Редактировать</a>
-                <form method="POST" action="{{ route('seller.products.destroy',$p) }}">
-                  @csrf @method('DELETE')
-                  <button type="submit" class="text-[11px] sm:text-xs text-red-600 hover:underline whitespace-nowrap">Удалить</button>
-                </form>
-              </div>
-            </div>
+        <div class="flex flex-col justify-center min-w-0">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-gray-800 truncate">{{ $p->title }}</h3>
+            <span class="text-[11px] px-1.5 py-0.5 rounded-md
+                        {{ $p->stock>0 ? 'bg-green-100 text-green-700':'bg-red-100 text-red-700' }}">
+              {{ $p->stock>0 ? 'Активен':'Нет' }}
+            </span>
           </div>
-        @endforeach
+          <p class="text-[11px] text-gray-500 truncate">
+            {{ $p->category->name ?? '—' }} • {{ $p->city->name ?? '—' }}
+          </p>
+          <p class="text-[10px] text-gray-400">
+            👁 {{ rand(10,250) }} • {{ $p->created_at->format('d.m.Y') }}
+          </p>
+        </div>
       </div>
+
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <span class="text-[13px] font-semibold text-gray-800 whitespace-nowrap">
+          {{ number_format($p->price,0,',',' ') }} ₽
+        </span>
+
+        <a href="{{ route('seller.products.edit',$p) }}" 
+           class="text-[15px] text-indigo-600 hover:text-indigo-800 transition">
+           <i class="ri-edit-line"></i>
+        </a>
+
+        <form method="POST" action="{{ route('seller.products.destroy',$p) }}">
+          @csrf @method('DELETE')
+          <button type="submit" 
+                  class="text-[15px] text-red-600 hover:text-red-700 transition">
+            <i class="ri-delete-bin-6-line"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  @endforeach
+</div>
+
 
       <div class="mt-10">{{ $products->links() }}</div>
 
@@ -177,5 +197,4 @@
 
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
   @include('layouts.mobile-bottom-seller-nav')
-
 </x-seller-layout>
