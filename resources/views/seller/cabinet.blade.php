@@ -102,8 +102,35 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600">
           <div>
-            <p class="text-gray-500">📞 <strong class="text-gray-800">Телефон:</strong></p>
-            <p>{{ $shop->phone ?? '+373 XX XXX XXX' }}</p>
+
+{{-- 📞 Телефон продавца (красивое форматирование) --}}
+<p class="text-gray-500">📞 <strong class="text-gray-800">Телефон:</strong></p>
+
+@php
+  $rawPhone = preg_replace('/\D+/', '', $shop->phone ?? '');
+  $formatted = null;
+
+  if (str_starts_with($shop->phone ?? '', '+373')) {
+      // 🇲🇩 Молдова: (+373) 77 698-989
+      $digits = substr($rawPhone, 3);
+      $formatted = '(+373) ' . substr($digits, 0, 2) . ' ' . substr($digits, 2, 3) . '-' . substr($digits, 5);
+  } elseif (str_starts_with($shop->phone ?? '', '+380')) {
+      // 🇺🇦 Украина: (+380) 50 123-45-67
+      $digits = substr($rawPhone, 3);
+      $formatted = '(+380) ' . substr($digits, 0, 2) . ' ' . substr($digits, 2, 3) . '-' . substr($digits, 5, 2) . '-' . substr($digits, 7);
+  } elseif (str_starts_with($shop->phone ?? '', '+7')) {
+      // 🇷🇺 Россия: (+7) 911 123-45-67
+      $digits = substr($rawPhone, 1);
+      $formatted = '(+7) ' . substr($digits, 1, 3) . ' ' . substr($digits, 4, 3) . '-' . substr($digits, 7, 2) . '-' . substr($digits, 9);
+  } else {
+      $formatted = '(+373) 77 698-989';
+  }
+@endphp
+
+<p class="text-gray-700 font-normal text-[13px] tracking-wider leading-relaxed select-text">
+  {{ $formatted }}
+</p>
+
           </div>
 
           <div>
