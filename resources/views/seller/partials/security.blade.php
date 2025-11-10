@@ -17,48 +17,74 @@
   @endif
 
   {{-- 🧷 Смена пароля --}}
-  <form method="POST" action="{{ route('password.update') }}" class="space-y-6 max-w-2xl">
-    @csrf
-    @method('PUT')
+<form method="POST" action="{{ route('password.update') }}" class="space-y-6 max-w-2xl" x-data="{ showOld: false, showNew: false, showConfirm: false }">
+  @csrf
+  @method('PUT')
 
-    <div class="grid sm:grid-cols-2 gap-6">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Текущий пароль</label>
-        <input type="password" name="current_password"
-               placeholder="Введите текущий пароль"
-               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 @error('current_password') border-red-500 @enderror">
-        @error('current_password')
-          <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
-        @enderror
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Новый пароль</label>
-        <input type="password" name="password"
-               placeholder="Введите новый пароль"
-               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 @error('password') border-red-500 @enderror">
-        @error('password')
-          <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
-        @enderror
-      </div>
-    </div>
-
-    <div class="sm:w-1/2">
-      <label class="block text-sm font-medium text-gray-700 mb-1">Подтверждение пароля</label>
-      <input type="password" name="password_confirmation"
-             placeholder="Повторите новый пароль"
-             class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-    </div>
-
-    <div class="flex justify-end pt-4 border-t border-gray-100">
-      <button type="submit"
-              class="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700
-                     text-white rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition">
-        <i class="ri-lock-password-line text-base"></i>
-        Сменить пароль
+  {{-- 🔑 Текущий пароль --}}
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Текущий пароль</label>
+    <div class="relative">
+      <input :type="showOld ? 'text' : 'password'" name="current_password"
+             placeholder="Введите текущий пароль"
+             class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10 @error('current_password') border-red-500 @enderror">
+      <button type="button" 
+              @click="showOld = !showOld"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+        <i :class="showOld ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
       </button>
     </div>
-  </form>
+    @error('current_password')
+      <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+    @enderror
+  </div>
+
+  {{-- 🔄 Новый и подтверждение --}}
+  <div class="grid sm:grid-cols-2 gap-6">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Новый пароль</label>
+      <div class="relative">
+        <input :type="showNew ? 'text' : 'password'" name="password"
+               placeholder="Введите новый пароль"
+               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10 @error('password') border-red-500 @enderror">
+        <button type="button" 
+                @click="showNew = !showNew"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+          <i :class="showNew ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
+        </button>
+      </div>
+      @error('password')
+        <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+      @enderror
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Подтверждение пароля</label>
+      <div class="relative">
+        <input :type="showConfirm ? 'text' : 'password'" name="password_confirmation"
+               placeholder="Повторите новый пароль"
+               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10">
+        <button type="button" 
+                @click="showConfirm = !showConfirm"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+          <i :class="showConfirm ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {{-- 🔘 Кнопка --}}
+  <div class="flex justify-end pt-4 border-t border-gray-100">
+    <button type="submit"
+            class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white 
+                   rounded-xl text-sm font-medium shadow-sm flex items-center gap-2 
+                   transition-all duration-200">
+      <i class="ri-lock-password-line text-base"></i>
+      Сменить пароль
+    </button>
+  </div>
+</form>
+
 
   {{-- ⚠️ Удаление аккаунта --}}
   <div class="border-t border-gray-100 pt-8">

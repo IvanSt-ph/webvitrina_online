@@ -31,10 +31,6 @@
           Вернуться в панель продавца
       </a>
 
-      {{-- 🕓 Подпись --}}
-      <p class="text-xs text-gray-400 mt-6 z-10">
-          WebVitrina Seller • {{ now()->format('Y') }}
-      </p>
   </div>
 
   @include('layouts.mobile-bottom-seller-nav')

@@ -27,7 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!parentId) return;
 
     try {
-      const res = await fetch(`/categories/${parentId}/children`);
+      const res = await fetch(`/seller/categories/${parentId}/children`);
+
       if (!res.ok) return;
       const categories = await res.json();
       if (!Array.isArray(categories) || !categories.length) return;

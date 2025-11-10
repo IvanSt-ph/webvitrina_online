@@ -128,53 +128,58 @@
           </div>
         @endforeach
       </div>
-{{-- 🟧 Список --}}
+
+
+{{-- 🟧 Список (ультра-компактный режим) --}}
 <div 
   x-show="viewMode==='list'" 
   x-cloak 
-  class="flex flex-col gap-2 transition-all duration-300 ease-in-out">
+  class="flex flex-col divide-y divide-gray-100 transition-all duration-300 ease-in-out">
   @foreach($products as $p)
-    <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg hover:shadow transition
-                w-[315px] lg:w-full h-[78px] overflow-hidden px-3">
-      <div class="flex items-center gap-3 w-full overflow-hidden">
+    <div class="flex items-center justify-between bg-transparent hover:bg-gray-50 transition cursor-pointer
+                w-[315px] lg:w-full h-[55px] px-1.5">
+      
+      <!-- 🖼 Изображение + инфо -->
+      <div class="flex items-center gap-2 w-full overflow-hidden">
         @if($p->image)
           <img src="{{ asset('storage/'.$p->image) }}" alt="{{ $p->title }}"
-               class="w-12 h-12 object-cover rounded-md flex-shrink-0">
+               class="w-7 h-7 object-cover rounded-md flex-shrink-0">
         @else
-          <div class="w-12 h-12 bg-gray-100 flex items-center justify-center text-[10px] text-gray-400">Нет</div>
+          <div class="w-7 h-7 bg-gray-100 flex items-center justify-center text-[9px] text-gray-400">Нет</div>
         @endif
 
-        <div class="flex flex-col justify-center min-w-0">
-          <div class="flex items-center gap-2">
-            <h3 class="text-sm font-medium text-gray-800 truncate">{{ $p->title }}</h3>
-            <span class="text-[11px] px-1.5 py-0.5 rounded-md
+        <div class="flex flex-col justify-center min-w-0 leading-tight">
+          <!-- 🔹 Название + статус -->
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-[12.5px] font-medium text-gray-800 truncate">{{ $p->title }}</h3>
+            <span class="text-[9px] px-1 py-[1px] rounded-md
                         {{ $p->stock>0 ? 'bg-green-100 text-green-700':'bg-red-100 text-red-700' }}">
               {{ $p->stock>0 ? 'Активен':'Нет' }}
             </span>
           </div>
-          <p class="text-[11px] text-gray-500 truncate">
-            {{ $p->category->name ?? '—' }} • {{ $p->city->name ?? '—' }}
-          </p>
-          <p class="text-[10px] text-gray-400">
-            👁 {{ rand(10,250) }} • {{ $p->created_at->format('d.m.Y') }}
+
+          <!-- 🔸 всё остальное -->
+          <p class="text-[10px] text-gray-500 truncate">
+            {{ $p->category->name ?? '—' }} • {{ $p->city->name ?? '—' }} • 👁 {{ rand(10,250) }} • {{ $p->created_at->format('d.m.Y') }}
           </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3 flex-shrink-0">
-        <span class="text-[13px] font-semibold text-gray-800 whitespace-nowrap">
+      <!-- 💰 Цена + иконки -->
+      <div class="flex items-center gap-[6px] flex-shrink-0">
+        <span class="text-[12.5px] font-semibold text-gray-800 whitespace-nowrap">
           {{ number_format($p->price,0,',',' ') }} ₽
         </span>
 
         <a href="{{ route('seller.products.edit',$p) }}" 
-           class="text-[15px] text-indigo-600 hover:text-indigo-800 transition">
+           class="text-[14px] text-indigo-600 hover:text-indigo-800 transition">
            <i class="ri-edit-line"></i>
         </a>
 
         <form method="POST" action="{{ route('seller.products.destroy',$p) }}">
           @csrf @method('DELETE')
           <button type="submit" 
-                  class="text-[15px] text-red-600 hover:text-red-700 transition">
+                  class="text-[14px] text-red-600 hover:text-red-700 transition">
             <i class="ri-delete-bin-6-line"></i>
           </button>
         </form>
@@ -182,6 +187,8 @@
     </div>
   @endforeach
 </div>
+
+
 
 
       <div class="mt-10">{{ $products->links() }}</div>

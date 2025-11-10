@@ -131,6 +131,10 @@ Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(funct
     Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
 
+     // 🔹 Подкатегории (для формы добавления товара)
+    Route::get('/categories/{parent}/children', [AdminCategoryController::class, 'children'])
+        ->name('categories.children');
+
     // 🧾 Заглушки для будущих разделов
     Route::view('/orders', 'seller.orders.index')->name('orders.index');
     Route::view('/finance', 'seller.finance.index')->name('finance.index');

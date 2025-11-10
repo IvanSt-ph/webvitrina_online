@@ -12,21 +12,47 @@
     <section id="banner-box"
              class="relative w-full rounded-2xl overflow-hidden mb-6
                     border border-indigo-100 shadow-md bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      <div class="relative w-full" style="padding-top:21%;">
-        <img src="{{ $shop?->banner_url ?? asset('images/default-shop-banner.jpg') }}"
+      <div class="relative w-full pt-[33%] sm:pt-[21%]">
+        
+        {{-- ✅ правильная проверка и подстановка баннера --}}
+        @php
+          if ($shop?->banner) {
+              if (\Illuminate\Support\Str::startsWith($shop->banner, ['http://', 'https://'])) {
+                  $bannerPath = $shop->banner;
+              } elseif (\Illuminate\Support\Facades\Storage::disk('public')->exists($shop->banner)) {
+                  $bannerPath = asset('storage/'.$shop->banner);
+              } else {
+                  $bannerPath = asset('images/default-shop-banner.jpg');
+              }
+          } else {
+              $bannerPath = asset('images/default-shop-banner.jpg');
+          }
+        @endphp
+
+        <img src="{{ $bannerPath }}"
              alt="Баннер магазина"
              class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-in-out hover:scale-105">
-        {{-- 🔹 более контрастный градиент для читаемости текста --}}
+
+        {{-- 🔹 Градиент для читаемости текста --}}
         <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
 
         {{-- 🔹 Инфо о магазине --}}
         <div class="absolute bottom-3 left-4 sm:left-6 text-white drop-shadow-lg flex items-center gap-3">
-          <div class="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-semibold">
-            {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
-          </div>
+
+          {{-- 🧑‍💼 Аватар продавца --}}
+          <a href="{{ route('profile.edit') }}" class="block">
+            <div class="flex-shrink-0 relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center text-base font-semibold aspect-square">
+              @if ($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar))
+                  <img src="{{ asset('storage/' . $user->avatar) }}" alt="Аватар продавца" class="absolute inset-0 w-full h-full object-cover">
+              @else
+                  {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+              @endif
+            </div>
+          </a>
+
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <h3 class="text-xl sm:text-2xl font-semibold tracking-wide">
+              <h3 class="text-lg sm:text-2xl font-semibold tracking-wide">
                 {{ $shop->name ?? 'Ваш магазин' }}
               </h3>
 
@@ -35,34 +61,34 @@
                 <div class="flex items-center gap-1 ml-1">
                   @for ($i = 1; $i <= 5; $i++)
                     @if ($rating >= $i)
-                      <i class="ri-star-fill text-yellow-400 text-2xl"></i>
+                      <i class="ri-star-fill text-yellow-400 text-lg sm:text-2xl"></i>
                     @elseif ($rating >= $i - 0.5)
-                      <i class="ri-star-half-fill text-yellow-400 text-2xl"></i>
+                      <i class="ri-star-half-fill text-yellow-400 text-lg sm:text-2xl"></i>
                     @else
-                      <i class="ri-star-line text-white/40 text-2xl"></i>
+                      <i class="ri-star-line text-white/40 text-lg sm:text-2xl"></i>
                     @endif
                   @endfor
-                  <span class="text-sm font-semibold text-white ml-1">
+                  <span class="text-xs sm:text-sm font-semibold text-white ml-1">
                     {{ number_format($rating, 2) }}
                   </span>
                 </div>
               @else
-                <div class="flex items-center gap-1 opacity-70 text-white text-sm ml-1">
-                  <i class="ri-star-line text-white/40 text-xl"></i>
+                <div class="flex items-center gap-1 opacity-70 text-white text-xs sm:text-sm ml-1">
+                  <i class="ri-star-line text-white/40 text-lg sm:text-xl"></i>
                   <span>Нет оценок</span>
                 </div>
               @endif
             </div>
 
-            <p class="text-sm opacity-90">{{ $shop->city ?? 'Город не указан' }}</p>
+            <p class="text-xs sm:text-sm opacity-90">{{ $shop->city ?? 'Город не указан' }}</p>
           </div>
         </div>
 
         {{-- ✏️ Изящная кнопка "Редактировать" --}}
         <a href="{{ route('profile.edit') }}"
-           class="absolute top-3 right-3 bg-white/80 hover:bg-white px-3 py-2 rounded-lg text-sm text-gray-700 font-medium shadow-sm border border-gray-200 flex items-center gap-1 backdrop-blur-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+           class="absolute top-3 right-3 bg-white/80 hover:bg-white px-2 sm:px-3 py-2 rounded-lg text-sm text-gray-700 font-medium shadow-sm border border-gray-200 flex items-center gap-1 backdrop-blur-sm transition-all hover:shadow-md hover:-translate-y-0.5">
           <i class="ri-edit-2-line text-indigo-500 text-base"></i>
-          <span>Редактировать</span>
+          <span class="hidden sm:inline">Редактировать</span>
         </a>
       </div>
     </section>
@@ -135,12 +161,11 @@
       </div>
     </section>
 
-    {{-- 📊 СТАТИСТИКА ПРОДАВЦА (без рейтинга) --}}
+    {{-- 📊 Статистика продавца --}}
     @if (!empty($stats))
       <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
         @foreach ($stats as $item)
-          @continue(str_contains($item['label'], 'Рейтинг')) {{-- рейтинг уже показан вверху --}}
-          {{-- 🌟 Hover-анимация добавлена --}}
+          @continue(str_contains($item['label'], 'Рейтинг'))
           <div class="bg-gray-50 rounded-xl border border-gray-100 p-6 hover:bg-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
             <p class="text-sm text-gray-500">{{ $item['label'] }}</p>
             <h3 class="text-2xl font-semibold mt-2 {{ $item['color'] }}">{{ $item['value'] }}</h3>

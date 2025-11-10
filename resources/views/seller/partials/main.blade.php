@@ -93,12 +93,14 @@
 
     {{-- 💾 Кнопка --}}
     <div class="flex justify-end pt-4 border-t border-gray-100">
-      <button type="submit"
-              class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700
-                     text-white rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition">
-        <i class="ri-save-3-line text-base"></i>
-        Сохранить изменения
-      </button>
+<button type="submit"
+        class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white 
+               rounded-xl text-sm font-medium shadow-sm hover:shadow-md 
+               flex items-center gap-2 transition-all duration-200">
+  <i class="ri-save-line text-base"></i>
+  Сохранить
+</button>
+
     </div>
   </form>
 </section>
