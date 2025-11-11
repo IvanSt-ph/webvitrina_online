@@ -135,6 +135,13 @@ Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(funct
     Route::get('/categories/{parent}/children', [AdminCategoryController::class, 'children'])
         ->name('categories.children');
 
+
+// 🌳 Цепочка категорий (для редактирования товара)
+Route::get('/categories/chain/{id}', [AdminCategoryController::class, 'chain'])
+    ->name('categories.chain');
+
+
+
     // 🧾 Заглушки для будущих разделов
     Route::view('/orders', 'seller.orders.index')->name('orders.index');
     Route::view('/finance', 'seller.finance.index')->name('finance.index');

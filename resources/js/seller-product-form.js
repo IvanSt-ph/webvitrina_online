@@ -63,6 +63,49 @@ document.addEventListener('DOMContentLoaded', () => {
       loadChildren(id, e.target);
     });
   }
+
+
+
+
+// ===============================================================
+// === 🧠 ИНИЦИАЛИЗАЦИЯ ПРИ РЕДАКТИРОВАНИИ =======================
+// ===============================================================
+const selectedCatId = catHidden?.value;
+if (selectedCatId && rootSelect) {
+  // загружаем цепочку родителей с сервера
+  fetch(`/seller/categories/chain/${selectedCatId}`)
+    .then(res => res.ok ? res.json() : [])
+    .then(async chain => {
+      // chain = [{id:1,name:'Одежда'}, {id:2,name:'Женская'}, {id:3,name:'Трусики'}, {id:4,name:'Бикини'}]
+      if (!Array.isArray(chain) || !chain.length) return;
+
+      // устанавливаем root
+      rootSelect.value = chain[0].id;
+      let currentSelect = rootSelect;
+
+      // для каждого последующего уровня — грузим детей
+      for (let i = 1; i < chain.length; i++) {
+        const parent = chain[i - 1];
+        const child = chain[i];
+        await loadChildren(parent.id, currentSelect);
+
+        // выбираем нужную подкатегорию в только что добавленном select
+        currentSelect = currentSelect.nextElementSibling;
+        if (currentSelect) {
+          currentSelect.value = child.id;
+        }
+      }
+
+      // финально ставим выбранный id
+      catHidden.value = chain[chain.length - 1].id;
+    })
+    .catch(err => console.warn('Ошибка подстановки категории:', err));
+}
+
+
+
+
+
 // ===============================================================
 // === 🌍 ЛОКАЦИЯ: Загрузка городов по стране (с кэшированием) ====
 // ===============================================================

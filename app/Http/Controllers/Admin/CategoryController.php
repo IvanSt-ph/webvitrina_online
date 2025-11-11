@@ -238,4 +238,25 @@ $cat->chart_data = $dates->map(fn($date) =>
         $category = Category::find($id, ['id', 'parent_id']);
         return response()->json($category);
     }
+
+
+    /** 🌳 Получить цепочку категорий от корня до текущей */
+public function chain($id): JsonResponse
+{
+    $chain = collect();
+    $category = Category::select('id', 'name', 'parent_id')
+        ->with('parent:id,name,parent_id')
+        ->find($id);
+
+    while ($category) {
+        $chain->prepend([
+            'id'   => $category->id,
+            'name' => $category->name,
+        ]);
+        $category = $category->parent;
+    }
+
+    return response()->json($chain->values());
+}
+
 }
