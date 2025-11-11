@@ -285,6 +285,13 @@
     }
   </style>
 
+
+
+<script>
+  window.allCategories = @json($categoriesTree);
+</script>
+
+
   @vite('resources/js/seller-product-form.js')
   @include('layouts.mobile-bottom-seller-nav')
 

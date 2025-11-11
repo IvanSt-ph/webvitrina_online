@@ -20,41 +20,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function loadChildren(parentId, afterSelect) {
-    removeNextSelects(afterSelect);
-    catHidden.value = parentId || '';
+function loadChildren(parentId, afterSelect) {
+  removeNextSelects(afterSelect);
+  catHidden.value = parentId || '';
 
-    if (!parentId) return;
+  if (!parentId) return;
 
-    try {
-      const res = await fetch(`/seller/categories/${parentId}/children`);
+  // ⚡ Используем кэшированный JSON всех категорий
+  const children = window.allCategories.filter(c => c.parent_id === Number(parentId));
+  if (!children.length) return;
 
-      if (!res.ok) return;
-      const categories = await res.json();
-      if (!Array.isArray(categories) || !categories.length) return;
+  const select = document.createElement('select');
+  select.className =
+    'w-full border-gray-200 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 opacity-0 transition duration-300';
+  select.innerHTML = `<option value="">-- выберите подкатегорию --</option>`;
 
-      const select = document.createElement('select');
-      select.className =
-        'w-full border-gray-200 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-200';
-      select.innerHTML = `<option value="">-- выберите подкатегорию --</option>`;
+  children.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat.id;
+    opt.textContent = cat.name;
+    select.appendChild(opt);
+  });
 
-      categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.textContent = cat.name;
-        select.appendChild(opt);
-      });
+  select.addEventListener('change', e => {
+    catHidden.value = e.target.value || parentId;
+    loadChildren(e.target.value, select);
+  });
 
-      select.addEventListener('change', e => {
-        catHidden.value = e.target.value || parentId;
-        loadChildren(e.target.value, select);
-      });
+  afterSelect.insertAdjacentElement('afterend', select);
+  requestAnimationFrame(() => select.classList.remove('opacity-0'));
+}
 
-      afterSelect.insertAdjacentElement('afterend', select);
-    } catch (error) {
-      console.error('Ошибка загрузки категорий:', error);
-    }
-  }
 
   if (rootSelect) {
     rootSelect.addEventListener('change', e => {
@@ -63,49 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
       loadChildren(id, e.target);
     });
   }
-
-
-
-
-// ===============================================================
-// === 🧠 ИНИЦИАЛИЗАЦИЯ ПРИ РЕДАКТИРОВАНИИ =======================
-// ===============================================================
-const selectedCatId = catHidden?.value;
-if (selectedCatId && rootSelect) {
-  // загружаем цепочку родителей с сервера
-  fetch(`/seller/categories/chain/${selectedCatId}`)
-    .then(res => res.ok ? res.json() : [])
-    .then(async chain => {
-      // chain = [{id:1,name:'Одежда'}, {id:2,name:'Женская'}, {id:3,name:'Трусики'}, {id:4,name:'Бикини'}]
-      if (!Array.isArray(chain) || !chain.length) return;
-
-      // устанавливаем root
-      rootSelect.value = chain[0].id;
-      let currentSelect = rootSelect;
-
-      // для каждого последующего уровня — грузим детей
-      for (let i = 1; i < chain.length; i++) {
-        const parent = chain[i - 1];
-        const child = chain[i];
-        await loadChildren(parent.id, currentSelect);
-
-        // выбираем нужную подкатегорию в только что добавленном select
-        currentSelect = currentSelect.nextElementSibling;
-        if (currentSelect) {
-          currentSelect.value = child.id;
-        }
-      }
-
-      // финально ставим выбранный id
-      catHidden.value = chain[chain.length - 1].id;
-    })
-    .catch(err => console.warn('Ошибка подстановки категории:', err));
-}
-
-
-
-
-
 // ===============================================================
 // === 🌍 ЛОКАЦИЯ: Загрузка городов по стране (с кэшированием) ====
 // ===============================================================

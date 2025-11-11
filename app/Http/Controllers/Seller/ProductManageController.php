@@ -11,7 +11,6 @@ use App\Services\ProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 
 class ProductManageController extends Controller
 {
@@ -52,6 +51,7 @@ class ProductManageController extends Controller
             Country::orderBy('name')->get()
         );
 
+        // 🔗 Цепочка категорий от текущей вверх
         $categoryChain = collect();
         if ($product->category_id) {
             $cat = Category::with('parent')->find($product->category_id);
@@ -61,45 +61,52 @@ class ProductManageController extends Controller
             }
         }
 
-        return view('seller.products.form', compact('product', 'rootCategories', 'categoryChain', 'countries'));
+        // ⚡ ВСЕ категории одним массивом для моментальной фильтрации
+        $categoriesTree = Cache::remember('all_categories_tree', 3600, fn() =>
+            Category::select('id', 'name', 'parent_id')->orderBy('name')->get()
+        );
+
+        return view('seller.products.form', compact(
+            'product',
+            'rootCategories',
+            'categoryChain',
+            'countries',
+            'categoriesTree'
+        ));
     }
 
     /** 💾 Создание нового товара */
-  public function store(Request $request)
-{
-    $data = $this->validateProduct($request);
-    $userId = Auth::id();
+    public function store(Request $request)
+    {
+        $data = $this->validateProduct($request);
+        $userId = Auth::id();
 
-    // 🔹 Получаем валюту страны продавца
-    $city = \App\Models\City::with('country')->findOrFail($request->city_id);
-    $currencyBase = $city->country->currency ?? 'MDL';
+        // Определяем валюту по стране
+        $city = City::with('country')->findOrFail($request->city_id);
+        $currencyBase = $city->country->currency ?? 'MDL';
 
-    // 🔹 Создаём модель продукта и добавляем валюту
-    $product = new \App\Models\Product($data);
-    $product->user_id = $userId;
-    $product->currency_base = $currencyBase;
-    $product->price = $request->price;
-    $product->price_prb = $request->price_prb;
-    $product->price_mdl = $request->price_mdl;
-    $product->price_uah = $request->price_uah;
+        $product = new Product($data);
+        $product->user_id = $userId;
+        $product->currency_base = $currencyBase;
+        $product->price = $request->price;
+        $product->price_prb = $request->price_prb;
+        $product->price_mdl = $request->price_mdl;
+        $product->price_uah = $request->price_uah;
 
-    // 🔹 Автопересчёт, если пусто
-    $svc = app(\App\Services\CurrencyService::class);
-    $map = ['PRB' => 'price_prb', 'MDL' => 'price_mdl', 'UAH' => 'price_uah'];
-    foreach ($map as $code => $field) {
-        if (is_null($product->{$field})) {
-            $product->{$field} = $svc->convert((float)$product->price, $currencyBase, $code);
+        $svc = app(\App\Services\CurrencyService::class);
+        $map = ['PRB' => 'price_prb', 'MDL' => 'price_mdl', 'UAH' => 'price_uah'];
+        foreach ($map as $code => $field) {
+            if (is_null($product->{$field})) {
+                $product->{$field} = $svc->convert((float)$product->price, $currencyBase, $code);
+            }
         }
+
+        $image   = $request->file('image');
+        $gallery = $request->file('gallery', []);
+        $this->products->store($product->toArray(), $image, $gallery, $userId);
+
+        return redirect()->route('seller.products.index')->with('success', '✅ Товар добавлен');
     }
-
-    // 🔹 Сохраняем через сервис
-    $image   = $request->file('image');
-    $gallery = $request->file('gallery', []);
-    $this->products->store($product->toArray(), $image, $gallery, $userId);
-
-    return redirect()->route('seller.products.index')->with('success', '✅ Товар добавлен');
-}
-
 
     /** 🔄 Обновление существующего товара */
     public function update(Request $request, Product $product)
@@ -107,8 +114,8 @@ class ProductManageController extends Controller
         $this->authorize('update', $product);
         $data = $this->validateProduct($request);
 
-        $image          = $request->file('image');
-        $galleryNew     = $request->file('gallery', []);
+        $image           = $request->file('image');
+        $galleryNew      = $request->file('gallery', []);
         $galleryToDelete = $request->input('delete_gallery', []);
 
         $this->products->update($product, $data, $image, $galleryNew, $galleryToDelete);
@@ -129,10 +136,8 @@ class ProductManageController extends Controller
     public function deleteGalleryImage(Product $product, Request $request)
     {
         $this->authorize('update', $product);
-
         $path = $request->input('path');
         $this->products->deleteFromGallery($product, [$path]);
-
         return response()->json(['success' => true]);
     }
 
@@ -155,5 +160,3 @@ class ProductManageController extends Controller
         ]);
     }
 }
-
-
