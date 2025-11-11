@@ -71,7 +71,7 @@
 @endisset
 
 {{-- Контент --}}
-<main class="pt-2 md:pt-1 pb-12 py-20  mx-auto px-4 sm:px-6 lg:px-8">
+<main class="pt-2 mt-8 md:pt-1 pb-12 py-20  mx-auto px-4 sm:px-6 lg:px-8">
     {{ $slot }}
 </main>
 

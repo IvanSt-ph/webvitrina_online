@@ -7,11 +7,12 @@
   </div>
 </div>
 
-{{-- 🌸 Панель фильтров --}}
-@include('partials.category-filters')
 
 <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-10">
   <h1 class="text-2xl font-bold text-gray-800 mb-8">Все категории</h1>
+  
+{{-- 🌸 Панель фильтров --}}
+@include('partials.category-filters')
 
   @if($categories->count())
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">

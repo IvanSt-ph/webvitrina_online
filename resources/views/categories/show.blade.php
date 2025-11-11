@@ -7,11 +7,13 @@
   </div>
 </div>
 
-{{-- 🌸 Панель фильтров --}}
-@include('partials.category-filters')
+
 
 <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-10">
   <h1 class="text-2xl font-semibold text-gray-800 mb-6">{{ $category->name }}</h1>
+
+  {{-- 🌸 Панель фильтров --}}
+@include('partials.category-filters')
 
   {{-- 🔹 Плитки подкатегорий --}}
   @if($category->children->count())
