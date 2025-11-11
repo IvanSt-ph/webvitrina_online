@@ -1,5 +1,6 @@
 {{-- resources/views/components/seller-layout.blade.php --}}
-<x-app-layout :title="$title ?? 'Панель продавца'" :hideHeader="true">
+<x-seller-base :title="$title ?? 'Панель продавца'">
+
   <div class="flex min-h-screen bg-neutral-50 text-gray-800">
 
     <!-- 🧭 Sidebar (слева) -->

@@ -1,3 +1,8 @@
+import Alpine from 'alpinejs'
+
+window.Alpine = Alpine
+Alpine.start()
+
 // 🧩 Основная инициализация Bootstrap (Laravel)
 // Подключает axios, csrf-token и базовые зависимости проекта
 import './bootstrap';
@@ -43,13 +48,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-
-// 🧠 Подключаем Alpine.js (frontend-framework)
-// ------------------------------------------------------
-// Позволяет использовать x-data, x-model, x-show и т.д. прямо в Blade
-import Alpine from 'alpinejs';
-window.Alpine = Alpine;
-Alpine.start();
 
 
 // 🧩 Подключаем твои доп. скрипты (пример: форма продавца)
@@ -124,4 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+});
+
+
+// 🩵 Принудительный запуск Alpine после сборки Vite
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.Alpine && !window.Alpine.initialized) {
+    window.Alpine.start();
+  }
 });

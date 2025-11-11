@@ -102,12 +102,18 @@ public function oldSlugs()
         return $user && $this->favorites()->where('user_id', $user->id)->exists();
     }
 
-    public function attributes()
-    {
-        return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_values')
-                    ->withPivot('value')
-                    ->withTimestamps();
-    }
+public function attributes()
+{
+    return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_values')
+                ->withPivot('value')
+                ->withTimestamps();
+}
+
+public function attributeValues()
+{
+    return $this->hasMany(\App\Models\AttributeValue::class);
+}
+
 
     public function orders()
     {

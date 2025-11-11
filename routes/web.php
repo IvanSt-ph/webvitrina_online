@@ -140,6 +140,11 @@ Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(funct
 Route::get('/categories/chain/{id}', [AdminCategoryController::class, 'chain'])
     ->name('categories.chain');
 
+// ⚡ Атрибуты по выбранной категории (AJAX)
+Route::get('/categories/{category}/attributes', [SellerProducts::class, 'getCategoryAttributes'])
+    ->name('categories.attributes');
+
+
 
 
     // 🧾 Заглушки для будущих разделов
@@ -154,8 +159,10 @@ Route::get('/categories/chain/{id}', [AdminCategoryController::class, 'chain'])
     // 🖼️ Удаление фото из галереи
     Route::delete('/products/{product}/gallery', [SellerProducts::class, 'deleteGalleryImage'])
         ->name('products.gallery.delete');
-});
-});
+}); // конец блока продавца (seller)
+}); // конец блока авторизации (auth)
+
+
 
 
 /*

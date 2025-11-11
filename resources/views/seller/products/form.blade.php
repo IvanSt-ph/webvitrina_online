@@ -82,6 +82,18 @@
 
 
 
+{{-- 🔹 Характеристики --}}
+<section id="attributes-wrapper">
+  @include('seller.products.partials.attributes', ['product' => $product])
+</section>
+
+
+
+
+
+
+
+
       {{-- ================= Описание ================= --}}
       <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
         <h2 class="text-lg font-semibold text-gray-700 mb-4">Описание</h2>
