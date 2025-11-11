@@ -6,37 +6,146 @@
 @endpush
 
 
-<div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+<div class="w-full max-w-7xl mx-auto pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-x-hidden">
+
 
   {{-- ====== Основной контейнер ====== --}}
-  <div class="grid md:grid-cols-2 gap-10 bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+<div class="flex flex-col md:grid md:grid-cols-2 gap-6 bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-6">
 
-    {{-- ====== Левая колонка: фото товара ====== --}}
-    <div x-data="{ activeImage: '{{ $product->image ? asset('storage/'.$product->image) : '' }}' }" class="flex flex-col items-center">
-      
-      {{-- Главное фото --}}
-      <div class="bg-gray-50 border rounded-xl flex items-center justify-center w-full aspect-square overflow-hidden">
-        <template x-if="activeImage">
-          <img :src="activeImage" class="object-contain w-full h-full transition-transform duration-300 hover:scale-105" />
-        </template>
+
+
+
+
+{{-- ====== Левая колонка: фото товара ====== --}}
+<div 
+  x-data="{
+    activeImage: '{{ $product->image ? asset('storage/'.$product->image) : '' }}',
+    images: [
+      @if($product->image)
+        '{{ asset('storage/'.$product->image) }}',
+      @endif
+      @foreach($product->gallery ?? [] as $img)
+        '{{ asset('storage/'.$img) }}',
+      @endforeach
+    ],
+    startIndex: 0,
+    visibleCount: 6,
+    get canScrollUp() { return this.startIndex > 0 },
+    get canScrollDown() { return this.startIndex + this.visibleCount < this.images.length },
+    scrollUp() { if (this.canScrollUp) this.startIndex-- },
+    scrollDown() { if (this.canScrollDown) this.startIndex++ },
+  }"
+  class="flex flex-col md:flex-row gap-4 items-start"
+>
+
+{{-- 📱 Мобильная версия: главное фото со свайпом --}}
+<div x-data="{
+      startX: 0,
+      handleTouchStart(e) { this.startX = e.touches[0].clientX },
+      handleTouchEnd(e) {
+        const diff = e.changedTouches[0].clientX - this.startX
+        if (Math.abs(diff) > 50) {
+          if (diff < 0 && this.images.indexOf(this.activeImage) < this.images.length - 1) {
+            this.activeImage = this.images[this.images.indexOf(this.activeImage) + 1]
+          } else if (diff > 0 && this.images.indexOf(this.activeImage) > 0) {
+            this.activeImage = this.images[this.images.indexOf(this.activeImage) - 1]
+          }
+        }
+      }
+    }"
+    @touchstart="handleTouchStart($event)"
+    @touchend="handleTouchEnd($event)"
+    class="md:hidden w-full bg-gray-50 border rounded-xl flex items-center justify-center aspect-square 
+           h-[400px] sm:h-[460px] overflow-hidden relative select-none">
+
+  <template x-if="activeImage">
+    <img 
+      :src="activeImage" 
+      class="object-contain w-full h-full transition-transform duration-300 ease-in-out"
+    />
+  </template>
+
+  {{-- 🔹 Индикаторы (точки) --}}
+  <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+    <template x-for="(img, i) in images" :key="i">
+      <div class="w-2.5 h-2.5 rounded-full"
+           :class="activeImage === img ? 'bg-indigo-600' : 'bg-gray-300'"></div>
+    </template>
+  </div>
+</div>
+
+
+  {{-- 💻 Десктопная версия: миниатюры + стрелки --}}
+  <div class="hidden md:flex gap-4 items-start w-full">
+    
+    {{-- Галерея миниатюр --}}
+    <div class="relative flex md:flex-col items-center h-[640px]">
+
+      {{-- 🔼 Стрелка вверх --}}
+      <template x-if="canScrollUp && images.length > visibleCount">
+        <button 
+          @click="scrollUp()" 
+          class="absolute -top-4 left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-full
+                 w-8 h-8 flex items-center justify-center shadow-sm hover:bg-indigo-50 hover:scale-105
+                 transition-all duration-200 z-10">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      </template>
+
+      {{-- Миниатюры --}}
+      <div class="flex md:flex-col gap-2 overflow-hidden w-full md:w-auto h-full relative">
+        <div 
+          class="flex md:flex-col gap-2 transition-transform duration-500 ease-in-out"
+          :style="{
+            transform: `translateY(-${startIndex * 108}px)`
+          }">
+          <template x-for="(img, i) in images" :key="i">
+            <img 
+              :src="img"
+              @mouseover="activeImage = img"
+              @click="activeImage = img"
+              class="w-20 h-[6.3rem] object-cover rounded-lg border cursor-pointer transition-all duration-300 ease-out
+                     hover:ring-2 hover:ring-indigo-600 hover:scale-[1.05] hover:opacity-90"
+              :class="{ 'ring-2 ring-indigo-600': activeImage === img }">
+          </template>
+        </div>
       </div>
 
-      {{-- Галерея миниатюр --}}
-      <div class="flex gap-2 mt-4 overflow-x-auto justify-center">
-        @if($product->image)
-          <img src="{{ asset('storage/'.$product->image) }}"
-               class="w-20 h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-indigo-600 transition"
-               :class="{ 'ring-2 ring-indigo-600': activeImage === '{{ asset('storage/'.$product->image) }}' }"
-               @click="activeImage='{{ asset('storage/'.$product->image) }}'">
-        @endif
-        @foreach($product->gallery ?? [] as $img)
-          <img src="{{ asset('storage/'.$img) }}"
-               class="w-20 h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 hover:ring-2 hover:ring-indigo-600 transition"
-               :class="{ 'ring-2 ring-indigo-600': activeImage === '{{ asset('storage/'.$img) }}' }"
-               @click="activeImage='{{ asset('storage/'.$img) }}'">
-        @endforeach
-      </div>
+      {{-- 🔽 Стрелка вниз --}}
+      <template x-if="canScrollDown && images.length > visibleCount">
+        <button 
+          @click="scrollDown()" 
+          class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-full
+                 w-8 h-8 flex items-center justify-center shadow-sm hover:bg-indigo-50 hover:scale-105
+                 transition-all duration-200 z-10">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </template>
     </div>
+
+    {{-- Главное фото --}}
+    <div class="flex-1 bg-gray-50 border rounded-xl flex items-center justify-center aspect-square 
+                h-[550px] lg:h-[620px] xl:h-[640px] overflow-hidden w-full relative">
+      <template x-if="activeImage">
+        <img 
+          :src="activeImage" 
+          class="object-contain w-full h-full transition-transform duration-300 hover:scale-105"
+        />
+      </template>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
 
     {{-- ====== Правая колонка: информация ====== --}}
     <div class="flex flex-col justify-between">
@@ -59,66 +168,119 @@
 
       {{-- Название --}}
       <h1 class="text-3xl font-bold text-gray-900 leading-tight">{{ $product->title }}</h1>
+        {{-- 💵 Цена и скидка --}}
+  <div class="flex items-end gap-3">
+    
+
+    <div class="text-3xl font-semibold text-gray-900 leading-none">
+      {{ number_format($product->price, 0, ',', ' ') }} ₽
+    </div>
+
+    @if($product->old_price)
+      <div class="text-gray-400 line-through text-base">
+        {{ number_format($product->old_price, 0, ',', ' ') }} ₽
+      </div>
+      <div class="bg-blue-50 text-blue-600 text-xs font-medium px-2 py-0.5 rounded-lg border border-blue-100">
+        -{{ round(100 - ($product->price / $product->old_price * 100)) }}%
+      </div>
+    @endif
+  </div>
 
       {{-- Рейтинг и заказы --}}
-      <div class="flex items-center gap-2 text-sm text-gray-600 mt-2">
+<div class="flex items-center gap-2 text-sm text-gray-600 mt-4">
+
         ⭐ {{ number_format($product->reviews_avg_rating ?? 0, 1) }}
         <span>· {{ $product->reviews_count }} отзывов</span>
         <span>· {{ $product->orders_count ?? 0 }} заказов</span>
       </div>
 
-      {{-- Цена + избранное --}}
-      <div class="mt-6 flex items-center justify-between bg-gray-50 border rounded-xl p-4">
-        <div>
-          <div class="text-4xl font-semibold text-gray-900">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
-          @if($product->old_price)
-            <div class="text-gray-400 line-through">{{ number_format($product->old_price, 0, ',', ' ') }} ₽</div>
-          @endif
-        </div>
-        <form method="post" action="{{ route('favorites.toggle',$product) }}">@csrf
-          <button class="w-12 h-12 flex items-center justify-center border rounded-xl hover:bg-indigo-50 hover:text-red-500 transition text-lg">
-            ❤
-          </button>
-        </form>
+
+
+{{-- 💰 Блок цены и кнопок — стиль WebVitrina --}}
+<div class="mt-6  bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-5">
+
+
+
+  {{-- 🛍 Кнопки действий --}}
+  <div class="flex flex-col gap-3">
+    @auth
+      {{-- ⚡ Купить сейчас --}}
+      <a href="{{ route('checkout.quick', $product) }}" 
+         class="w-full py-3 rounded-xl text-base font-semibold text-white text-center
+                bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98]
+                shadow-sm hover:shadow transition-all duration-200">
+        ⚡ Купить сейчас
+      </a>
+
+      {{-- 🛒 Добавить в корзину --}}
+      <form method="post" action="{{ route('cart.add',$product) }}">@csrf
+        <button class="w-full py-3 rounded-xl text-base font-medium text-gray-700 text-center
+                       bg-gray-50 hover:bg-gray-100 active:scale-[0.98]
+                       border border-gray-200 shadow-sm transition-all duration-200">
+          🛒 Добавить в корзину
+        </button>
+      </form>
+    @else
+      <a href="{{ route('login') }}" 
+         class="w-full py-3 rounded-xl text-base font-semibold text-white text-center
+                bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98]
+                shadow-sm transition-all duration-200">
+        Войти, чтобы купить
+      </a>
+    @endauth
+  </div>
+
+{{-- ❤️ Избранное + Артикул + Копирование --}}
+<div 
+  x-data="{ copied: false }"
+  class="flex items-center justify-between pt-2 border-t mt-2 text-sm text-gray-600 select-none"
+>
+  {{-- Артикул --}}
+  @if($product->sku)
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1 text-gray-500">
+        <span class="text-gray-400">Арт.</span>
+        <span class="font-medium text-gray-700" id="sku-value">{{ $product->sku }}</span>
       </div>
 
-      {{-- Цвет --}}
-      @if($product->color)
-        <div class="mt-4">
-          <div class="text-sm text-gray-500">Цвет:</div>
-          <div class="flex gap-2 mt-1">
-            <div class="w-8 h-8 rounded-full border-2 border-gray-300" style="background: {{ $product->color }}"></div>
-          </div>
-        </div>
-      @endif
+      {{-- Кнопка копирования --}}
+      <button 
+        @click="navigator.clipboard.writeText('{{ $product->sku }}'); copied = true; setTimeout(() => copied = false, 1500)"
+        class="text-gray-400 hover:text-indigo-600 transition"
+        title="Скопировать артикул">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-2 8h4a2 2 0 002-2v-4a2 2 0 00-2-2h-4a2 2 0 00-2 2v4a2 2 0 002 2z" />
+        </svg>
+      </button>
 
-      {{-- Размеры --}}
-      @if($product->sizes ?? false)
-        <div class="mt-4">
-          <div class="text-sm text-gray-500">Размер:</div>
-          <div class="flex flex-wrap gap-2 mt-2">
-            @foreach($product->sizes as $size)
-              <button class="px-3 py-1.5 border rounded-lg hover:border-indigo-600 hover:text-indigo-600 transition text-sm">{{ $size }}</button>
-            @endforeach
-          </div>
-        </div>
-      @endif
+      {{-- Уведомление при копировании --}}
+      <span 
+        x-show="copied"
+        x-transition
+        class="text-green-600 text-xs font-medium"
+      >Скопировано!</span>
+    </div>
+  @endif
 
-      {{-- Кнопка купить --}}
-      <div class="mt-6 flex gap-3">
-        @auth
-          <form method="post" action="{{ route('cart.add',$product) }}" class="flex-1">@csrf
-            <button class="w-full py-3 bg-indigo-600 text-white rounded-xl text-lg hover:bg-indigo-700 transition">
-              🛒 Добавить в корзину
-            </button>
-          </form>
-        @else
-          <a href="{{ route('login') }}" 
-             class="flex-1 block text-center py-3 bg-indigo-600 text-white rounded-xl text-lg hover:bg-indigo-700 transition">
-             Войти, чтобы купить
-          </a>
-        @endauth
-      </div>
+  {{-- Избранное --}}
+  <form method="post" action="{{ route('favorites.toggle', $product) }}">@csrf
+    <button 
+      class="flex items-center gap-1 text-gray-500 hover:text-red-500 font-medium transition"
+      title="Добавить в избранное"
+    >
+      ❤ В избранное
+    </button>
+  </form>
+</div>
+
+
+</div>
+
+
+
+
+
+
 
 {{-- Продавец --}}
 @if($product->seller)
@@ -224,6 +386,11 @@
         <li>Бренд: {{ $product->brand->name ?? '—' }}</li>
       </ul>
     </div>
+
+
+
+
+    
 {{-- ===== Отзывы ===== --}}
 <div x-show="tab==='reviews'" x-cloak class="space-y-6" x-transition.opacity.duration.400ms">
 
@@ -378,6 +545,16 @@ svg:hover {
   transform: scale(1.15);
 }
 
+  /* 🧭 Исправление наложения карты */
+  #map,
+  #map * {
+    z-index: 0 !important;
+  }
+
+  /* если хочешь — оставь подписи Leaflet видимыми */
+  #map .leaflet-control-container {
+    z-index: 1 !important;
+  }
 </style>
 
 
@@ -415,7 +592,7 @@ svg:hover {
       padding: 2px 6px !important;
     }
   </style>
-  
+
   <script>
   document.addEventListener("DOMContentLoaded", function () {
     const lat = {{ $product->latitude }};
@@ -431,20 +608,20 @@ svg:hover {
   </script>
 @endif
 
-
 @if(session('success'))
   <div 
     x-data="{ show: true }" 
     x-show="show"
     x-transition.duration.500ms
     x-init="setTimeout(() => show = false, 3000)"
-    class="fixed bottom-6 right-6 z-50 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2"
-  >
+    class="fixed bottom-6 right-6 z-50 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
     </svg>
     <span>{{ session('success') }}</span>
   </div>
 @endif
+
+
 
 </x-app-layout>
