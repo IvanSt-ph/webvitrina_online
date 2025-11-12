@@ -1,9 +1,36 @@
 <x-seller-layout title="Мои товары" :hideHeader="true">
   <style>[x-cloak]{display:none!important}</style>
 
-  <div class="min-h-screen bg-white text-gray-800 pb-[5.5rem]"
-       x-data="{ viewMode: localStorage.getItem('seller_view') || 'grid' }">
-       {{-- ↑ безопасный нижний отступ под мобильную навигацию --}}
+  <!-- 🧩 Обёртка с Alpine -->
+  <div x-data="{ viewMode: localStorage.getItem('seller_view') || 'grid', showConfirm:false, productId:null }"
+       class="min-h-screen bg-white text-gray-800 pb-[5.5rem]">
+
+    {{-- 🌌 Модалка подтверждения удаления --}}
+    <div x-show="showConfirm"
+         x-cloak
+         class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl shadow-xl p-6 w-[90%] sm:w-[400px] border border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800 mb-2">Удалить товар?</h2>
+        <p class="text-sm text-gray-600 mb-5">
+          Это действие <span class="font-semibold text-red-600">необратимо</span>.<br>
+          После удаления товар исчезнет из магазина навсегда.
+        </p>
+        <div class="flex justify-end gap-3">
+          <button @click="showConfirm=false"
+                  class="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+            Отмена
+          </button>
+
+          <form :action="`/seller/products/${productId}`" method="POST" x-ref="deleteForm">
+            @csrf @method('DELETE')
+            <button type="submit"
+                    class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 text-white rounded-lg text-sm shadow">
+              Удалить
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- 🔹 Заголовок страницы -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -16,6 +43,9 @@
         <i class="ri-add-line text-lg"></i> Добавить товар
       </a>
     </div>
+
+    {{-- 🔹 дальше идёт весь твой код страницы как был --}}
+
 
     <!-- 📊 Аналитика -->
     <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
@@ -104,11 +134,12 @@
                           group-hover:opacity-100 flex items-center justify-center gap-2 transition duration-300">
                 <a href="{{ route('seller.products.edit',$p) }}"
                    class="px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-md bg-white/90 hover:bg-gray-100">Редактировать</a>
-                <form method="POST" action="{{ route('seller.products.destroy',$p) }}">
-                  @csrf @method('DELETE')
-                  <button type="submit"
-                          class="px-3 py-1.5 text-xs font-medium border border-red-300 text-red-600 rounded-md bg-white/90 hover:bg-red-50">Удалить</button>
-                </form>
+<button type="button"
+        @click="productId={{ $p->id }}; showConfirm=true"
+        class="px-3 py-1.5 text-xs font-medium border border-red-300 text-red-600 rounded-md bg-white/90 hover:bg-red-50">
+  Удалить
+</button>
+
               </div>
             </div>
 
@@ -175,14 +206,12 @@
            class="text-[14px] text-indigo-600 hover:text-indigo-800 transition">
            <i class="ri-edit-line"></i>
         </a>
+<button type="button"
+        @click="productId={{ $p->id }}; showConfirm=true"
+        class="text-[14px] text-red-600 hover:text-red-700 transition">
+  <i class="ri-delete-bin-6-line"></i>
+</button>
 
-        <form method="POST" action="{{ route('seller.products.destroy',$p) }}">
-          @csrf @method('DELETE')
-          <button type="submit" 
-                  class="text-[14px] text-red-600 hover:text-red-700 transition">
-            <i class="ri-delete-bin-6-line"></i>
-          </button>
-        </form>
       </div>
     </div>
   @endforeach

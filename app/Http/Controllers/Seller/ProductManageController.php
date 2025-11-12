@@ -251,14 +251,33 @@ public function store(Request $request)
     return redirect()->route('seller.products.index')->with('success', '✅ Изменения сохранены');
 }
 
-    /** 🗑️ Удаление */
-    public function destroy(Product $product)
-    {
-        $this->authorize('delete', $product);
-        $this->products->delete($product);
+public function destroy(Product $product)
+{
+    $this->authorize('delete', $product);
 
-        return back()->with('success', '🗑️ Товар удалён');
+    // 💥 Физическое удаление
+    if ($product->image && \Storage::disk('public')->exists($product->image)) {
+        \Storage::disk('public')->delete($product->image);
     }
+
+    if (is_array($product->gallery)) {
+        foreach ($product->gallery as $path) {
+            if ($path && \Storage::disk('public')->exists($path)) {
+                \Storage::disk('public')->delete($path);
+            }
+        }
+    }
+
+    // Удаляем связанные данные
+    \DB::table('attribute_values')->where('product_id', $product->id)->delete();
+    \DB::table('favorites')->where('product_id', $product->id)->delete();
+    \DB::table('cart_items')->where('product_id', $product->id)->delete();
+
+    $product->forceDelete();
+
+    return back()->with('success', '🗑️ Товар удалён полностью');
+}
+
 
     /** 🧽 Удаление одного фото из галереи */
     public function deleteGalleryImage(Product $product, Request $request)
