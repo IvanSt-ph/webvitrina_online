@@ -198,8 +198,20 @@ use App\Http\Controllers\Admin\{
     ReviewController as AdminReviewController
 };
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Controllers\Admin\CategoryAttributeController;
+
+
+
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', AdminMiddleware::class])->group(function () {
+
+
+// маршруты от изменения Атрибутов категорий
+Route::get('/categories/{category}/attributes', [CategoryAttributeController::class, 'index'])->name('categories.attributes');
+Route::post('/categories/{category}/attributes', [CategoryAttributeController::class, 'store'])->name('categories.attributes.store');
+Route::delete('/categories/{category}/attributes/{attribute}', [CategoryAttributeController::class, 'destroy'])->name('categories.attributes.destroy');
+
+
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('users', AdminUserController::class);
     Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');

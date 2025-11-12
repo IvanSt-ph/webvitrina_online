@@ -59,6 +59,14 @@
         {{-- ⚙️ Действия --}}
         <td class="px-4 py-3 text-right">
           <div class="flex items-center justify-end gap-2">
+
+               {{-- 🔗 Атрибуты --}}
+            <a href="{{ route('admin.categories.attributes', $cat->id) }}"
+              title="Атрибуты категории"
+              class="inline-flex items-center justify-center w-8 h-8 text-amber-600 bg-amber-50 rounded-md hover:bg-amber-100 hover:text-amber-700 transition">
+              <i class="ri-settings-3-line text-lg"></i>
+            </a>
+              {{-- 🔗 Редактировать --}}
             <a href="{{ route('admin.categories.edit', $cat) }}"
                title="Редактировать"
                class="inline-flex items-center justify-center w-8 h-8 text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 hover:text-indigo-700 transition">
