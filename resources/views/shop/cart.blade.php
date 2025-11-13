@@ -1,134 +1,181 @@
 {{-- resources/views/shop/cart.blade.php --}}
 <x-buyer-layout title="Моя корзина">
 
-  <div class="space-y-8">
+<div x-data="cartSelection()" class="space-y-6">
 
     <!-- 🔝 Заголовок -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-semibold text-gray-900">🛒 Моя корзина</h1>
-        <p class="text-gray-500 text-sm mt-1">
-          Проверьте выбранные товары, измените количество или оформите заказ.
-        </p>
-      </div>
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-semibold">🛒 Моя корзина</h1>
+            <p class="text-gray-500 text-sm">Проверьте товары перед оформлением</p>
+        </div>
 
-      @if($items->isNotEmpty())
-        <form method="POST" action="{{ route('checkout') }}">
-          @csrf
-          <button
-            class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
-            <i class="ri-check-double-line text-lg"></i> Перейти к оформлению
-          </button>
-        </form>
-      @endif
+        @if($items->isNotEmpty())
+        <div class="flex items-center gap-3">
+
+            <!-- Выбор -->
+            <button @click="selectMode = !selectMode; if(!selectMode) selected=[];"
+                class="px-4 py-2 border border-indigo-400 text-indigo-600 rounded-lg text-sm">
+                <span x-show="!selectMode">Выбрать товары</span>
+                <span x-show="selectMode">Отменить выбор</span>
+            </button>
+
+            <!-- Оформить всё -->
+            <form method="POST" action="{{ route('checkout.prepare') }}">
+                @csrf
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">
+                    Оформить всю корзину
+                </button>
+            </form>
+
+        </div>
+        @endif
     </div>
 
     @if($items->isEmpty())
-      <!-- 🕊 Пустая корзина -->
-      <div class="text-center py-24">
-        <div class="text-6xl mb-3">🛍️</div>
-        <p class="text-lg font-medium text-gray-700">Ваша корзина пуста</p>
-        <p class="text-sm text-gray-500 mt-1">Добавьте товары, чтобы оформить заказ.</p>
-        <a href="{{ route('home') }}"
-           class="mt-6 inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">
-          Перейти в каталог
-        </a>
-      </div>
+
+        <!-- 🕊 Пустая корзина -->
+        <div class="text-center py-24">
+            <div class="text-6xl mb-3">🛍️</div>
+            <p class="text-lg">Ваша корзина пуста</p>
+
+            <a href="{{ route('home') }}"
+               class="mt-6 inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg">
+                Перейти в каталог
+            </a>
+        </div>
+
     @else
-      <!-- 📦 Товары в корзине -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+    <!-- 📜 СПИСОК -->
+    <div class="flex flex-col divide-y divide-gray-200">
+
         @foreach($items as $i)
-          @php $p = $i->product; @endphp
-          <div
-            class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col overflow-hidden">
+        @php $p = $i->product; @endphp
+
+        <div 
+            x-data="{ qty: {{ $i->qty }} }"
+            class="flex gap-3 py-3 cursor-pointer relative"
+            @click="
+                if(selectMode){
+                    const id='{{ $i->id }}';
+                    selected.includes(id)
+                        ? selected = selected.filter(x=>x!==id)
+                        : selected.push(id)
+                }
+            "
+            :class="selected.includes('{{ $i->id }}') ? 'bg-indigo-50' : ''"
+        >
+
+            <!-- Чекбокс -->
+            <div x-show="selectMode" class="flex items-start pt-1" @click.stop>
+                <input 
+                    type="checkbox" 
+                    x-model="selected" 
+                    value="{{ $i->id }}" 
+                    class="w-4 h-4 text-indigo-600 rounded">
+            </div>
 
             <!-- Фото -->
-            <a href="{{ route('product.show', $p) }}" class="relative aspect-square bg-gray-50 overflow-hidden">
-              @if($p->image)
-                <img src="{{ asset('storage/'.$p->image) }}"
-                     alt="{{ $p->title }}"
-                     class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              @else
-                <div class="flex items-center justify-center h-full text-gray-300 text-3xl">📦</div>
-              @endif
+            <a href="{{ route('product.show',$p) }}"
+                class="w-[70px] h-[70px] rounded-lg overflow-hidden border flex-shrink-0
+                       transition"
+                :class="selectMode ? 'opacity-50 pointer-events-none' : ''"
+            >
+                @if($p->image)
+                    <img src="{{ asset('storage/'.$p->image) }}"
+                         class="w-full h-full object-cover">
+                @else
+                    <div class="w-full h-full bg-gray-100 flex items-center justify-center text-xl text-gray-400">📦</div>
+                @endif
             </a>
 
             <!-- Информация -->
-            <div class="flex-1 flex flex-col p-4">
-              <a href="{{ route('product.show', $p) }}"
-                 class="text-sm font-medium text-gray-800 hover:text-indigo-600 line-clamp-2 min-h-[40px] mb-2">
-                {{ $p->title }}
-              </a>
+            <div class="flex flex-col flex-1">
 
-              <div class="flex items-center justify-between mb-3">
-                <p class="text-base font-semibold text-gray-900">
-                  {{ number_format($p->price, 2, ',', ' ') }} ₽
-                </p>
-                <form method="POST" action="{{ route('cart.update', $i) }}" class="flex items-center gap-2">
-                  @csrf
-                  @method('PATCH')
-                  <input type="number" min="1" name="qty" value="{{ $i->qty }}"
-                         class="w-16 border-gray-300 rounded-lg p-1.5 text-center text-xs focus:ring-2 focus:ring-indigo-500 transition">
-                </form>
-              </div>
+                <!-- Название -->
+                <a href="{{ route('product.show',$p) }}"
+                   class="text-sm font-medium line-clamp-2"
+                   :class="selectMode ? 'opacity-60 pointer-events-none' : ''">
+                    {{ $p->title }}
+                </a>
 
-              <!-- Кнопки -->
-              <div class="mt-auto flex flex-col gap-2">
+                <!-- Цена -->
+                <div class="text-[16px] font-semibold mt-1">
+                    {{ number_format($p->price,2,',',' ') }} ₽
+                </div>
 
-                <!-- Купить сейчас -->
-                <form method="POST" action="{{ route('checkout.quick', $p->id) }}">
-                  @csrf
-                  <button type="submit"
-                          class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-                    <i class="ri-flashlight-line text-sm"></i>
-                    Купить сейчас
-                  </button>
-                </form>
+                <!-- Управление -->
+                <div class="flex items-center justify-between mt-3"
+                     :class="selectMode ? 'opacity-50 pointer-events-none' : ''">
 
-                <!-- В избранное -->
-                <form method="POST" action="{{ route('favorites.toggle', $p) }}">
-                  @csrf
-                  <button type="submit"
-                          class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium border border-gray-200 text-gray-700 rounded-lg hover:border-indigo-400 hover:text-indigo-600 transition">
-                    <i class="ri-heart-line text-sm"></i>
-                    В избранное
-                  </button>
-                </form>
+                    <!-- Количество -->
+                    <input type="number" min="1" 
+                           x-model="qty"
+                           class="w-14 h-8 border rounded text-center text-xs">
 
-                <!-- Удалить -->
-                <form method="POST" action="{{ route('cart.remove', $i) }}">
-                  @csrf
-                  @method('DELETE')
-                  <button type="submit"
-                          class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:text-red-600 hover:border-red-400 transition">
-                    <i class="ri-delete-bin-6-line text-sm"></i>
-                    Удалить
-                  </button>
-                </form>
-              </div>
+                    <div class="flex items-center gap-2">
+
+                        <!-- Купить -->
+                        <form method="POST" action="{{ route('checkout.quick',$p->id) }}">
+                            @csrf
+                            <input type="hidden" name="qty" :value="qty">
+                            <button class="px-3 py-1 bg-indigo-600 text-white text-xs rounded">Купить</button>
+                        </form>
+
+                        <!-- Удалить -->
+                        <form method="POST" action="{{ route('cart.remove',$i) }}">
+                            @csrf @method('DELETE')
+                            <button class="px-3 py-1 border text-xs rounded text-gray-600 hover:text-red-600">
+                                Удалить
+                            </button>
+                        </form>
+
+                    </div>
+
+                </div>
+
             </div>
-          </div>
-        @endforeach
-      </div>
 
-      <!-- 💰 Итог -->
-      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div class="text-sm text-gray-500">Общая сумма заказа:</div>
-          <div class="text-3xl font-semibold text-gray-900 mt-1">
-            {{ number_format($total, 2, ',', ' ') }} ₽
-          </div>
         </div>
-        <form method="POST" action="{{ route('checkout') }}">
-          @csrf
-          <button
-            class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">
-            <i class="ri-check-double-line text-lg"></i> Оформить заказ
-          </button>
-        </form>
-      </div>
-    @endif
-  </div>
 
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+        @endforeach
+
+    </div>
+
+    <!-- Итог выбранных -->
+    <template x-if="selectMode">
+        <div class="bg-white rounded-2xl border border-gray-200 p-5 mt-6 flex items-center justify-between">
+
+            <div>
+                <div class="text-sm text-gray-500">Выбрано товаров:</div>
+                <div class="text-3xl font-semibold"><span x-text="selected.length"></span></div>
+            </div>
+
+            <form method="POST" action="{{ route('checkout.prepare') }}">
+                @csrf
+
+                <template x-for="id in selected">
+                    <input type="hidden" name="selected_items[]" :value="id">
+                </template>
+
+                <button :disabled="selected.length===0"
+                        class="px-6 py-3 bg-indigo-600 disabled:bg-gray-300 text-white text-sm rounded-lg">
+                    Оформить выбранные
+                </button>
+            </form>
+
+        </div>
+    </template>
+
+    @endif
+
+</div>
+
+<script>
+function cartSelection(){
+    return { selectMode:false, selected:[] }
+}
+</script>
+
 </x-buyer-layout>

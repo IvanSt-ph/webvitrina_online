@@ -92,12 +92,38 @@ Route::middleware('auth')->group(function () {
 
     // 📦 Заказы
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-    Route::post('/checkout', [OrderController::class, 'checkout'])->name('checkout');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 
-    // 💳 Оформление и "Купить сейчас"
-    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
-    Route::post('/checkout/quick/{product}', [CheckoutController::class, 'quick'])->name('checkout.quick');
+    /*
+    |--------------------------------------------------------------------------
+    | ⚡ CHECKOUT — новый, правильный, рабочий
+    |--------------------------------------------------------------------------
+    */
+
+    // ⚡ Купить сейчас (POST)
+    Route::post('/checkout/quick/{product}', [CheckoutController::class, 'quick'])
+        ->name('checkout.quick');
+
+    // 🛠 Подготовка данных (выбранные / вся корзина) — только POST
+    Route::post('/checkout/confirm', [CheckoutController::class, 'prepare'])
+        ->name('checkout.prepare');
+
+    // 📄 Страница подтверждения заказа — GET
+    Route::get('/checkout/confirm', [CheckoutController::class, 'confirm'])
+        ->name('checkout.confirm');
+
+    // 🧾 Создание заказа — POST
+    Route::post('/checkout/create', [CheckoutController::class, 'create'])
+        ->name('checkout.create');
+
+
+
+
+
+
+
+
+
 
     // 📬 Адреса доставки
     Route::get('/addresses', [UserAddressController::class, 'index'])->name('addresses.index');

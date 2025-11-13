@@ -205,12 +205,16 @@
   <div class="flex flex-col gap-3">
     @auth
       {{-- ⚡ Купить сейчас --}}
-      <a href="{{ route('checkout.quick', $product) }}" 
-         class="w-full py-3 rounded-xl text-base font-semibold text-white text-center
-                bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98]
-                shadow-sm hover:shadow transition-all duration-200">
+<form method="POST" action="{{ route('checkout.quick', $product->id) }}">
+    @csrf
+    <button 
+        class="w-full py-3 rounded-xl text-base font-semibold text-white text-center
+               bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98]
+               shadow-sm hover:shadow transition-all duration-200">
         ⚡ Купить сейчас
-      </a>
+    </button>
+</form>
+
 
       {{-- 🛒 Добавить в корзину --}}
       <form method="post" action="{{ route('cart.add',$product) }}">@csrf

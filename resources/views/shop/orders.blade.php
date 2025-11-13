@@ -82,7 +82,8 @@
       <div class="text-center py-20">
         <div class="text-6xl mb-3">🛍️</div>
         <div class="text-gray-700 text-lg font-medium">У вас пока нет заказов</div>
-        <a href="{{ route('shop.index') }}"
+       <a href="{{ route('home') }}"
+
            class="mt-5 inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition">
           Перейти к покупкам
         </a>

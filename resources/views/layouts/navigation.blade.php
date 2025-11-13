@@ -226,7 +226,7 @@ $currentCity = request('city_id', session('city_id'));
                     <x-dropdown align="right" width="56">
                         <x-slot name="trigger">
                             <button class="inline-flex items-center px-2 py-1 text-sm leading-4 rounded-md 
-                                           text-gray-600 bg-white hover:text-gray-900">
+                                           text-gray-600  hover:text-gray-900">
                                 <span class="hidden md:inline">Привет, {{ auth()->user()->name }}</span>
                             </button>
                         </x-slot>
