@@ -97,6 +97,11 @@ public function shop()
     return $this->hasOne(Shop::class);
 }
 
+public function favorites()
+{
+    return $this->hasMany(\App\Models\Favorite::class)->latest();
+}
+
 
 
     

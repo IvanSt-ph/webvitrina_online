@@ -129,22 +129,53 @@ class ProfileController extends Controller
     /**
      * Личный кабинет продавца или покупателя.
      */
-    public function cabinet()
-    {
-        $user = auth()->user();
+public function cabinet()
+{
+    $user = auth()->user();
 
-        if (!$user) {
-            return view('profile.guest-cabinet');
-        }
-
-        if ($user->isSeller()) {
-            $orders = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })->latest()->paginate(10);
-
-            return view('seller.cabinet', compact('user', 'orders'));
-        }
-
-        return view('profile.buyer-cabinet', compact('user'));
+    if (!$user) {
+        return view('profile.guest-cabinet');
     }
+
+    // 🔹 Продавец
+    if ($user->isSeller()) {
+        $orders = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })->latest()->paginate(10);
+
+        return view('seller.cabinet', compact('user', 'orders'));
+    }
+
+    // 🔹 Покупатель: последние заказы
+$latestOrders = $user->orders()
+    ->with(['items.product']) // ← подгружаем товары
+    ->latest()
+    ->take(3)
+    ->get();
+
+
+    // 🔹 Фейковые рекомендации (пока без логики)
+    $recommendations = [
+        [
+            'title' => 'Товар 1',
+            'price' => rand(800, 2500),
+        ],
+        [
+            'title' => 'Товар 2',
+            'price' => rand(800, 2500),
+        ],
+        [
+            'title' => 'Товар 3',
+            'price' => rand(800, 2500),
+        ],
+    ];
+
+    return view('profile.buyer-cabinet', compact(
+        'user',
+        'latestOrders',
+        'recommendations'
+    ));
+}
+
+
 }

@@ -49,4 +49,17 @@ class Order extends Model
                     ->withPivot('quantity', 'price')
                     ->withTimestamps();
     }
+
+    public function getStatusRuAttribute()
+{
+    return match($this->status) {
+        'pending'   => 'Ожидает оплаты',
+        'paid'      => 'Оплачен',
+        'shipped'   => 'В пути',
+        'delivered' => 'Доставлен',
+        'canceled'  => 'Отменён',
+        default     => ucfirst($this->status),
+    };
+}
+
 }

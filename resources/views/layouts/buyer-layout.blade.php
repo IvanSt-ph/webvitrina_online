@@ -1,3 +1,4 @@
+
 {{-- resources/views/layouts/buyer-layout.blade.php — боковая панель покупателя --}}
 <x-app-layout :title="$title ?? 'Личный кабинет'" :hideHeader="true">
   <div class="flex min-h-screen bg-neutral-50 text-gray-800">
@@ -19,11 +20,11 @@
         <nav class="flex flex-col mt-6 text-[17px] font-normal text-gray-700">
           <a href="{{ route('home') }}" class="{{ $link }}">
             <i class="ri-arrow-left-line text-[22px]"></i>
-            <span>На главную</span>
+            <span>Вернутся к товарам</span>
           </a>
           <a href="{{ route('cabinet') }}" class="{{ request()->routeIs('cabinet') ? $active : '' }} {{ $link }}">
             <i class="ri-home-5-line text-[22px]"></i>
-            <span>Статистика</span>
+            <span>Кабинет</span>
           </a>
           <a href="{{ route('orders.index') }}" class="{{ request()->routeIs('orders.*') ? $active : '' }} {{ $link }}">
             <i class="ri-shopping-bag-3-line text-[22px]"></i>
@@ -47,22 +48,68 @@
   <span>Настройки</span>
 </a>
 
-        </nav>
-      </div>
 
-      <!-- Соц. иконки -->
+        </nav>
+              <!-- Соц. иконки -->
       <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-gray-400 text-lg">
         <a href="#" class="hover:text-indigo-600"><i class="ri-telegram-line"></i></a>
         <a href="#" class="hover:text-indigo-600"><i class="ri-instagram-line"></i></a>
         <a href="#" class="hover:text-indigo-600"><i class="ri-github-line"></i></a>
       </div>
+      </div>
+
+      
+
+
+
+      <!-- Аккаунт покупателя -->
+<div class="px-6 py-4 border-t border-gray-100">
+    <div class="flex items-start gap-3">
+
+        {{-- Аватар --}}
+        <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            @php $avatar = auth()->user()->avatar; @endphp
+
+            @if ($avatar && Storage::disk('public')->exists($avatar))
+                <img src="{{ asset('storage/'.$avatar) }}" alt="avatar" class="w-full h-full object-cover">
+            @else
+                <span class="text-base font-semibold text-gray-600">
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                </span>
+            @endif
+        </div>
+
+        <div class="flex flex-col leading-tight">
+            <span class="font-semibold text-gray-800 text-sm">
+                {{ auth()->user()->name }}
+            </span>
+
+            <span class="text-xs text-gray-500">{{ auth()->user()->email }}</span>
+
+            <form method="POST" action="{{ route('logout') }}" class="mt-1">
+                @csrf
+                <button class="text-xs text-red-500 hover:text-red-600">
+                    Выйти
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
     </aside>
+
+    
 
     <!-- 🌤 Контент -->
     <main class="flex-1 md:ml-64 p-6 md:p-10 bg-neutral-50">
       {{ $slot }}
     </main>
+  
   </div>
+
+  
 
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
 </x-app-layout>
+
