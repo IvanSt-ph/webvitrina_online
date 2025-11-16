@@ -12,19 +12,21 @@
 @endphp
 
 <!-- 🌸 Верхняя панель фильтров -->
-<div x-data="{ openFilters: false }" class="max-w-7xl mx-auto px-4 lg:px-6 mt-8 mb-6">
+<div x-data="{ openFilters: false }" class="max-w-7xl mx-auto px-4 lg:px-6 mt-2 mb-6">
+  
   <div class="flex flex-wrap items-center gap-2 md:gap-3 text-sm">
 
-    <!-- 🟣 Распродажа -->
-    <label x-data="{ active: false }" @click="active = !active"
-           class="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-[15px] shadow-sm cursor-pointer select-none hover:border-purple-400 hover:bg-purple-50 transition-all">
-      <span class="text-purple-600 font-semibold">РАСПРОДАЖА</span>
-      <div class="relative w-10 h-5 bg-gray-300 rounded-full overflow-hidden transition-all duration-300"
-           :class="active ? 'bg-purple-500' : 'bg-gray-300'">
-        <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300"
-             :style="active ? 'transform: translateX(20px)' : 'transform: translateX(0)'" ></div>
-      </div>
-    </label>
+  <!-- 🟣 Распродажа -->
+  <label x-data="{ active: false }" @click="active = !active"
+        class="flex items-center gap-3 px-4 py-2 bg-white border border-gray-200 rounded-[15px] shadow-sm cursor-pointer select-none hover:border-indigo-400 hover:bg-indigo-50 transition-all">
+    <span class="text-indigo-600 font-semibold">Товары со скидками</span>
+    <div class="relative w-10 h-5 bg-gray-300 rounded-full overflow-hidden transition-all duration-300"
+        :class="active ? 'bg-indigo-600' : 'bg-gray-300'">
+      <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300"
+          :style="active ? 'transform: translateX(20px)' : 'transform: translateX(0)'" ></div>
+    </div>
+  </label>
+
 
     <!-- 🔽 Сортировка -->
     <div x-data="{ open: false }" class="relative">

@@ -60,4 +60,18 @@ class ReviewController extends Controller
         // 🧩 Уведомление пользователя
         return back()->with('success', 'Ваш отзыв отправлен на модерацию и появится после проверки администрацией.');
     }
+
+
+    // Отзывы покупателя
+    public function userReviews()
+{
+    $reviews = auth()->user()
+        ->reviews()
+        ->with(['product'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return view('buyer.reviews.index', compact('reviews'));
+}
+
 }

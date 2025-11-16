@@ -6,7 +6,6 @@
     $ordersCount = \App\Models\Order::where('user_id', $user->id)->count();
 @endphp
 
-
 <!-- 📱 МОБИЛЬНАЯ ВЕРСИЯ -->
 <div class="md:hidden space-y-6 pt-4">
 
@@ -28,33 +27,89 @@
         </div>
     </div>
 
-
-    <!-- 🔹 Главное меню -->
+    <!-- 🔷 Блоки -->
+    <!-- 🔸 Основное меню -->
     <div class="space-y-1 bg-white rounded-xl border border-gray-100 py-2 mx-4">
 
+        <!-- Заказы -->
         <a href="{{ route('orders.index') }}" class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
-                <i class="ri-box-3-line text-xl text-indigo-600"></i>
-                <span>Заказы</span>
+                <i class="ri-file-list-3-line text-xl text-indigo-600"></i>
+                <span>Мои заказы</span>
             </div>
             <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
         </a>
 
-        <a href="{{ route('favorites.index') }}" class="flex items-center justify-between px-4 py-3">
+        <!-- Отзывы -->
+        <a href="{{ route('reviews.index') }}" class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
-                <i class="ri-heart-line text-xl text-pink-500"></i>
-                <span>Избранное</span>
+                <i class="ri-star-line text-xl text-yellow-500"></i>
+                <span>Мои отзывы</span>
             </div>
             <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
         </a>
 
-        <a href="{{ route('cart.index') }}" class="flex items-center justify-between px-4 py-3">
+        <!-- Вопросы и ответы -->
+        <a href="{{ route('questions.index') }}" class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
-                <i class="ri-shopping-cart-2-line text-xl text-emerald-600"></i>
-                <span>Корзина</span>
+                <i class="ri-question-answer-line text-xl text-teal-600"></i>
+                <span>Вопросы и ответы</span>
             </div>
             <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
         </a>
+
+        <!-- Чаты -->
+        <a href="{{ route('chats.index') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-chat-1-line text-xl text-blue-600"></i>
+                <span>Чаты</span>
+            </div>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
+
+    </div>
+
+
+        <!-- 🔹 БОНУСЫ -->
+    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mx-4 shadow-sm">
+        <h3 class="font-semibold text-gray-800 mb-1">Ваши бонусы</h3>
+        <p class="text-sm text-gray-600 mb-3">Доступно к использованию: <b>245 ₽</b></p>
+
+        <button class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">
+            Обменять бонусы
+        </button>
+    </div>
+
+    <!-- 🔹 РЕКОМЕНДАЦИИ -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mx-4">
+        <h3 class="text-lg font-semibold mb-3 text-gray-800">Рекомендации</h3>
+
+        <div class="grid grid-cols-2 gap-">
+
+            @foreach($recommendations as $item)
+                <div class="bg-gray-50 p-3 rounded-xl border hover:bg-white hover:shadow transition text-center">
+                    <div class="h-20 bg-white rounded-lg flex items-center justify-center mb-2 border">
+                        <i class="ri-image-line text-2xl text-gray-300"></i>
+                    </div>
+
+                    <p class="text-sm font-medium text-gray-800 line-clamp-1">
+                        {{ $item['title'] }}
+                    </p>
+
+                    <p class="text-xs text-gray-500">
+                        ₽{{ $item['price'] }}
+                    </p>
+                </div>
+            @endforeach
+
+        </div>
+    </div>
+
+
+
+    <!-- 🔸 Настройки -->
+    <div class="space-y-1 bg-white rounded-xl border border-gray-100 py-2 mx-4">
+        <h3 class="px-4 pb-1 text-xs uppercase tracking-wide text-gray-500">Настройки</h3>
 
         <a href="{{ route('addresses.index') }}" class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
@@ -66,98 +121,73 @@
 
         <a href="{{ route('buyer.profile') }}" class="flex items-center justify-between px-4 py-3">
             <div class="flex items-center gap-3">
-                <i class="ri-settings-3-line text-xl text-gray-700"></i>
+                <i class="ri-user-settings-line text-xl text-gray-700"></i>
                 <span>Личные данные</span>
             </div>
             <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
         </a>
 
-    </div>
-
-
-<!-- 🔹 Последние заказы -->
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mx-4">
-    <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold">Последние заказы</h3>
-        <a href="{{ route('orders.index') }}" class="text-indigo-600 text-sm">Все →</a>
-    </div>
-
-    @forelse($latestOrders as $order)
-        <div class="py-3 border-b last:border-0">
-
-            <!-- Верхняя строка -->
-            <div class="flex justify-between mb-1">
-                <span class="font-medium">Заказ #{{ $order->id }}</span>
-                <span class="text-xs text-gray-500">{{ $order->created_at->format('d.m.Y') }}</span>
+        <a href="{{ route('notifications.settings') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-notification-3-line text-xl text-amber-500"></i>
+                <span>Уведомления</span>
             </div>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
 
-            <!-- Статус -->
-            <div class="text-sm text-indigo-600 mb-2">
-                {{ $order->status_ru }}
+        <a href="{{ route('settings.language') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-translate-2 text-xl text-green-600"></i>
+                <span>Язык интерфейса</span>
             </div>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
 
-            <!-- Список товаров -->
-            <div class="space-y-1">
-                @foreach($order->items->take(2) as $item)
-                    <div class="flex items-center gap-2 text-sm">
-                        @if($item->product->image)
-                            <img src="{{ asset('storage/'.$item->product->image) }}"
-                                 class="w-8 h-8 rounded object-cover">
-                        @else
-                            <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">
-                                нет
-                            </div>
-                        @endif
-
-                        <span class="line-clamp-1">
-                            {{ $item->product->title }}
-                        </span>
-                    </div>
-                @endforeach
-
-                <!-- Показать "+ ещё" если товаров больше -->
-                @if($order->items->count() > 2)
-                    <div class="text-xs text-gray-500">
-                        + ещё {{ $order->items->count() - 2 }}
-                    </div>
-                @endif
+        <a href="{{ route('settings.currency') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-money-dollar-circle-line text-xl text-indigo-600"></i>
+                <span>Валюта</span>
             </div>
-
-        </div>
-    @empty
-        <p class="text-sm text-gray-500">У вас ещё нет заказов.</p>
-    @endforelse
-</div>
-
-
-
-    <!-- 🔹 Бонусы -->
-    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mx-4 shadow-sm">
-        <h3 class="font-semibold text-gray-800 mb-1">Ваши бонусы</h3>
-        <p class="text-sm text-gray-600 mb-3">Доступно к использованию: <b>245 ₽</b></p>
-        <button class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium">
-            Обменять бонусы
-        </button>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
     </div>
 
+    <!-- 🔸 Информация -->
+    <div class="space-y-1 bg-white rounded-xl border border-gray-100 py-2 mx-4">
+        <h3 class="px-4 pb-1 text-xs uppercase tracking-wide text-gray-500">Информация</h3>
 
-    <!-- 🔹 Рекомендации -->
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mx-4">
-        <h3 class="text-lg font-semibold mb-3">Рекомендации</h3>
+        <a href="{{ route('support') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-customer-service-2-line text-xl text-indigo-600"></i>
+                <span>Служба поддержки</span>
+            </div>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
 
-        <div class="grid grid-cols-2 gap-3">
-            @foreach($recommendations as $item)
-                <div class="bg-gray-50 p-2 rounded-xl border hover:bg-white transition">
-                    <div class="h-20 bg-white rounded-lg flex items-center justify-center mb-2 border">
-                        <i class="ri-image-line text-2xl text-gray-300"></i>
-                    </div>
-                    <p class="text-sm font-medium">{{ $item['title'] }}</p>
-                    <p class="text-xs text-gray-500">₽{{ $item['price'] }}</p>
-                </div>
-            @endforeach
-        </div>
+        <a href="{{ route('help') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-information-line text-xl text-gray-600"></i>
+                <span>Справка WebVitrina</span>
+            </div>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
+
+        <a href="{{ route('seller.register') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-store-2-line text-xl text-green-600"></i>
+                <span>Стать продавцом</span>
+            </div>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
+
+        <a href="{{ route('about') }}" class="flex items-center justify-between px-4 py-3">
+            <div class="flex items-center gap-3">
+                <i class="ri-apps-2-line text-xl text-purple-600"></i>
+                <span>О приложении</span>
+            </div>
+            <i class="ri-arrow-right-s-line text-xl text-gray-400"></i>
+        </a>
     </div>
-
 
     <!-- 🔹 Выход -->
     <form action="{{ route('logout') }}" method="POST" class="px-4 pb-6">
@@ -168,7 +198,6 @@
     </form>
 
 </div>
-<!-- /Мобильная версия -->
 
 
 

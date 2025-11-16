@@ -102,7 +102,7 @@
     
 
     <!-- 🌤 Контент -->
-    <main class="flex-1 md:ml-64 p-6 md:p-10 bg-neutral-50">
+    <main class="flex-1 md:ml-64 p-2 md:p-10 bg-neutral-50">
       {{ $slot }}
     </main>
   

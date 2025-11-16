@@ -80,6 +80,53 @@ Route::middleware('auth')->group(function () {
         Route::get('/buyer/profile', fn() => view('buyer.profile'))->name('buyer.profile');
     });
 
+    // 📝 Мои отзывы (Покупатель)
+    Route::get('/my-reviews', [ReviewController::class, 'userReviews'])
+    ->name('reviews.index');
+    // ❓ Вопросы и ответы (покупатель)
+    Route::get('/my-questions', function () {
+        return view('buyer.questions.index');
+    })->name('questions.index');
+    // 💬 Чаты покупателя
+    Route::get('/my-chats', function () {
+        return view('buyer.chats.index');
+    })->name('chats.index');
+    // 🔔 Настройки уведомлений (покупателя)
+    Route::get('/notifications/settings', function () {
+        return view('buyer.notifications.settings');
+    })->name('notifications.settings');
+    // 🌐 Выбор языка интерфейса
+    Route::get('/settings/language', function () {
+        return view('buyer.settings.language');
+    })->name('settings.language');
+    // 💱 Выбор валюты
+    Route::get('/settings/currency', function () {
+        return view('buyer.settings.currency');
+    })->name('settings.currency');
+    // 🆘 Служба поддержки (покупатель)
+    Route::get('/support', function () {
+        return view('buyer.support.index');
+    })->name('support');
+    // 📘 Справка WebVitrina (покупатель)
+    Route::get('/help', function () {
+        return view('buyer.help.index');
+    })->name('help');
+    // 🛍 Стать продавцом (информация + ссылка на регистрацию)
+    Route::get('/seller/register', function () {
+        return view('buyer.seller.register');
+    })->name('seller.register');
+    // ℹ️ О сайте / О приложении
+    Route::get('/about', function () {
+        return view('buyer.about.index');
+    })->name('about');
+
+
+
+
+
+
+
+
     // ⭐ Избранное
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{product}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');

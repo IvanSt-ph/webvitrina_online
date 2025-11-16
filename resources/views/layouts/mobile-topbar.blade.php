@@ -6,7 +6,7 @@
     </a>
 
     <!-- Иконки -->
-    <div class="flex items-center gap-4 text-gray-600">
+    <div class="flex items-center gap-6 text-gray-600">
         <!-- Поиск -->
         <button @click="openSearch = true" class="hover:text-indigo-600" title="Поиск">
             <x-icon name="search" class="h-6 w-6"/>
@@ -21,5 +21,6 @@
         <button @click="openSettings = true" class="hover:text-indigo-600" title="Настройки">
             <x-icon name="settings" class="h-6 w-6"/>
         </button>
+        
     </div>
 </div>

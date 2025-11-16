@@ -17,16 +17,17 @@
         </button>
 
         <!-- Акции -->
-        <a href="#" 
-           class="flex flex-col items-center text-gray-600">
-            <x-icon name="sparkles" class="h-6 w-6"/>
+        <a href="#" class="flex flex-col items-center text-gray-600">
+            <img src="/images/icons/sale.png" class="h-6 w-6" alt="">
             <span class="text-xs">Акции</span>
         </a>
+
+
 
         <!-- Корзина -->
         <a href="{{ route('cart.index') }}" 
            class="flex flex-col items-center {{ request()->routeIs('cart.*') ? 'text-indigo-600' : 'text-gray-600' }}">
-            <x-icon name="cart" class="h-6 w-6"/>
+               <img src="/images/icons/cart.png" class="h-6 w-6" alt="">
             <span class="text-xs">Корзина</span>
         </a>
 

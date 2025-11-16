@@ -2,11 +2,15 @@
   <div class="max-w-7xl mx-auto px-4 lg:px-6">
 
 {{-- 🧭 Хлебные крошки и фильтры закреплены --}}
-<div class="sticky top-[65px] z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm border-b border-gray-100 py-2 mb-4">
-  <div class="max-w-7xl mx-auto px-4 lg:px-6 space-y-2">
+<div class="sticky top-[65px] z-40 bg-white/95 backdrop-blur 
+     supports-[backdrop-filter]:backdrop-blur-sm 
+     border-b border-gray-100 py-0.5 mb-4">
+
+  <div class="max-w-7xl mx-auto px-4 lg:px-6">
     <x-breadcrumbs :items="$breadcrumbs" />
   </div>
 </div>
+
 
 {{-- 🌸 Панель фильтров --}}
 @include('partials.category-filters')

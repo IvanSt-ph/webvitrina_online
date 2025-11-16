@@ -51,6 +51,18 @@
     </svg>
 @endif
 
+
+@if ($name === 'sale')
+    <svg xmlns="http://www.w3.org/2000/svg" class="{{ $class }}" 
+         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+              d="M7 7h.01M3 3v6l6 6 12-12-6-6H3z"/>
+        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+              d="M16 16l4 4"/>
+    </svg>
+@endif
+
+
 @if ($name === 'heart')
     <svg xmlns="http://www.w3.org/2000/svg" class="{{ $class }}" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 
