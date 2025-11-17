@@ -42,7 +42,7 @@ class ProductRepository
             default      => $query->latest(),
         };
 
-        return $query->paginate((int) ($request->get('per_page', 12)) ?: 12)
+        return $query->paginate((int) ($request->get('per_page', 20)) ?: 20)
                      ->withQueryString();
     }
 

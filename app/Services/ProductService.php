@@ -30,7 +30,8 @@ class ProductService
         if (empty($data['sku'])) {
             do {
                 $data['sku'] = 'PRD-' . random_int(10000, 99999);
-            } while (Product::withTrashed()->where('sku', $data['sku'])->exists());
+            } while (Product::where('sku', $data['sku'])->exists());
+
         }
 
         // добавляем sku в payload

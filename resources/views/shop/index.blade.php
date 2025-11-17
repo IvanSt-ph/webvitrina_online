@@ -187,7 +187,8 @@ $firstImage = $firstBanner ? bannerImage($firstBanner) : asset('storage/banners/
     {{-- Пагинация --}}
     @if($products->hasPages())
       <div class="mt-10 flex justify-center fade-in">
-        {{ $products->withQueryString()->links() }}
+       {{ $products->withQueryString()->links('vendor.pagination.webvitrina') }}
+
       </div>
     @endif
   </div>
