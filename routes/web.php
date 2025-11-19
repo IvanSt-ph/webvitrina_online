@@ -15,12 +15,17 @@ use App\Http\Controllers\{
 };
 use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
 use App\Models\Country;
-use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 
 use App\Http\Controllers\Seller\CabinetController;
 use App\Http\Controllers\Seller\AnalyticsController;
 
 use App\Http\Controllers\Seller\HelpController as SellerHelpController;
+
+use App\Http\Controllers\Seller\CategoryController as SellerCategoryController;
+
+
+
+
 
 
 
@@ -54,6 +59,16 @@ Route::view('/coming-soon', 'errors.coming-soon')->name('coming.soon');
 
 // 👤 Общая точка входа в кабинет
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
+
+
+
+
+
+
+
+
+
+
 
 
 /*
@@ -125,8 +140,6 @@ Route::middleware('auth')->group(function () {
 
 
 
-
-
     // ⭐ Избранное
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{product}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
@@ -150,6 +163,8 @@ Route::get('/cart-count', function () {
     // 📦 Заказы
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+
 
     /*
     |--------------------------------------------------------------------------
@@ -192,6 +207,12 @@ Route::get('/cart-count', function () {
     // 📝 Отзывы
     Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
 
+
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | 🏪 Панель продавца
@@ -199,11 +220,23 @@ Route::get('/cart-count', function () {
 */
 Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(function () {
 
-    // 📰 Справка и новости для продавцов
+    // 🔹 AJAX: подкатегории
+    Route::get('/categories/{parent}/children', [SellerCategoryController::class, 'children'])
+        ->name('categories.children');
+
+    // 🔹 AJAX: цепочка категорий
+    Route::get('/categories/chain/{id}', [SellerCategoryController::class, 'chain'])
+        ->name('categories.chain');
+
+    // 🔹 AJAX: атрибуты по категории
+    Route::get('/categories/{category}/attributes', [SellerProducts::class, 'getCategoryAttributes'])
+        ->name('categories.attributes');
+
+    // 📰 Справка и новости
     Route::get('/help/{slug}', [SellerHelpController::class, 'show'])->name('help');
     Route::get('/help', [SellerHelpController::class, 'index'])->name('help.index');
 
-    // ✅ Главная панель продавца — теперь через контроллер
+    // 🏠 Кабинет
     Route::get('/cabinet', [CabinetController::class, 'index'])->name('cabinet');
 
     // 📦 Товары
@@ -214,35 +247,20 @@ Route::middleware('role:seller')->prefix('seller')->name('seller.')->group(funct
     Route::put('/products/{product}', [SellerProducts::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [SellerProducts::class, 'destroy'])->name('products.destroy');
 
-     // 🔹 Подкатегории (для формы добавления товара)
-    Route::get('/categories/{parent}/children', [AdminCategoryController::class, 'children'])
-        ->name('categories.children');
+    // 🖼️ Галерея
+    Route::delete('/products/{product}/gallery', [SellerProducts::class, 'deleteGalleryImage'])
+        ->name('products.gallery.delete');
 
-
-// 🌳 Цепочка категорий (для редактирования товара)
-Route::get('/categories/chain/{id}', [AdminCategoryController::class, 'chain'])
-    ->name('categories.chain');
-
-// ⚡ Атрибуты по выбранной категории (AJAX)
-Route::get('/categories/{category}/attributes', [SellerProducts::class, 'getCategoryAttributes'])
-    ->name('categories.attributes');
-
-
-
-
-    // 🧾 Заглушки для будущих разделов
+    // 🧾 Заглушки
     Route::view('/orders', 'seller.orders.index')->name('orders.index');
     Route::view('/finance', 'seller.finance.index')->name('finance.index');
 
-    // 📊 Аналитика продавца
+    // 📊 Аналитика
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     Route::get('/analytics/day/{date}', [AnalyticsController::class, 'dayStats'])->name('analytics.day');
     Route::get('/analytics/products-on/{date}', [AnalyticsController::class, 'productsOn']);
+});
 
-    // 🖼️ Удаление фото из галереи
-    Route::delete('/products/{product}/gallery', [SellerProducts::class, 'deleteGalleryImage'])
-        ->name('products.gallery.delete');
-}); // конец блока продавца (seller)
 }); // конец блока авторизации (auth)
 
 
