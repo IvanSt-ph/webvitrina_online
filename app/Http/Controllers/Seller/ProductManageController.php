@@ -3,113 +3,65 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attribute;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Product;
 use App\Services\ProductService;
+use App\Services\AttributeService;
+use App\Services\CurrencyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+
+use App\Http\Requests\Seller\ProductStoreRequest;
+use App\Http\Requests\Seller\ProductUpdateRequest;
 
 class ProductManageController extends Controller
 {
     public function __construct(
-        protected ProductService $products
+        protected ProductService   $products,
+        protected AttributeService $attributes,
+        protected CurrencyService  $currency,
     ) {}
 
     /** 📋 Список товаров продавца */
     public function index()
     {
-        $sellerId = Auth::id();
-
         $products = Product::query()
-            ->where('user_id', $sellerId)
+            ->where('user_id', Auth::id())
             ->with(['category', 'city.country'])
-            ->latest('created_at')
+            ->latest()
             ->paginate(20);
 
         return view('seller.products.index', compact('products'));
     }
 
-    /** ➕ Форма создания товара */
+    /** ➕ Создать товар */
     public function create()
     {
         return $this->formView(new Product());
     }
 
-    /** ✏️ Форма редактирования товара */
+    /** ✏️ Редактировать товар */
     public function edit(Product $product)
     {
         $this->authorize('update', $product);
-
         return $this->formView($product);
     }
 
-    /** ⚡ AJAX: атрибуты по выбранной категории (JSON) */
-    public function getCategoryAttributes(Category $category)
-    {
-        $attributes = Attribute::query()
-            ->whereIn('id', function ($q) use ($category) {
-                $q->select('attribute_id')
-                    ->from('attribute_category')
-                    ->where('category_id', $category->id);
-            })
-            ->orderBy('name')
-            ->get()
-            ->map(function (Attribute $attr) {
-                // приведение options к массиву
-                if (is_array($attr->options)) {
-                    // уже массив
-                } elseif (is_string($attr->options) && $attr->options !== '') {
-                    $attr->options = json_decode($attr->options, true) ?? [];
-                } else {
-                    $attr->options = [];
-                }
-
-                return $attr;
-            });
-
-        return response()->json($attributes);
-    }
-
-    /** ⚡ AJAX: partial с полями атрибутов для Blade */
-    public function getCategoryAttributesView(Category $category)
-    {
-        $product = new Product(['category_id' => $category->id]);
-
-        return view('seller.products.partials.attributes', compact('product'));
-    }
-
-    /**
-     * 🧩 Общая форма для create/edit
-     * Здесь только подготовка данных для шаблона, никакой тяжёлой логики.
-     */
+    /** 🧩 Общая форма */
     protected function formView(Product $product)
     {
-        // 🌲 Корневые категории
-        $rootCategories = Cache::remember(
-            'root_categories',
-            3600,
-            fn () => Category::query()
-                ->whereNull('parent_id')
-                ->orderBy('name')
-                ->get()
+        $rootCategories = Cache::remember('root_categories', 3600, fn() =>
+            Category::whereNull('parent_id')->orderBy('name')->get()
         );
 
-        // 🌍 Список стран
-        $countries = Cache::remember(
-            'countries_list',
-            3600,
-            fn () => Country::query()
-                ->orderBy('name')
-                ->get()
+        $countries = Cache::remember('countries_list', 3600, fn() =>
+            Country::orderBy('name')->get()
         );
 
-        // 🔗 Цепочка категорий от текущей вверх
+        // Цепочка родителей категорий
         $categoryChain = collect();
         if ($product->category_id) {
             $cat = Category::with('parent')->find($product->category_id);
@@ -119,48 +71,14 @@ class ProductManageController extends Controller
             }
         }
 
-        // ⚡ Все категории для фронта
-        $categoriesTree = Cache::remember(
-            'all_categories_tree',
-            3600,
-            fn () => Category::query()
-                ->select('id', 'name', 'parent_id')
-                ->orderBy('name')
-                ->get()
+        // Атрибуты (если редактирование – подставляются значения)
+        $attributes = $product->exists
+            ? $this->attributes->getForProduct($product)
+            : collect();
+
+        $categoriesTree = Cache::remember('all_categories_tree', 3600, fn() =>
+            Category::select('id', 'name', 'parent_id')->orderBy('name')->get()
         );
-
-        // 🧩 Атрибуты текущей категории (если есть)
-        $attributes = collect();
-        if ($product->category_id) {
-            // подгружаем значения атрибутов одним запросом
-            $product->loadMissing('attributeValues');
-
-            $attributes = Attribute::query()
-                ->whereIn('id', function ($q) use ($product) {
-                    $q->select('attribute_id')
-                        ->from('attribute_category')
-                        ->where('category_id', $product->category_id);
-                })
-                ->orderBy('name')
-                ->get()
-                ->map(function (Attribute $attr) use ($product) {
-                    // приведение options к массиву
-                    if (is_array($attr->options)) {
-                        // уже массив
-                    } elseif (is_string($attr->options) && $attr->options !== '') {
-                        $attr->options = json_decode($attr->options, true) ?? [];
-                    } else {
-                        $attr->options = [];
-                    }
-
-                    // сохранённое значение для edit
-                    $attr->value = optional(
-                        $product->attributeValues->firstWhere('attribute_id', $attr->id)
-                    )->value;
-
-                    return $attr;
-                });
-        }
 
         return view('seller.products.form', compact(
             'product',
@@ -172,177 +90,109 @@ class ProductManageController extends Controller
         ));
     }
 
-    /** 💾 Создание нового товара */
-    public function store(Request $request)
+    /** ⚡ AJAX: JSON атрибутов категории */
+    public function getCategoryAttributes(Category $category)
     {
-        $data   = $this->validateProduct($request);
-        $userId = Auth::id();
+        return response()->json(
+            $this->attributes->getByCategory($category->id)
+        );
+    }
 
-        // 🖼 Файлы
-        $image   = $request->file('image');
-        $gallery = $request->file('gallery', []);
-        $attrs   = $request->input('attributes', []);
+    /** ⚡ AJAX partial HTML атрибутов */
+    public function getCategoryAttributesView(Category $category)
+    {
+        $product = new Product(['category_id' => $category->id]);
+        return view('seller.products.partials.attributes', compact('product'));
+    }
 
-        // Определяем базовую валюту по городу
+    /** 💾 Создание товара */
+    public function store(ProductStoreRequest $request)
+    {
+        $data          = $request->validated();
+        $data['user_id'] = Auth::id();
+
+        // Определяем валюту
         $city = City::with('country')->findOrFail($data['city_id']);
-        $currencyBase = $city->country->currency ?? 'MDL';
+        $data['currency_base'] = $city->country->currency ?? 'MDL';
 
-        // Собираем объект, чтобы не сломать текущий ProductService::store
-        $product = new Product($data);
-        $product->user_id       = $userId;
-        $product->currency_base = $currencyBase;
+        // Цены
+        $data['price']      = $request->price;
+        $data['price_prb']  = $request->price_prb;
+        $data['price_mdl']  = $request->price_mdl;
+        $data['price_uah']  = $request->price_uah;
 
-        // Цены в разных валютах (как у тебя было)
-        $product->price      = $request->input('price');
-        $product->price_prb  = $request->input('price_prb');
-        $product->price_mdl  = $request->input('price_mdl');
-        $product->price_uah  = $request->input('price_uah');
-
-        // 💱 Автоматический пересчёт, если какие-то валюты не заданы
-        $svc = app(\App\Services\CurrencyService::class);
-        $map = ['PRB' => 'price_prb', 'MDL' => 'price_mdl', 'UAH' => 'price_uah'];
-
-        foreach ($map as $code => $field) {
-            if (is_null($product->{$field})) {
-                $product->{$field} = $svc->convert(
-                    (float) $product->price,
-                    $currencyBase,
+        // Авто-конвертация пропущенных цен
+        foreach (['PRB'=>'price_prb','MDL'=>'price_mdl','UAH'=>'price_uah'] as $code => $field) {
+            if (is_null($data[$field])) {
+                $data[$field] = $this->currency->convert(
+                    (float)$data['price'],
+                    $data['currency_base'],
                     $code
                 );
             }
         }
 
-        // 🧠 Сохраняем товар через сервис
-        $product = $this->products->store(
-            $product->toArray(),
-            $image,
-            $gallery,
-            $userId
-        );
+        // Файлы
+        $image   = $request->file('image');
+        $gallery = $request->file('gallery', []);
+        $attrs   = $request->input('attributes', []);
 
-        // 🧬 Сохраняем атрибуты
-        $this->syncAttributes($product, $attrs);
+        // Создание
+        $this->products->create($data, $image, $gallery, $attrs);
 
         return redirect()
             ->route('seller.products.index')
-            ->with('success', '✅ Товар добавлен');
+            ->with('success', '✅ Товар создан');
     }
 
-    /** 🔄 Обновление существующего товара */
-    public function update(Request $request, Product $product)
+    /** 🔄 Обновление товара */
+    public function update(ProductUpdateRequest $request, Product $product)
     {
         $this->authorize('update', $product);
 
-        $data           = $this->validateProduct($request);
-        $image          = $request->file('image');
-        $galleryNew     = $request->file('gallery', []);
-        $galleryToDelete = $request->input('delete_gallery', []);
-        $attrs          = $request->input('attributes', []);
+        $data = $request->validated();
 
-        // Обновляем товар через сервис
-        $product = $this->products->update(
+        // Цены (берем явно)
+        $data['price']      = $request->price;
+        $data['price_prb']  = $request->price_prb;
+        $data['price_mdl']  = $request->price_mdl;
+        $data['price_uah']  = $request->price_uah;
+
+        $image           = $request->file('image');
+        $galleryNew      = $request->file('gallery', []);
+        $galleryToDelete = $request->input('delete_gallery', []);
+        $attrs           = $request->input('attributes', []);
+
+        $this->products->update(
             $product,
             $data,
             $image,
             $galleryNew,
-            $galleryToDelete
+            $galleryToDelete,
+            $attrs
         );
-
-        // Перезаписываем атрибуты
-        $this->syncAttributes($product, $attrs);
 
         return redirect()
             ->route('seller.products.index')
             ->with('success', '✅ Изменения сохранены');
     }
 
-    /** 🗑️ Полное удаление товара продавцом */
+    /** 🗑 Удаление товара */
     public function destroy(Product $product)
     {
         $this->authorize('delete', $product);
+        $this->products->delete($product);
 
-        DB::transaction(function () use ($product) {
-            // Удаляем связанные данные
-            DB::table('attribute_values')->where('product_id', $product->id)->delete();
-            DB::table('favorites')->where('product_id', $product->id)->delete();
-            DB::table('cart_items')->where('product_id', $product->id)->delete();
-
-            // Удаляем файлы + сам товар через сервис
-            $this->products->delete($product);
-        });
-
-        return back()->with('success', '🗑️ Товар удалён полностью');
+        return back()->with('success', '🗑️ Товар удалён');
     }
 
-    /** 🧽 Удаление одного фото из галереи (AJAX) */
+    /** 🧽 AJAX удаление фото */
     public function deleteGalleryImage(Product $product, Request $request)
     {
         $this->authorize('update', $product);
 
-        $path = $request->input('path');
-        $this->products->deleteFromGallery($product, [$path]);
+        $this->products->deleteFromGallery($product, $request->path);
 
         return response()->json(['success' => true]);
-    }
-
-    /** ✅ Валидация общих полей товара */
-    protected function validateProduct(Request $request): array
-    {
-        return $request->validate([
-            'title'       => 'required|string|max:255',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'description' => 'nullable|string|max:1000',
-
-            'category_id' => 'required|exists:categories,id',
-            'country_id'  => 'required|exists:countries,id',
-            'city_id'     => 'required|exists:cities,id',
-
-            'address'   => 'nullable|string|max:255',
-            'latitude'  => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-
-            'image'     => 'nullable|image|max:4096',
-            'gallery.*' => 'nullable|image|max:4096',
-        ]);
-    }
-
-    /**
-     * 🧬 Синхронизация атрибутов товара
-     * Полностью пересобираем attribute_values для товара.
-     */
-    protected function syncAttributes(Product $product, array $attributes): void
-    {
-        // удаляем старые
-        DB::table('attribute_values')
-            ->where('product_id', $product->id)
-            ->delete();
-
-        if (empty($attributes)) {
-            return;
-        }
-
-        $rows = [];
-        foreach ($attributes as $attrId => $value) {
-            if (is_array($value)) {
-                $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-            }
-
-            if ($value === null || $value === '') {
-                continue;
-            }
-
-            $rows[] = [
-                'product_id'   => $product->id,
-                'attribute_id' => (int) $attrId,
-                'value'        => (string) $value,
-                'created_at'   => now(),
-                'updated_at'   => now(),
-            ];
-        }
-
-        if ($rows) {
-            DB::table('attribute_values')->insert($rows);
-        }
     }
 }
