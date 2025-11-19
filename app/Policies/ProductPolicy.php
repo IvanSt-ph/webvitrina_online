@@ -8,11 +8,20 @@ use App\Models\User;
 class ProductPolicy
 {
     /**
+     * Глобальный override — админ может всё
+     */
+    public function before(User $user, string $ability)
+    {
+        if ($user->role === 'admin') {
+            return true;
+        }
+    }
+
+    /**
      * Может ли пользователь обновить товар
      */
     public function update(User $user, Product $product): bool
     {
-        // Только владелец товара может редактировать
         return $product->user_id === $user->id;
     }
 
@@ -21,7 +30,6 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
-        // Только владелец товара может удалять
         return $product->user_id === $user->id;
     }
 }

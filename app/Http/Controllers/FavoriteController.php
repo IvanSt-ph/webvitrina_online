@@ -12,10 +12,14 @@ class FavoriteController extends Controller
 {
     public function index()
     {
-        $items = Favorite::with('product')
+            $items = Favorite::with([
+                'product.category',
+                'product.city.country',
+                'product.seller',])
             ->where('user_id', auth()->id())
             ->latest()
             ->get();
+
 
         return view('shop.favorites', compact('items'));
     }

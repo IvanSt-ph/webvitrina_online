@@ -102,10 +102,11 @@
                             class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
                             required>
                         @foreach($sellers as $seller)
-                            <option value="{{ $seller->id }}"
-                                {{ old('user_id', $product->user_id) == $seller->id ? 'selected' : '' }}>
-                                {{ $seller->name }} (ID: {{ $seller->id }})
-                            </option>
+                        <option value="{{ $seller->id }}"
+                            {{ old('user_id', $product->user_id) == $seller->id ? 'selected' : '' }}>
+                            {{ $seller->name }} (ID: {{ $seller->id }})
+                        </option>
+
                         @endforeach
                     </select>
                 </div>

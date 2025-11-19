@@ -22,8 +22,9 @@ class ProfileController extends Controller
         ]);
     }
 
+
     /**
-     * Обновление личной информации пользователя (имя, email, аватар).
+     * Обновление личной информации пользователя.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -35,12 +36,12 @@ class ProfileController extends Controller
             'avatar' => 'nullable|image|max:2048',
         ]);
 
-        // Если email изменён — сбрасываем верификацию
+        // Сброс верификации при изменении email
         if ($user->email !== $data['email']) {
             $user->email_verified_at = null;
         }
 
-        // Загрузка аватара
+        // Загрузка нового аватара
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
                 Storage::disk('public')->delete($user->avatar);
@@ -54,50 +55,63 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
+
     /**
      * Обновление информации о магазине.
      */
-  public function updateShop(Request $request): RedirectResponse
-{
-    $user = $request->user();
+    public function updateShop(Request $request): RedirectResponse
+    {
+        $user = $request->user();
 
-    $data = $request->validate([
-        'name'           => 'nullable|string|max:255',
-        'city'           => 'nullable|string|max:255',
-        'description'    => 'nullable|string|max:1000',
-        'phone'          => 'nullable|string|max:50',
-        'banner'         => 'nullable|image|max:4096',
-        'remove_banner'  => 'nullable|boolean',
-    ]);
+        $data = $request->validate([
+            'name'           => 'nullable|string|max:255',
+            'city'           => 'nullable|string|max:255',
+            'description'    => 'nullable|string|max:1000',
+            'phone'          => 'nullable|string|max:50',
+            'banner'         => 'nullable|image|max:4096',
+            'remove_banner'  => 'nullable|boolean',
+        ]);
 
-    // ✅ если магазин есть — обновляем, если нет — создаём
-    $shop = $user->shop ?? $user->shop()->create([]);
+        // Если магазин уже есть — ok, если нет — создаём
+        $shop = $user->shop ?? $user->shop()->create([]);
 
-    // ❌ Удаление баннера
-    if ($request->has('remove_banner')) {
-        if ($shop->banner) {
-            Storage::disk('public')->delete($shop->banner);
+        /**
+         * 🗑 Удаление баннера
+         */
+        if ($request->boolean('remove_banner')) {
+
+            if ($shop->banner) {
+                Storage::disk('public')->delete($shop->banner);
+            }
+
+            $shop->update(['banner' => null]);
+
+            return Redirect::route('profile.edit')->with('status', 'shop-updated');
         }
-        $shop->update(['banner' => null]);
+
+        /**
+         * 🖼 Загрузка новой картинки
+         */
+        if ($request->hasFile('banner')) {
+
+            if ($shop->banner) {
+                Storage::disk('public')->delete($shop->banner);
+            }
+
+            $path = $request->file('banner')->store('banners', 'public');
+
+            $shop->update(['banner' => $path]);
+
+            return Redirect::route('profile.edit')->with('status', 'shop-updated');
+        }
+
+        /**
+         * 🏪 Обновление остальных данных магазина
+         */
+        $shop->update($data);
+
         return Redirect::route('profile.edit')->with('status', 'shop-updated');
     }
-
-    // 🖼️ Загрузка нового баннера
-    if ($request->hasFile('banner')) {
-        if ($shop->banner) {
-            Storage::disk('public')->delete($shop->banner);
-        }
-
-        $path = $request->file('banner')->store('banners', 'public');
-        $shop->update(['banner' => $path]);
-        return Redirect::route('profile.edit')->with('status', 'shop-updated');
-    }
-
-    // 🏪 Обновляем остальные данные
-    $shop->update($data);
-
-    return Redirect::route('profile.edit')->with('status', 'shop-updated');
-}
 
 
     /**
@@ -117,7 +131,7 @@ class ProfileController extends Controller
             Storage::disk('public')->delete($user->avatar);
         }
 
-        // каскадно удалится shop
+        // Каскадно удалится shop, адреса и т. д.
         $user->delete();
 
         $request->session()->invalidate();
@@ -126,56 +140,64 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
+
     /**
      * Личный кабинет продавца или покупателя.
      */
-public function cabinet()
-{
-    $user = auth()->user();
+    public function cabinet()
+    {
+        $user = auth()->user();
 
-    if (!$user) {
-        return view('profile.guest-cabinet');
+        if (!$user) {
+            return view('profile.guest-cabinet');
+        }
+
+
+        /**
+         * 📦 Продавец — заказы его магазина
+         */
+        if ($user->isSeller()) {
+            $orders = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->with([
+                    'items.product.category',
+                    'items.product.city.country',
+                    'address',
+                ])
+                ->latest()
+                ->paginate(10);
+
+            return view('seller.cabinet', compact('user', 'orders'));
+        }
+
+
+        /**
+         * 🛒 Покупатель — 3 последних заказа
+         */
+        $latestOrders = $user->orders()
+            ->with([
+                'items.product.category',
+                'items.product.city.country'
+            ])
+            ->latest()
+            ->take(3)
+            ->get();
+
+
+        /**
+         * 🎁 Рекомендации (заглушка)
+         */
+        $recommendations = [
+            ['title' => 'Товар 1', 'price' => rand(800, 2500)],
+            ['title' => 'Товар 2', 'price' => rand(800, 2500)],
+            ['title' => 'Товар 3', 'price' => rand(800, 2500)],
+        ];
+
+        return view('profile.buyer-cabinet', compact(
+            'user',
+            'latestOrders',
+            'recommendations'
+        ));
     }
-
-    // 🔹 Продавец
-    if ($user->isSeller()) {
-        $orders = \App\Models\Order::whereHas('items.product', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })->latest()->paginate(10);
-
-        return view('seller.cabinet', compact('user', 'orders'));
-    }
-
-    // 🔹 Покупатель: последние заказы
-$latestOrders = $user->orders()
-    ->with(['items.product']) // ← подгружаем товары
-    ->latest()
-    ->take(3)
-    ->get();
-
-
-    // 🔹 Фейковые рекомендации (пока без логики)
-    $recommendations = [
-        [
-            'title' => 'Товар 1',
-            'price' => rand(800, 2500),
-        ],
-        [
-            'title' => 'Товар 2',
-            'price' => rand(800, 2500),
-        ],
-        [
-            'title' => 'Товар 3',
-            'price' => rand(800, 2500),
-        ],
-    ];
-
-    return view('profile.buyer-cabinet', compact(
-        'user',
-        'latestOrders',
-        'recommendations'
-    ));
-}
-
-
 }

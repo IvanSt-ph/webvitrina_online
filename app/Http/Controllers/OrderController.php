@@ -15,7 +15,7 @@ class OrderController extends Controller
     {
         $orders = Order::where('user_id', auth()->id())
             ->latest()
-            ->with(['items.product', 'address'])
+            ->with(['items.product.category', 'items.product.city.country'])
             ->get();
 
         return view('shop.orders', compact('orders'));
@@ -91,7 +91,11 @@ class OrderController extends Controller
     {
         abort_unless($order->user_id === auth()->id(), 403);
 
-        $order->load(['items.product', 'address']);
+        $order->load([
+            'items.product.category',
+            'items.product.city.country',
+            'address' ]);
+
 
         return view('shop.order-show', compact('order'));
     }

@@ -36,10 +36,11 @@ class CategoryController extends Controller
         $parent = $category->parent;
         $stack = [];
 
-        while ($parent) {
+       while ($parent && $parent->slug) {
             $stack[$parent->name] = route('category.show', $parent->slug);
             $parent = $parent->parent;
-        }
+                                        }
+
 
         $breadcrumbs = array_merge($breadcrumbs, array_reverse($stack));
         $breadcrumbs[$category->name] = '#';
@@ -62,7 +63,18 @@ class CategoryController extends Controller
 
         $products = Cache::remember($productKey, 600, function () use ($categoryIds) {
             $query = Product::whereIn('category_id', $categoryIds)
-                ->with(['city.country']);
+                ->with([
+                    'category',
+                    'seller',
+                    'city.country',
+                    'reviews',
+                ])
+                ->withCount([
+                    'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
+                ])
+                ->withAvg([
+                    'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
+                ], 'rating');
 
             if (request()->filled('country_id')) {
                 $countryId = (int) request('country_id');

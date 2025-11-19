@@ -194,7 +194,7 @@
 
       {{-- 🧍 Продавец --}}
       <td x-show="columns.seller" class="px-4 py-3 text-gray-700">
-        {{ $product->seller?->name ?? $product->user?->name ?? '—' }}
+       {{ $product->seller?->name ?? '—' }}
       </td>
 
       <td x-show="columns.actions" class="px-4 py-3 text-right">

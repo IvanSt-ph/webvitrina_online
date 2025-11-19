@@ -144,14 +144,15 @@
     <div class="p-2 flex flex-col flex-1">
 
         {{-- Магазин --}}
-        @if($p->user->shop && $p->user->shop->name)
-            <a href="{{ route('seller.show', $p->user->id) }}"
-               class="text-[12px] text-gray-500 truncate hover:text-[#74bdfd] transition mb-1">
-                {{ $p->user->shop->name }}
-            </a>
-        @else
-            <p class="text-[12px] text-gray-300 truncate mb-1">Магазин</p>
-        @endif
+@if($p->seller && $p->seller->shop && $p->seller->shop->name)
+    <a href="{{ route('seller.show', $p->seller->id) }}"
+       class="text-[12px] text-gray-500 truncate hover:text-[#74bdfd] transition mb-1">
+        {{ $p->seller->shop->name }}
+    </a>
+@else
+    <p class="text-[12px] text-gray-300 truncate mb-1">Магазин</p>
+@endif
+
 
         {{-- 🔥 Название + Цена — адаптивно --}}
         <div class="flex flex-col mb-1 md:flex-row md:items-center md:justify-between md:gap-2">

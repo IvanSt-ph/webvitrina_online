@@ -3,11 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Favorite extends Model
 {
     protected $fillable = ['user_id','product_id'];
 
-    public function product(): BelongsTo { return $this->belongsTo(Product::class); }
+    /** Товар в избранном */
+    public function product()
+    {
+        return $this->belongsTo(Product::class)
+            ->with(['category', 'city.country', 'seller']);
+    }
+
+    /** Владелец избранного */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

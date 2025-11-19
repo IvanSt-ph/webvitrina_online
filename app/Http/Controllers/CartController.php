@@ -13,9 +13,14 @@ class CartController extends Controller
 {
     public function index()
     {
-        $items = CartItem::with('product')
-            ->where('user_id', auth()->id())
-            ->get();
+       $items = CartItem::with([
+        'product.category',
+        'product.city.country',
+        'product.seller',
+    ])
+    ->where('user_id', auth()->id())
+    ->get();
+
 
         // считаем общую сумму
         $total = 0;
