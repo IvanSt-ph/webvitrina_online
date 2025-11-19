@@ -34,10 +34,23 @@
             <i class="ri-heart-line text-[22px]"></i>
             <span>Избранное</span>
           </a>
-          <a href="{{ route('cart.index') }}" class="{{ request()->routeIs('cart.*') ? $active : '' }} {{ $link }}">
-            <i class="ri-shopping-cart-2-line text-[22px]"></i>
-            <span>Корзина</span>
-          </a>
+<a href="{{ route('cart.index') }}" 
+   class="{{ request()->routeIs('cart.*') ? $active : '' }} {{ $link }}">
+
+    <div class="relative">
+        <i class="ri-shopping-cart-2-line text-[22px]" data-cart-icon></i>
+
+        <!-- 🔥 бейдж количества товаров -->
+<span data-cart-count
+      class="absolute -top-1.5 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full
+             opacity-0 pointer-events-none transition-none">
+</span>
+
+    </div>
+
+    <span>Корзина</span>
+</a>
+
           <a href="{{ route('addresses.index') }}" class="{{ request()->routeIs('addresses.*') ? $active : '' }} {{ $link }}">
             <i class="ri-map-pin-line text-[22px]"></i>
             <span>Адреса доставки</span>

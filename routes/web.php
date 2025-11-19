@@ -131,11 +131,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
     Route::post('/favorites/{product}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
 
+   
     // 🛒 Корзина
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add/{product}', [CartController::class, 'add'])->name('cart.add');
     Route::patch('/cart/{item}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{item}', [CartController::class, 'remove'])->name('cart.remove');
+
+    // 🔢 AJAX-счётчик товаров в корзине
+Route::get('/cart-count', function () {
+    return [
+        'count' => \App\Models\CartItem::where('user_id', auth()->id())->sum('qty')
+    ];
+});
+
+
 
     // 📦 Заказы
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
