@@ -12,7 +12,8 @@ export async function getCurrencyRates() {
   }
 
   try {
-    const res = await fetch('https://www.agroprombank.com/eshche/poleznoe/kursy-valyut/');
+const res = await fetch('/internal/currency/agroprombank');
+
     const html = await res.text();
 
     // 🧠 Парсим из HTML курсы (примерно: "UAH 0.3650 / 0.4000")
@@ -24,16 +25,18 @@ export async function getCurrencyRates() {
     const buyMDL = mdlMatch ? parseFloat(mdlMatch[1].replace(',', '.')) : 0.95;
     const sellMDL = mdlMatch ? parseFloat(mdlMatch[2].replace(',', '.')) : 1.06;
 
-    // Средние значения
-    const avgUAH = ((buyUAH + sellUAH) / 2);
-    const avgMDL = ((buyMDL + sellMDL) / 2);
+// Средние значения — заменяем на банковские
+// Банк считает: 1 PRB = 1 / buyRate
+const avgUAH = 1 / buyUAH;
+const avgMDL = 1 / buyMDL;
 
-    // Переводим в "1 ПМР = X"
-    const rates = {
-      PRB: { PRB: 1, MDL: avgMDL, UAH: 1 / avgUAH },
-      MDL: { PRB: 1 / avgMDL, MDL: 1, UAH: (1 / avgUAH) / (1 / avgMDL) },
-      UAH: { PRB: avgUAH, MDL: avgUAH / avgMDL, UAH: 1 },
-    };
+// Переводим в "1 ПМР = X"
+const rates = {
+  PRB: { PRB: 1, MDL: avgMDL, UAH: avgUAH },
+  MDL: { PRB: 1 / avgMDL, MDL: 1, UAH: avgUAH / avgMDL },
+  UAH: { PRB: 1 / avgUAH, MDL: avgMDL / avgUAH, UAH: 1 },
+};
+
 
     localStorage.setItem(CACHE_KEY, JSON.stringify({ rates, timestamp: Date.now() }));
     console.log('💱 Курсы обновлены:', rates);

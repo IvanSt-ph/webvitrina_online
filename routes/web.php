@@ -35,6 +35,11 @@ use App\Http\Controllers\Seller\CategoryController as SellerCategoryController;
 |--------------------------------------------------------------------------
 */
 
+use App\Http\Controllers\CurrencyProxyController;
+
+Route::get('/internal/currency/agroprombank', [CurrencyProxyController::class, 'agroprombank']);
+
+
 // 🏠 Главная
 Route::get('/', [ProductController::class, 'index'])->name('home');
 
@@ -296,11 +301,12 @@ use App\Http\Controllers\Admin\{
     OrderController as AdminOrderController,
     AdminProfileController,
     BannerController,
-    ReviewController as AdminReviewController
+    ReviewController as AdminReviewController,
+    CategoryAttributeController,
+    CategoryController as AdminCategoryController, // ← алиас сюда
 };
-use App\Http\Middleware\AdminMiddleware;
-use App\Http\Controllers\Admin\CategoryAttributeController;
 
+use App\Http\Middleware\AdminMiddleware;
 
 
 

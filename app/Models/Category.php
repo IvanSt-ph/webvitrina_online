@@ -111,10 +111,21 @@ public function parent()
      | 🖼 Аксессоры
      |--------------------------------------------------*/
 
-    public function getImageUrlAttribute()
+    public function getIconUrlAttribute()
     {
-        return $this->image ? asset('storage/' . $this->image) : null;
+        if (!$this->icon) {
+            return asset('images/categories/default.png');
+        }
+
+        if (str_contains($this->icon, '/')) {
+            return asset('storage/' . $this->icon);
+        }
+
+        return asset('storage/categories/icons/' . $this->icon);
     }
+
+
+
 
 
     /* -------------------------------------------------

@@ -7,11 +7,10 @@
   $keep = http_build_query(request()->except('page'));
   $link = route('category.show', $category->slug) . ($keep ? '?' . $keep : '');
 
-  // Если иконка загружена → берём из storage, иначе показываем дефолт
-  $iconUrl = $category->icon 
-      ? asset('storage/' . $category->icon) 
-      : asset('images/categories/default.png');
+  // Новый правильный путь
+  $iconUrl = $category->icon_url;
 @endphp
+
 
 <li>
   <div x-data="{ open: false }" class="my-1">

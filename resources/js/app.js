@@ -126,8 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // 🩵 Принудительный запуск Alpine после сборки Vite
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.Alpine && !window.Alpine.initialized) {
-    window.Alpine.start();
-  }
-});
+// document.addEventListener('DOMContentLoaded', () => {
+//   if (window.Alpine && !window.Alpine.initialized) {
+//     window.Alpine.start();
+//   }
+// });

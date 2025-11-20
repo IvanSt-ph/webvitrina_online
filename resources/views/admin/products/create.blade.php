@@ -194,6 +194,11 @@ document.addEventListener("DOMContentLoaded", function() {
     let lng = {{ old('longitude', 28.8638) }};
     let zoom = {{ old('latitude') ? 14 : 7 }};
 
+    if (L.DomUtil.get('map') !== null) {
+    L.DomUtil.get('map')._leaflet_id = null;
+}
+
+
     let map = L.map('map').setView([lat, lng], zoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
