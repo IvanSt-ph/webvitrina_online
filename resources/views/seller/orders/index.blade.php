@@ -1,52 +1,134 @@
-<x-seller-layout title="Заказы продавца">
+{{-- resources/views/seller/orders/index.blade.php --}}
+<x-seller-layout title="Заказы">
+    @php
+        /** @var \Illuminate\Pagination\LengthAwarePaginator|\App\Models\Order[] $orders */
 
-  <div class="min-h-[70vh] flex flex-col items-center justify-center text-center px-6 py-16 relative overflow-hidden">
+        $status = request('status');
 
-      {{-- 💫 Фоновые ореолы --}}
-      <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50 opacity-90"></div>
-      <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-indigo-300/20 rounded-full blur-3xl animate-pulse-slow"></div>
+        $tabs = [
+            null                         => ['label' => 'Все',              'color' => 'border-indigo-500 text-indigo-600'],
+            \App\Models\Order::STATUS_PENDING    => ['label' => 'Ожидают',        'color' => 'border-amber-400 text-amber-500'],
+            \App\Models\Order::STATUS_PROCESSING => ['label' => 'Приняты',        'color' => 'border-sky-400 text-sky-500'],
+            \App\Models\Order::STATUS_PAID       => ['label' => 'Оплачены',       'color' => 'border-emerald-400 text-emerald-500'],
+            \App\Models\Order::STATUS_SHIPPED    => ['label' => 'В пути',         'color' => 'border-blue-400 text-blue-500'],
+            \App\Models\Order::STATUS_DELIVERED  => ['label' => 'Доставлены',     'color' => 'border-green-400 text-green-500'],
+            \App\Models\Order::STATUS_COMPLETED  => ['label' => 'Завершены',      'color' => 'border-gray-400 text-gray-600'],
+            \App\Models\Order::STATUS_CANCELED   => ['label' => 'Отменённые',     'color' => 'border-red-400 text-red-500'],
+        ];
 
-      {{-- 📦 Иконка --}}
-      <div class="relative z-10 mb-6 animate-float">
-          <div class="bg-white border border-gray-100 shadow-lg rounded-2xl p-8">
-              <i class="ri-file-list-3-line text-6xl text-indigo-500 animate-pulse"></i>
-          </div>
-      </div>
+        $statusColors = [
+            'pending'    => 'bg-amber-50 text-amber-700 border border-amber-200',
+            'processing' => 'bg-sky-50 text-sky-700 border border-sky-200',
+            'paid'       => 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+            'shipped'    => 'bg-blue-50 text-blue-700 border border-blue-200',
+            'delivered'  => 'bg-green-50 text-green-700 border border-green-200',
+            'completed'  => 'bg-slate-50 text-slate-700 border border-slate-200',
+            'canceled'   => 'bg-red-50 text-red-700 border border-red-200',
+        ];
+    @endphp
 
-      {{-- 📝 Заголовок --}}
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-3 z-10">
-          Раздел «Заказы» в разработке
-      </h1>
+    <div class="space-y-6">
 
-      {{-- 💬 Описание --}}
-      <p class="text-gray-500 max-w-md mx-auto leading-relaxed mb-8 z-10">
-          Скоро здесь появится управление заказами, статусами и сообщениями клиентов.
-          Вы сможете отслеживать каждый заказ и взаимодействовать с покупателями.
-      </p>
+        {{-- Заголовок --}}
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+                    Мои заказы
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    Здесь отображаются все заказы, в которых вы являетесь продавцом.
+                </p>
+            </div>
 
-      {{-- 🔄 Кнопка возврата --}}
-      <a href="{{ route('cabinet') }}"
-         class="relative z-10 inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition">
-          <i class="ri-arrow-left-line text-lg"></i>
-          Вернуться в панель продавца
-      </a>
+            @if($orders->count())
+                <div class="text-sm text-gray-500">
+                    Показано {{ $orders->firstItem() }}–{{ $orders->lastItem() }}
+                    из {{ $orders->total() }}
+                </div>
+            @endif
+        </div>
 
-  </div>
+        {{-- Табы статусов --}}
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm px-3 py-2 overflow-x-auto">
+            <div class="flex items-center gap-2 text-sm">
+                @foreach($tabs as $key => $tab)
+                    @php
+                        $isActive = ($status === null && $key === null) || ($status !== null && (string)$status === (string)$key);
+                    @endphp
 
-  @include('layouts.mobile-bottom-seller-nav')
+                    <a
+                        href="{{ $key === null ? route('seller.orders.index') : route('seller.orders.index', ['status' => $key]) }}"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border
+                               whitespace-nowrap transition-all duration-150
+                               {{ $isActive ? $tab['color'] . ' bg-indigo-50/40 shadow-sm' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50' }}"
+                    >
+                        <span class="text-xs font-medium uppercase tracking-wide">
+                            {{ $tab['label'] }}
+                        </span>
+                        @if($isActive)
+                            <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </div>
 
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
-  <style>
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-    @keyframes pulse-slow {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 0.8; transform: scale(1.05); }
-    }
-    .animate-float { animation: float 3.5s ease-in-out infinite; }
-    .animate-pulse-slow { animation: pulse-slow 5s ease-in-out infinite; }
-  </style>
+        {{-- Список заказов --}}
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm">
+            @forelse($orders as $order)
+                @php
+                    $itemsCount = $order->items->sum('quantity');
+                    $colorClass = $statusColors[$order->status] ?? 'bg-gray-50 text-gray-700 border border-gray-200';
+                @endphp
 
+                <a href="{{ route('seller.orders.show', $order) }}"
+                   class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4
+                          hover:bg-gray-50/80 transition-colors border-b last:border-b-0 border-gray-100">
+                    {{-- Левая часть --}}
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <div class="font-semibold text-gray-900">
+                                #{{ $order->number }}
+                            </div>
+                            <span class="text-xs text-gray-400">
+                                ID: {{ $order->id }}
+                            </span>
+                        </div>
+
+                        <div class="text-sm text-gray-500">
+                            Покупатель {{ $order->user->name ?? 'Неизвестен' }}
+                            • {{ $order->created_at?->format('d.m.Y H:i') }}
+                        </div>
+
+                        <div class="text-xs text-gray-400">
+                            Товаров: {{ $itemsCount }}
+                        </div>
+                    </div>
+
+                    {{-- Правая часть --}}
+                    <div class="flex flex-col items-end gap-2">
+                        <div class="text-base font-semibold text-gray-900">
+                            {{ $order->formatted_total_price ?? (number_format($order->total_price, 2, ',', ' ') . ' ' . ($order->currency ?? '')) }}
+                        </div>
+
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $colorClass }}">
+                            {{ $order->status_ru }}
+                        </span>
+                    </div>
+                </a>
+            @empty
+                <div class="px-6 py-10 text-center text-gray-500 text-sm">
+                    Пока нет заказов по вашим товарам.
+                </div>
+            @endforelse
+        </div>
+
+        {{-- Пагинация --}}
+        @if($orders->hasPages())
+            <div>
+                {{ $orders->withQueryString()->links() }}
+            </div>
+        @endif
+
+    </div>
 </x-seller-layout>

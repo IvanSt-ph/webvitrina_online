@@ -102,6 +102,17 @@ public function favorites()
     return $this->hasMany(\App\Models\Favorite::class)->latest();
 }
 
+// 🔹 Адреса пользователя
+public function addresses()
+{
+    return $this->hasMany(UserAddress::class);
+}
+
+// 🔹 Основной адрес (is_default = 1)
+public function defaultAddress()
+{
+    return $this->hasOne(UserAddress::class)->where('is_default', 1);
+}
 
 
     
