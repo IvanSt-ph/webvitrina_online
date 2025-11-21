@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Models\Country;
+use App\Http\Controllers\Auth\GoogleController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -301,6 +303,18 @@ Route::get('/seller/{user}', [SellerController::class, 'show'])
 */
 Route::get('/dashboard', fn() => redirect()->route('home'))->name('dashboard');
 require __DIR__.'/auth.php';
+
+
+
+/*|--------------------------------------------------------------------------
+| 🌐 SOCIAL AUTHENTICATION (GOOGLE)
+|--------------------------------------------------------------------------
+*/
+Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])
+    ->name('auth.google.redirect');
+
+Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
+    ->name('auth.google.callback');
 
 
 

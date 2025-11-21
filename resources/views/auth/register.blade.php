@@ -1,115 +1,186 @@
 <x-guest-layout>
-    <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div class="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
-            
-            <!-- Заголовок -->
-            <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">
-                Создать аккаунт
-            </h1>
 
-            <form method="POST" action="{{ route('register') }}" class="space-y-4">
-                @csrf
+    <!-- Верхний баннер -->
+    <div class="w-full h-56 sm:h-64 overflow-hidden">
+        <img src="{{ asset('images/help/banner.jpg') }}" 
+             class="w-full h-full object-cover" alt="Banner">
+    </div>
 
-                <!-- Name -->
-                <div>
-                    <x-input-label for="name" :value="__('Имя')" />
-                    <x-text-input id="name" type="text" name="name" 
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" 
-                        :value="old('name')" required autofocus autocomplete="name" />
-                    <x-input-error :messages="$errors->get('name')" class="mt-1 text-sm" />
+    <!-- Контент -->
+    <div class="px-4 sm:px-10 py-8 sm:py-10">
+
+        <!-- Заголовок -->
+        <h1 class="text-center text-xl sm:text-2xl font-semibold text-gray-800 mb-6 sm:mb-8">
+            Создать аккаунт
+        </h1>
+
+        <form method="POST" action="{{ route('register') }}" class="space-y-5 sm:space-y-6">
+            @csrf
+
+            <!-- Name -->
+            <div>
+                <label class="block text-sm mb-1 font-medium text-gray-700">Имя</label>
+
+                <div class="relative">
+                    <i class="ri-user-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+
+                    <input type="text" name="name" required
+                           value="{{ old('name') }}"
+                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
+                                  focus:ring-indigo-500 focus:border-indigo-500 transition">
                 </div>
 
-                <!-- Email -->
-                <div>
-                    <x-input-label for="email" :value="__('Email')" />
-                    <x-text-input id="email" type="email" name="email" 
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" 
-                        :value="old('email')" required autocomplete="username" />
-                    <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm" />
+                <x-input-error :messages="$errors->get('name')" class="mt-1 text-sm" />
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label class="block text-sm mb-1 font-medium text-gray-700">Email</label>
+
+                <div class="relative">
+                    <i class="ri-mail-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+
+                    <input type="email" name="email" required
+                           value="{{ old('email') }}"
+                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
+                                  focus:ring-indigo-500 focus:border-indigo-500 transition">
                 </div>
 
-                <!-- Role -->
-                <div>
-                    <x-input-label for="role" :value="'Роль'" />
-                    <select id="role" name="role"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm" />
+            </div>
+
+            <!-- Phone -->
+            <div>
+                <label class="block text-sm mb-1 font-medium text-gray-700">Телефон (необязательно)</label>
+
+                <div class="relative">
+                    <i class="ri-smartphone-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+
+                    <input type="text" name="phone"
+                           value="{{ old('phone') }}"
+                           placeholder="+373 6xx xx xxx"
+                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
+                                  focus:ring-indigo-500 focus:border-indigo-500 transition">
+                </div>
+
+                <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
+            </div>
+
+            <!-- Role -->
+            <div>
+                <label class="block text-sm mb-1 font-medium text-gray-700">Роль</label>
+
+                <div class="relative">
+                    <i class="ri-user-star-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+
+                    <select name="role"
+                            class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
+                                   focus:ring-indigo-500 focus:border-indigo-500 transition">
                         <option value="buyer" @selected(old('role')==='buyer')>Покупатель</option>
                         <option value="seller" @selected(old('role')==='seller')>Продавец</option>
                     </select>
-                    <x-input-error :messages="$errors->get('role')" class="mt-1 text-sm" />
                 </div>
 
-                <!-- Password -->
-                <div x-data="{ show: false }" class="relative">
-                    <x-input-label for="password" :value="__('Пароль')" />
-                    <x-text-input id="password" x-bind:type="show ? 'text' : 'password'" name="password"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 pr-10"
-                        required autocomplete="new-password" />
-                    <!-- Глазик -->
-                    <button type="button" @click="show = !show" class="absolute right-3 top-9 text-gray-500 hover:text-gray-700">
-                        <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 
-                                     9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 
-                                     0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <svg x-show="show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 
-                                     0-8.268-2.943-9.542-7a9.96 9.96 0 
-                                     012.187-3.568M6.1 6.1A9.953 9.953 
-                                     0 0112 5c4.477 0 8.268 2.943 
-                                     9.542 7a9.978 9.978 0 01-4.132 
-                                     5.411M15 12a3 3 0 11-6 0 3 3 
-                                     0 016 0zM3 3l18 18" />
-                        </svg>
+                <x-input-error :messages="$errors->get('role')" class="mt-1 text-sm" />
+            </div>
+
+            <!-- Password -->
+            <div x-data="{ show: false }">
+                <label class="block text-sm mb-1 font-medium text-gray-700">Пароль</label>
+
+                <div class="relative">
+                    <i class="ri-lock-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+
+                    <input :type="show ? 'text' : 'password'" name="password" required
+                           class="w-full pl-10 pr-12 py-2.5 sm:py-3 rounded-xl border border-gray-300
+                                  focus:ring-indigo-500 focus:border-indigo-500 transition">
+
+                    <button type="button" @click="show = !show"
+                            class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                        <i x-show="!show" class="ri-eye-line text-lg"></i>
+                        <i x-show="show" class="ri-eye-off-line text-lg"></i>
                     </button>
-                    <x-input-error :messages="$errors->get('password')" class="mt-1 text-sm" />
                 </div>
 
-                <!-- Confirm Password -->
-                <div x-data="{ show: false }" class="relative">
-                    <x-input-label for="password_confirmation" :value="__('Повторите пароль')" />
-                    <x-text-input id="password_confirmation" x-bind:type="show ? 'text' : 'password'" name="password_confirmation"
-                        class="mt-1 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 pr-10"
-                        required autocomplete="new-password" />
-                    <!-- Глазик -->
-                    <button type="button" @click="show = !show" class="absolute right-3 top-9 text-gray-500 hover:text-gray-700">
-                        <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 
-                                     9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 
-                                     0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <svg x-show="show" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 
-                                     0-8.268-2.943-9.542-7a9.96 9.96 0 
-                                     012.187-3.568M6.1 6.1A9.953 9.953 
-                                     0 0112 5c4.477 0 8.268 2.943 
-                                     9.542 7a9.978 9.978 0 01-4.132 
-                                     5.411M15 12a3 3 0 11-6 0 3 3 
-                                     0 016 0zM3 3l18 18" />
-                        </svg>
+                <x-input-error :messages="$errors->get('password')" class="mt-1 text-sm" />
+            </div>
+
+            <!-- Confirm Password -->
+            <div x-data="{ show: false }">
+                <label class="block text-sm mb-1 font-medium text-gray-700">Повторите пароль</label>
+
+                <div class="relative">
+                    <i class="ri-lock-password-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+
+                    <input :type="show ? 'text' : 'password'" name="password_confirmation" required
+                           class="w-full pl-10 pr-12 py-2.5 sm:py-3 rounded-xl border border-gray-300
+                                  focus:ring-indigo-500 focus:border-indigo-500 transition">
+
+                    <button type="button" @click="show = !show"
+                            class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                        <i x-show="!show" class="ri-eye-line text-lg"></i>
+                        <i x-show="show" class="ri-eye-off-line text-lg"></i>
                     </button>
-                    <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1 text-sm" />
                 </div>
 
-                <!-- Кнопки -->
-                <div class="flex items-center justify-between mt-6">
-                    <a href="{{ route('login') }}" class="text-sm text-indigo-600 hover:text-indigo-800">
-                        Уже есть аккаунт?
-                    </a>
+                <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1 text-sm" />
+            </div>
 
-                    <x-primary-button class="px-6 py-2 rounded-lg">
-                        {{ __('Регистрация') }}
-                    </x-primary-button>
-                </div>
-            </form>
-        </div>
+            <!-- Submit -->
+            <button type="submit"
+                    class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700
+                           text-white font-semibold transition">
+                Регистрация
+            </button>
+
+            <!-- Divider -->
+            <div class="flex items-center my-5 sm:my-6">
+                <div class="flex-1 border-t border-gray-300"></div>
+                <span class="mx-2 sm:mx-4 text-sm text-gray-500">или</span>
+                <div class="flex-1 border-t border-gray-300"></div>
+            </div>
+
+            <!-- Social buttons -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
+
+                <a href="{{ route('auth.google.redirect') }}"
+                   class="flex items-center justify-center gap-2 
+                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
+                    <img src="{{ asset('images/icons/google.png') }}" class="w-4 h-4 sm:w-5 sm:h-5">
+                    Google
+                </a>
+
+                <a href="#"
+                   class="flex items-center justify-center gap-2 
+                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
+                    <i class="ri-telegram-line text-base sm:text-lg"></i>
+                    Telegram
+                </a>
+
+                <a href="#"
+                   class="flex items-center justify-center gap-2 
+                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
+                    <i class="ri-smartphone-line text-base sm:text-lg"></i>
+                    Телефон
+                </a>
+
+                <a href="#"
+                   class="flex items-center justify-center gap-2 
+                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
+                    <i class="ri-facebook-circle-line text-base sm:text-lg"></i>
+                    Facebook
+                </a>
+            </div>
+
+            <p class="text-center mt-5 sm:mt-6 text-gray-600 text-sm">
+                Уже есть аккаунт?
+                <a href="{{ route('login') }}" class="text-indigo-600 font-semibold hover:underline">
+                    Войти
+                </a>
+            </p>
+
+        </form>
+
     </div>
+
 </x-guest-layout>
