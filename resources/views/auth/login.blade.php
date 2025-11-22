@@ -81,7 +81,7 @@
             <!-- Divider -->
             <div class="flex items-center my-5 sm:my-6">
                 <div class="flex-1 border-t border-gray-300"></div>
-                <span class="mx-2 sm:mx-4 text-sm text-gray-500">или</span>
+                <span class="mx-2 sm:mx-4 text-sm text-gray-500">Или войдите с помощью:</span>
                 <div class="flex-1 border-t border-gray-300"></div>
             </div>
 
