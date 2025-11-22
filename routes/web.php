@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Country;
 use App\Http\Controllers\Auth\GoogleController;
 
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -304,6 +306,26 @@ Route::get('/seller/{user}', [SellerController::class, 'show'])
 Route::get('/dashboard', fn() => redirect()->route('home'))->name('dashboard');
 require __DIR__.'/auth.php';
 
+
+
+
+/*|--------------------------------------------------------------------------
+| 🌐 Подверждение потчы (GOOGLE)
+|--------------------------------------------------------------------------
+*/
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware(['auth'])->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return redirect('/'); // или куда нужно
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+Route::post('/email/resend', function () {
+    request()->user()->sendEmailVerificationNotification();
+    return back()->with('status', 'verification-link-sent');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 
 /*|--------------------------------------------------------------------------
