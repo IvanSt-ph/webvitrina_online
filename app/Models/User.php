@@ -8,6 +8,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\VerifyEmail;
+use App\Notifications\ResetPasswordNotification;
+
+
 
 class User extends Authenticatable implements MustVerifyEmail
 
@@ -20,6 +23,7 @@ protected $fillable = [
     'password',
     'role',
     'avatar',
+    'phone',
 ];
 
 
@@ -119,12 +123,16 @@ public function defaultAddress()
 
 
 
-
+// Подверждение email (внешний вид письма)
 public function sendEmailVerificationNotification()
 {
     $this->notify(new VerifyEmail());
 }
-
+// сброс пароля (внешний вид письма)
+public function sendPasswordResetNotification($token)
+{
+    $this->notify(new ResetPasswordNotification($token));
+}
 
 
     

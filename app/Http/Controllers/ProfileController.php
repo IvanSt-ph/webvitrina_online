@@ -26,34 +26,43 @@ class ProfileController extends Controller
     /**
      * Обновление личной информации пользователя.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $user = $request->user();
+public function update(ProfileUpdateRequest $request): RedirectResponse
+{
+    $user = $request->user();
 
-        $data = $request->validate([
-            'name'   => 'required|string|max:255',
-            'email'  => 'required|email|max:255',
-            'avatar' => 'nullable|image|max:2048',
-        ]);
+    $data = $request->validate([
+        'name'   => 'required|string|max:255',
+        'email'  => 'required|email|max:255',
+        'avatar' => 'nullable|image|max:2048',
+        'phone'  => 'nullable|string|max:50',
+    ]);
 
-        // Сброс верификации при изменении email
-        if ($user->email !== $data['email']) {
-            $user->email_verified_at = null;
-        }
-
-        // Загрузка нового аватара
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
-        }
-
-        $user->update($data);
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    // Сброс email-верификации
+    if ($user->email !== $data['email']) {
+        $user->email_verified_at = null;
     }
+
+    // Аватар
+    if ($request->hasFile('avatar')) {
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+    }
+
+    $user->update($data);
+
+    // 👇 ВОТ САМОЕ ГЛАВНОЕ 👇
+    // Проверяем: находится ли пользователь на покупательской странице?
+    if ($request->routeIs('buyer.profile.update')) {
+        return Redirect::route('buyer.profile')->with('status', 'profile-updated');
+    }
+
+    // Иначе продавец
+    return Redirect::route('profile.edit')->with('status', 'profile-updated');
+}
+
 
 
     /**

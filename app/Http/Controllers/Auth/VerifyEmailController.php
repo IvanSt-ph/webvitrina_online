@@ -14,14 +14,30 @@ class VerifyEmailController extends Controller
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return $this->redirectAfterVerification();
         }
 
-        if ($request->user()->markEmailAsVerified()) {
-            event(new Verified($request->user()));
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
         }
 
-        return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        return $this->redirectAfterVerification();
+    }
+
+    /**
+     * Куда редиректить после верификации email.
+     */
+    private function redirectAfterVerification(): RedirectResponse
+    {
+        // Если продавец → в кабинет продавца
+        if (auth()->user()->isSeller()) {
+            return redirect()->route('seller.cabinet');
+        }
+
+        // Если покупатель → в профиль покупателя
+        return redirect()->route('buyer.profile');
     }
 }

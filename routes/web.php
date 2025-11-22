@@ -1,11 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Models\Country;
-use App\Http\Controllers\Auth\GoogleController;
-
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
-
+use App\Models\Country;
+use App\Http\Middleware\AdminMiddleware;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,14 +24,13 @@ use App\Http\Controllers\{
     OrderStatusController
 };
 
-use App\Http\Controllers\CurrencyProxyController;
-
 use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
 use App\Http\Controllers\Seller\{
     CabinetController,
     AnalyticsController,
     HelpController as SellerHelpController,
-    CategoryController as SellerCategoryController
+    CategoryController as SellerCategoryController,
+    OrderController as SellerOrderController
 };
 
 use App\Http\Controllers\Admin\{
@@ -48,8 +45,10 @@ use App\Http\Controllers\Admin\{
     CategoryController as AdminCategoryController
 };
 
-use App\Http\Middleware\AdminMiddleware;
-use App\Http\Controllers\Seller\OrderController as SellerOrderController;
+use App\Http\Controllers\CurrencyProxyController;
+use App\Http\Controllers\Auth\GoogleController;
+
+use Illuminate\Support\Facades\Auth;
 
 
 /*
@@ -58,10 +57,9 @@ use App\Http\Controllers\Seller\OrderController as SellerOrderController;
 |--------------------------------------------------------------------------
 */
 
-// 💱 Валютный прокси
+// 💱 Валюты
 Route::get('/internal/currency/agroprombank', [
-    CurrencyProxyController::class,
-    'agroprombank'
+    CurrencyProxyController::class, 'agroprombank'
 ]);
 
 // 🏠 Главная
@@ -75,56 +73,66 @@ Route::get('/p/{key}',  [ProductController::class, 'show'])->name('product.short
 Route::get('/category',        [CategoryController::class, 'index'])->name('category.index');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 
-// 🌎 Города по стране (AJAX)
+// 🌎 Города
 Route::get('/countries/{country}/cities', function (Country $country) {
     return $country->cities()->select('id','name')->orderBy('name')->get();
 })->name('countries.cities');
 
-// 🔧 Установка валюты
+// 💱 Смена валюты
 Route::post('/currency', [\App\Http\Controllers\CurrencyController::class, 'set'])
     ->name('currency.set');
 
 // 🚧 Coming Soon
 Route::view('/coming-soon', 'errors.coming-soon')->name('coming.soon');
 
-// 👤 Точка входа в кабинет
+// Кабинет входа
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
-
 
 
 /*
 |--------------------------------------------------------------------------
-| 👤 AUTHENTICATED ROUTES
+| 🔐 AUTHENTICATED ROUTES
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | 🧍 PROFILE
+    | 👤 PROFILE (основной)
     |--------------------------------------------------------------------------
     */
     Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Shop info (продавец)
     Route::patch('/profile/shop', [ProfileController::class, 'updateShop'])
         ->name('profile.shop.update');
 
     // Смена пароля
-    Route::put('/password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])
+    Route::put('/password', [App\Http\Controllers\Auth\PasswordController::class, 'update'])
         ->name('password.update');
 
 
     /*
     |--------------------------------------------------------------------------
-    | 👤 BUYER PAGES
+    | 👤 BUYER AREA
     |--------------------------------------------------------------------------
     */
-    Route::middleware('verified')->group(function () {
-        Route::get('/buyer/profile', fn() => view('buyer.profile'))->name('buyer.profile');
-    });
 
+    // Основная инфа
+    Route::get('/buyer/profile', fn() => view('buyer.profile.general'))
+        ->name('buyer.profile');
+
+    // Безопасность
+    Route::get('/buyer/profile/security', fn() => view('buyer.profile.security'))
+        ->name('buyer.profile.security');
+
+    // Обновление именно покупательского профиля
+    Route::patch('/buyer/profile/update', [ProfileController::class, 'update'])
+        ->name('buyer.profile.update');
+
+    // Прочие buyer-странички
     Route::view('/my-questions', 'buyer.questions.index')->name('questions.index');
     Route::view('/my-chats', 'buyer.chats.index')->name('chats.index');
     Route::view('/notifications/settings', 'buyer.notifications.settings')->name('notifications.settings');
@@ -145,8 +153,7 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
-    Route::post('/favorites/{product}', [FavoriteController::class, 'toggle'])
-        ->name('favorites.toggle');
+    Route::post('/favorites/{product}', [FavoriteController::class, 'toggle'])->name('favorites.toggle');
 
 
     /*
@@ -154,12 +161,11 @@ Route::middleware('auth')->group(function () {
     | 🛒 CART
     |--------------------------------------------------------------------------
     */
-    Route::get('/cart',                 [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart/add/{product}',  [CartController::class, 'add'])->name('cart.add');
-    Route::patch('/cart/{item}',        [CartController::class, 'update'])->name('cart.update');
-    Route::delete('/cart/{item}',       [CartController::class, 'remove'])->name('cart.remove');
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add/{product}', [CartController::class, 'add'])->name('cart.add');
+    Route::patch('/cart/{item}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/{item}', [CartController::class, 'remove'])->name('cart.remove');
 
-    // AJAX — количество товаров в корзине
     Route::get('/cart-count', fn() => [
         'count' => \App\Models\CartItem::where('user_id', auth()->id())->sum('qty')
     ])->name('cart.count');
@@ -194,7 +200,7 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | 🔄 ORDER STATUS UPDATE
+    | 🔄 ORDER STATUS
     |--------------------------------------------------------------------------
     */
     Route::post('/orders/{order}/confirm-delivery',
@@ -219,6 +225,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/addresses',              [UserAddressController::class, 'store'])->name('addresses.store');
     Route::put('/addresses/{address}',     [UserAddressController::class, 'update'])->name('addresses.update');
     Route::delete('/addresses/{address}',  [UserAddressController::class, 'destroy'])->name('addresses.destroy');
+
     Route::post('/addresses/{address}/default',
         [UserAddressController::class, 'makeDefault']
     )->name('addresses.default');
@@ -243,17 +250,14 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
 
         // Категории
-        Route::get('/categories/{parent}/children',
-            [SellerCategoryController::class, 'children']
-        )->name('categories.children');
+        Route::get('/categories/{parent}/children', [SellerCategoryController::class, 'children'])
+            ->name('categories.children');
 
-        Route::get('/categories/chain/{id}',
-            [SellerCategoryController::class, 'chain']
-        )->name('categories.chain');
+        Route::get('/categories/chain/{id}', [SellerCategoryController::class, 'chain'])
+            ->name('categories.chain');
 
-        Route::get('/categories/{category}/attributes',
-            [SellerProducts::class, 'getCategoryAttributes']
-        )->name('categories.attributes');
+        Route::get('/categories/{category}/attributes', [SellerProducts::class, 'getCategoryAttributes'])
+            ->name('categories.attributes');
 
         // Справка
         Route::get('/help/{slug}',  [SellerHelpController::class, 'show'])->name('help');
@@ -268,68 +272,37 @@ Route::middleware('auth')->group(function () {
             [SellerProducts::class, 'deleteGalleryImage']
         )->name('products.gallery.delete');
 
-         // 📦 Заказы продавца
+        // Заказы продавца
         Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->name('orders.show');
 
-
-
-
-        // Заглушки
-        
+        // Финансы
         Route::view('/finance', 'seller.finance.index')->name('finance.index');
 
         // Аналитика
-        Route::get('/analytics',                [AnalyticsController::class, 'index'])->name('analytics.index');
-        Route::get('/analytics/day/{date}',     [AnalyticsController::class, 'dayStats'])->name('analytics.day');
+        Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('/analytics/day/{date}', [AnalyticsController::class, 'dayStats'])->name('analytics.day');
         Route::get('/analytics/products-on/{date}', [AnalyticsController::class, 'productsOn']);
     });
-}); // END AUTH
+
+}); // END AUTH GROUP
 
 
 
 /*
 |--------------------------------------------------------------------------
-| 🧾 PUBLIC SELLER SHOP PAGE
+| 🧾 PUBLIC SELLER PAGE
 |--------------------------------------------------------------------------
 */
-Route::get('/seller/{user}', [SellerController::class, 'show'])
-    ->name('seller.show');
+Route::get('/seller/{user}', [SellerController::class, 'show'])->name('seller.show');
+
+
 
 
 
 /*
 |--------------------------------------------------------------------------
-| 📝 AUTH ROUTES (Laravel Breeze/Fortify)
-|--------------------------------------------------------------------------
-*/
-Route::get('/dashboard', fn() => redirect()->route('home'))->name('dashboard');
-require __DIR__.'/auth.php';
-
-
-
-
-/*|--------------------------------------------------------------------------
-| 🌐 Подверждение потчы (GOOGLE)
-|--------------------------------------------------------------------------
-*/
-Route::get('/email/verify', function () {
-    return view('auth.verify-email');
-})->middleware(['auth'])->name('verification.notice');
-
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill();
-    return redirect('/'); // или куда нужно
-})->middleware(['auth', 'signed'])->name('verification.verify');
-
-Route::post('/email/resend', function () {
-    request()->user()->sendEmailVerificationNotification();
-    return back()->with('status', 'verification-link-sent');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-
-
-/*|--------------------------------------------------------------------------
-| 🌐 SOCIAL AUTHENTICATION (GOOGLE)
+| 🌐 GOOGLE LOGIN
 |--------------------------------------------------------------------------
 */
 Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])
@@ -350,46 +323,54 @@ Route::prefix('admin')
     ->middleware(['auth', AdminMiddleware::class])
     ->group(function () {
 
-    // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Users
     Route::resource('users', AdminUserController::class);
 
-    // Categories
     Route::resource('categories', AdminCategoryController::class)->except(['show']);
     Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])->name('categories.children');
     Route::get('/categories/root',          [AdminCategoryController::class, 'root'])->name('categories.root');
     Route::get('/categories/{id}/parent',   [AdminCategoryController::class, 'parent'])->name('categories.parent');
 
-    // Category Attributes
-    Route::get('/categories/{category}/attributes',  [CategoryAttributeController::class, 'index'])->name('categories.attributes');
-    Route::post('/categories/{category}/attributes', [CategoryAttributeController::class, 'store'])->name('categories.attributes.store');
+    Route::get('/categories/{category}/attributes',  [CategoryAttributeController::class, 'index'])
+        ->name('categories.attributes');
+
+    Route::post('/categories/{category}/attributes', [CategoryAttributeController::class, 'store'])
+        ->name('categories.attributes.store');
+
     Route::delete('/categories/{category}/attributes/{attribute}',
         [CategoryAttributeController::class, 'destroy']
     )->name('categories.attributes.destroy');
 
-    // Products
-    Route::get('/products/search', [AdminProductController::class, 'search'])->name('products.search');
+    Route::get('/products/search', [AdminProductController::class, 'search'])
+        ->name('products.search');
+
     Route::resource('products', AdminProductController::class);
+
     Route::delete('/products/{product}/gallery',
         [AdminProductController::class, 'deleteGalleryImage']
     )->name('products.gallery.delete');
 
-    // Orders
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
 
-    // Admin Profile
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
-    // Banners
     Route::resource('banners', BannerController::class)->except(['show']);
 
-    // Reviews moderation
-    Route::get('/reviews',                 [AdminReviewController::class, 'index'])->name('reviews.index');
+    Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
     Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
     Route::post('/reviews/{review}/reject',  [AdminReviewController::class, 'reject'])->name('reviews.reject');
     Route::delete('/reviews/{review}',       [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::get('/reviews/{review}',          [AdminReviewController::class, 'show'])->name('reviews.show');
+
+
+
 });
+
+/*
+|--------------------------------------------------------------------------
+| 🔐 AUTH ROUTES
+|--------------------------------------------------------------------------
+*/
+require __DIR__.'/auth.php';
