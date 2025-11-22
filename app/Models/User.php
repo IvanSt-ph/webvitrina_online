@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\VerifyEmail;
 
 class User extends Authenticatable implements MustVerifyEmail
 
@@ -115,6 +116,15 @@ public function defaultAddress()
 {
     return $this->hasOne(UserAddress::class)->where('is_default', 1);
 }
+
+
+
+
+public function sendEmailVerificationNotification()
+{
+    $this->notify(new VerifyEmail());
+}
+
 
 
     
