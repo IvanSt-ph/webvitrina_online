@@ -64,9 +64,11 @@ class FavoriteController extends Controller
 
         if (request()->expectsJson()) {
             return response()->json([
-                'status'  => $state ? 'added' : 'removed',
-                'message' => $state ? 'Добавлено в избранное' : 'Удалено из избранного'
+                'status'   => $state ? 'added' : 'removed',
+                'favorite' => $state,
+                'message'  => $state ? 'Добавлено в избранное' : 'Удалено из избранного'
             ]);
+
         }
 
         return back()->with(

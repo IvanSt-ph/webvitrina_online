@@ -16,16 +16,15 @@ class Category extends Model
         'image',
     ];
 
-    /* -------------------------------------------------
-     | 🔹 СВЯЗИ
-     |--------------------------------------------------*/
+    /* ============================================================
+     | 🔗 СВЯЗИ
+     ============================================================ */
 
-    /** Родитель (с безопасным fallback) */
-public function parent()
-{
-    return $this->belongsTo(Category::class, 'parent_id');
-}
-
+    /** Родитель */
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
 
     /** Прямые дети */
     public function children()
@@ -33,27 +32,28 @@ public function parent()
         return $this->hasMany(Category::class, 'parent_id');
     }
 
-    /** Товары в этой категории */
+    /** Товары этой категории */
     public function products()
     {
         return $this->hasMany(Product::class);
     }
 
-    /** Атрибуты, привязанные к категории */
+    /** Атрибуты */
     public function attributes()
     {
-        return $this->belongsToMany(\App\Models\Attribute::class, 'attribute_category');
+        return $this->belongsToMany(Attribute::class, 'attribute_category');
     }
 
-
-    /* -------------------------------------------------
-     | 🔥 КЭШИРОВАННОЕ ДЕРЕВО ДЛЯ СУПЕР-БЫСТРОЙ РЕКУРСИИ
-     |--------------------------------------------------*/
+    /* ============================================================
+     | 🔥 КЭШ: СТРУКТУРА ДЛЯ РЕКУРСИЙ (быстрое дерево)
+     ============================================================ */
 
     /**
-     * Получить сгруппированное дерево всех категорий:
+     * Минимальная структура дерева (id → parent_id), используется
+     * для рекурсий и allChildrenIds().
+     *
      * [
-     *   parent_id => [ Category, Category ],
+     *   parent_id => [ Category, Category ]
      * ]
      */
     public static function tree()
@@ -64,13 +64,13 @@ public function parent()
     }
 
     /**
-     * Очень быстрая рекурсия без лишних SQL.
-     * Возвращает ВСЕ ID: текущей + всех потомков.
+     * Возвращает ID текущей категории + всех потомков.
+     * Работает мгновенно, без SQL.
      */
     public function allChildrenIds()
     {
-        $tree = self::tree();
-        $ids  = collect([$this->id]);
+        $tree  = self::tree();
+        $ids   = collect([$this->id]);
         $stack = [$this->id];
 
         while (!empty($stack)) {
@@ -87,12 +87,35 @@ public function parent()
         return $ids->unique();
     }
 
+    /* ============================================================
+     | 🔥 КЭШ: ПОЛНОЕ ДЕРЕВО ДЛЯ МЕНЮ / ВИТРИНЫ / ФОРМ
+     ============================================================ */
 
-    /* -------------------------------------------------
+    /**
+     * Полное дерево категорий с детьми (до 3 уровней).
+     * Используется в:
+     * - меню
+     * - фильтрах
+     * - формах продавца
+     * - админке
+     */
+    public static function fullTree()
+    {
+        return Cache::remember('categories_full_tree', 3600, function () {
+            return self::with([
+                'children.children.children'
+            ])
+                ->whereNull('parent_id')
+                ->orderBy('name')
+                ->get();
+        });
+    }
+
+    /* ============================================================
      | 🔧 УТИЛИТЫ
-     |--------------------------------------------------*/
+     ============================================================ */
 
-    /** Брать соседей категории (полезно для меню) */
+    /** Соседние категории */
     public function siblings()
     {
         return self::where('parent_id', $this->parent_id)
@@ -100,16 +123,15 @@ public function parent()
             ->get();
     }
 
-    /** Товары текущей + всех дочерних категорий */
+    /** Все товары текущей + дочерних категорий */
     public function allProducts()
     {
         return Product::whereIn('category_id', $this->allChildrenIds());
     }
 
-
-    /* -------------------------------------------------
-     | 🖼 Аксессоры
-     |--------------------------------------------------*/
+    /* ============================================================
+     | 🖼 АКСЕССОРЫ
+     ============================================================ */
 
     public function getIconUrlAttribute()
     {
@@ -124,26 +146,21 @@ public function parent()
         return asset('storage/categories/icons/' . $this->icon);
     }
 
-
-
-
-
-    /* -------------------------------------------------
-     | ⚙️ Хуки модели
-     |--------------------------------------------------*/
+    /* ============================================================
+     | ⚙️ ХУКИ МОДЕЛИ (генерация slug + очистка кеша)
+     ============================================================ */
 
     protected static function boot()
     {
         parent::boot();
 
-        // Генерация slug при создании
+        /** Генерация slug */
         static::creating(function ($category) {
             if (empty($category->slug)) {
                 $slug = Str::slug($category->name);
                 $base = $slug;
                 $i = 1;
 
-                // Проверка уникальности slug
                 while (self::where('slug', $slug)->exists()) {
                     $slug = $base . '-' . $i++;
                 }
@@ -152,8 +169,15 @@ public function parent()
             }
         });
 
-        // Очищаем кэш дерева при добавлении/изменении/удалении
-        static::saved(fn() => Cache::forget('categories_tree'));
-        static::deleted(fn() => Cache::forget('categories_tree'));
+        /** Очищаем кеш после добавления/обновления/удаления */
+        static::saved(function () {
+            Cache::forget('categories_tree');
+            Cache::forget('categories_full_tree');
+        });
+
+        static::deleted(function () {
+            Cache::forget('categories_tree');
+            Cache::forget('categories_full_tree');
+        });
     }
 }
