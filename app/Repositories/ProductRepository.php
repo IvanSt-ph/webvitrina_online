@@ -94,8 +94,8 @@ class ProductRepository
                 'seller',
                 'reviews' => fn($q) =>
                     $q->where('status', 'approved')
-                        ->with(['user', 'images'])
-                        ->latest()
+                      ->with(['user', 'images'])
+                      ->latest()
             ])
                 ->withCount([
                     'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
@@ -135,9 +135,18 @@ class ProductRepository
     }
 
     /* ============================================================
-     |  ОЧИСТКА КЭША
+     |  ОЧИСТКА КЭША — основной метод
      ============================================================ */
     public function clearCache(Product $product)
+    {
+        Cache::forget("product_page:{$product->slug}");
+        Cache::forget("related:{$product->id}");
+    }
+
+    /* ============================================================
+     |  ОЧИСТКА КЭША — статический метод (для моделей)
+     ============================================================ */
+    public static function clearProductCache(Product $product): void
     {
         Cache::forget("product_page:{$product->slug}");
         Cache::forget("related:{$product->id}");

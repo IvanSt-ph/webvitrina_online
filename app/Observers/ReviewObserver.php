@@ -1,11 +1,8 @@
 <?php
 
-// app/Observers/ReviewObserver.php
 namespace App\Observers;
 
 use App\Models\Review;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 class ReviewObserver
 {
@@ -18,18 +15,31 @@ class ReviewObserver
     protected function recalcSeller(Review $review): void
     {
         $product = $review->product;
-        if (!$product || !$product->seller) return;
 
-        $seller = $product->seller;
+        if (!$product) {
+            return;
+        }
 
-        // Пересчёт средней оценки и количества отзывов по всем товарам этого продавца
-        $agg = \App\Models\Review::query()
-            ->whereHas('product', fn($q) => $q->where('user_id', $seller->id))
+        // Владелец товара (User)
+        $user = $product->user;
+
+        // Магазин продавца
+        $shop = $user->shop ?? null;
+
+        if (!$shop) {
+            return;
+        }
+
+        // Пересчитываем рейтинг по всем товарам этого магазина
+        $agg = Review::query()
+            ->whereHas('product', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
             ->selectRaw('COALESCE(AVG(rating),0) as avg_rating, COUNT(*) as cnt')
             ->first();
 
-        $seller->rating = round((float)$agg->avg_rating, 2);
-        $seller->reviews_count = (int)$agg->cnt;
-        $seller->save();
+        $shop->rating = round((float)$agg->avg_rating, 2);
+        $shop->reviews_count = (int)$agg->cnt;
+        $shop->save();
     }
 }
