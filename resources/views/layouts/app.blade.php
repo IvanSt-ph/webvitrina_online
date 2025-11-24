@@ -39,6 +39,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="font-sans antialiased">
+
+    <script>
+document.addEventListener('alpine:init', () => {
+    Alpine.store('specs', { open: false });
+});
+</script>
+
 <div
     class="min-h-screen bg-white-100"
     x-data="{
@@ -94,6 +101,11 @@
 </div>
 
 <style>[x-cloak]{display:none!important}</style>
+
+
+@stack('styles')
+@stack('scripts')
+
 
 </body>
 </html>

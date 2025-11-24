@@ -117,3 +117,39 @@
         </div>
     </div>
 </div>
+
+
+
+
+
+
+{{-- 🌟 Модалка характеристик товара --}}
+<div 
+    x-show="$store.specs?.open"
+    x-transition.opacity
+    class="fixed inset-0 bg-black/40 z-[999]"
+    @click="$store.specs.open = false"
+    x-cloak
+>
+    <div 
+        @click.stop
+        x-transition:enter="transform transition ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transform transition ease-in duration-300"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-white shadow-2xl p-6 overflow-y-auto"
+    >
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold">Характеристики товара</h2>
+            <button @click="$store.specs.open = false">
+                <i class="ri-close-line text-2xl"></i>
+            </button>
+        </div>
+
+        {{-- Slot со спецификациями --}}
+        {{ $specs ?? '' }}
+
+    </div>
+</div>
