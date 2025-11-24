@@ -125,7 +125,7 @@
 
 {{-- 🌟 Модалка характеристик товара --}}
 <div 
-    x-show="$store.specs?.open"
+    x-show="$store.specs.open"
     x-transition.opacity
     class="fixed inset-0 bg-black/40 z-[999]"
     @click="$store.specs.open = false"
@@ -142,14 +142,13 @@
         class="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-white shadow-2xl p-6 overflow-y-auto"
     >
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold">Характеристики товара</h2>
-            <button @click="$store.specs.open = false">
+            <h2 class="text-xl font-bold text-gray-900">Характеристики товара</h2>
+            <button @click="$store.specs.open = false" class="text-gray-500 hover:text-gray-700">
                 <i class="ri-close-line text-2xl"></i>
             </button>
         </div>
 
-        {{-- Slot со спецификациями --}}
+        {{-- Slot со списком характеристик --}}
         {{ $specs ?? '' }}
-
     </div>
 </div>

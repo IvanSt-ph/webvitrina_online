@@ -23,43 +23,49 @@
         @endif
     </div>
 
+
+    
     {{-- Мини параметры --}}
-    <div class="mt-5 space-y-3 text-sm text-gray-700">
-        @if ($product->sku)
-            <div class="flex flex-col sm:flex-row sm:justify-between">
-                <span class="text-gray-500">Артикул</span>
-                <span class="font-medium">{{ $product->sku }}</span>
-            </div>
-        @endif
+        <div class="mt-5 space-y-3 text-sm text-gray-700">
 
-        @if ($product->category)
-            <div class="flex flex-col sm:flex-row sm:justify-between">
-                <span class="text-gray-500">Категория</span>
-                <span class="font-medium">{{ $product->category->name }}</span>
-            </div>
-        @endif
+            @if ($product->sku)
+                <div class="flex items-center text-sm">
+                    <span class="text-gray-500 whitespace-nowrap">Артикул</span>
+                    <div class="flex-1 border-b border-dotted mx-2 border-gray-300"></div>
+                    <span class="font-medium">{{ $product->sku }}</span>
+                </div>
+            @endif
 
-        @if ($product->city || $product->country)
-            <div class="flex flex-col sm:flex-row sm:justify-between">
-                <span class="text-gray-500">Локация</span>
-                <span class="font-medium">
-                    {{ $product->country->name ?? $product->city->country->name ?? '' }}
-                    @if ($product->city)
-                        , {{ $product->city->name }}
-                    @endif
-                </span>
-            </div>
-        @endif
-    </div>
+            @if ($product->category)
+                <div class="flex items-center text-sm">
+                    <span class="text-gray-500 whitespace-nowrap">Категория</span>
+                    <div class="flex-1 border-b border-dotted mx-2 border-gray-300"></div>
+                    <span class="font-medium">{{ $product->category->name }}</span>
+                </div>
+            @endif
+
+            @if ($product->city || $product->country)
+                <div class="flex items-center text-sm">
+                    <span class="text-gray-500 whitespace-nowrap">Локация</span>
+                    <div class="flex-1 border-b border-dotted mx-2 border-gray-300"></div>
+                    <span class="font-medium">
+                        {{ $product->country->name ?? $product->city->country->name ?? '' }}
+                        @if ($product->city)
+                            , {{ $product->city->name }}
+                        @endif
+                    </span>
+                </div>
+            @endif
+        </div>
+
+
 
     <button 
     @click="$store.specs.open = true"
-    class="mt-4 w-full text-left px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
-           hover:bg-gray-100 transition font-medium text-indigo-600 flex items-center justify-between"
->
+        class="mt-4 w-full text-left px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 hover:shadow-sm transition font-medium text-indigo-600 flex items-center justify-between" 
     <span>Характеристики товара</span>
-    <i class="ri-arrow-right-s-line text-xl"></i>
-</button>
+     <i class="ri-list-settings-line text-lg text-gray-500"></i>
+    </button>
 
     {{-- Продавец --}}
     @if ($product->seller)
