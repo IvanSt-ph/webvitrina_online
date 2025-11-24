@@ -333,11 +333,25 @@ async function loadAttributes(categoryId) {
 }
 
 document.addEventListener('change', e => {
-  if (e.target && e.target.matches('.category-select')) {
-    const id = e.target.value;
-    if (id) loadAttributes(id);
+  if (!e.target.matches('.category-select')) return;
+
+  const selectedId = e.target.value;
+
+  // Найдём детей выбранной категории
+  const children = window.allCategories.filter(c => c.parent_id == selectedId);
+
+  // Если есть подкатегории → ОЧИСТИТЬ атрибуты
+  if (children.length > 0) {
+    loadAttributes(0); // очистить
+    return;
+  }
+
+  // Если нет подкатегорий → это leaf → грузим атрибуты
+  if (selectedId) {
+    loadAttributes(selectedId);
   }
 });
+
 
   // ===============================================================
   // === 💱 ПЛАВНЫЙ ПЕРЕСЧЁТ ЦЕН ==================================

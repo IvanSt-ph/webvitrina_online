@@ -4,183 +4,183 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CategoriesSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('categories')->insertOrIgnore([
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0;');
+        DB::table('categories')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1;');
 
-            // ========== ROOT ==========
-            [
-                'id' => 7,
-                'name' => 'Электроника',
-                'slug' => 'electronics',
-                'icon' => 'categories/icons/8H4uQlXnSC4ZPx5yHKpdWfXzqrCVIquMXhdSQLnl.png',
-                'parent_id' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+        /*
+        |--------------------------------------------------------------------------
+        | Helper: создание категории с защитой от дублей slug
+        |--------------------------------------------------------------------------
+        */
+        $add = function (string $name, $parent = null, string $slug = null) {
+            $finalSlug = $slug ?: Str::rusSlug($name);
 
-            // ========== CHILDREN OF ELECTRONICS ==========
-            [
-                'id' => 8,
-                'name' => 'Телефоны',
-                'slug' => 'phones',
-                'icon' => 'categories/icons/LggIu88P6i9S64CRwXVHZn7hbHWoQx1yMliUKVK7.png',
-                'parent_id' => 7,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 9,
-                'name' => 'Телевизоры',
-                'slug' => 'tv',
-                'icon' => 'categories/icons/RTlwdyLDwOJ9r0vJeRNS5JfuPG7nMI1XhbiBQBYk.png',
-                'parent_id' => 7,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 35,
-                'name' => 'Часы',
-                'slug' => 'watch',
-                'icon' => 'categories/icons/UuyBbR6qwtqIo1adMqGyQJojSM8OR4rZEUh45UMg.png',
-                'parent_id' => 7,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            // защита от дублей slug
+            $base = $finalSlug;
+            $i = 1;
 
-            // ========== Часы — подкатегории ==========
-            [
-                'id' => 36,
-                'name' => 'Наручные часы',
-                'slug' => 'wristwatch',
-                'icon' => 'categories/icons/iQvAIbZezkd9KrN4RScpVkzDriGVY6l98H7TbQlj.png',
-                'parent_id' => 35,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            while (DB::table('categories')->where('slug', $finalSlug)->exists()) {
+                $finalSlug = $base . '-' . $i++;
+            }
 
-            // ========== FOOD ==========
-            [
-                'id' => 10,
-                'name' => 'Продукты',
-                'slug' => 'food',
-                'icon' => 'categories/icons/8H4uQlXnSC4ZPx5yHKpdWfXzqrCVIquMXhdSQLnl.png',
-                'parent_id' => null,
+            return DB::table('categories')->insertGetId([
+                'name'       => $name,
+                'slug'       => $finalSlug,
+                'parent_id'  => $parent,
+                'sort_order' => 0,
+                'is_active'  => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'id' => 11,
-                'name' => 'Фрукты',
-                'slug' => 'fruits',
-                'icon' => 'categories/icons/pPPfSQhJ74OWn8PAq6nYO2XAgsU46yJYgqVWExa2.png',
-                'parent_id' => 10,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 12,
-                'name' => 'Овощи',
-                'slug' => 'vegetables',
-                'icon' => 'categories/icons/LggIu88P6i9S64CRwXVHZn7hbHWoQx1yMliUKVK7.png',
-                'parent_id' => 10,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            ]);
+        };
 
-            // ========== CLOTHES ==========
-            [
-                'id' => 23,
-                'name' => 'Одежда',
-                'slug' => 'clothes',
-                'icon' => 'categories/icons/RTlwdyLDwOJ9r0vJeRNS5JfuPG7nMI1XhbiBQBYk.png',
-                'parent_id' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+        /*
+        |--------------------------------------------------------------------------
+        | ROOT CATEGORIES
+        |--------------------------------------------------------------------------
+        */
 
-            // Мужская
-            [
-                'id' => 24,
-                'name' => 'Мужская',
-                'slug' => 'man',
-                'icon' => 'categories/icons/lbZQz37bsgY77MMTSgo5ZfenvWrKCdxSIGIyPBC5.png',
-                'parent_id' => 23,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 26,
-                'name' => 'Штаны',
-                'slug' => 'pants',
-                'icon' => 'categories/icons/NGeCXqy3TIrTJ9j6fnbyRsHalRkqhSwTCgKwEJbn.png',
-                'parent_id' => 24,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+        $electronics = $add('Электроника');
+        $clothes     = $add('Одежда');
+        $shoes       = $add('Обувь');
+        $beauty      = $add('Красота и уход');
+        $kids        = $add('Детские товары');
+        $home        = $add('Дом и быт');
+        $auto        = $add('Автотовары');
+        $food        = $add('Продукты');
 
-            // Женская
-            [
-                'id' => 27,
-                'name' => 'Женская',
-                'slug' => 'woman',
-                'icon' => 'categories/icons/pPPfSQhJ74OWn8PAq6nYO2XAgsU46yJYgqVWExa2.png',
-                'parent_id' => 23,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 28,
-                'name' => 'Платье',
-                'slug' => 'dresses',
-                'icon' => 'categories/icons/UeV82oVyIWV0cLZo7nTmHk1yTHnBediSEr0I7oML.png',
-                'parent_id' => 27,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+        /*
+        |--------------------------------------------------------------------------
+        | ОБУВЬ
+        |--------------------------------------------------------------------------
+        */
 
-            // ========== HOME INTERIOR ==========
-            [
-                'id' => 33,
-                'name' => 'Домашний интерьер',
-                'slug' => 'home_interier',
-                'icon' => 'categories/icons/GrDmhhADaLKK2M8mi289m8ZCKgG6bds0oS1eakl4.png',
-                'parent_id' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 34,
-                'name' => 'Ковры и дорожки',
-                'slug' => 'carpets_and_rugs',
-                'icon' => 'categories/icons/NGeCXqy3TIrTJ9j6fnbyRsHalRkqhSwTCgKwEJbn.png',
-                'parent_id' => 33,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+        $menShoes = $add('Мужская обувь', $shoes, 'men-shoes');
+        $add('Кроссовки', $menShoes, 'krossovki-men');
+        $add('Ботинки', $menShoes, 'botinki-men');
 
-            // ========== AUTO ==========
-            [
-                'id' => 37,
-                'name' => 'Автотовары',
-                'slug' => 'auto',
-                'icon' => 'categories/icons/jUb4Z9duKkaJckG5kBOQUcqSAcQ8EYSpMy9a0tam.png',
-                'parent_id' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 38,
-                'name' => 'Колесо',
-                'slug' => 'wheel',
-                'icon' => 'categories/icons/bhq2G2oRfsZ2AuuZNxtw4XJ3bpUaHonDTdl3xkmA.png',
-                'parent_id' => 37,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        $womenShoes = $add('Женская обувь', $shoes, 'women-shoes');
+        $add('Кроссовки', $womenShoes, 'krossovki-women');
+        $add('Босоножки', $womenShoes, 'bosonozhki-women');
+        $add('Туфли', $womenShoes, 'tufli-women');
+
+        $kidsShoes = $add('Детская обувь', $shoes, 'kids-shoes');
+        $add('Кеды', $kidsShoes, 'kedy-kids');
+        $add('Сандалии', $kidsShoes, 'sandalii-kids');
+
+        /*
+        |--------------------------------------------------------------------------
+        | ЭЛЕКТРОНИКА
+        |--------------------------------------------------------------------------
+        */
+
+        $phones = $add('Смартфоны и гаджеты', $electronics, 'smartfony-i-gadzhety');
+        $add('Смартфоны', $phones, 'smartfony');
+        $add('Аксессуары', $phones, 'aksessuary-smartfony');
+
+        $pc = $add('Ноутбуки и компьютеры', $electronics, 'noutbuki-kompyutery');
+        $add('Игровые ноутбуки', $pc, 'igrovye-noutbuki');
+        $add('Офисные ноутбуки', $pc, 'ofisnye-noutbuki');
+        $add('Периферия', $pc, 'periferiya');
+        $add('Комплектующие', $pc, 'komplektuyushchie');
+
+        $tv = $add('ТВ и мультимедиа', $electronics, 'tv-i-multimedia');
+        $add('Телевизоры', $tv, 'televizory');
+        $add('Саундбары', $tv, 'soundbary');
+
+        $smart = $add('Умный дом', $electronics, 'umnyi-dom');
+        $add('Умные лампочки', $smart, 'umnye-lampy');
+        $add('Камеры', $smart, 'umnye-kamery');
+
+        /*
+        |--------------------------------------------------------------------------
+        | ОДЕЖДА
+        |--------------------------------------------------------------------------
+        */
+
+        $men = $add('Мужская одежда', $clothes, 'men-wear');
+        $add('Футболки', $men, 'futbolki-men');
+        $add('Джинсы', $men, 'dzhinsy-men');
+        $add('Брюки', $men, 'bryuki-men');
+        $add('Верхняя одежда', $men, 'verkhnyaya-odezhda-men');
+
+        $women = $add('Женская одежда', $clothes, 'women-wear');
+        $add('Платья', $women, 'platya-women');
+        $add('Блузки', $women, 'bluzki-women');
+        $add('Топы', $women, 'topy-women');
+        $add('Кофты', $women, 'kofty-women');
+
+        $kidsWear = $add('Детская одежда', $clothes, 'kids-wear');
+        $add('До 1 года', $kidsWear, 'do-1-goda');
+        $add('1–7 лет', $kidsWear, '1-7-let');
+        $add('7–14 лет', $kidsWear, '7-14-let');
+
+        /*
+        |--------------------------------------------------------------------------
+        | КРАСОТА
+        |--------------------------------------------------------------------------
+        */
+
+        $add('Парфюм', $beauty, 'parfyum');
+        $add('Уход за лицом', $beauty, 'uhod-za-litsom');
+        $add('Уход за телом', $beauty, 'uhod-za-telom');
+        $add('Макияж', $beauty, 'makiyazh');
+
+        /*
+        |--------------------------------------------------------------------------
+        | ДЕТСКИЕ
+        |--------------------------------------------------------------------------
+        */
+
+        $add('Игрушки', $kids, 'igrushki');
+        $add('Одежда', $kids, 'odezhda-kids');
+        $add('Школьные товары', $kids, 'shkolnye-tovary');
+
+        /*
+        |--------------------------------------------------------------------------
+        | ДОМ И БЫТ
+        |--------------------------------------------------------------------------
+        */
+
+        $light = $add('Освещение', $home, 'osveshchenie');
+        $add('Лампочки', $light, 'lampochki');
+        $add('Торшеры', $light, 'torshery');
+
+        $textile = $add('Текстиль', $home, 'tekstil');
+        $add('Пледы', $textile, 'pledy');
+        $add('Постельное белье', $textile, 'postelnoe-bele');
+
+        $storage = $add('Хранение', $home, 'khranenie');
+        $add('Корзины', $storage, 'korziny');
+        $add('Контейнеры', $storage, 'konteinery');
+
+        /*
+        |--------------------------------------------------------------------------
+        | АВТО
+        |--------------------------------------------------------------------------
+        */
+
+        $add('Шины и диски', $auto, 'shiny-diski');
+        $add('Аксессуары для авто', $auto, 'aksessuary-avto');
+        $add('Автохимия', $auto, 'avtohimiya');
+
+        /*
+        |--------------------------------------------------------------------------
+        | ПРОДУКТЫ
+        |--------------------------------------------------------------------------
+        */
+
+        $add('Фрукты', $food, 'frukty');
+        $add('Овощи', $food, 'ovoshchi');
+        $add('Мясо', $food, 'myaso');
+        $add('Напитки', $food, 'napitki');
     }
 }
+
