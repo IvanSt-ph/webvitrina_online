@@ -44,7 +44,6 @@
   <div id="categories-wrapper" class="space-y-2">
     <label class="block text-sm font-medium text-gray-600">Выберите категорию</label>
 
-    {{-- 🌿 Уровень 1: корневая категория --}}
     <select name="category_level_1" id="category-root"
             class="w-full border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-200 category-select">
       <option value="">-- выберите категорию --</option>
@@ -56,28 +55,11 @@
       @endforeach
     </select>
 
-    {{-- 🌿 Если есть цепочка — покажем подкатегории --}}
-    @if($categoryChain->count() > 1)
-      @foreach($categoryChain->slice(1) as $cat)
-        @php
-          $children = \App\Models\Category::where('parent_id', $cat->parent_id)->orderBy('name')->get();
-        @endphp
-        <select class="w-full border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-200 category-select">
-          <option value="">-- выберите подкатегорию --</option>
-          @foreach($children as $child)
-            <option value="{{ $child->id }}" @selected($child->id === $cat->id)>
-              {{ $child->name }}
-            </option>
-          @endforeach
-        </select>
-      @endforeach
-    @endif
-
-    {{-- скрытое итоговое значение --}}
     <input type="hidden" name="category_id" id="category_id"
            value="{{ old('category_id', $product->category_id) }}">
   </div>
 </section>
+
 
 
 

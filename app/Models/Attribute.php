@@ -17,4 +17,10 @@ class Attribute extends Model
     {
         return $this->hasMany(AttributeValue::class);
     }
+
+    public function colors()
+{
+    return $this->belongsToMany(Color::class, 'attribute_color');
+}
+
 }

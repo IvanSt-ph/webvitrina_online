@@ -19,8 +19,8 @@ class DatabaseSeeder extends Seeder
             CategoriesSeeder::class,
 
             // 3) Атрибуты и связки
-            AttributesSeeder::class,
-            CategoryAttributesSeeder::class,
+            // AttributesSeeder::class,
+            // CategoryAttributesSeeder::class,
 
             // 4) Пользователи (опционально)
             UsersSeeder::class,

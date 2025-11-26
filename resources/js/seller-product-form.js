@@ -1,6 +1,13 @@
 import { getCurrencyRates } from './currency-rates.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+
+  // ===============================================================
+  // === 🏷️ КЕШ ДЛЯ УСКОРЕНИЯ ======================================
+  // ===============================================================
+  const categoryChildrenCache = new Map();  // кеш подкатегорий
+  const attributesCache = new Map();        // кеш характеристик
+
   // ===============================================================
   // === 🏷️ КАТЕГОРИИ: каскадная подгрузка + hidden category_id ====
   // ===============================================================
@@ -22,30 +29,43 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!parentId) return;
 
     try {
-      const res = await fetch(`/seller/categories/${parentId}/children`);
-      if (!res.ok) return;
-      const categories = await res.json();
-      if (!Array.isArray(categories) || !categories.length) return;
+      let categories;
+
+      // 🔥 кеширование
+      if (categoryChildrenCache.has(parentId)) {
+        categories = categoryChildrenCache.get(parentId);
+      } else {
+        const res = await fetch(`/seller/categories/${parentId}/children`);
+        if (!res.ok) return;
+        categories = await res.json();
+        categoryChildrenCache.set(parentId, categories);
+      }
+
+      if (!Array.isArray(categories) || categories.length === 0) return;
 
       const select = document.createElement('select');
-      select.className = 'category-select w-full border-gray-200 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-200';
+      select.className =
+        'category-select w-full border-gray-200 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-200';
+
       select.innerHTML = `<option value="">-- выберите подкатегорию --</option>`;
 
       categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat.id;
-        opt.textContent = cat.name;
-        select.appendChild(opt);
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        select.appendChild(option);
       });
 
       select.addEventListener('change', e => {
-        catHidden.value = e.target.value || parentId;
-        loadChildren(e.target.value, select);
+        const chosen = e.target.value;
+        catHidden.value = chosen || parentId;
+        loadChildren(chosen, select);
       });
 
       afterSelect.insertAdjacentElement('afterend', select);
-    } catch (error) {
-      console.error('Ошибка загрузки категорий:', error);
+
+    } catch (err) {
+      console.error('Ошибка загрузки категорий:', err);
     }
   }
 
@@ -81,10 +101,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(`/countries/${countryId}/cities`);
       if (!res.ok) return;
+
       const cities = await res.json();
       const uniqueCities = Array.from(new Map(cities.map(c => [c.id, c])).values());
+
       cacheCities.set(countryId, uniqueCities);
       renderCities(uniqueCities, selectedCityId);
+
     } catch (error) {
       console.error('Ошибка загрузки городов:', error);
     }
@@ -117,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===============================================================
   // === 🗺️ КАРТА + ПОИСК (Leaflet + Nominatim) ==================
   // ===============================================================
+
   const mapEl = document.getElementById('map');
   const latInput = document.getElementById('latitude');
   const lngInput = document.getElementById('longitude');
@@ -124,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchBtn = document.getElementById('searchAddress');
   const errorBox = document.getElementById('addressError');
 
-  // делаем map/marker доступными вне initMap
   let mapInstance = null;
   let markerInstance = null;
 
@@ -158,14 +181,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cityName) return;
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(`${cityName}, ${countryName || ''}`)}`,
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(
+          `${cityName}, ${countryName || ''}`
+        )}`,
         { headers: { 'Accept-Language': 'ru' } }
       );
       const data = await res.json();
+
       if (Array.isArray(data) && data.length > 0) {
         const lat = parseFloat(data[0].lat);
         const lon = parseFloat(data[0].lon);
         const coords = { lat, lng: lon };
+
         if (mapInstance && markerInstance) {
           mapInstance.setView(coords, zoom);
           markerInstance.setLatLng(coords);
@@ -186,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialZoom = parseInt(mapEl.dataset.zoom || 7);
 
     mapInstance = L.map('map').setView([initialLat, initialLng], initialZoom);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(mapInstance);
@@ -206,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
       reverseGeocode(e.latlng.lat, e.latlng.lng);
     });
 
-    // 🔍 Поиск адреса вручную
     if (searchBtn) {
       searchBtn.addEventListener('click', async () => {
         const query = addressEl?.value?.trim();
@@ -217,7 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(query)}`,
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(
+              query
+            )}`,
             { headers: { 'Accept-Language': 'ru' } }
           );
           const data = await res.json();
@@ -226,12 +255,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (errorBox) errorBox.textContent = 'Адрес не найден';
             return;
           }
+
           const { lat, lon } = data[0];
           const coords = { lat: parseFloat(lat), lng: parseFloat(lon) };
+
           mapInstance.setView(coords, 14);
           markerInstance.setLatLng(coords);
           updateCoords(coords);
+
           errorBox?.classList?.add('hidden');
+
         } catch (e) {
           if (errorBox) {
             errorBox.textContent = 'Ошибка поиска адреса';
@@ -242,21 +275,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // инициализация карты гарантированно после загрузки Leaflet
   if (typeof L === 'undefined') {
     window.addEventListener('load', initMap);
   } else {
     initMap();
   }
 
-  // 💥 ВОТ ЭТО — критично: двигаем карту при выборе города
   if (citySelectEl) {
     citySelectEl.addEventListener('change', () => {
       const countryName = countrySelectEl?.selectedOptions?.[0]?.text || '';
       const cityName = citySelectEl?.selectedOptions?.[0]?.text || '';
       if (!cityName) return;
 
-      // если карта ещё не успела инициализироваться, подождём и повторим
       const tryMove = () => {
         if (mapInstance && markerInstance) {
           geocodeAndMove(cityName, countryName, 13);
@@ -268,90 +298,149 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-// ===============================================================
-// === ⚙️ ДИНАМИЧЕСКИЕ АТРИБУТЫ (по категории) ==================
-// ===============================================================
-const attrWrapper = document.getElementById('attributes-wrapper');
+  // ===============================================================
+  // === ⚙️ ДИНАМИЧЕСКИЕ АТРИБУТЫ (по категории) ==================
+  // ===============================================================
+  const attrWrapper = document.getElementById('attributes-wrapper');
 
-async function loadAttributes(categoryId) {
-  if (!categoryId) {
-    attrWrapper.innerHTML = '';
-    return;
-  }
-
-  attrWrapper.innerHTML = `<div class="text-center py-6 text-gray-500 text-sm animate-pulse">⏳ Загружаем характеристики...</div>`;
-
-  try {
-    const res = await fetch(`/seller/categories/${categoryId}/attributes`);
-    const data = await res.json();
-
-    if (!Array.isArray(data) || !data.length) {
-      attrWrapper.innerHTML = `<p class="text-center text-gray-400 py-4 text-sm">Нет характеристик для этой категории.</p>`;
+  async function loadAttributes(categoryId) {
+    if (!categoryId) {
+      attrWrapper.innerHTML = '';
       return;
     }
 
-    // ✅ создаём блок с полями, где name="attributes[ID]"
-    let html = `<section class='bg-white border border-gray-200 rounded-xl shadow-sm p-6'>
-      <h2 class='text-lg font-semibold text-gray-800 mb-4'>Характеристики товара</h2>
-      <div class='space-y-6'>`;
+    // 🔥 кеш есть → выдаём мгновенно
+    if (attributesCache.has(categoryId)) {
+      attrWrapper.innerHTML = attributesCache.get(categoryId);
+      return;
+    }
 
-    data.forEach(attr => {
-      html += `<div>
-        <label class='block text-sm font-medium text-gray-700 mb-2'>${attr.name}</label>`;
+    attrWrapper.innerHTML = `<div class="text-center py-6 text-gray-500 text-sm animate-pulse">
+      ⏳ Загружаем характеристики...
+    </div>`;
 
-      const name = `attributes[${attr.id}]`;
-      const value = attr.value ?? '';
+    try {
+      const res = await fetch(`/seller/categories/${categoryId}/attributes`);
+      const data = await res.json();
 
-      if (attr.type === 'select' && attr.options?.length) {
-        html += `<select name="${name}" class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                   <option value="">— не выбрано —</option>
-                   ${attr.options.map(o => `<option value="${o}">${o}</option>`).join('')}
-                 </select>`;
-      } else if (attr.type === 'number') {
-        html += `<input type="number" name="${name}" value="${value}" class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="Введите число">`;
-      } else if (attr.type === 'boolean') {
-        html += `<label class="inline-flex items-center space-x-2">
-                   <input type="checkbox" name="${name}" value="1" class="rounded text-indigo-600">
-                   <span>Да / Нет</span>
-                 </label>`;
-      } else if (attr.type === 'color') {
-        html += `<input type="color" name="${name}" value="${value || '#ffffff'}" class="w-12 h-8 border-gray-300 rounded">`;
-      } else {
-        html += `<input type="text" name="${name}" value="${value}" class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="Введите значение...">`;
+      if (!Array.isArray(data) || !data.length) {
+        const empty = `<p class="text-center text-gray-400 py-4 text-sm">
+            Нет характеристик для этой категории.
+          </p>`;
+        attributesCache.set(categoryId, empty);
+        attrWrapper.innerHTML = empty;
+        return;
       }
 
-      html += `</div>`;
-    });
+      let html = `<section class='bg-white border border-gray-200 rounded-xl shadow-sm p-6'>
+        <h2 class='text-lg font-semibold text-gray-800 mb-4'>Характеристики товара</h2>
+        <div class='space-y-6'>`;
 
-    html += `</div></section>`;
-    attrWrapper.innerHTML = html;
+      data.forEach(attr => {
+        const name = `attributes[${attr.id}]`;
+        const value = attr.value ?? '';
 
-  } catch (e) {
-    console.error('Ошибка при загрузке атрибутов:', e);
-    attrWrapper.innerHTML = `<div class="text-center py-6 text-red-500 text-sm">Ошибка при загрузке характеристик</div>`;
+        html += `<div>
+          <label class='block text-sm font-medium text-gray-700 mb-2'>${attr.name}</label>`;
+
+        if (attr.type === 'select' && attr.options?.length) {
+          html += `<select name="${name}"
+                           class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 text-sm">
+                     <option value="">— не выбрано —</option>
+                     ${attr.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+                   </select>`;
+        }
+
+        else if (attr.type === 'number') {
+          html += `<input type="number" name="${name}" value="${value}"
+                          class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 text-sm"
+                          placeholder="Введите число">`;
+        }
+
+        else if (attr.type === 'boolean') {
+          html += `<label class="inline-flex items-center space-x-2">
+                     <input type="checkbox" name="${name}" value="1"
+                            class="rounded text-indigo-600" ${value ? 'checked' : ''}>
+                     <span>Да / Нет</span>
+                   </label>`;
+        }
+
+        else if (attr.type === 'color') {
+
+          if (!attr.colors || !attr.colors.length) {
+            html += `<p class="text-gray-400 text-sm">Цвета не настроены администратором.</p>`;
+          } else {
+
+            html += `<div class="flex flex-wrap gap-3">`;
+
+            attr.colors.forEach(color => {
+              const checked = String(value) === String(color.id);
+
+              html += `
+    <label class="cursor-pointer color-option flex flex-col items-center">
+
+      <div class="w-8 h-8 rounded-full border-2 transition transform color-circle ${checked ? 'border-indigo-600 scale-110' : 'border-gray-300'}"
+          style="background:${color.hex}">
+          ${checked ? '<div class="w-3 h-3 bg-white rounded-full shadow"></div>' : ''}
+      </div>
+
+      <input type="radio"
+            name="${name}"
+            value="${color.id}"
+            class="hidden"
+            ${checked ? 'checked' : ''}>
+
+    </label>`;
+            });
+
+            html += `</div>`;
+
+            const selected = attr.colors.find(c => String(c.id) === String(value));
+            if (selected) {
+              html += `<p class="text-xs mt-1 text-gray-500">Выбран: ${selected.name}</p>`;
+            }
+          }
+        }
+
+        else {
+          html += `<input type="text" name="${name}" value="${value}"
+                          class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 text-sm"
+                          placeholder="Введите значение...">`;
+        }
+
+        html += `</div>`;
+      });
+
+      html += `</div></section>`;
+
+      // 🔥 сохраняем HTML в кеш
+      attributesCache.set(categoryId, html);
+
+      attrWrapper.innerHTML = html;
+
+    } catch (e) {
+      console.error('Ошибка атрибутов:', e);
+      attrWrapper.innerHTML = `<div class="text-center py-6 text-red-500 text-sm">
+        Ошибка при загрузке характеристик
+      </div>`;
+    }
   }
-}
 
-document.addEventListener('change', e => {
-  if (!e.target.matches('.category-select')) return;
+  document.addEventListener('change', e => {
+    if (!e.target.matches('.category-select')) return;
 
-  const selectedId = e.target.value;
+    const selectedId = e.target.value;
+    const children = window.allCategories.filter(c => c.parent_id == selectedId);
 
-  // Найдём детей выбранной категории
-  const children = window.allCategories.filter(c => c.parent_id == selectedId);
+    if (children.length > 0) {
+      loadAttributes(0);
+      return;
+    }
 
-  // Если есть подкатегории → ОЧИСТИТЬ атрибуты
-  if (children.length > 0) {
-    loadAttributes(0); // очистить
-    return;
-  }
-
-  // Если нет подкатегорий → это leaf → грузим атрибуты
-  if (selectedId) {
-    loadAttributes(selectedId);
-  }
-});
-
+    if (selectedId) {
+      loadAttributes(selectedId);
+    }
+  });
 
   // ===============================================================
   // === 💱 ПЛАВНЫЙ ПЕРЕСЧЁТ ЦЕН ==================================
@@ -380,7 +469,10 @@ document.addEventListener('change', e => {
       50% { box-shadow: 0 0 10px 4px rgba(99,102,241,0.35); }
       100% { box-shadow: 0 0 0px rgba(99,102,241,0); }
     }
-    .glow { animation: glowPulse 1.2s ease-in-out; border-color: rgba(99,102,241,0.5); }
+    .glow {
+      animation: glowPulse 1.2s ease-in-out;
+      border-color: rgba(99,102,241,0.5);
+    }
   `;
   document.head.appendChild(style);
 
@@ -388,17 +480,23 @@ document.addEventListener('change', e => {
     const start = parseFloat(input.value) || 0;
     const end = parseFloat(newValue);
     if (start === end || isNaN(end)) return;
+
     const diff = end - start;
     const startTime = performance.now();
+
     input.classList.add('glow');
+
     function tick(now) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 6);
+
       input.value = (start + diff * eased).toFixed(2);
+
       if (progress < 1) requestAnimationFrame(tick);
       else setTimeout(() => input.classList.remove('glow'), 800);
     }
+
     requestAnimationFrame(tick);
   }
 
@@ -406,10 +504,13 @@ document.addEventListener('change', e => {
     const baseValue = parseFloat(baseInput?.value) || 0;
     const baseCurrency = currencyBaseEl?.value;
     if (!baseCurrency || !rates[baseCurrency]) return;
+
     const set = rates[baseCurrency];
+
     const newPRB = baseValue * set.PRB;
     const newMDL = baseValue * set.MDL;
     const newUAH = baseValue * set.UAH;
+
     if (animated) {
       animateNumber(prbInput, newPRB);
       animateNumber(mdlInput, newMDL);
@@ -427,13 +528,14 @@ document.addEventListener('change', e => {
     recalcPrices(false);
   }
 
-  // 🇲🇩 Автовалюта при смене страны
   if (countrySelectEl && currencyBaseEl) {
     countrySelectEl.addEventListener('change', () => {
       const selected = countrySelectEl.options[countrySelectEl.selectedIndex]?.text?.toLowerCase() || '';
-      if (selected.includes('приднестров'))      currencyBaseEl.value = 'PRB';
-      else if (selected.includes('молд'))         currencyBaseEl.value = 'MDL';
-      else if (selected.includes('укра'))         currencyBaseEl.value = 'UAH';
+
+      if (selected.includes('приднестров')) currencyBaseEl.value = 'PRB';
+      else if (selected.includes('молд')) currencyBaseEl.value = 'MDL';
+      else if (selected.includes('укра')) currencyBaseEl.value = 'UAH';
+
       recalcPrices(true);
     });
   }
@@ -445,10 +547,13 @@ document.addEventListener('change', e => {
   if (gallery) {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     const deleteUrl = gallery.dataset.deleteUrl;
+
     gallery.addEventListener('click', async e => {
       const target = e.target;
       if (!target?.dataset?.path) return;
+
       if (!confirm('Удалить это фото из галереи?')) return;
+
       try {
         const res = await fetch(deleteUrl, {
           method: 'DELETE',
@@ -459,12 +564,70 @@ document.addEventListener('change', e => {
           },
           body: JSON.stringify({ path: target.dataset.path }),
         });
+
         const data = await res.json();
         if (data.success) target.closest('.relative')?.remove();
         else alert('Ошибка при удалении изображения');
+
       } catch (e) {
         alert('Ошибка при удалении изображения');
       }
     });
   }
+
+  // ===============================================================
+  // === 🎨 АКТИВАЦИЯ ВЫБОРА ЦВЕТА у админа ================================
+  // ===============================================================
+  document.addEventListener('click', e => {
+    const label = e.target.closest('.color-option');
+    if (!label) return;
+
+    const input = label.querySelector('input[type="radio"]');
+    if (!input) return;
+
+    input.checked = true;
+
+    const groupName = input.name;
+    document.querySelectorAll(`input[name="${groupName}"]`).forEach(r => {
+      const parent = r.closest('.color-option');
+      if (!parent) return;
+
+      const circle = parent.querySelector('.color-circle');
+      if (!circle) return;
+
+      circle.classList.remove('border-indigo-600', 'scale-110');
+      circle.classList.add('border-gray-300');
+      parent.classList.remove('selected');
+    });
+
+    const circle = label.querySelector('.color-circle');
+    circle.classList.remove('border-gray-300');
+    circle.classList.add('border-indigo-600', 'scale-110');
+    label.classList.add('selected');
+  });
+
+
+
+// Выбор цвета в фильтре
+document.addEventListener('click', e => {
+    const label = e.target.closest('.color-filter-option');
+    if (!label) return;
+
+    const input = label.querySelector('input[type="checkbox"]');
+    if (!input) return;
+
+    input.checked = !input.checked;
+
+    const circle = label.querySelector('div');
+    if (input.checked) {
+        circle.classList.remove('border-gray-300');
+        circle.classList.add('border-indigo-600', 'scale-110');
+    } else {
+        circle.classList.add('border-gray-300');
+        circle.classList.remove('border-indigo-600', 'scale-110');
+    }
+});
+
+
+
 });

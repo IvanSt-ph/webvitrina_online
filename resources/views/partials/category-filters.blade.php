@@ -123,12 +123,7 @@
                 $selected = request("filters.$attr->id", []);
                 $options = is_array($attr->options) ? $attr->options : json_decode($attr->options ?? '[]', true);
 
-                 // 👉 ВРЕМЕННЫЙ ДЕБАГ (сделай для одной категории, не на проде)
-            if ($attr->id == 3) { // подставь нужный id
-                dump('ATTR ID = '.$attr->id);
-                dump('OPTIONS (из attributes.options):', $options);
-                dump('VALUES (из attribute_values):', \App\Models\AttributeValue::where('attribute_id', $attr->id)->distinct()->pluck('value')->toArray());
-            }
+     
             @endphp
 
             {{-- SELECT / TEXT --}}
@@ -153,25 +148,39 @@
             @endif
 
 
-            {{-- COLOR --}}
-            @if($attr->type === 'color')
-                <div class="flex gap-2">
-                    @foreach($options as $colorRaw)
-                        @php
-                            $color = is_array($colorRaw)
-                                ? json_encode($colorRaw, JSON_UNESCAPED_UNICODE)
-                                : (string)$colorRaw;
-                        @endphp
+{{-- COLOR --}}
+@if($attr->type === 'color')
+    @php
+        $colors = $attr->colors; // belongsToMany
+        $selectedColors = request("filters.$attr->id", []);
+    @endphp
 
-                        <label>
-                            <input type="checkbox" name="{{ $input }}[]" value="{{ $color }}"
-                                class="w-5 h-5 rounded-full border"
-                                style="background: {{ $color }}"
-                                @checked(in_array($color, (array)$selected))>
-                        </label>
-                    @endforeach
+    <div class="flex flex-wrap gap-3">
+        @foreach($colors as $color)
+            <label class="cursor-pointer color-filter-option flex flex-col items-center">
+
+                <input type="checkbox"
+                    name="{{ $input }}[]"
+                    value="{{ $color->id }}"
+                    class="hidden color-filter-input"
+                    @checked(in_array($color->id, (array)$selectedColors))>
+
+                <div class="w-7 h-7 rounded-full border-2 transition transform
+                    {{ in_array($color->id, (array)$selectedColors)
+                        ? 'border-indigo-600 scale-110'
+                        : 'border-gray-300'
+                    }}"
+                    style="background: {{ $color->hex }}">
                 </div>
-            @endif
+
+                <span class="text-xs text-gray-500 mt-1">{{ $color->name }}</span>
+
+            </label>
+        @endforeach
+    </div>
+@endif
+
+
 
 
             {{-- NUMBER --}}

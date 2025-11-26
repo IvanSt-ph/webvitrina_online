@@ -8,7 +8,8 @@
         editId:null,
         editName:'',
         editType:'',
-        editOptions:''
+        editOptions:'',
+        editColors: [],
      }">
 
   {{-- Назад --}}
@@ -44,7 +45,8 @@
 
   <form action="{{ route('admin.categories.attributes.store', $category->id) }}" method="POST"
         class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10"
-        x-data="{ type: 'select', colors: [] }">
+        x-data="{ type: 'select', selectedColors: [] }">
+
     @csrf
 
     {{-- Название --}}
@@ -65,19 +67,32 @@
     </div>
 
     {{-- Значения --}}
-    <div x-show="type === 'select' || type === 'color'">
+    <div x-show="type === 'select'">
       <label class="block text-sm text-gray-700 mb-1">Значения (через запятую)</label>
-      <input type="text" name="options" x-model="inputValue"
-             class="w-full border rounded-lg p-2"
-             @input="if(type==='color'){colors = inputValue.split(',').map(c=>c.trim()).filter(Boolean)}"
-             placeholder="22,24,28">
-      <template x-if="type==='color' && colors.length">
-        <div class="flex gap-2 mt-2">
-          <template x-for="c in colors">
-            <div class="w-6 h-6 rounded-full border" :style="`background:${c}`"></div>
-          </template>
-        </div>
-      </template>
+      <input type="text" name="options" class="w-full border rounded-lg p-2" placeholder="S,M,L">
+    </div>
+
+    {{-- Цвета --}}
+    <div class="md:col-span-3" x-show="type === 'color'">
+      <label class="block text-sm text-gray-700 mb-2">Выберите цвета</label>
+
+      <div class="flex flex-wrap gap-3">
+        @foreach($colors as $c)
+          <label class="flex items-center gap-2 cursor-pointer group">
+
+            <input type="checkbox"
+                   name="colors[]"
+                   value="{{ $c->id }}"
+                   class="hidden peer">
+
+            <div class="w-7 h-7 rounded-full border shadow-sm peer-checked:ring-2 peer-checked:ring-indigo-600"
+                 style="background: {{ $c->hex }}">
+            </div>
+
+            <span class="text-sm text-gray-700 group-hover:text-indigo-600">{{ $c->name }}</span>
+          </label>
+        @endforeach
+      </div>
     </div>
 
     <div class="md:col-span-3 mt-3">
@@ -99,6 +114,7 @@
         <th class="p-3 text-left">Название</th>
         <th class="p-3 text-left">Тип</th>
         <th class="p-3 text-left">Значения</th>
+        <th class="p-3 text-left">Цвета</th>
         <th class="p-3 text-right">Действия</th>
       </tr>
     </thead>
@@ -107,6 +123,8 @@
       <tr class="hover:bg-gray-50">
         <td class="p-3 font-medium">{{ $attr->name }}</td>
         <td class="p-3">{{ $attr->type }}</td>
+
+        {{-- Значения --}}
         <td class="p-3">
           @if($attr->options)
             {{ implode(', ', $attr->options) }}
@@ -114,6 +132,22 @@
             <span class="text-gray-400 italic">—</span>
           @endif
         </td>
+
+        {{-- Цвета --}}
+        <td class="p-3">
+          @if($attr->type === 'color')
+            <div class="flex gap-2">
+              @foreach($attr->colors as $c)
+                <div class="w-6 h-6 rounded-full border shadow-sm"
+                     title="{{ $c->name }}"
+                     style="background: {{ $c->hex }}"></div>
+              @endforeach
+            </div>
+          @else
+            <span class="text-gray-400">—</span>
+          @endif
+        </td>
+
         <td class="p-3 text-right flex justify-end gap-3">
 
           {{-- Редактировать --}}
@@ -123,6 +157,7 @@
                     editName='{{$attr->name}}';
                     editType='{{$attr->type}}';
                     editOptions='{{ implode(',', $attr->options ?? []) }}';
+                    editColors={{ json_encode($attr->colors->pluck('id')) }};
                     showEdit=true;
                   "
                   class="text-indigo-600 hover:text-indigo-800">
@@ -177,10 +212,35 @@
           <option value="color">color</option>
         </select>
 
-        <div x-show="editType==='select'||editType==='color'" class="mb-4">
+        {{-- Значения --}}
+        <div x-show="editType==='select'" class="mb-4">
           <label class="block text-sm mb-1">Значения</label>
           <textarea name="options" x-model="editOptions"
                     class="w-full border rounded-lg p-2 h-24"></textarea>
+        </div>
+
+        {{-- Цвета --}}
+        <div x-show="editType==='color'" class="mb-4">
+          <label class="block text-sm mb-1">Цвета</label>
+
+          <div class="flex flex-wrap gap-3">
+            @foreach($colors as $c)
+              <label class="flex items-center gap-2 cursor-pointer group">
+
+                <input type="checkbox"
+                       name="colors[]"
+                       :checked="editColors.includes({{ $c->id }})"
+                       value="{{ $c->id }}"
+                       class="hidden peer">
+
+                <div class="w-7 h-7 rounded-full border shadow-sm peer-checked:ring-2 peer-checked:ring-indigo-600"
+                     style="background: {{ $c->hex }}">
+                </div>
+
+                <span class="text-sm text-gray-700">{{ $c->name }}</span>
+              </label>
+            @endforeach
+          </div>
         </div>
 
         <div class="flex justify-end gap-3">
@@ -194,6 +254,7 @@
             Сохранить
           </button>
         </div>
+
       </form>
 
     </div>
