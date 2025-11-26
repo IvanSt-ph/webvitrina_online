@@ -2,6 +2,9 @@
     $keep = request()->except(['page', 'sort']);
     $currentSort = request('sort', 'popular');
 
+    // 🔥 Определяем конечная категория или нет
+    $isLeafCategory = isset($category) && $category->children()->count() === 0;
+
     $labels = [
         'popular'     => 'По популярности',
         'rating'      => 'По рейтингу',
@@ -17,7 +20,6 @@
 
     <div class="flex flex-wrap items-center gap-2 md:gap-3 text-sm">
 
-
         <!-- 🔽 Сортировка -->
         <div x-data="{ open: false }" class="relative">
             <button @click="open = !open"
@@ -27,7 +29,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M3 12h18M3 20h18"/>
                 </svg>
                 <span>{{ $labels[$currentSort] ?? 'Сортировка' }}</span>
-                <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" 
+                <svg class="w-4 h-4 text-gray-500 transition-transform duration-200"
                      :class="{ 'rotate-180': open }"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -40,7 +42,7 @@
 
                 <form method="GET" action="{{ url()->current() }}" class="p-2 space-y-1">
 
-                    {{-- Сохранение фильтров в hidden --}}
+                    {{-- Сохранение всех фильтров --}}
                     @foreach($keep as $key => $value)
                         @if(is_array($value))
                             @foreach($value as $subKey => $subValue)
@@ -73,8 +75,8 @@
             </div>
         </div>
 
-
-        <!-- Кнопка Все фильтры -->
+        <!-- 🟦 Кнопка "Все фильтры" — только если категория конечная -->
+        @if($isLeafCategory)
         <button @click="openFilters = true"
             class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-[15px] shadow-sm hover:border-indigo-400 hover:bg-indigo-50 transition">
             <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2"
@@ -84,10 +86,16 @@
             </svg>
             Все фильтры
         </button>
+        @endif
 
     </div>
 
-    <!-- 🧭 Выезжающая панель -->
+
+    <!-- ===================== -->
+    <!--   ВЫЕЗЖАЮЩАЯ ПАНЕЛЬ   -->
+    <!-- ===================== -->
+
+    @if($isLeafCategory)
     <div x-show="openFilters" x-cloak class="fixed inset-0 z-50 flex justify-end bg-black/10 backdrop-blur-sm">
 
         <div class="absolute inset-0 bg-black/10" @click="openFilters = false"></div>
@@ -102,121 +110,117 @@
             </div>
 
 
+            {{-- Есть ли фильтры у этой категории --}}
+            @if($category->attributes->count())
 
-@if($category->attributes->count())
-<form method="GET" action="{{ url()->current() }}" class="space-y-6">
+            <form method="GET" action="{{ url()->current() }}" class="space-y-6">
 
-    {{-- Сохранение сортировки --}}
-    @if($currentSort)
-        <input type="hidden" name="sort" value="{{ $currentSort }}">
-    @endif
+                @if($currentSort)
+                    <input type="hidden" name="sort" value="{{ $currentSort }}">
+                @endif
 
-    {{-- ФИЛЬТРЫ --}}
-    @foreach($category->attributes as $attr)
-        <div>
-            <h3 class="text-sm font-medium text-gray-700 mb-2">
-                {{ $attr->name }}
-            </h3>
+                {{-- Фильтры --}}
+                @foreach($category->attributes as $attr)
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">
+                            {{ $attr->name }}
+                        </h3>
 
-            @php
-                $input = "filters[{$attr->id}]";
-                $selected = request("filters.$attr->id", []);
-                $options = is_array($attr->options) ? $attr->options : json_decode($attr->options ?? '[]', true);
-
-     
-            @endphp
-
-            {{-- SELECT / TEXT --}}
-            @if($attr->type !== 'number' && $attr->type !== 'color')
-                <div class="space-y-1">
-                    @foreach($options as $optRaw)
                         @php
-                            $opt = is_array($optRaw)
-                                ? json_encode($optRaw, JSON_UNESCAPED_UNICODE)
-                                : (string)$optRaw;
+                            $input = "filters[{$attr->id}]";
+                            $selected = request("filters.$attr->id", []);
+                            $options = is_array($attr->options)
+                                ? $attr->options
+                                : json_decode($attr->options ?? '[]', true);
                         @endphp
 
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" class="text-indigo-600 rounded"
-                                name="{{ $input }}[]" value="{{ $opt }}"
-                                @checked(in_array($opt, (array)$selected))>
 
-                            <span>{{ $opt }}</span>
-                        </label>
-                    @endforeach
-                </div>
-            @endif
+                        {{-- SIMPLE OPTIONS --}}
+                        @if($attr->type !== 'number' && $attr->type !== 'color')
+                            <div class="space-y-1">
+                                @foreach($options as $optRaw)
+                                    @php
+                                        $opt = is_array($optRaw)
+                                            ? json_encode($optRaw, JSON_UNESCAPED_UNICODE)
+                                            : (string)$optRaw;
+                                    @endphp
 
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" name="{{ $input }}[]" value="{{ $opt }}"
+                                               @checked(in_array($opt, (array)$selected))
+                                               class="text-indigo-600 rounded">
 
-{{-- COLOR --}}
-@if($attr->type === 'color')
-    @php
-        $colors = $attr->colors; // belongsToMany
-        $selectedColors = request("filters.$attr->id", []);
-    @endphp
-
-    <div class="flex flex-wrap gap-3">
-        @foreach($colors as $color)
-            <label class="cursor-pointer color-filter-option flex flex-col items-center">
-
-                <input type="checkbox"
-                    name="{{ $input }}[]"
-                    value="{{ $color->id }}"
-                    class="hidden color-filter-input"
-                    @checked(in_array($color->id, (array)$selectedColors))>
-
-                <div class="w-7 h-7 rounded-full border-2 transition transform
-                    {{ in_array($color->id, (array)$selectedColors)
-                        ? 'border-indigo-600 scale-110'
-                        : 'border-gray-300'
-                    }}"
-                    style="background: {{ $color->hex }}">
-                </div>
-
-                <span class="text-xs text-gray-500 mt-1">{{ $color->name }}</span>
-
-            </label>
-        @endforeach
-    </div>
-@endif
+                                        <span>{{ $opt }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
 
 
+                        {{-- COLOR --}}
+                        @if($attr->type === 'color')
+                            @php
+                                $colors = $attr->colors;
+                                $selectedColors = request("filters.$attr->id", []);
+                            @endphp
+
+                            <div class="flex flex-wrap gap-3">
+                                @foreach($colors as $color)
+                                    <label class="cursor-pointer flex flex-col items-center">
+
+                                        <input type="checkbox" name="{{ $input }}[]" class="hidden"
+                                               value="{{ $color->id }}"
+                                               @checked(in_array($color->id, (array)$selectedColors))>
+
+                                        <div class="w-7 h-7 rounded-full border-2 transition transform
+                                            {{ in_array($color->id, (array)$selectedColors)
+                                                ? 'border-indigo-600 scale-110'
+                                                : 'border-gray-300'
+                                            }}"
+                                            style="background: {{ $color->hex }}"></div>
+
+                                        <span class="text-xs text-gray-500 mt-1">{{ $color->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
 
 
-            {{-- NUMBER --}}
-            @if($attr->type === 'number')
-                <div class="flex gap-3">
-                    <input type="number"
-                        name="{{ $input }}[from]"
-                        value="{{ request("filters.$attr->id.from") }}"
-                        placeholder="От" class="border w-1/2 rounded p-2">
+                        {{-- NUMBER --}}
+                        @if($attr->type === 'number')
+                            <div class="flex gap-3">
+                                <input type="number"
+                                    name="{{ $input }}[from]"
+                                    value="{{ request("filters.$attr->id.from") }}"
+                                    placeholder="От" class="border w-1/2 rounded p-2">
 
-                    <input type="number"
-                        name="{{ $input }}[to]"
-                        value="{{ request("filters.$attr->id.to") }}"
-                        placeholder="До" class="border w-1/2 rounded p-2">
-                </div>
+                                <input type="number"
+                                    name="{{ $input }}[to]"
+                                    value="{{ request("filters.$attr->id.to") }}"
+                                    placeholder="До" class="border w-1/2 rounded p-2">
+                            </div>
+                        @endif
+
+                    </div>
+                @endforeach
+
+
+                <!-- APPLY -->
+                <button class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[15px] font-medium transition">
+                    Показать товары
+                </button>
+
+                <!-- RESET -->
+                <a href="{{ url()->current() }}"
+                   class="w-full block text-center py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-[15px] font-medium transition">
+                    Сбросить фильтры
+                </a>
+
+            </form>
             @endif
 
         </div>
-    @endforeach
-
-
-    <!-- КНОПКА ПРИМЕНИТЬ -->
-    <button class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[15px] font-medium transition">
-        Показать товары
-    </button>
-
-    <!-- 🔥 КНОПКА СБРОСА ФИЛЬТРОВ -->
-    <a href="{{ url()->current() }}"
-       class="w-full block text-center py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-[15px] font-medium transition">
-        Сбросить фильтры
-    </a>
-
-</form>
-@endif
-
-        </div>
     </div>
+    @endif
 
 </div>
