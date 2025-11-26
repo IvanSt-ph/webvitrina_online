@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Attribute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,9 @@ class CategoryController extends Controller
      */
     public function show(string $slug)
     {
-        // Кэшируем категорию и все связи
+        // ----------------------------------------------------
+        // 📌 КЭШ ТОЛЬКО ДЛЯ ДАННЫХ КАТЕГОРИИ
+        // ----------------------------------------------------
         $cacheKey = "category_page:{$slug}";
 
         $category = Cache::remember($cacheKey, 3600, function () use ($slug) {
@@ -25,50 +28,56 @@ class CategoryController extends Controller
                 ->select('id', 'name', 'slug', 'parent_id', 'icon', 'image')
                 ->with([
                     'children:id,name,slug,parent_id,icon,image',
-                    'parent:id,name,slug'
+                    'parent:id,name,slug',
                 ])
                 ->where('slug', $slug)
                 ->firstOrFail();
         });
 
+        // Атрибуты категории
+        $allIds = $category->allChildrenIds();
+
+        $attributes = Attribute::query()
+            ->select('attributes.id', 'name', 'type', 'unit', 'options', 'is_filterable')
+            ->join('attribute_category', 'attributes.id', '=', 'attribute_category.attribute_id')
+            ->where('is_filterable', 1)
+            ->whereIn('attribute_category.category_id', $allIds)
+            ->groupBy('attributes.id', 'name', 'type', 'unit', 'options', 'is_filterable')
+            ->get();
+
+        $category->setRelation('attributes', $attributes);
+
+        // ----------------------------------------------------
         // 🧭 Хлебные крошки
+        // ----------------------------------------------------
         $breadcrumbs = ['Категории' => route('category.index')];
         $parent = $category->parent;
         $stack = [];
 
-       while ($parent && $parent->slug) {
+        while ($parent && $parent->slug) {
             $stack[$parent->name] = route('category.show', $parent->slug);
             $parent = $parent->parent;
-                                        }
-
+        }
 
         $breadcrumbs = array_merge($breadcrumbs, array_reverse($stack));
         $breadcrumbs[$category->name] = '#';
 
-        // Если есть подкатегории
+        // ----------------------------------------------------
+        // 📦 Если есть подкатегории
+        // ----------------------------------------------------
         if ($category->children->isNotEmpty()) {
             return view('categories.subcategories', compact('category', 'breadcrumbs'));
         }
 
-        // 📦 Если товаров нет — кэшируем и их
+        // ----------------------------------------------------
+        // 📌 ТОВАРЫ — БЕЗ КЭША (важно!)
+        // ----------------------------------------------------
         $categoryIds = $category->allChildrenIds();
-        $productKey = 'products:' . md5(json_encode([
-            'category' => $categoryIds,
-            'country'  => request('country_id'),
-            'city'     => request('city_id'),
-            'search'   => request('q'),
-            'sort'     => request('sort', 'popular'),
-            'page'     => request('page', 1),
-        ]));
 
-        $products = Cache::remember($productKey, 600, function () use ($categoryIds) {
+        $products = (function () use ($categoryIds) {
+
             $query = Product::whereIn('category_id', $categoryIds)
-                ->with([
-                    'category',
-                    'seller',
-                    'city.country',
-                    'reviews',
-                ])
+                ->with(['category', 'seller', 'city.country', 'reviews'])
                 ->withCount([
                     'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
                 ])
@@ -76,6 +85,9 @@ class CategoryController extends Controller
                     'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
                 ], 'rating');
 
+            // ----------------------------------------------
+            // 🌍 Фильтр по стране/городу
+            // ----------------------------------------------
             if (request()->filled('country_id')) {
                 $countryId = (int) request('country_id');
                 $query->whereHas('city', fn($q) => $q->where('country_id', $countryId));
@@ -85,11 +97,52 @@ class CategoryController extends Controller
                 }
             }
 
+            // ----------------------------------------------
+            // 🔍 Поиск
+            // ----------------------------------------------
             if (request()->filled('q')) {
-                $query->where('title', 'like', '%' . request('q') . '%');
+                $q = trim(request('q'));
+                $query->where('title', 'like', "%{$q}%");
             }
 
+            // ----------------------------------------------
+            // 🔥 Фильтры по атрибутам
+            // ----------------------------------------------
+            if ($filters = request('filters')) {
+                foreach ($filters as $attributeId => $value) {
+
+                    $query->whereHas('attributeValues', function ($q) use ($attributeId, $value) {
+
+                        $q->where('attribute_id', $attributeId);
+
+                        // Числовой диапазон
+                        if (is_array($value) && (isset($value['from']) || isset($value['to']))) {
+
+                            if (!empty($value['from'])) {
+                                $q->where('value', '>=', $value['from']);
+                            }
+
+                            if (!empty($value['to'])) {
+                                $q->where('value', '<=', $value['to']);
+                            }
+                        } else {
+
+                            // Мультивыбор (checkbox/select)
+                            $values = array_filter((array)$value, fn($v) => $v !== null && $v !== '');
+
+                            if (!empty($values)) {
+                                $q->whereIn('value', $values);
+                            }
+                        }
+                    });
+                }
+            }
+
+            // ----------------------------------------------
+            // 🔽 Сортировка
+            // ----------------------------------------------
             $sort = request('sort', 'popular');
+
             match ($sort) {
                 'price_asc'  => $query->orderBy('price', 'asc'),
                 'price_desc' => $query->orderBy('price', 'desc'),
@@ -99,7 +152,7 @@ class CategoryController extends Controller
             };
 
             return $query->paginate(20)->withQueryString();
-        });
+        })();
 
         return view('products.index', [
             'category' => $category,
@@ -110,7 +163,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * 🔹 Показать все категории плитками
+     * 🔹 Страница всех категорий
      */
     public function index()
     {
@@ -127,7 +180,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * 💾 Сохранение новой категории
+     * 💾 Создание категории
      */
     public function store(Request $request)
     {
@@ -145,12 +198,9 @@ class CategoryController extends Controller
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-
-            // сохраняем оригинал
             $path = $file->store('categories/original', 'public');
             $thumbPath = 'categories/thumbs/' . basename($path);
 
-            // создаем миниатюру через ImageManager
             $manager = new ImageManager(new Driver());
             $img = $manager->read($file->getRealPath())
                 ->scale(width: 300)
@@ -202,7 +252,6 @@ class CategoryController extends Controller
 
         $category->update($data);
 
-        // 💡 Автоочистка кэша при обновлении
         Cache::forget('categories:root');
         Cache::forget("category:{$category->slug}");
 

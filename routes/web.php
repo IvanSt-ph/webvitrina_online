@@ -335,6 +335,10 @@ Route::prefix('admin')
     Route::get('/categories/{category}/attributes',  [CategoryAttributeController::class, 'index'])
         ->name('categories.attributes');
 
+        Route::put('/categories/{category}/attributes/{attribute}', 
+    [CategoryAttributeController::class, 'update'])
+->name('categories.attributes.update');
+        
     Route::post('/categories/{category}/attributes', [CategoryAttributeController::class, 'store'])
         ->name('categories.attributes.store');
 
