@@ -50,18 +50,33 @@
 @if(session('success'))
 <div
     x-data="{ show: true }"
+    x-init="setTimeout(() => show = false, 3500)"
     x-show="show"
-    x-transition.opacity.duration.500ms
-    class="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 shadow-sm"
+    x-transition:enter="transition ease-out duration-500"
+    x-transition:enter-start="opacity-0 -translate-y-2 scale-95"
+    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+    x-transition:leave="transition ease-in duration-400"
+    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+    x-transition:leave-end="opacity-0 -translate-y-2 scale-95"
+    class="backdrop-blur-xl bg-emerald-50/80 border border-emerald-300/60 shadow-xl
+           rounded-2xl p-4 flex items-center gap-4 mb-6"
 >
-    <i class="ri-check-double-line text-2xl text-emerald-600"></i>
+    <div class="flex items-center justify-center w-10 h-10 rounded-xl
+                bg-emerald-100 border border-emerald-300 shadow-inner">
+        <i class="ri-check-line text-2xl text-emerald-600"></i>
+    </div>
 
-    <div class="flex-1 text-sm font-medium">
-        {{ session('success') }}
+    <div class="flex-1">
+        <div class="text-sm font-semibold text-emerald-800">
+            {{ session('success') }}
+        </div>
+        <div class="text-xs text-emerald-600/80 mt-0.5">
+            Операция выполнена успешно
+        </div>
     </div>
 
     <button @click="show = false"
-        class="text-emerald-600 hover:text-emerald-800">
+            class="text-emerald-600 hover:text-emerald-800 transition">
         <i class="ri-close-line text-xl"></i>
     </button>
 </div>
