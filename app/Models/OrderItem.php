@@ -14,6 +14,7 @@ class OrderItem extends Model
         'total',
     ];
 
+    // Всегда подгружаем товар (даже soft-deleted)
     protected $with = ['product'];
 
     /** Заказ */
@@ -22,11 +23,12 @@ class OrderItem extends Model
         return $this->belongsTo(Order::class);
     }
 
-    /** Товар */
-    public function product()
-    {
-        return $this->belongsTo(Product::class)->with(['category', 'seller']);
-    }
+    /** Товар (даже если он soft-deleted) */
+        public function product()
+        {
+            return $this->belongsTo(Product::class)->withTrashed()->with(['category', 'seller']);
+        }
+
 
     /** Считаем total если вдруг пусто */
     public function getTotalPriceAttribute()

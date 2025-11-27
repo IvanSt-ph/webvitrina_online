@@ -111,21 +111,50 @@
             <div class="space-y-3 border-t pt-4">
                 @foreach($order->items->take(2) as $item)
                     <div class="flex items-center gap-4">
-                        <img src="{{ asset('storage/'.$item->product->image) }}"
-                             class="w-16 h-16 rounded-lg border object-cover">
 
-                        <div class="flex-1">
-                            <div class="font-medium text-gray-900 text-sm">
-                                {{ $item->product->title }}
-                            </div>
-                            <div class="text-gray-500 text-xs">
-                                Кол-во: {{ $item->quantity }}
-                            </div>
-                        </div>
+                        {{-- ЕСЛИ ТОВАР ЕЩЁ СУЩЕСТВУЕТ --}}
+                        @if($item->product)
 
-                        <div class="font-semibold text-gray-900 text-sm">
-                            {{ number_format($item->total, 2, ',', ' ') }} ₽
-                        </div>
+                            <img src="{{ $item->product->image_url ?? asset('images/no-image.png') }}"
+                                class="w-16 h-16 rounded-lg border object-cover">
+
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900 text-sm">
+                                    {{ $item->product->title }}
+                                </div>
+                                <div class="text-gray-500 text-xs">
+                                    Кол-во: {{ $item->quantity }}
+                                </div>
+                            </div>
+
+                            <div class="font-semibold text-gray-900 text-sm">
+                                {{ number_format($item->total, 2, ',', ' ') }} {{ $order->currency }}
+                            </div>
+
+                        {{-- ЕСЛИ ТОВАР УДАЛЁН (soft deleted) --}}
+                        @else
+                            <div class="w-16 h-16 rounded-lg border bg-gray-100 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 8v4m0 4h.01M4.93 4.93l14.14 14.14" />
+                                </svg>
+                            </div>
+
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-500 text-sm">
+                                    Товар был удалён продавцом
+                                </div>
+                                <div class="text-gray-400 text-xs">
+                                    Кол-во: {{ $item->quantity }}
+                                </div>
+                            </div>
+
+                            <div class="font-semibold text-gray-400 text-sm">
+                                {{ number_format($item->total, 2, ',', ' ') }} {{ $order->currency }}
+                            </div>
+                        @endif
+
                     </div>
                 @endforeach
 
@@ -135,6 +164,7 @@
                     </div>
                 @endif
             </div>
+
 
             <!-- Кнопки -->
             <div class="flex justify-end gap-3 pt-3">

@@ -6,55 +6,53 @@ use Illuminate\Http\Request;
 use App\Repositories\ProductRepository;
 use App\Models\ProductStat;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    protected $products;
+    public function __construct(protected ProductRepository $products) {}
 
-    public function __construct(ProductRepository $products)
-    {
-        $this->products = $products;
-    }
-
-    /**
-     * 🛍️ Главная витрина товаров + фильтры
-     */
+    /* ============================================================
+     | 🛍️ Главная витрина
+     ============================================================ */
     public function index(Request $request)
     {
-        // Репозиторий уже делает with()
         $products = $this->products->getFilteredProducts($request);
-
         return view('shop.index', compact('products'));
     }
 
-    /**
-     * 📄 Страница товара
-     */
+    /* ============================================================
+     | 📄 Страница товара
+     ============================================================ */
     public function show($key, Request $request)
     {
-        // Репозиторий сам подгружает нужные связи
+        /* --------------------------------------
+         | 📌 Получение товара (кэшируется)
+         -------------------------------------- */
         $product = $this->products->getProductBySlugOrId($key);
 
-        // Если редирект — вернуть его
         if ($product instanceof \Illuminate\Http\RedirectResponse) {
             return $product;
         }
 
-        /** -----------------------------------------
-         * 📸 Исправление галереи (защита от ошибок)
-         * -----------------------------------------
-         */
+        /* --------------------------------------
+         | 📸 Исправление галереи
+         -------------------------------------- */
         if (!is_array($product->gallery)) {
             $decoded = json_decode($product->gallery, true);
             $product->gallery = is_array($decoded) ? $decoded : [];
         }
 
-        /** -----------------------------------------
-         * 👁 Защита от накрутки просмотров
-         * -----------------------------------------
-         */
+        /* --------------------------------------
+         | ❗ Защита: категория может быть удалена
+         -------------------------------------- */
+        if (!$product->category) {
+            $product->category = null; // защита для хлебных крошек
+        }
 
-        // Уникальный идентификатор пользователя или IP
+        /* --------------------------------------
+         | 👁 Уникальный просмотр товара
+         -------------------------------------- */
         $viewer = auth()->id()
             ? 'user:' . auth()->id()
             : 'ip:' . $request->ip();
@@ -62,39 +60,69 @@ class ProductController extends Controller
         $cacheKey = "product_viewed:{$product->id}:{$viewer}";
 
         if (!Cache::has($cacheKey)) {
-            // +1 просмотр в таблице products
-            $product->increment('views_count');
 
-            // +1 в ежедневной статистике
-            ProductStat::updateOrCreate(
-                ['product_id' => $product->id, 'date' => today()],
-                ['views' => \DB::raw('views + 1')]
-            );
+            DB::transaction(function () use ($product) {
 
-            // Антифлуд — 1 час
+                // +1 просмотр товара
+                $product->increment('views_count');
+
+                // +1 в статистике / день
+                ProductStat::updateOrCreate(
+                    ['product_id' => $product->id, 'date' => today()],
+                    ['views' => DB::raw('views + 1')]
+                );
+            });
+
             Cache::put($cacheKey, true, now()->addHour());
         }
 
-        /** -----------------------------------------
-         * ⭐ Отзывы (+ юзер, фото)
-         * -----------------------------------------
-         */
-        $reviews = $product->reviews()
-            ->where('status', 'approved')
-            ->with(['user', 'images'])
-            ->latest()
-            ->get();
+        /* --------------------------------------
+         | ⭐ Отзывы (кэшируем на 10 минут)
+         -------------------------------------- */
+        $reviews = Cache::remember("product.reviews:{$product->id}", 600, function () use ($product) {
+            return $product->reviews()
+                ->where('status', 'approved')
+                ->with(['user', 'images'])
+                ->latest()
+                ->get();
+        });
 
-        /** -----------------------------------------
-         * 🔄 Похожие товары
-         * -----------------------------------------
-         */
+        /* --------------------------------------
+         | 🔄 Похожие товары (кэшируется в репозитории)
+         -------------------------------------- */
         $related = $this->products->getRelatedProducts($product);
 
-        return view('shop.product-show', compact(
-            'product',
-            'related',
-            'reviews'
-        ));
+        /* --------------------------------------
+         | 📘 Кэш хлебных крошек (быстро + безопасно)
+         -------------------------------------- */
+        if ($product->category) {
+            $breadcrumbs = Cache::remember(
+                "product.breadcrumbs:{$product->id}",
+                3600,
+                function () use ($product) {
+                    $arr = [];
+                    $cat = $product->category;
+
+                    while ($cat) {
+                        $arr[] = $cat;
+                        $cat = $cat->parent;
+                    }
+
+                    return array_reverse($arr);
+                }
+            );
+        } else {
+            $breadcrumbs = [];
+        }
+
+        /* --------------------------------------
+         | 📤 Возврат готовых данных
+         -------------------------------------- */
+        return view('shop.product-show', [
+            'product'     => $product,
+            'related'     => $related,
+            'reviews'     => $reviews,
+            'breadcrumbs' => $breadcrumbs,
+        ]);
     }
 }

@@ -6,13 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+
+
+
 class Product extends Model
 {
+
+    // удаление файлов при уничтожении товара
+     use SoftDeletes;
+
     protected $fillable = [
         'user_id','category_id','title','slug','sku','price','stock','image',
         'description','city_id','gallery','status','address','latitude','longitude',
         'currency_base','price_prb','price_mdl','price_uah',
     ];
+
 
     protected $casts = [
         'price' => 'decimal:2',

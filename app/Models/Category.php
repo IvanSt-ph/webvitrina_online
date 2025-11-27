@@ -163,32 +163,31 @@ class Category extends Model
             }
         });
 
-        static::saved(function (Category $category) {
+            static::saved(function (Category $category) {
+                Cache::forget('cat.tree');
+                Cache::forget('cat.full');
+                Cache::forget('cat.root');
 
-            // 🔥 ДОБАВЛЕНО
-            CategoryCacheService::clear();
+                if ($category->slug) {
+                    Cache::forget("cat.page.{$category->slug}");
+                }
 
-            Cache::forget('cat.tree');
-            Cache::forget('cat.full');
-            Cache::forget('cat.root');
+                // 🔥 добавляем
+                \App\Services\CategoryFilterCacheService::clearFor($category);
+            });
 
-            if ($category->slug) {
-                Cache::forget("cat.page.{$category->slug}");
-            }
-        });
+            static::deleted(function (Category $category) {
+                Cache::forget('cat.tree');
+                Cache::forget('cat.full');
+                Cache::forget('cat.root');
 
-        static::deleted(function (Category $category) {
+                if ($category->slug) {
+                    Cache::forget("cat.page.{$category->slug}");
+                }
 
-            // 🔥 ДОБАВЛЕНО
-            CategoryCacheService::clear();
+                // 🔥 добавляем
+                \App\Services\CategoryFilterCacheService::clearFor($category);
+            });
 
-            Cache::forget('cat.tree');
-            Cache::forget('cat.full');
-            Cache::forget('cat.root');
-
-            if ($category->slug) {
-                Cache::forget("cat.page.{$category->slug}");
-            }
-        });
     }
 }

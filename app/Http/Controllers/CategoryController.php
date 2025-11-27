@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use App\Services\CategoryService;
+use App\Services\CategoryFilterCacheService;
 
 class CategoryController extends Controller
 {
@@ -28,14 +29,7 @@ class CategoryController extends Controller
         // Атрибуты категории (по всем потомкам)
         $allIds = $category->allChildrenIds();
 
-        $attributes = Attribute::query()
-            ->select('attributes.id', 'name', 'type', 'unit', 'options', 'is_filterable')
-            ->join('attribute_category', 'attributes.id', '=', 'attribute_category.attribute_id')
-            ->where('is_filterable', 1)
-            ->whereIn('attribute_category.category_id', $allIds)
-            ->groupBy('attributes.id', 'name', 'type', 'unit', 'options', 'is_filterable')
-            ->get();
-
+        $attributes = CategoryFilterCacheService::getFilters($category);
         $category->setRelation('attributes', $attributes);
 
         // 🧭 Хлебные крошки
@@ -187,7 +181,7 @@ class CategoryController extends Controller
 
         Category::create($data);
         
-        CategoryCacheService::clear();
+
 
 
         // Кеши категорий чистятся в хуках модели Category
