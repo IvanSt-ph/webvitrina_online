@@ -6,35 +6,26 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Attribute;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use App\Services\CategoryService;
 
 class CategoryController extends Controller
 {
+    public function __construct(
+        protected CategoryService $categories
+    ) {}
+
     /**
      * 🔹 Показать категорию — товары или подкатегории
      */
     public function show(string $slug)
     {
-        // ----------------------------------------------------
-        // 📌 КЭШ ТОЛЬКО ДЛЯ ДАННЫХ КАТЕГОРИИ
-        // ----------------------------------------------------
-        $cacheKey = "category_page:{$slug}";
+        // 📌 Категория (с кешом через сервис)
+        $category = $this->categories->getBySlug($slug);
 
-        $category = Cache::remember($cacheKey, 3600, function () use ($slug) {
-            return Category::query()
-                ->select('id', 'name', 'slug', 'parent_id', 'icon', 'image')
-                ->with([
-                    'children:id,name,slug,parent_id,icon,image',
-                    'parent:id,name,slug',
-                ])
-                ->where('slug', $slug)
-                ->firstOrFail();
-        });
-
-        // Атрибуты категории
+        // Атрибуты категории (по всем потомкам)
         $allIds = $category->allChildrenIds();
 
         $attributes = Attribute::query()
@@ -47,9 +38,7 @@ class CategoryController extends Controller
 
         $category->setRelation('attributes', $attributes);
 
-        // ----------------------------------------------------
         // 🧭 Хлебные крошки
-        // ----------------------------------------------------
         $breadcrumbs = ['Категории' => route('category.index')];
         $parent = $category->parent;
         $stack = [];
@@ -62,16 +51,15 @@ class CategoryController extends Controller
         $breadcrumbs = array_merge($breadcrumbs, array_reverse($stack));
         $breadcrumbs[$category->name] = '#';
 
-        // ----------------------------------------------------
-        // 📦 Если есть подкатегории
-        // ----------------------------------------------------
+        // 📦 Если есть подкатегории — показываем список подкатегорий
         if ($category->children->isNotEmpty()) {
-            return view('categories.subcategories', compact('category', 'breadcrumbs'));
+            return view('categories.subcategories', [
+                'category'       => $category,
+                'breadcrumbs'    => $breadcrumbs,
+            ]);
         }
 
-        // ----------------------------------------------------
         // 📌 ТОВАРЫ — БЕЗ КЭША (важно!)
-        // ----------------------------------------------------
         $categoryIds = $category->allChildrenIds();
 
         $products = (function () use ($categoryIds) {
@@ -85,9 +73,7 @@ class CategoryController extends Controller
                     'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
                 ], 'rating');
 
-            // ----------------------------------------------
             // 🌍 Фильтр по стране/городу
-            // ----------------------------------------------
             if (request()->filled('country_id')) {
                 $countryId = (int) request('country_id');
                 $query->whereHas('city', fn($q) => $q->where('country_id', $countryId));
@@ -97,17 +83,13 @@ class CategoryController extends Controller
                 }
             }
 
-            // ----------------------------------------------
             // 🔍 Поиск
-            // ----------------------------------------------
             if (request()->filled('q')) {
                 $q = trim(request('q'));
                 $query->where('title', 'like', "%{$q}%");
             }
 
-            // ----------------------------------------------
             // 🔥 Фильтры по атрибутам
-            // ----------------------------------------------
             if ($filters = request('filters')) {
                 foreach ($filters as $attributeId => $value) {
 
@@ -138,9 +120,7 @@ class CategoryController extends Controller
                 }
             }
 
-            // ----------------------------------------------
             // 🔽 Сортировка
-            // ----------------------------------------------
             $sort = request('sort', 'popular');
 
             match ($sort) {
@@ -155,9 +135,9 @@ class CategoryController extends Controller
         })();
 
         return view('products.index', [
-            'category' => $category,
-            'products' => $products,
-            'breadcrumbs' => $breadcrumbs,
+            'category'         => $category,
+            'products'         => $products,
+            'breadcrumbs'      => $breadcrumbs,
             'activeCategoryId' => $category->id,
         ]);
     }
@@ -167,15 +147,9 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Cache::remember('categories:root', 3600, function () {
-            return Category::whereNull('parent_id')
-                ->select('id', 'name', 'slug', 'icon', 'image')
-                ->with(['children:id,name,slug,parent_id,icon,image'])
-                ->orderBy('name')
-                ->get();
-        });
-
+        $categories  = $this->categories->root();
         $breadcrumbs = ['Категории' => '#'];
+
         return view('categories.index', compact('categories', 'breadcrumbs'));
     }
 
@@ -186,7 +160,7 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name'      => 'required|string|max:255',
-            'slug'      => 'required|string|max:255|unique:categories',
+            'slug'      => 'nullable|string|max:255|unique:categories',
             'parent_id' => 'nullable|exists:categories,id',
             'icon'      => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
             'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
@@ -212,7 +186,11 @@ class CategoryController extends Controller
         }
 
         Category::create($data);
-        Cache::forget('categories:root');
+        
+        CategoryCacheService::clear();
+
+
+        // Кеши категорий чистятся в хуках модели Category
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Категория успешно добавлена.');
@@ -225,7 +203,7 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name'      => 'required|string|max:255',
-            'slug'      => 'required|string|max:255|unique:categories,slug,' . $category->id,
+            'slug'      => 'nullable|string|max:255|unique:categories,slug,' . $category->id,
             'parent_id' => 'nullable|exists:categories,id',
             'icon'      => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
             'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
@@ -252,8 +230,7 @@ class CategoryController extends Controller
 
         $category->update($data);
 
-        Cache::forget('categories:root');
-        Cache::forget("category:{$category->slug}");
+        // Все нужные кеши чистятся в хуках модели
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Категория успешно обновлена.');

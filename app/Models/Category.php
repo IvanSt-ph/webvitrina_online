@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use App\Services\CategoryCacheService; // ← ДОБАВЛЕНО
 
 class Category extends Model
 {
@@ -20,53 +21,39 @@ class Category extends Model
      | 🔗 СВЯЗИ
      ============================================================ */
 
-    /** Родитель */
     public function parent()
     {
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    /** Прямые дети */
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id');
     }
 
-    /** Товары этой категории */
     public function products()
     {
         return $this->hasMany(Product::class);
     }
 
-    /** Атрибуты */
     public function attributes()
     {
         return $this->belongsToMany(Attribute::class, 'attribute_category');
     }
 
     /* ============================================================
-     | 🔥 КЭШ: СТРУКТУРА ДЛЯ РЕКУРСИЙ (быстрое дерево)
+     | 🔥 КЭШ: СТРУКТУРА ДЛЯ РЕКУРСИЙ
      ============================================================ */
 
-    /**
-     * Минимальная структура дерева (id → parent_id), используется
-     * для рекурсий и allChildrenIds().
-     *
-     * [
-     *   parent_id => [ Category, Category ]
-     * ]
-     */
     public static function tree()
     {
-        return Cache::remember('categories_tree', 3600, function () {
-            return self::select('id', 'parent_id')->get()->groupBy('parent_id');
+        return Cache::remember('cat.tree', 3600, function () {
+            return self::select('id', 'parent_id')
+                ->get()
+                ->groupBy('parent_id');
         });
     }
 
-    /**
-     * Возвращает ID текущей категории + всех потомков.
-     * Работает мгновенно, без SQL.
-     */
     public function allChildrenIds()
     {
         $tree  = self::tree();
@@ -88,23 +75,24 @@ class Category extends Model
     }
 
     /* ============================================================
-     | 🔥 КЭШ: ПОЛНОЕ ДЕРЕВО ДЛЯ МЕНЮ / ВИТРИНЫ / ФОРМ
+     | 🔥 КЭШ: ПОЛНОЕ ДЕРЕВО
      ============================================================ */
 
-    /**
-     * Полное дерево категорий с детьми (до 3 уровней).
-     * Используется в:
-     * - меню
-     * - фильтрах
-     * - формах продавца
-     * - админке
-     */
     public static function fullTree()
     {
-        return Cache::remember('categories_full_tree', 3600, function () {
-            return self::with([
-                'children.children.children'
-            ])
+        return Cache::remember('cat.full', 3600, function () {
+            return self::query()
+                ->select('id', 'name', 'slug', 'parent_id', 'icon', 'image')
+                ->with([
+                    'children' => function ($q) {
+                        $q->select('id', 'name', 'slug', 'parent_id', 'icon', 'image')
+                          ->orderBy('name');
+                    },
+                    'children.children' => function ($q) {
+                        $q->select('id', 'name', 'slug', 'parent_id', 'icon', 'image')
+                          ->orderBy('name');
+                    },
+                ])
                 ->whereNull('parent_id')
                 ->orderBy('name')
                 ->get();
@@ -115,7 +103,6 @@ class Category extends Model
      | 🔧 УТИЛИТЫ
      ============================================================ */
 
-    /** Соседние категории */
     public function siblings()
     {
         return self::where('parent_id', $this->parent_id)
@@ -123,7 +110,6 @@ class Category extends Model
             ->get();
     }
 
-    /** Все товары текущей + дочерних категорий */
     public function allProducts()
     {
         return Product::whereIn('category_id', $this->allChildrenIds());
@@ -147,14 +133,13 @@ class Category extends Model
     }
 
     /* ============================================================
-     | ⚙️ ХУКИ МОДЕЛИ (генерация slug + очистка кеша)
+     | ⚙️ ХУКИ
      ============================================================ */
 
     protected static function boot()
     {
         parent::boot();
 
-        /** Генерация slug */
         static::creating(function ($category) {
             if (empty($category->slug)) {
                 $slug = Str::slug($category->name);
@@ -169,15 +154,41 @@ class Category extends Model
             }
         });
 
-        /** Очищаем кеш после добавления/обновления/удаления */
-        static::saved(function () {
-            Cache::forget('categories_tree');
-            Cache::forget('categories_full_tree');
+        static::updating(function (Category $category) {
+            if ($category->isDirty('slug')) {
+                $oldSlug = $category->getOriginal('slug');
+                if ($oldSlug) {
+                    Cache::forget("cat.page.{$oldSlug}");
+                }
+            }
         });
 
-        static::deleted(function () {
-            Cache::forget('categories_tree');
-            Cache::forget('categories_full_tree');
+        static::saved(function (Category $category) {
+
+            // 🔥 ДОБАВЛЕНО
+            CategoryCacheService::clear();
+
+            Cache::forget('cat.tree');
+            Cache::forget('cat.full');
+            Cache::forget('cat.root');
+
+            if ($category->slug) {
+                Cache::forget("cat.page.{$category->slug}");
+            }
+        });
+
+        static::deleted(function (Category $category) {
+
+            // 🔥 ДОБАВЛЕНО
+            CategoryCacheService::clear();
+
+            Cache::forget('cat.tree');
+            Cache::forget('cat.full');
+            Cache::forget('cat.root');
+
+            if ($category->slug) {
+                Cache::forget("cat.page.{$category->slug}");
+            }
         });
     }
 }

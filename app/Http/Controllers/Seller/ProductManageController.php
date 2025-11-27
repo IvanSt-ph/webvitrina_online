@@ -76,6 +76,9 @@ class ProductManageController extends Controller
             ? $this->attributes->getForProduct($product)
             : collect();
 
+            $categoryMissing = !$product->category_id;
+
+
         $categoriesTree = Cache::remember('all_categories_tree', 3600, fn() =>
             Category::select('id', 'name', 'parent_id')->orderBy('name')->get()
         );
@@ -86,8 +89,10 @@ class ProductManageController extends Controller
             'categoryChain',
             'countries',
             'categoriesTree',
-            'attributes'
+            'attributes',
+            'categoryMissing'
         ));
+
     }
 
     /** ⚡ AJAX: JSON атрибутов категории */

@@ -41,6 +41,22 @@
 <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
   <h2 class="text-lg font-semibold text-gray-700 mb-4">Категория</h2>
 
+  @if($categoryMissing)
+    <div class="mb-4 p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 flex gap-3 items-start">
+        <svg class="w-6 h-6 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" 
+                  d="M12 9v3m0 4h.01M10.29 3.86L1.82 18a1 1 0 0 0 .86 1.5h18.64a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0z"/>
+        </svg>
+
+        <div>
+            <strong class="block text-sm font-semibold">Категория не выбрана</strong>
+            <span class="text-sm">
+                Для редактирования характеристик товара, пожалуйста, выбери категорию.
+            </span>
+        </div>
+    </div>
+@endif
+
   <div id="categories-wrapper" class="space-y-2">
     <label class="block text-sm font-medium text-gray-600">Выберите категорию</label>
 

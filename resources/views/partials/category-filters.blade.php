@@ -84,7 +84,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round"
                     d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2H3V4zm0 8h20v2H3v-2zm0 8h20v2H3v-2z"/>
             </svg>
-            Все фильтры
+            Фильтры товаров
         </button>
         @endif
 
