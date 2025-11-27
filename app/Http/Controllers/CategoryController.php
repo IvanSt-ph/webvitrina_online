@@ -14,6 +14,20 @@ use App\Services\CategoryFilterCacheService;
 
 class CategoryController extends Controller
 {
+
+    public function ajax(Request $request, $slug)
+{
+    $category = Category::where('slug', $slug)->firstOrFail();
+
+    // Тот же код, что в show(), но без layout
+    $products = Product::filter($request->all())
+        ->where('category_id', $category->id)
+        ->paginate(20);
+
+    return view('partials.products-grid', compact('products'))->render();
+}
+
+
     public function __construct(
         protected CategoryService $categories
     ) {}
@@ -128,12 +142,15 @@ class CategoryController extends Controller
             return $query->paginate(20)->withQueryString();
         })();
 
-        return view('products.index', [
-            'category'         => $category,
-            'products'         => $products,
-            'breadcrumbs'      => $breadcrumbs,
-            'activeCategoryId' => $category->id,
-        ]);
+            return view('categories.show', [
+                'category' => $category,
+                'products' => $products,
+                'breadcrumbs' => $breadcrumbs,
+                'activeCategoryId' => $category->id,
+                'activeFilters' => request('filters', []), // ← вот ЭТО
+            ]);
+
+
     }
 
     /**

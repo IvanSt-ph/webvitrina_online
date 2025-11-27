@@ -15,8 +15,7 @@
     ];
 @endphp
 
-
-<div x-data="{ openFilters: false }" class="max-w-7xl mx-auto px-4 lg:px-6 mt-16 mb-6">
+<div x-data="{ openFilters: false }" class="max-w-7xl mx-auto px-4 lg:px-6 mb-6 mt-responsive-filters">   
 
     <div class="flex flex-wrap items-center gap-2 md:gap-3 text-sm">
 
@@ -107,15 +106,23 @@
     <!-- ===================== -->
 
     @if($isLeafCategory)
-    <div x-show="openFilters" x-cloak class="fixed inset-0 z-50 flex justify-end bg-black/10 backdrop-blur-sm">
+    <div x-show="openFilters" x-cloak class="fixed inset-0 z-[999] flex justify-start bg-black/10 backdrop-blur-sm">
 
         <!-- Фон -->
-        <div class="absolute inset-0 bg-black/10" @click="openFilters = false"></div>
+    <div class="absolute inset-0 bg-black/20 z-[900]" @click="openFilters = false"></div>
+
 
         <!-- ПАНЕЛЬ -->
-        <div x-show="openFilters"
-            x-transition
-            class="relative w-full max-w-sm bg-white h-full shadow-xl border-l p-6 overflow-y-auto">
+<div x-show="openFilters"
+     x-transition:enter="transform transition ease-out duration-300"
+     x-transition:enter-start="-translate-x-full"
+     x-transition:enter-end="translate-x-0"
+     x-transition:leave="transform transition ease-in duration-200"
+     x-transition:leave-start="translate-x-0"
+     x-transition:leave-end="-translate-x-full"
+class="relative z-[1000] w-full max-w-sm bg-white h-full shadow-xl border-r p-6 overflow-y-auto">
+
+
 
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-lg font-semibold text-gray-800">Фильтры</h2>
@@ -126,7 +133,14 @@
             {{-- Проверка наличия фильтров --}}
             @if($category->attributes->count())
 
-<form method="GET" action="{{ url()->current() }}" class="space-y-6">
+<form id="filters-form"
+      method="GET"
+      action="{{ url()->current() }}"
+      x-data="filtersAjax"
+      @submit.prevent="apply"
+      class="space-y-6">
+
+
 
     @if($currentSort)
         <input type="hidden" name="sort" value="{{ $currentSort }}">
@@ -135,9 +149,8 @@
 
 {{-- ВЕРХНИЕ ЧИПЫ АКТИВНЫХ ФИЛЬТРОВ --}}
 @php
-    $activeFilters = request('filters', []);
+    $activeFilters = $activeFilters ?? request('filters', []);
 
-    // Приводим строки к массивам
     foreach ($activeFilters as $k => $v) {
         if (!is_array($v)) {
             $activeFilters[$k] = [$v];
@@ -145,92 +158,15 @@
     }
 @endphp
 
-@if($activeFilters)
-    <div class="mb-4">
-        <h4 class="text-xs text-gray-500 mb-2">Вы выбрали:</h4>
 
-        <div class="flex flex-wrap gap-2">
-            @foreach($category->attributes as $attr)
+<div id="active-filters">
+@include('partials.active-filters', [
+    'category'      => $category,
+    'currentSort'   => $currentSort,
+    'activeFilters' => $activeFilters
+])
 
-                @php
-                    $v = $activeFilters[$attr->id] ?? null;
-                @endphp
-
-                @if(!$v) @continue @endif
-
-                {{-- 🎨 Цвет --}}
-                @if($attr->type === 'color')
-                    @foreach($v as $colorId)
-                        @php
-                            $color = $attr->colors->firstWhere('id', $colorId);
-
-                            // новый набор фильтров
-                            $newFilters = $activeFilters;
-
-                            // удаляем только одно значение
-                            $newFilters[$attr->id] = array_values(
-                                array_filter($v, fn($x) => $x != $colorId)
-                            );
-
-                            // очищаем пустые атрибуты
-                            if (empty($newFilters[$attr->id])) {
-                                unset($newFilters[$attr->id]);
-                            }
-
-                            // собираем URL
-                            $url = url()->current() . '?' . http_build_query([
-                                'sort' => $currentSort,
-                                'filters' => $newFilters,
-                            ]);
-                        @endphp
-
-                        @if($color)
-                            <a href="{{ $url }}"
-                               class="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
-                                <span class="w-3 h-3 rounded-full border" style="background: {{ $color->hex }}"></span>
-                                {{ $color->name }}
-                                <span class="text-indigo-600">×</span>
-                            </a>
-                        @endif
-                    @endforeach
-
-                {{-- 🧩 Простые значения --}}
-                @else
-                    @foreach($v as $val)
-                        @if(is_array($val)) @continue @endif
-
-                        @php
-                            $newFilters = $activeFilters;
-
-                            $newFilters[$attr->id] = array_values(
-                                array_filter($v, fn($x) => $x != $val)
-                            );
-
-                            if (empty($newFilters[$attr->id])) {
-                                unset($newFilters[$attr->id]);
-                            }
-
-                            $url = url()->current() . '?' . http_build_query([
-                                'sort' => $currentSort,
-                                'filters' => $newFilters,
-                            ]);
-                        @endphp
-
-                        <a href="{{ $url }}"
-                           class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full flex items-center gap-1">
-                            {{ $val }}
-                            <span class="text-indigo-600">×</span>
-                        </a>
-                    @endforeach
-                @endif
-
-            @endforeach
-        </div>
-    </div>
-@endif
-
-
-
+</div>
 
     {{-- СПИСОК ФИЛЬТРОВ --}}
     @foreach($category->attributes as $attr)
@@ -338,16 +274,20 @@
     @endforeach
 
 
-    <!-- APPLY -->
-    <button class="w-full py-3 bg-indigo-600 text-white font-medium rounded-[15px] mt-6">
+<!-- ФИКСИРОВАННЫЙ ФУТЕР КНОПОК -->
+<div class="pt-4 mt-6 border-t border-gray-200">
+    <button type="submit"
+            class="w-full py-3 bg-indigo-600 text-white font-medium rounded-[15px]">
         Показать товары
     </button>
 
-    <!-- RESET -->
     <a href="{{ url()->current() }}"
-       class="w-full block text-center py-2.5 bg-gray-100 text-gray-700 rounded-[15px] mt-2">
+       class="w-full block text-center py-2.5 mt-2 bg-gray-100 text-gray-700 rounded-[15px]">
         Сбросить фильтры
     </a>
+</div>
+
+
 
 </form>
 
@@ -356,5 +296,18 @@
         </div>
     </div>
     @endif
+<style>
+/* Мобильные устройства */
+.mt-responsive-filters {
+    margin-top: 8px; /* mt-2 */
+}
+
+/* Планшеты и ПК */
+@media (min-width: 640px) {
+    .mt-responsive-filters {
+        margin-top: 64px; /* mt-16 */
+    }
+}
+</style>
 
 </div>

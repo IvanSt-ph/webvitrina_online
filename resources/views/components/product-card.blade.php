@@ -50,8 +50,9 @@
         }
     }"
     @click="toggleFavorite()"
-    class="absolute top-2 right-2 z-[60] p-1.5 transition"
+    class="absolute top-2 right-2 z-[5] p-1.5 transition"
 >
+
 
 <svg class="w-6 h-6 transition-transform duration-300"
      :class="active ? 'scale-110' : 'scale-100'"

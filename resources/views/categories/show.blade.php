@@ -1,11 +1,11 @@
 <x-app-layout :title="$category->name">
 
 {{-- 🧭 Хлебные крошки и фильтры закреплены --}}
-<div class="sticky top-[65px] z-40 bg-white/95 backdrop-blur 
-     supports-[backdrop-filter]:backdrop-blur-sm 
-     border-b border-gray-100 py-0.5 mb-4">
+<div class="sticky z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm 
+     border-b border-gray-100 py-0.5 mb-4 sticky-breadcrumbs">
 
-  <div class="max-w-7xl mx-auto px-4 lg:px-6">
+
+  <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-4">
     <x-breadcrumbs :items="$breadcrumbs" />
   </div>
 </div>
@@ -69,22 +69,117 @@
   @endif
 
 
-  {{-- 🔹 Товары --}}
-  @if($products->count())
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-      @foreach($products as $p)
-        <x-product-card :p="$p" />
-      @endforeach
+{{-- 🔹 Товары --}}
+@if($products->count())
+    <div id="products-container">
+        @include('partials.products-grid', ['products' => $products])
     </div>
-
-    <div class="mt-12">
-      {{ $products->withQueryString()->links() }}
-    </div>
-
-  @else
+@else
     <p class="text-gray-500">В этой категории пока нет товаров.</p>
-  @endif
+@endif
+
 
 </div>
 
+
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('filtersAjax', () => ({
+
+        loading: false,
+
+        // =============================
+        //      APPLY (ПРИМЕНИТЬ)
+        // =============================
+        apply() {
+            this.loading = true;
+
+            const form = document.querySelector('#filters-form');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData).toString();
+            const url = form.getAttribute('action') + '?' + params;
+
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.text())
+                .then(html => {
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // товары
+                    const newProducts = doc.querySelector('#products-container');
+                    const productsContainer = document.querySelector('#products-container');
+                    if (newProducts && productsContainer) {
+                        productsContainer.innerHTML = newProducts.innerHTML;
+                    }
+
+                    // 🔥 чипы выбранных фильтров
+                    const newChips = doc.querySelector('#active-filters');
+                    const chipsContainer = document.querySelector('#active-filters');
+                    if (newChips && chipsContainer) {
+                        chipsContainer.innerHTML = newChips.innerHTML;
+                    }
+
+                    // обновляем URL
+                    window.history.replaceState({}, '', url);
+
+                    this.loading = false;
+                })
+                .catch(() => this.loading = false);
+        },
+
+
+        // =============================
+        //          PAGINATION
+        // =============================
+        paginate({ target }) {
+            this.loading = true;
+
+            fetch(target.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.text())
+                .then(html => {
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    // товары
+                    const newProducts = doc.querySelector('#products-container');
+                    const productsContainer = document.querySelector('#products-container');
+                    if (newProducts && productsContainer) {
+                        productsContainer.innerHTML = newProducts.innerHTML;
+                    }
+
+                    // 🔥 чипы выбранных фильтров — тоже обновляем
+                    const newChips = doc.querySelector('#active-filters');
+                    const chipsContainer = document.querySelector('#active-filters');
+                    if (newChips && chipsContainer) {
+                        chipsContainer.innerHTML = newChips.innerHTML;
+                    }
+
+                    window.history.replaceState({}, '', target.href);
+
+                    this.loading = false;
+                })
+                .catch(() => this.loading = false);
+        }
+
+    }));
+});
+</script>
+
+<style>
+  /* Мобильное значение (по умолчанию) */
+.sticky-breadcrumbs {
+    top: 45px;
+}
+
+/* Планшеты и ПК (640px+) */
+@media (min-width: 640px) {
+    .sticky-breadcrumbs {
+        top: 65px;
+    }
+}
+
+</style>
 </x-app-layout>

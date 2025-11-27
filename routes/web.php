@@ -73,6 +73,11 @@ Route::get('/p/{key}',  [ProductController::class, 'show'])->name('product.short
 Route::get('/category',        [CategoryController::class, 'index'])->name('category.index');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 
+// AJAX загрузка товаров по фильтрам
+Route::get('/category-ajax/{slug}', [CategoryController::class, 'ajax'])
+    ->name('category.ajax');
+
+
 // 🌎 Города
 Route::get('/countries/{country}/cities', function (Country $country) {
     return $country->cities()->select('id','name')->orderBy('name')->get();

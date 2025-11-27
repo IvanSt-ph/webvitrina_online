@@ -1,16 +1,29 @@
 <x-app-layout :title="$category->name">
 
 {{-- 🧭 Хлебные крошки и фильтры закреплены --}}
-<div class="sticky top-[65px] z-40 bg-white/95 backdrop-blur 
-     supports-[backdrop-filter]:backdrop-blur-sm 
-     border-b border-gray-100 py-0.5 mb-4">
+<div class="sticky z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm 
+     border-b border-gray-100 py-0.5 mb-4 sticky-breadcrumbs">
 
-  <div class="max-w-7xl mx-auto px-4 lg:px-6">
+
+  <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-4">
     <x-breadcrumbs :items="$breadcrumbs" />
   </div>
 </div>
 
+<style>
+  /* Мобильное значение (по умолчанию) */
+.sticky-breadcrumbs {
+    top: 45px;
+}
 
+/* Планшеты и ПК (640px+) */
+@media (min-width: 640px) {
+    .sticky-breadcrumbs {
+        top: 65px;
+    }
+}
+
+</style>
 <div class="max-w-7xl mx-auto px-4 lg:px-6">
 
   {{-- 🌸 Панель фильтров --}}

@@ -5,7 +5,7 @@
      supports-[backdrop-filter]:backdrop-blur-sm 
      border-b border-gray-100 py-0.5 mb-4">
 
-  <div class="max-w-7xl mx-auto px-4 lg:px-6">
+  <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-4">
     <x-breadcrumbs :items="$breadcrumbs" />
   </div>
 </div>
