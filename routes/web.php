@@ -325,6 +325,14 @@ Route::prefix('admin')
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Очистка старых товаров из корзины
+    Route::post('/products/purge-old', function () {
+    Artisan::call('products:purge-old');
+    return back()->with('success', 'Удалены товары, находившиеся в корзине более 90 дней.');
+    })->name('products.purge-old');
+
+    
+
     Route::resource('users', AdminUserController::class);
 
     Route::resource('categories', AdminCategoryController::class)->except(['show']);

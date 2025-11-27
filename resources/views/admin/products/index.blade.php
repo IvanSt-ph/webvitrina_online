@@ -1,3 +1,4 @@
+
 @extends('admin.layout')
 
 @section('title', 'Товары')
@@ -45,8 +46,26 @@
 
     clear() { this.query=''; this.results=[]; },
   }"
-  class="space-y-6"
+  class="space-y-6">
+@if(session('success'))
+<div
+    x-data="{ show: true }"
+    x-show="show"
+    x-transition.opacity.duration.500ms
+    class="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 shadow-sm"
 >
+    <i class="ri-check-double-line text-2xl text-emerald-600"></i>
+
+    <div class="flex-1 text-sm font-medium">
+        {{ session('success') }}
+    </div>
+
+    <button @click="show = false"
+        class="text-emerald-600 hover:text-emerald-800">
+        <i class="ri-close-line text-xl"></i>
+    </button>
+</div>
+@endif
 
   {{-- ===== Заголовок, поиск и кнопки ===== --}}
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -102,6 +121,18 @@
         </button>
       </div>
     </div>
+
+
+    <form action="{{ route('admin.products.purge-old') }}" method="POST" class="inline-block">
+    @csrf
+    <button
+        class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition"
+        onclick="return confirm('Удалить товары, удалённые более 90 дней назад?')"
+    >
+        🧹 Очистить старые товары
+    </button>
+</form>
+
 
     {{-- ➕ Добавить --}}
     <a href="{{ route('admin.products.create') }}"
