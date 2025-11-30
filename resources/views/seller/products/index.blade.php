@@ -168,7 +168,7 @@
   class="flex flex-col divide-y divide-gray-100 transition-all duration-300 ease-in-out">
   @foreach($products as $p)
     <div class="flex items-center justify-between bg-transparent hover:bg-gray-50 transition cursor-pointer
-                w-[315px] lg:w-full h-[55px] px-1.5">
+                w-[100%] lg:w-full h-[55px] px-1.5">
       
       <!-- 🖼 Изображение + инфо -->
       <div class="flex items-center gap-2 w-full overflow-hidden">

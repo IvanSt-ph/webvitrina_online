@@ -3,195 +3,142 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Product;
-use App\Models\ProductStat;
-use App\Models\Favorite;
-use App\Models\CartItem;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class AnalyticsController extends Controller
 {
-    // 📊 Данные по конкретному дню (для модалок)
-    public function dayStats($date)
+    public function index(Request $request)
     {
-        $user = Auth::user();
-        $cacheKey = "seller_analytics_day_{$user->id}_{$date}";
+        $sellerId = auth()->id();
 
-        if (cache()->has($cacheKey)) {
-            return response()->json(cache($cacheKey));
-        }
+$period = (int) $request->input('period', 30);
 
-        $productIds = Product::where('user_id', $user->id)->pluck('id');
+// Если нажали кнопку периода — игнорируем from/to
+if ($request->has('period')) {
 
-        $stats = ProductStat::whereIn('product_id', $productIds)
-            ->whereDate('date', $date)
-            ->with('product:id,title')
-            ->get(['product_id', 'views', 'favorites', 'carts']);
+    $to   = now()->toDateString();
+    $from = now()->subDays($period - 1)->toDateString(); // 7 дней = сегодня + 6 назад
 
-        $data = $stats->map(fn($s) => [
-            'id'        => (int) $s->product_id,
-            'title'     => $s->product->title ?? 'Без названия',
-            'views'     => (int) $s->views,
-            'favorites' => (int) $s->favorites,
-            'carts'     => (int) $s->carts,
-        ])->values();
+} else {
 
-        cache()->put($cacheKey, $data, now()->addMinutes(5));
-        return response()->json($data);
+    // Пользователь выбрал руками from/to
+    $from = $request->input('from');
+    $to   = $request->input('to');
+
+    // Если не выбраны — ставим 30 дней
+    if (!$from || !$to) {
+        $to   = now()->toDateString();
+        $from = now()->subDays(29)->toDateString();
+        $period = 30;
+    } else {
+        // Recalculate period for the UI
+        $period = max(1, now()->parse($from)->diffInDays($to) + 1);
     }
+}
 
-    // 🛒 Товары, добавленные в конкретный день
-    public function productsOn($date)
-    {
-        $user = auth()->user();
 
-        $products = Product::where('user_id', $user->id)
-            ->whereDate('created_at', $date)
-            ->select('id', 'title', 'image', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Предыдущий период для сравнения
+        $prevFrom = now()->parse($from)->subDays($period)->toDateString();
+        $prevTo   = now()->parse($from)->subDay()->toDateString();
 
-        return response()->json($products);
-    }
+        $summary = $this->summaryStats($sellerId, $from, $to);
+        $prev    = $this->summaryStats($sellerId, $prevFrom, $prevTo);
 
-    // 📈 Главная страница аналитики
-    public function index()
-    {
-        $user = Auth::user();
-
-        // 1️⃣ Получаем товары продавца
-        $products = Product::where('user_id', $user->id)->get();
-        $productIds = $products->pluck('id');
-
-        if ($productIds->isEmpty()) {
-            return view('seller.analytics.index', [
-                'summary'     => ['views' => 0, 'favorites' => 0, 'cart_adds' => 0, 'total' => 0, 'engagement' => 0],
-                'stats'       => collect([]),
-                'topProducts' => collect([]),
-                'products'    => collect([]),
-                'categories'  => collect([]),
-            ]);
-        }
-
-        // 2️⃣ Сводная информация
-        $summary = [
-            'views'     => ProductStat::whereIn('product_id', $productIds)->sum('views'),
-            'favorites' => Favorite::whereIn('product_id', $productIds)->count(),
-            'cart_adds' => CartItem::whereIn('product_id', $productIds)->count(),
-            'total'     => $products->count(),
+        $distribution = [
+            'views'     => (int) $summary->views,
+            'favorites' => (int) $summary->favorites,
+            'carts'     => (int) $summary->carts,
         ];
 
-        // 3️⃣ Вовлечённость
-        $views = max($summary['views'], 1); // чтобы не делить на 0
-        $summary['engagement'] = round((($summary['favorites'] + $summary['cart_adds']) / $views) * 100, 1);
+        $timeline = DB::table('product_stats as ps')
+            ->join('products as p', 'p.id', '=', 'ps.product_id')
+            ->where('p.user_id', $sellerId)
+            ->whereBetween('ps.date', [$from, $to])
+            ->select(
+                'ps.date',
+                DB::raw('SUM(ps.views) as views'),
+                DB::raw('SUM(ps.favorites) as favorites'),
+                DB::raw('SUM(ps.carts) as carts')
+            )
+            ->groupBy('ps.date')
+            ->orderBy('ps.date')
+            ->get();
 
-        // 4️⃣ Динамика активности (7 дней)
-        $stats = ProductStat::selectRaw('
-                date,
-                SUM(views) as views,
-                SUM(favorites) as favs,
-                SUM(carts) as carts
-            ')
-            ->whereIn('product_id', $productIds)
-            ->where('date', '>=', Carbon::now()->subDays(6)->toDateString())
-            ->groupBy('date')
-            ->orderBy('date')
+        $topProducts = DB::table('product_stats as ps')
+            ->join('products as p', 'p.id', '=', 'ps.product_id')
+            ->where('p.user_id', $sellerId)
+            ->whereBetween('ps.date', [$from, $to])
+            ->select(
+                'p.id',
+                'p.title',
+                DB::raw('SUM(ps.views) as views'),
+                DB::raw('SUM(ps.favorites) as favorites'),
+                DB::raw('SUM(ps.carts) as carts')
+            )
+            ->groupBy('p.id')
+            ->orderByDesc('views')
+            ->limit(10)
             ->get()
-            ->map(function ($day) use ($user) {
-                $day->total_products = Product::where('user_id', $user->id)
-                    ->whereDate('created_at', '<=', $day->date)
-                    ->count();
-                return $day;
+            ->map(function ($row) {
+                $views = (int) $row->views;
+                $row->fav_rate  = $views ? round($row->favorites * 100 / $views, 1) : 0;
+                $row->cart_rate = $views ? round($row->carts * 100 / $views, 1) : 0;
+                $row->url       = route('product.show', $row->id);
+                return $row;
             });
 
-        // 5️⃣ Топ-5 товаров по активности
-        $topProducts = Product::whereIn('id', $productIds)
-            ->withCount([
-                'views as views' => fn($q) => $q->select(\DB::raw('SUM(views)')),
-                'favorites as favs' => fn($q) => $q->select(\DB::raw('COUNT(*)')),
-                'cartItems as carts' => fn($q) => $q->select(\DB::raw('COUNT(*)')),
-            ])
-            ->get()
-            ->map(fn($p) => [
-                'id'    => $p->id,
-                'title' => $p->title ?? 'Без названия',
-                'image' => $p->image ? asset('storage/' . $p->image) : asset('img/no-image.png'),
-                'views' => (int) $p->views,
-                'favs'  => (int) $p->favs,
-                'carts' => (int) $p->carts,
-                'score' => (int) ($p->views + $p->favs * 2 + $p->carts * 3),
-            ])
-            ->sortByDesc('score')
-            ->take(5)
-            ->values();
-
-        // 6️⃣ Распределение по категориям
-        $categoryData = Product::where('user_id', $user->id)
-            ->with('category:id,name')
-            ->select('category_id')
-            ->get()
-            ->groupBy('category_id')
-            ->map(fn($g) => $g->count());
-
-        $categories = [];
-        foreach ($categoryData as $id => $count) {
-            $catName = \App\Models\Category::find($id)?->name ?? 'Без категории';
-            $categories[] = ['name' => $catName, 'count' => $count];
-        }
-
-        // 7️⃣ Передаём во view
         return view('seller.analytics.index', [
-            'summary'     => $summary,
-            'stats'       => $stats,
-            'topProducts' => $topProducts,
-            'products'    => $products,
-            'categories'  => $categories,
+            'period'       => $period,
+            'from'         => $from,
+            'to'           => $to,
+            'summary'      => $summary,
+            'prev'         => $prev,
+            'distribution' => $distribution,
+            'timeline'     => $timeline,
+            'topProducts'  => $topProducts,
         ]);
     }
 
-    // 📊 Краткая сводка для панели продавца (7 дней)
-    public function summary()
+    public function dayStats($date)
     {
-        $user = auth()->user();
-        $productIds = Product::where('user_id', $user->id)->pluck('id');
+        $sellerId = auth()->id();
 
-        if ($productIds->isEmpty()) {
-            return [
-                'views' => 0,
+        $stats = DB::table('product_stats as ps')
+            ->join('products as p', 'p.id', '=', 'ps.product_id')
+            ->where('p.user_id', $sellerId)
+            ->where('ps.date', $date)
+            ->select('p.id', 'p.title', 'ps.views', 'ps.favorites', 'ps.carts')
+            ->orderByDesc('ps.views')
+            ->get();
+
+        return view('seller.analytics.day', [
+            'date'  => $date,
+            'stats' => $stats,
+        ]);
+    }
+
+    private function summaryStats(int $sellerId, string $from, string $to)
+    {
+        $row = DB::table('product_stats as ps')
+            ->join('products as p', 'p.id', '=', 'ps.product_id')
+            ->where('p.user_id', $sellerId)
+            ->whereBetween('ps.date', [$from, $to])
+            ->selectRaw('
+                COALESCE(SUM(ps.views), 0)     as views,
+                COALESCE(SUM(ps.favorites), 0) as favorites,
+                COALESCE(SUM(ps.carts), 0)     as carts
+            ')
+            ->first();
+
+        if (!$row) {
+            $row = (object)[
+                'views'     => 0,
                 'favorites' => 0,
-                'cart_adds' => 0,
-                'total' => 0,
-                'engagement' => 0,
+                'carts'     => 0,
             ];
         }
 
-        $lastWeek = now()->subDays(7)->toDateString();
-
-        $views = ProductStat::whereIn('product_id', $productIds)
-            ->where('date', '>=', $lastWeek)
-            ->sum('views');
-
-        $favorites = ProductStat::whereIn('product_id', $productIds)
-            ->where('date', '>=', $lastWeek)
-            ->sum('favorites');
-
-        $carts = ProductStat::whereIn('product_id', $productIds)
-            ->where('date', '>=', $lastWeek)
-            ->sum('carts');
-
-        $total = $productIds->count();
-
-        $engagement = $views > 0
-            ? round((($favorites + $carts) / $views) * 100, 1)
-            : 0;
-
-        return [
-            'views' => $views,
-            'favorites' => $favorites,
-            'cart_adds' => $carts,
-            'total' => $total,
-            'engagement' => $engagement,
-        ];
+        return $row;
     }
 }

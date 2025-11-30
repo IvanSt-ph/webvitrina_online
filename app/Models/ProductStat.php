@@ -2,23 +2,55 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ProductStat extends Model
 {
-    use HasFactory;
+    protected $table = 'product_stats';
 
     protected $fillable = [
         'product_id',
         'date',
         'views',
         'favorites',
-        'carts',
+        'carts'
     ];
 
-    public function product()
+    public $timestamps = false;
+
+    // ----- Увеличение просмотров -----
+    public static function addView($productId)
     {
-        return $this->belongsTo(Product::class);
+        $today = date('Y-m-d');
+
+        return self::query()
+            ->updateOrCreate(
+                ['product_id' => $productId, 'date' => $today],
+                ['views' => \DB::raw('views + 1')]
+            );
+    }
+
+    // ----- Избранное -----
+    public static function addFavorite($productId)
+    {
+        $today = date('Y-m-d');
+
+        return self::query()
+            ->updateOrCreate(
+                ['product_id' => $productId, 'date' => $today],
+                ['favorites' => \DB::raw('favorites + 1')]
+            );
+    }
+
+    // ----- Корзина -----
+    public static function addCart($productId)
+    {
+        $today = date('Y-m-d');
+
+        return self::query()
+            ->updateOrCreate(
+                ['product_id' => $productId, 'date' => $today],
+                ['carts' => \DB::raw('carts + 1')]
+            );
     }
 }
