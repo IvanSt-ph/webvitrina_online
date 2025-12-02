@@ -1,15 +1,15 @@
 <x-seller-layout :title="'Статистика за ' . $date">
 
-<div class="max-w-7xl mx-auto px-4 py-8 space-y-10">
+<div class="max-w-8xl mx-auto px-4 py-8 space-y-10">
 
     {{-- ===== Заголовок ===== --}}
     <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
             <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                <span class="inline-block w-3 h-3 rounded-full bg-indigo-600"></span>
                 Статистика за {{ $date }}
             </h1>
             <p class="text-gray-500 text-sm mt-1">
+               
                 Данные по активности всех опубликованных товаров
             </p>
         </div>
@@ -139,5 +139,6 @@
     </div>
 
 </div>
-
+{{-- Мобильная нижняя навигация --}}
+@include('layouts.mobile-bottom-seller-nav')
 </x-seller-layout>
