@@ -52,7 +52,7 @@
       </a>
     </div>
 
-    {{-- 🔹 дальше идёт весь твой код страницы как был --}}
+
 
 
     <!-- 📊 Аналитика -->
@@ -108,41 +108,63 @@
       </div>
     </section>
 
-    <!-- 🧭 Фильтры и переключатель -->
-    <section class="bg-white border border-gray-100 rounded-xl shadow-sm p-6">
-      <div class="mb-5 space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <h2 class="text-lg font-semibold text-gray-800">Все товары</h2>
+<!-- 🧭 Фильтры и переключатель -->
+<section class="bg-white border border-gray-100 rounded-xl shadow-sm p-6">
 
-            <!-- 🔘 Переключатель -->
-            <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-              <button 
-                @click="viewMode='grid'; localStorage.setItem('seller_view','grid')" 
-                :class="viewMode==='grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'" 
-                class="px-3 py-1.5 text-sm transition">
-                <i class="ri-layout-grid-fill text-lg"></i>
-              </button>
-              <button 
-                @click="viewMode='list'; localStorage.setItem('seller_view','list')" 
-                :class="viewMode==='list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'" 
-                class="px-3 py-1.5 text-sm transition border-l border-gray-200">
-                <i class="ri-list-unordered text-lg"></i>
-              </button>
-            </div>
-          </div>
+  <form method="GET" action="{{ route('seller.products.index') }}" class="mb-5 space-y-3">
 
-          <select class="h-9 text-sm border border-gray-300 rounded-lg px-3 bg-white focus:ring-indigo-500 focus:border-indigo-500 w-48 sm:w-56">
-            <option>Сначала новые</option>
-            <option>Сначала дешёвые</option>
-            <option>Сначала дорогие</option>
-          </select>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+      <div class="flex items-center gap-3">
+        <h2 class="text-lg font-semibold text-gray-800">Все товары</h2>
+
+        <!-- 🔘 Переключатель вида -->
+        <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+          <button
+            type="button"
+            @click="viewMode='grid'; localStorage.setItem('seller_view','grid')"
+            :class="viewMode==='grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'"
+            class="px-3 py-1.5 text-sm transition">
+            <i class="ri-layout-grid-fill text-lg"></i>
+          </button>
+          <button
+            type="button"
+            @click="viewMode='list'; localStorage.setItem('seller_view','list')"
+            :class="viewMode==='list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'"
+            class="px-3 py-1.5 text-sm transition border-l border-gray-200">
+            <i class="ri-list-unordered text-lg"></i>
+          </button>
         </div>
-
-        <input type="text"
-               placeholder="Поиск по названию или категории..."
-               class="w-full h-10 text-sm border border-gray-300 rounded-lg px-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white transition">
       </div>
+
+      <!-- 🔃 СОРТИРОВКА -->
+      <select
+        name="sort"
+        onchange="this.form.submit()"
+        class="h-9 text-sm border border-gray-300 rounded-lg px-3 bg-white
+               focus:ring-indigo-500 focus:border-indigo-500 w-48 sm:w-56">
+
+        <option value="new"        @selected($sort === 'new')>Сначала новые</option>
+        <option value="cheap"      @selected($sort === 'cheap')>Сначала дешёвые</option>
+        <option value="expensive"  @selected($sort === 'expensive')>Сначала дорогие</option>
+        <option value="popular"    @selected($sort === 'popular')>По просмотрам</option>
+      </select>
+
+    </div>
+
+    <!-- 🔍 ПОИСК -->
+    <input
+      type="text"
+      name="q"
+      value="{{ $search }}"
+      placeholder="Поиск по названию или категории..."
+      class="w-full h-10 text-sm border border-gray-300 rounded-lg px-3
+             focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+             bg-white transition"
+    />
+
+  </form>
+
 
       @if($products->count())
 

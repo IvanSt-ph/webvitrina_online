@@ -28,96 +28,120 @@ class ProductManageController extends Controller
     ) {}
 
     /** 📋 Список товаров продавца */
-public function index(Request $request)
-{
-    $period = (int) $request->get('period', 7);
+    public function index(Request $request)
+    {
+        $period = (int) $request->get('period', 7);
 
-    $to   = $request->get('to', now()->toDateString());
-    $from = $request->get('from', now()->subDays($period)->toDateString());
+        $to   = $request->get('to', now()->toDateString());
+        $from = $request->get('from', now()->subDays($period)->toDateString());
 
-    /* =========================
-     | СВОДКА ЗА ПЕРИОД
-     ========================= */
-    $summary = DB::table('product_stats')
-        ->join('products', 'products.id', '=', 'product_stats.product_id')
-        ->where('products.user_id', Auth::id())
-        ->whereBetween('product_stats.date', [$from, $to])
-        ->selectRaw('
-            COALESCE(SUM(views),0) as views,
-            COALESCE(SUM(favorites),0) as favorites,
-            COALESCE(SUM(carts),0) as carts
-        ')
-        ->first();
+        // 🔍 Поиск и сортировка
+        $search = trim($request->get('q'));
+        $sort   = $request->get('sort', 'new');
 
-    /* =========================
-     | ПРЕДЫДУЩИЙ ПЕРИОД
-     ========================= */
-    $days = Carbon::parse($from)->diffInDays($to) + 1;
+        /* =========================
+         | СВОДКА ЗА ПЕРИОД
+         ========================= */
+        $summary = DB::table('product_stats')
+            ->join('products', 'products.id', '=', 'product_stats.product_id')
+            ->where('products.user_id', Auth::id())
+            ->whereBetween('product_stats.date', [$from, $to])
+            ->selectRaw('
+                COALESCE(SUM(views),0) as views,
+                COALESCE(SUM(favorites),0) as favorites,
+                COALESCE(SUM(carts),0) as carts
+            ')
+            ->first();
 
-    $prevFrom = Carbon::parse($from)->subDays($days)->toDateString();
-    $prevTo   = Carbon::parse($from)->subDay()->toDateString();
+        /* =========================
+         | ПРЕДЫДУЩИЙ ПЕРИОД
+         ========================= */
+        $days = Carbon::parse($from)->diffInDays($to) + 1;
 
-    $prev = DB::table('product_stats')
-        ->join('products', 'products.id', '=', 'product_stats.product_id')
-        ->where('products.user_id', Auth::id())
-        ->whereBetween('product_stats.date', [$prevFrom, $prevTo])
-        ->selectRaw('
-            COALESCE(SUM(views),0) as views,
-            COALESCE(SUM(favorites),0) as favorites,
-            COALESCE(SUM(carts),0) as carts
-        ')
-        ->first();
+        $prevFrom = Carbon::parse($from)->subDays($days)->toDateString();
+        $prevTo   = Carbon::parse($from)->subDay()->toDateString();
 
-/* =========================
- | ТОВАРЫ + ПРОСМОТРЫ
- ========================= */
-$products = Product::where('user_id', Auth::id())
-    ->with(['category', 'city.country'])
-    ->withSum(['stats as views_sum' => function ($q) use ($from, $to) {
-        $q->whereBetween('date', [$from, $to]);
-    }], 'views')
-    ->latest()
-    ->paginate(20);
+        $prev = DB::table('product_stats')
+            ->join('products', 'products.id', '=', 'product_stats.product_id')
+            ->where('products.user_id', Auth::id())
+            ->whereBetween('product_stats.date', [$prevFrom, $prevTo])
+            ->selectRaw('
+                COALESCE(SUM(views),0) as views,
+                COALESCE(SUM(favorites),0) as favorites,
+                COALESCE(SUM(carts),0) as carts
+            ')
+            ->first();
 
-/* =========================
- | НОВЫЕ ТОВАРЫ ЗА ПЕРИОД
- ========================= */
-$newProductsCount = Product::where('user_id', Auth::id())
-    ->whereBetween('created_at', [
-        Carbon::parse($from)->startOfDay(),
-        Carbon::parse($to)->endOfDay()
-    ])
-    ->count();
+        /* =========================
+         | ТОВАРЫ + ПРОСМОТРЫ
+         ========================= */
+        $productsQuery = Product::where('user_id', Auth::id())
+            ->with(['category', 'city.country'])
+            ->withSum(['stats as views_sum' => function ($q) use ($from, $to) {
+                $q->whereBetween('date', [$from, $to]);
+            }], 'views');
 
-/* =========================
- | АКТИВНОСТЬ ПРОДАВЦА
- ========================= */
-$totalProducts = max($products->total(), 1);
+        /* 🔍 ПОИСК */
+        if ($search) {
+            $productsQuery->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhereHas('category', function ($c) use ($search) {
+                      $c->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
 
-$rawScore =
-    ($summary->views ?? 0) +
-    ($summary->favorites ?? 0) * 3 +
-    ($summary->carts ?? 0) * 5;
+        /* 🔃 СОРТИРОВКА */
+        match ($sort) {
+            'cheap'      => $productsQuery->orderBy('price', 'asc'),
+            'expensive' => $productsQuery->orderBy('price', 'desc'),
+            'popular'   => $productsQuery->orderByDesc('views_sum'),
+            default     => $productsQuery->latest(),
+        };
 
-$maxScore = $totalProducts * 50;
+        $products = $productsQuery
+            ->paginate(20)
+            ->withQueryString();
 
-$activityPercent = min(100, round(($rawScore / $maxScore) * 100));
+        /* =========================
+         | НОВЫЕ ТОВАРЫ ЗА ПЕРИОД
+         ========================= */
+        $newProductsCount = Product::where('user_id', Auth::id())
+            ->whereBetween('created_at', [
+                Carbon::parse($from)->startOfDay(),
+                Carbon::parse($to)->endOfDay()
+            ])
+            ->count();
 
-/* =========================
- | VIEW
- ========================= */
-return view('seller.products.index', compact(
-    'products',
-    'summary',
-    'prev',
-    'from',
-    'to',
-    'activityPercent',
-    'newProductsCount'
-));
+        /* =========================
+         | АКТИВНОСТЬ ПРОДАВЦА
+         ========================= */
+        $totalProducts = max($products->total(), 1);
 
-}
+        $rawScore =
+            ($summary->views ?? 0) +
+            ($summary->favorites ?? 0) * 3 +
+            ($summary->carts ?? 0) * 5;
 
+        $maxScore = $totalProducts * 50;
+
+        $activityPercent = min(100, round(($rawScore / $maxScore) * 100));
+
+        /* =========================
+         | VIEW
+         ========================= */
+        return view('seller.products.index', compact(
+            'products',
+            'summary',
+            'prev',
+            'from',
+            'to',
+            'activityPercent',
+            'newProductsCount',
+            'search',
+            'sort'
+        ));
+    }
 
     /** ➕ Создать товар */
     public function create()
@@ -135,15 +159,14 @@ return view('seller.products.index', compact(
     /** 🧩 Общая форма */
     protected function formView(Product $product)
     {
-        $rootCategories = Cache::remember('root_categories', 3600, fn() =>
+        $rootCategories = Cache::remember('root_categories', 3600, fn () =>
             Category::whereNull('parent_id')->orderBy('name')->get()
         );
 
-        $countries = Cache::remember('countries_list', 3600, fn() =>
+        $countries = Cache::remember('countries_list', 3600, fn () =>
             Country::orderBy('name')->get()
         );
 
-        // Цепочка родителей категорий
         $categoryChain = collect();
         if ($product->category_id) {
             $cat = Category::with('parent')->find($product->category_id);
@@ -153,15 +176,13 @@ return view('seller.products.index', compact(
             }
         }
 
-        // Атрибуты (если редактирование – подставляются значения)
         $attributes = $product->exists
             ? $this->attributes->getForProduct($product)
             : collect();
 
-            $categoryMissing = !$product->category_id;
+        $categoryMissing = !$product->category_id;
 
-
-        $categoriesTree = Cache::remember('all_categories_tree', 3600, fn() =>
+        $categoriesTree = Cache::remember('all_categories_tree', 3600, fn () =>
             Category::select('id', 'name', 'parent_id')->orderBy('name')->get()
         );
 
@@ -174,7 +195,6 @@ return view('seller.products.index', compact(
             'attributes',
             'categoryMissing'
         ));
-
     }
 
     /** ⚡ AJAX: JSON атрибутов категории */
@@ -195,36 +215,31 @@ return view('seller.products.index', compact(
     /** 💾 Создание товара */
     public function store(ProductStoreRequest $request)
     {
-        $data          = $request->validated();
+        $data = $request->validated();
         $data['user_id'] = Auth::id();
 
-        // Определяем валюту
         $city = City::with('country')->findOrFail($data['city_id']);
         $data['currency_base'] = $city->country->currency ?? 'MDL';
 
-        // Цены
-        $data['price']      = $request->price;
-        $data['price_prb']  = $request->price_prb;
-        $data['price_mdl']  = $request->price_mdl;
-        $data['price_uah']  = $request->price_uah;
+        $data['price']     = $request->price;
+        $data['price_prb'] = $request->price_prb;
+        $data['price_mdl'] = $request->price_mdl;
+        $data['price_uah'] = $request->price_uah;
 
-        // Авто-конвертация пропущенных цен
         foreach (['PRB'=>'price_prb','MDL'=>'price_mdl','UAH'=>'price_uah'] as $code => $field) {
             if (is_null($data[$field])) {
                 $data[$field] = $this->currency->convert(
-                    (float)$data['price'],
+                    (float) $data['price'],
                     $data['currency_base'],
                     $code
                 );
             }
         }
 
-        // Файлы
         $image   = $request->file('image');
         $gallery = $request->file('gallery', []);
         $attrs   = $request->input('attributes', []);
 
-        // Создание
         $this->products->create($data, $image, $gallery, $attrs);
 
         return redirect()
@@ -239,11 +254,10 @@ return view('seller.products.index', compact(
 
         $data = $request->validated();
 
-        // Цены (берем явно)
-        $data['price']      = $request->price;
-        $data['price_prb']  = $request->price_prb;
-        $data['price_mdl']  = $request->price_mdl;
-        $data['price_uah']  = $request->price_uah;
+        $data['price']     = $request->price;
+        $data['price_prb'] = $request->price_prb;
+        $data['price_mdl'] = $request->price_mdl;
+        $data['price_uah'] = $request->price_uah;
 
         $image           = $request->file('image');
         $galleryNew      = $request->file('gallery', []);
