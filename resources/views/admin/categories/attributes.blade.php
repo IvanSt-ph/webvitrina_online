@@ -75,6 +75,26 @@
     {{-- Цвета --}}
     <div class="md:col-span-3" x-show="type === 'color'">
       <label class="block text-sm text-gray-700 mb-2">Выберите цвета</label>
+      
+            {{-- кнопка управлять цветами --}}
+<div class="flex items-center gap-2 mb-2 text-xs text-gray-400">
+  <span>Цвета из справочника</span>
+
+  <a href="{{ route('admin.colors.index') }}"
+     target="_blank"
+     class="inline-flex items-center
+            px-2 py-0.5
+            font-medium
+            text-indigo-600
+            bg-indigo-50
+            rounded-md
+            hover:bg-indigo-100
+            transition">
+    Управлять
+  </a>
+</div>
+
+
 
       <div class="flex flex-wrap gap-3">
         @foreach($colors as $c)

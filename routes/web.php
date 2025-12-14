@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Models\Country;
 use App\Http\Middleware\AdminMiddleware;
-
+use App\Http\Controllers\Admin\ColorController;
 /*
 |--------------------------------------------------------------------------
 | 📦 CONTROLLERS
@@ -323,6 +323,9 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
 | 🛠 ADMIN PANEL
 |--------------------------------------------------------------------------
 */
+
+
+
 Route::prefix('admin')
     ->name('admin.')
     ->middleware(['auth', AdminMiddleware::class])
@@ -330,6 +333,7 @@ Route::prefix('admin')
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    Route::resource('colors', ColorController::class)->except(['show']);
     // Очистка старых товаров из корзины
     Route::post('/products/purge-old', function () {
     Artisan::call('products:purge-old');
