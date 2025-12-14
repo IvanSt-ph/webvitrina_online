@@ -1,3 +1,11 @@
+@php
+    function delta($now, $prev) {
+        if ($prev == 0) return $now > 0 ? '+100%' : '0%';
+        $d = (($now - $prev) / $prev) * 100;
+        return ($d >= 0 ? '+' : '') . round($d, 1) . '%';
+    }
+@endphp
+
 <x-seller-layout title="Мои товары" :hideHeader="true">
   <style>[x-cloak]{display:none!important}</style>
 
@@ -51,13 +59,30 @@
     <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
       <div class="bg-gray-50 rounded-xl border border-gray-100 p-6 hover:shadow transition">
         <p class="text-sm text-gray-500">Всего товаров</p>
+
         <h3 class="text-2xl font-semibold mt-2 text-gray-800">{{ $products->total() ?? 0 }}</h3>
-        <p class="text-xs text-gray-400 mt-1">+3 новых за неделю</p>
+    <p class="text-xs mt-1 {{ $newProductsCount > 0 ? 'text-green-600' : 'text-gray-400' }}">
+    {{ $newProductsCount > 0
+        ? '+' . $newProductsCount . ' новых за период'
+        : 'Без новых товаров'
+    }}
+</p>
+
+
       </div>
       <div class="bg-gray-50 rounded-xl border border-gray-100 p-6 hover:shadow transition">
         <p class="text-sm text-gray-500">Просмотры за неделю</p>
-        <h3 class="text-2xl font-semibold mt-2 text-blue-600">1 248</h3>
-        <p class="text-xs text-green-600 mt-1">▲ 12%</p>
+
+@php $d = delta($summary->views, $prev->views); @endphp
+
+<h3 class="text-2xl font-semibold mt-2 text-blue-600">
+  {{ number_format($summary->views, 0, ',', ' ') }}
+</h3>
+
+<p class="text-xs mt-1 {{ str_starts_with($d,'+') ? 'text-green-600' : 'text-red-600' }}">
+  {{ $d }}
+</p>
+
       </div>
       <div class="bg-gray-50 rounded-xl border border-gray-100 p-6 hover:shadow transition">
         <p class="text-sm text-gray-500">Средняя цена</p>
@@ -66,9 +91,20 @@
         </h3>
       </div>
       <div class="bg-gray-50 rounded-xl border border-gray-100 p-6 hover:shadow transition">
+
+
         <p class="text-sm text-gray-500">Активность продавца</p>
-        <h3 class="text-2xl font-semibold mt-2 text-green-600">92%</h3>
-        <p class="text-xs text-gray-400 mt-1">Онлайн 3 ч назад</p>
+
+        <h3 class="text-2xl font-semibold mt-2
+            {{ $activityPercent >= 70 ? 'text-green-600' : ($activityPercent >= 40 ? 'text-yellow-600' : 'text-red-600') }}">
+            {{ $activityPercent }}%
+        </h3>
+
+        <p class="text-xs text-gray-400 mt-1">
+            {{ $activityPercent >= 70 ? 'Высокая активность' : ($activityPercent >= 40 ? 'Средняя активность' : 'Низкая активность') }}
+        </p>
+
+
       </div>
     </section>
 
@@ -154,7 +190,8 @@
 
             <div class="bg-gray-50 text-[11px] text-gray-500 px-3 py-1.5 flex justify-between border-t border-gray-100">
               <span>{{ $p->created_at->format('d.m.Y') }}</span>
-              <span>👁 {{ rand(10,250) }}</span>
+            👁 {{ number_format($p->views_sum ?? 0, 0, ',', ' ') }}
+
             </div>
           </div>
         @endforeach
@@ -191,7 +228,8 @@
 
           <!-- 🔸 всё остальное -->
           <p class="text-[10px] text-gray-500 truncate">
-            {{ $p->category->name ?? '—' }} • {{ $p->city->name ?? '—' }} • 👁 {{ rand(10,250) }} • {{ $p->created_at->format('d.m.Y') }}
+            {{ $p->category->name ?? '—' }} • {{ $p->city->name ?? '—' }} • 👁 {{ number_format($p->views_sum ?? 0, 0, ',', ' ') }}
+• {{ $p->created_at->format('d.m.Y') }}
           </p>
         </div>
       </div>

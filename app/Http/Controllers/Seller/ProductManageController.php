@@ -13,6 +13,8 @@ use App\Services\CurrencyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 use App\Http\Requests\Seller\ProductStoreRequest;
 use App\Http\Requests\Seller\ProductUpdateRequest;
@@ -26,16 +28,96 @@ class ProductManageController extends Controller
     ) {}
 
     /** 📋 Список товаров продавца */
-    public function index()
-    {
-        $products = Product::query()
-            ->where('user_id', Auth::id())
-            ->with(['category', 'city.country'])
-            ->latest()
-            ->paginate(20);
+public function index(Request $request)
+{
+    $period = (int) $request->get('period', 7);
 
-        return view('seller.products.index', compact('products'));
-    }
+    $to   = $request->get('to', now()->toDateString());
+    $from = $request->get('from', now()->subDays($period)->toDateString());
+
+    /* =========================
+     | СВОДКА ЗА ПЕРИОД
+     ========================= */
+    $summary = DB::table('product_stats')
+        ->join('products', 'products.id', '=', 'product_stats.product_id')
+        ->where('products.user_id', Auth::id())
+        ->whereBetween('product_stats.date', [$from, $to])
+        ->selectRaw('
+            COALESCE(SUM(views),0) as views,
+            COALESCE(SUM(favorites),0) as favorites,
+            COALESCE(SUM(carts),0) as carts
+        ')
+        ->first();
+
+    /* =========================
+     | ПРЕДЫДУЩИЙ ПЕРИОД
+     ========================= */
+    $days = Carbon::parse($from)->diffInDays($to) + 1;
+
+    $prevFrom = Carbon::parse($from)->subDays($days)->toDateString();
+    $prevTo   = Carbon::parse($from)->subDay()->toDateString();
+
+    $prev = DB::table('product_stats')
+        ->join('products', 'products.id', '=', 'product_stats.product_id')
+        ->where('products.user_id', Auth::id())
+        ->whereBetween('product_stats.date', [$prevFrom, $prevTo])
+        ->selectRaw('
+            COALESCE(SUM(views),0) as views,
+            COALESCE(SUM(favorites),0) as favorites,
+            COALESCE(SUM(carts),0) as carts
+        ')
+        ->first();
+
+/* =========================
+ | ТОВАРЫ + ПРОСМОТРЫ
+ ========================= */
+$products = Product::where('user_id', Auth::id())
+    ->with(['category', 'city.country'])
+    ->withSum(['stats as views_sum' => function ($q) use ($from, $to) {
+        $q->whereBetween('date', [$from, $to]);
+    }], 'views')
+    ->latest()
+    ->paginate(20);
+
+/* =========================
+ | НОВЫЕ ТОВАРЫ ЗА ПЕРИОД
+ ========================= */
+$newProductsCount = Product::where('user_id', Auth::id())
+    ->whereBetween('created_at', [
+        Carbon::parse($from)->startOfDay(),
+        Carbon::parse($to)->endOfDay()
+    ])
+    ->count();
+
+/* =========================
+ | АКТИВНОСТЬ ПРОДАВЦА
+ ========================= */
+$totalProducts = max($products->total(), 1);
+
+$rawScore =
+    ($summary->views ?? 0) +
+    ($summary->favorites ?? 0) * 3 +
+    ($summary->carts ?? 0) * 5;
+
+$maxScore = $totalProducts * 50;
+
+$activityPercent = min(100, round(($rawScore / $maxScore) * 100));
+
+/* =========================
+ | VIEW
+ ========================= */
+return view('seller.products.index', compact(
+    'products',
+    'summary',
+    'prev',
+    'from',
+    'to',
+    'activityPercent',
+    'newProductsCount'
+));
+
+}
+
 
     /** ➕ Создать товар */
     public function create()

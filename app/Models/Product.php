@@ -103,10 +103,15 @@ class Product extends Model
 
 
     /** Просмотры */
-    public function views()
-    {
-        return $this->hasMany(ProductStat::class);
-    }
+    // public function views()
+    // {
+    //     return $this->hasMany(ProductStat::class);
+    // }
+    public function stats()
+{
+    return $this->hasMany(ProductStat::class);
+}
+
 
     /** Позиции корзины */
     public function cartItems()
@@ -241,8 +246,7 @@ class Product extends Model
                 $slug = $base;
                 $i = 1;
 
-                while (self::withTrashed()->where('slug', $slug)->exists()) {
-
+                while (self::where('slug', $slug)->exists()) {
                     $slug = "{$base}-{$i}";
                     $i++;
                 }
