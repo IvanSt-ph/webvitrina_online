@@ -241,7 +241,8 @@ class Product extends Model
                 $slug = $base;
                 $i = 1;
 
-                while (self::where('slug', $slug)->exists()) {
+                while (self::withTrashed()->where('slug', $slug)->exists()) {
+
                     $slug = "{$base}-{$i}";
                     $i++;
                 }
