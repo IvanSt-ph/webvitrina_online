@@ -217,26 +217,35 @@
 </div>
 
 
-            {{-- Доставка --}}
-            <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-2">
-                <h2 class="text-sm font-semibold text-gray-800 mb-1">
-                    Доставка
-                </h2>
+{{-- Доставка --}}
+<div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-2">
+    <h2 class="text-sm font-semibold text-gray-800 mb-1">
+        Доставка
+    </h2>
 
-                <div class="text-sm text-gray-900">
-                    {{ $order->delivery_method ?? 'Способ не указан' }}
-                </div>
+    @php
+        $deliveryLabels = [
+            'courier' => '🚚 Курьерская доставка(1-2дня)',
+            'pickup' => '🏪 Самовывоз из пункта выдачи',
+            'post' => '📮 Почта ПМР',
+            'express' => '⚡ Экспресс-доставка',
+        ];
+    @endphp
+    
+    <div class="text-sm text-gray-900">
+        {{ $deliveryLabels[$order->delivery_method] ?? $order->delivery_method ?? 'Способ не указан' }}
+    </div>
 
-                <div class="text-xs text-gray-500 mt-2">
-                    @if($order->address && $order->address->full)
-                        {{ $order->address->full }}
-                    @elseif($order->delivery_address)
-                        {{ $order->delivery_address }}
-                    @else
-                        Адрес не указан
-                    @endif
-                </div>
-            </div>
+    <div class="text-xs text-gray-500 mt-2">
+        @if($order->delivery_address)
+            📦 {{ $order->delivery_address }}
+        @elseif($order->address)
+            🏠 {{ $order->address->full }}
+        @else
+            Адрес не указан
+        @endif
+    </div>
+</div>
 
             {{-- Оплата --}}
             <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-2">

@@ -34,7 +34,7 @@
 @endphp
 
 
-<div class="max-w-5xl mx-auto px-4 py-10 space-y-10">
+<div class="max-w-8xl mx-auto px-4 py-10 space-y-10">
 
     <!-- 🔙 Навигация -->
     <div class="flex items-center justify-between">

@@ -79,33 +79,60 @@ class CheckoutController extends Controller
      * 📄 Страница подтверждения заказа
      * Показываем товары + список адресов пользователя.
      */
-    public function confirm()
-    {
-        $cart = session('checkout_cart');
+public function confirm()
+{
+    $cart = session('checkout_cart');
 
-        // Если корзина в сессии пуста — возвращаем в обычную корзину
-        if (!$cart || !count($cart)) {
-            return redirect()->route('cart.index')
-                ->with('error', 'Корзина пуста.');
-        }
-
-        $total = collect($cart)->sum(fn ($i) => $i['price'] * $i['qty']);
-
-        // Подгружаем адреса пользователя одним запросом
-        $user = auth()->user()->load('addresses');
-
-        $addresses = $user->addresses;
-
-        // Ищем основной адрес (is_default = 1)
-        $defaultAddressId = $addresses->firstWhere('is_default', 1)?->id;
-
-        return view('shop.order-confirm', [
-            'cart'             => $cart,
-            'total'            => $total,
-            'addresses'        => $addresses,
-            'defaultAddressId' => $defaultAddressId,
-        ]);
+    if (!$cart || !count($cart)) {
+        return redirect()->route('cart.index')
+            ->with('error', 'Корзина пуста.');
     }
+
+    $total = collect($cart)->sum(fn ($i) => $i['price'] * $i['qty']);
+
+    $user = auth()->user()->load('addresses');
+    $addresses = $user->addresses;
+    $defaultAddressId = $addresses->firstWhere('is_default', 1)?->id;
+
+    // ✅ СПОСОБЫ ОПЛАТЫ
+    $paymentMethods = [
+        'cash' => '💵 Наличными при получении',
+        'card' => '💳 Картой онлайн',
+        'bank_transfer' => '🏦 Банковский перевод',
+    ];
+
+    // ✅ СПОСОБЫ ДОСТАВКИ
+    $deliveryMethods = [
+        'courier' => '🚚 Курьерская доставка (Доставка курьером 1-2 дня (до 10 кг) )',
+        'pickup' => '🏪 Самовывоз из пункта выдачи (Магазин продовца)',
+        'post' => '📮 Почта ПМР (Время доставки зависит от загружености почтового отделения)' ,
+        'express' => '⚡ Экспресс-доставка (Доставка на по таксометру +50 руб до 15 кг)',
+    ];
+
+    // ✅ ЦЕНЫ ДОСТАВКИ (для расчета)
+    $deliveryPrices = [
+        'courier' => 155,
+        'pickup' => 0,
+        'post' => 80,
+        'express' => 175,
+    ];
+
+    // ✅ Рассчитываем итог с доставкой по умолчанию
+    $defaultDelivery = 'courier';
+    $deliveryCost = $deliveryPrices[$defaultDelivery] ?? 0;
+    $totalWithDelivery = $total + $deliveryCost;
+
+    return view('shop.order-confirm', [
+        'cart'                => $cart,
+        'total'               => $total,
+        'addresses'           => $addresses,
+        'defaultAddressId'    => $defaultAddressId,
+        'paymentMethods'      => $paymentMethods,
+        'deliveryMethods'     => $deliveryMethods,
+        'deliveryPrices'      => $deliveryPrices, // ✅ Передаём цены в шаблон
+        'totalWithDelivery'   => $totalWithDelivery, // ✅ Итог с доставкой
+    ]);
+}
 
     /**
      * 🧾 Создание заказов
@@ -114,106 +141,114 @@ class CheckoutController extends Controller
      *  - по одному заказу на каждого продавца
      *  - каждому заказу привязываем address_id покупателя
      */
-    public function create(Request $request)
-    {
-        $cart = session('checkout_cart');
+public function create(Request $request)
+{
+    $cart = session('checkout_cart');
 
-        if (!$cart || !count($cart)) {
-            return redirect()->route('cart.index')
-                ->with('error', 'Корзина пуста.');
+    if (!$cart || !count($cart)) {
+        return redirect()->route('cart.index')
+            ->with('error', 'Корзина пуста.');
+    }
+
+    $user = auth()->user()->load('addresses');
+    
+    // Определяем address_id
+    $addressId = null;
+    if ($user->addresses->count()) {
+        $requestedId = $request->input('address_id');
+        if ($requestedId && $user->addresses->contains('id', $requestedId)) {
+            $addressId = $requestedId;
+        } else {
+            $addressId = $user->addresses->firstWhere('is_default', 1)?->id
+                ?? $user->addresses->first()?->id;
         }
+    }
 
-        $user = auth()->user()->load('addresses');
+    // ✅ Получаем способы оплаты и доставки из формы
+    $paymentMethod = $request->input('payment_method', 'cash');
+    $deliveryMethod = $request->input('delivery_method', 'courier');
 
-        // 💡 Определяем address_id:
-        //  1) Если передали из формы — проверяем, что этот адрес принадлежит пользователю
-        //  2) Если нет — берём основной (is_default = 1)
-        //  3) Если основного нет — берём первый попавшийся адрес
-        $addressId = null;
+    // ✅ ЦЕНЫ ДОСТАВКИ
+    $deliveryPrices = [
+        'courier' => 155,
+        'pickup' => 0,
+        'post' => 80,
+        'express' => 175,
+    ];
+    
+    $deliveryCost = $deliveryPrices[$deliveryMethod] ?? 0;
 
-        if ($user->addresses->count()) {
-            $requestedId = $request->input('address_id');
+    // Грузим товары одним запросом, чтобы знать seller_id
+    $productIds = collect($cart)->pluck('product_id')->all();
+    $products = Product::whereIn('id', $productIds)
+        ->get()
+        ->keyBy('id');
 
-            if ($requestedId && $user->addresses->contains('id', $requestedId)) {
-                $addressId = $requestedId;
-            } else {
-                $addressId =
-                    $user->addresses->firstWhere('is_default', 1)?->id
-                    ?? $user->addresses->first()?->id;
-            }
+    // Добавляем seller_id к каждой позиции
+    $cartWithSellers = collect($cart)->map(function ($row) use ($products) {
+        $product = $products[$row['product_id']] ?? null;
+        if (!$product) {
+            throw new \RuntimeException("Товар ID {$row['product_id']} не найден.");
         }
+        $row['seller_id'] = $product->user_id;
+        return $row;
+    });
 
-        // Грузим товары одним запросом, чтобы знать seller_id
-        $productIds = collect($cart)->pluck('product_id')->all();
+    // Группируем корзину по продавцу
+    $groups = $cartWithSellers->groupBy('seller_id');
+    $createdOrders = [];
 
-        $products = Product::whereIn('id', $productIds)
-            ->get()
-            ->keyBy('id');
+    DB::transaction(function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, &$createdOrders) {
+        foreach ($groups as $sellerId => $items) {
+            $total = $items->sum(fn ($i) => $i['price'] * $i['qty']);
+            
+            // ✅ ИТОГ С УЧЕТОМ ДОСТАВКИ
+            $totalWithDelivery = $total + $deliveryCost;
 
-        // Добавляем seller_id к каждой позиции
-        $cartWithSellers = collect($cart)->map(function ($row) use ($products) {
-            $product = $products[$row['product_id']] ?? null;
+            // Создаём сам заказ
+            $order = Order::create([
+                'user_id'         => auth()->id(),
+                'seller_id'       => $sellerId,
+                'address_id'      => $addressId,
+                'payment_method'  => $paymentMethod,
+                'delivery_method' => $deliveryMethod,
+                'number'          => 'ORD-' . now()->timestamp . '-' . $sellerId,
+                'status'          => Order::STATUS_PENDING,
+                'total_price'     => $totalWithDelivery, // ✅ Сохраняем итог С доставкой
+                'currency'        => 'RUB',
+            ]);
 
-            if (!$product) {
-                throw new \RuntimeException("Товар ID {$row['product_id']} не найден.");
-            }
-
-            $row['seller_id'] = $product->user_id;
-
-            return $row;
-        });
-
-        // Группируем корзину по продавцу
-        $groups = $cartWithSellers->groupBy('seller_id');
-
-        $createdOrders = [];
-
-        DB::transaction(function () use ($groups, $addressId, &$createdOrders) {
-            foreach ($groups as $sellerId => $items) {
-                $total = $items->sum(fn ($i) => $i['price'] * $i['qty']);
-
-                // Создаём сам заказ
-                $order = Order::create([
-                    'user_id'     => auth()->id(),
-                    'seller_id'   => $sellerId,
-                    'address_id'  => $addressId, // ← вот здесь привязываем адрес!
-                    'number'      => 'ORD-' . now()->timestamp . '-' . $sellerId,
-                    'status'      => Order::STATUS_PENDING,
-                    'total_price' => $total,
-                    'currency'    => 'RUB', // TODO: подвязать под выбранную валюту
+            // Позиции заказа
+            foreach ($items as $i) {
+                OrderItem::create([
+                    'order_id'   => $order->id,
+                    'product_id' => $i['product_id'],
+                    'quantity'   => $i['qty'],
+                    'price'      => $i['price'],
+                    'total'      => $i['price'] * $i['qty'],
                 ]);
 
-                // Позиции заказа
-                foreach ($items as $i) {
-                    OrderItem::create([
-                        'order_id'   => $order->id,
-                        'product_id' => $i['product_id'],
-                        'quantity'   => $i['qty'],
-                        'price'      => $i['price'],
-                        'total'      => $i['price'] * $i['qty'],
-                    ]);
-
-                    // Удаляем исходную запись из корзины
-                    if (!empty($i['cart_id'])) {
-                        CartItem::destroy($i['cart_id']);
-                    }
+                // Удаляем исходную запись из корзины
+                if (!empty($i['cart_id'])) {
+                    CartItem::destroy($i['cart_id']);
                 }
-
-                $createdOrders[] = $order;
             }
-        });
 
-        // Чистим "корзину для оформления"
-        session()->forget('checkout_cart');
-
-        // Если создан один заказ — ведём на его страницу
-        if (count($createdOrders) === 1) {
-            return redirect()->route('orders.show', $createdOrders[0])
-                ->with('success', 'Заказ создан!');
+            $createdOrders[] = $order;
         }
+    });
 
-        // Если несколько — на список заказов
-        return redirect()->route('orders.index')
-            ->with('success', 'Создано заказов: ' . count($createdOrders));
+    // Чистим "корзину для оформления"
+    session()->forget('checkout_cart');
+
+    // Если создан один заказ — ведём на его страницу
+    if (count($createdOrders) === 1) {
+        return redirect()->route('orders.show', $createdOrders[0])
+            ->with('success', 'Заказ создан!');
     }
+
+    // Если несколько — на список заказов
+    return redirect()->route('orders.index')
+        ->with('success', 'Создано заказов: ' . count($createdOrders));
+}
 }
