@@ -17,6 +17,10 @@ class Shop extends Model
         'phone',
         'city',
         'banner',
+        'facebook',
+        'instagram',
+        'telegram',
+        'whatsapp',
     ];
 
     public function user()

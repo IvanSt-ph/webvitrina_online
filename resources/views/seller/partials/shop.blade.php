@@ -74,6 +74,50 @@
       </div>
     </div>
 
+    {{-- 🔹 Социальные сети --}}
+<div class="grid sm:grid-cols-2 gap-6">
+    {{-- Facebook --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
+        <input type="url" name="facebook"
+               value="{{ old('facebook', Auth::user()->shop?->facebook) }}"
+               placeholder="https://facebook.com/yourpage"
+               maxlength="255"
+               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition">
+    </div>
+
+    {{-- Instagram --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+        <input type="url" name="instagram"
+               value="{{ old('instagram', Auth::user()->shop?->instagram) }}"
+               placeholder="https://instagram.com/yourpage"
+               maxlength="255"
+               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition">
+    </div>
+
+    {{-- Telegram --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Telegram</label>
+        <input type="url" name="telegram"
+               value="{{ old('telegram', Auth::user()->shop?->telegram) }}"
+               placeholder="https://t.me/yourchannel"
+               maxlength="255"
+               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition">
+    </div>
+
+    {{-- WhatsApp --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+        <input type="url" name="whatsapp"
+               value="{{ old('whatsapp', Auth::user()->shop?->whatsapp) }}"
+               placeholder="https://wa.me/79990000000"
+               maxlength="255"
+               class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition">
+    </div>
+</div>
+
+
     {{-- 💾 Кнопка сохранения --}}
     <div class="flex justify-end pt-4 border-t border-gray-100">
       <button type="submit"

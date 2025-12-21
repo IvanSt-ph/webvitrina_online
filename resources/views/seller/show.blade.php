@@ -62,21 +62,30 @@
                         <span class="flex items-center gap-1"><i class="ri-star-fill text-yellow-400"></i> {{ $user->reviews_avg_rating ?? 0 }}<span class="text-gray-400">({{ $user->reviews_count ?? 0 }})</span></span>
                     </div>
 
-                        <!-- Социальные сети -->
-                        <div class="flex items-center gap-3 mt-2 text-sm">
-                            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
-                                <i class="ri-facebook-fill"></i>
-                            </a>
-                            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
-                                <i class="ri-instagram-fill"></i>
-                            </a>
-                            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
-                                <i class="ri-telegram-fill"></i>
-                            </a>
-                            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
-                                <i class="ri-whatsapp-fill"></i>
-                            </a>
-                        </div>
+<!-- Социальные сети -->
+<div class="flex items-center gap-3 mt-2 text-sm">
+    @if($shop->facebook)
+        <a href="{{ Str::startsWith($shop->facebook, 'http') ? $shop->facebook : 'https://' . $shop->facebook }}" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
+            <i class="ri-facebook-fill"></i>
+        </a>
+    @endif
+    @if($shop->instagram)
+        <a href="{{ Str::startsWith($shop->instagram, 'http') ? $shop->instagram : 'https://' . $shop->instagram }}" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
+            <i class="ri-instagram-fill"></i>
+        </a>
+    @endif
+    @if($shop->telegram)
+        <a href="{{ Str::startsWith($shop->telegram, 'http') ? $shop->telegram : 'https://' . $shop->telegram }}" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
+            <i class="ri-telegram-fill"></i>
+        </a>
+    @endif
+    @if($shop->whatsapp)
+        <a href="{{ Str::startsWith($shop->whatsapp, 'http') ? $shop->whatsapp : 'https://' . $shop->whatsapp }}" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-indigo-600 text-gray-700 hover:text-white transition text-lg">
+            <i class="ri-whatsapp-fill"></i>
+        </a>
+    @endif
+</div>
+
 
                 </div>
             </div>

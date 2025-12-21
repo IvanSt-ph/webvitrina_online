@@ -59,6 +59,13 @@ class ProfileController extends Controller
             'phone'          => 'nullable|string|max:50',
             'banner'         => 'nullable|image|max:4096',
             'remove_banner'  => 'nullable|boolean',
+
+            
+        // Социальные сети
+        'facebook'       => 'nullable|url|max:255',
+        'instagram'      => 'nullable|url|max:255',
+        'telegram'       => 'nullable|url|max:255',
+        'whatsapp'       => 'nullable|url|max:255',
         ]);
 
         $shop = $user->shop ?? $user->shop()->create([]);
