@@ -101,6 +101,8 @@ class Product extends Model
 
 
 
+    
+
 
     /** Просмотры */
     // public function views()
@@ -119,6 +121,11 @@ class Product extends Model
         return $this->hasMany(CartItem::class);
     }
 
+    /** Позиции в заказах */
+public function orderItems()
+{
+    return $this->hasMany(OrderItem::class);
+}
     /** Старые slug-и */
     public function oldSlugs()
     {

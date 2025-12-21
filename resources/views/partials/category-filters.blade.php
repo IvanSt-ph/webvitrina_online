@@ -15,9 +15,9 @@
     ];
 @endphp
 
-<div x-data="{ openFilters: false }" class="max-w-7xl mx-auto px-4 lg:px-6 mb-6 mt-responsive-filters">   
+<div x-data="{ openFilters: false }" class="max-w-8xl mx-auto  lg:px-6 mb-6 mt-responsive-filters">   
 
-    <div class="flex flex-wrap items-center gap-2 md:gap-3 text-sm">
+    <div class="flex flex-wrap items-center  md:gap-3 text-sm">
 
         <!-- СОРТИРОВКА -->
         <div x-data="{ open: false }" class="relative">
@@ -42,7 +42,7 @@
             </button>
 
             <div x-show="open" @click.away="open = false" x-transition x-cloak
-                 class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-[15px] shadow-lg z-50">
+                 class="absolute right-0 mt-2 w-66 bg-white border border-gray-200 rounded-[15px] shadow-lg z-50">
 
                 <form method="GET" action="{{ url()->current() }}" class="p-2 space-y-1">
 

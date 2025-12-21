@@ -80,30 +80,24 @@
         </button>
     </div>
 
-    <!-- 🔹 РЕКОМЕНДАЦИИ -->
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mx-4">
-        <h3 class="text-lg font-semibold mb-3 text-gray-800">Рекомендации</h3>
-
-        <div class="grid grid-cols-2 gap-">
-
-            @foreach($recommendations as $item)
-                <div class="bg-gray-50 p-3 rounded-xl border hover:bg-white hover:shadow transition text-center">
-                    <div class="h-20 bg-white rounded-lg flex items-center justify-center mb-2 border">
-                        <i class="ri-image-line text-2xl text-gray-300"></i>
+<!-- 🔹 РЕКОМЕНДАЦИИ -->
+<div class="overflow-x-auto py-2 px-4 md:hidden">
+    <h3 class="font-semibold text-gray-800 mb-2">Рекомендации для вас</h3>
+    <div class="flex gap-2">
+        @foreach(array_slice($recommendations, 0, 5) as $item)
+            <a href="{{ $item['link'] ?? '#' }}" class="flex-none w-16 h-16 rounded-lg border hover:shadow-md overflow-hidden">
+                @if($item['image'])
+                    <img src="{{ asset('storage/'.$item['image']) }}" class="w-full h-full object-cover" alt="{{ $item['title'] }}">
+                @else
+                    <div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300">
+                        <i class="ri-image-line text-xl"></i>
                     </div>
-
-                    <p class="text-sm font-medium text-gray-800 line-clamp-1">
-                        {{ $item['title'] }}
-                    </p>
-
-                    <p class="text-xs text-gray-500">
-                        ₽{{ $item['price'] }}
-                    </p>
-                </div>
-            @endforeach
-
-        </div>
+                @endif
+            </a>
+        @endforeach
     </div>
+</div>
+
 
 
 
@@ -306,28 +300,42 @@
 </div>
 
 
-                <!-- Рекомендации -->
-                <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-semibold text-gray-800">Рекомендации для вас</h2>
-                        <a href="#" class="text-sm text-indigo-600 hover:underline">Обновить</a>
+<!-- Подключение Swiper CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css"/>
+
+<!-- Рекомендации как слайдер -->
+<div class="swiper mySwiper">
+    <div class="swiper-wrapper">
+        @foreach($recommendations as $item)
+            <div class="swiper-slide">
+                <div class="bg-gray-50 border border-gray-100 rounded-lg p-2 text-center hover:bg-white hover:shadow-md transition duration-200">
+                    <div class="w-full h-[150px] bg-white rounded-md flex items-center justify-center mb-2 overflow-hidden">
+                        @if(!empty($item['image']))
+                            <img src="{{ asset('storage/'.$item['image']) }}" alt="{{ $item['title'] }}" class="w-full h-full object-cover">
+                        @else
+                            <i class="ri-image-2-line text-3xl text-gray-300"></i>
+                        @endif
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        @foreach($recommendations as $item)
-                            <div class="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center hover:bg-white hover:shadow-sm transition">
-                                <div class="h-24 bg-white rounded-lg flex items-center justify-center mb-3">
-                                    <i class="ri-image-2-line text-2xl text-gray-300"></i>
-                                </div>
-                                <p class="text-sm font-medium text-gray-800">{{ $item['title'] }}</p>
-                                <p class="text-xs text-gray-500 mt-1">₽{{ $item['price'] }}</p>
-                            </div>
-                        @endforeach
-                    </div>
+                    <a href="{{ $item['link'] ?? '#' }}" class="block text-sm font-medium text-gray-800 hover:text-indigo-600 truncate" title="{{ $item['title'] }}">
+                        {{ $item['title'] }}
+                    </a>
+
+                    <p class="text-xs text-gray-500 mt-1">₽{{ number_format($item['price'], 0, '', ' ') }}</p>
                 </div>
-
             </div>
+        @endforeach
+    </div>
+    <!-- Стрелки -->
+    <div class="swiper-button-next"></div>
+    <div class="swiper-button-prev"></div>
+    <!-- Пагинация -->
+    <div class="swiper-pagination"></div>
+</div>
 
+
+
+             </div>
 
             <!-- ПРАВАЯ ПАНЕЛЬ -->
             <div class="space-y-6">
@@ -364,3 +372,20 @@
 
 </x-buyer-layout>
 
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+<script>
+  const swiper = new Swiper('.mySwiper', {
+    loop: true,
+    slidesPerView: 2,
+    spaceBetween: 10,
+    breakpoints: {
+        640: { slidesPerView: 2 },
+        768: { slidesPerView: 4 },
+        1024: { slidesPerView: 4 }
+    },
+    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+    pagination: { el: '.swiper-pagination', clickable: true },
+    autoplay: { delay: 3000, disableOnInteraction: false }
+  });
+</script>

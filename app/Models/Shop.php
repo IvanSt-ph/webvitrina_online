@@ -19,23 +19,15 @@ class Shop extends Model
         'banner',
     ];
 
-    // 🔹 Связь: магазин принадлежит пользователю
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // 🔹 Удобный URL баннера
     public function getBannerUrlAttribute(): string
     {
         return $this->banner
             ? Storage::url($this->banner)
             : asset('images/default-shop-banner.jpg');
     }
-
-    public function shop()
-{
-    return $this->hasOne(\App\Models\Shop::class);
-}
-
 }
