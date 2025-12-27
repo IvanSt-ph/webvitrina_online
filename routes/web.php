@@ -5,6 +5,13 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Models\Country;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\Admin\ColorController;
+
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordController;
+
+
 /*
 |--------------------------------------------------------------------------
 | 📦 CONTROLLERS
@@ -57,6 +64,20 @@ use Illuminate\Support\Facades\Auth;
 |--------------------------------------------------------------------------
 */
 
+
+
+// Ограничение логина
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->middleware('throttle:5,1');
+
+// Отправка ссылки для сброса пароля
+Route::post('/password/email', [PasswordResetLinkController::class, 'store'])
+    ->middleware('throttle:5,1');
+
+// Корзина и оформление заказа
+Route::post('/cart/add', [CartController::class, 'add'])->middleware('throttle:20,1');
+Route::post('/checkout', [OrderController::class, 'place'])->middleware('throttle:10,1');
+
 // 💱 Валюты
 Route::get('/internal/currency/agroprombank', [
     CurrencyProxyController::class, 'agroprombank'
@@ -100,6 +121,11 @@ Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
+    /*--------------------------------------------------------------------------
+    | 🛍 PRODUCTS & CATEGORIES (общий доступ)
+    |--------------------------------------------------------------------------*/
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/categories', [CategoryController::class, 'index']);
 
     /*
     |--------------------------------------------------------------------------
@@ -115,9 +141,12 @@ Route::middleware('auth')->group(function () {
         ->name('profile.shop.update');
 
     // Смена пароля
-    Route::put('/password', [App\Http\Controllers\Auth\PasswordController::class, 'update'])
-        ->name('password.update');
+Route::put('/password', [PasswordController::class, 'update'])
+    ->middleware('auth')
+    ->name('password.update');
 
+Route::post('/reset-password', [NewPasswordController::class, 'store'])
+    ->name('password.store');
 
     /*
     |--------------------------------------------------------------------------
