@@ -10,7 +10,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
-
+use App\Http\Controllers\PhoneVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +63,17 @@ use Illuminate\Support\Facades\Auth;
 | 🌍 PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
+
+
+
+
+
+Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
+    ->name('phone.send');
+
+Route::post('/phone/verify', [PhoneVerificationController::class, 'verify'])
+    ->name('phone.verify');
+
 
 
 

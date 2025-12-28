@@ -135,5 +135,19 @@ public function sendPasswordResetNotification($token)
 }
 
 
+// 🔹 Проверка подтверждения телефона
+public function hasVerifiedPhone(): bool
+{
+    return !is_null($this->phone_verified_at);
+}
+
+// 🔹 Отметка телефона как подтверждённого
+public function markPhoneAsVerified(): void
+{
+    $this->forceFill([
+        'phone_verified_at' => now(),
+    ])->save();
+}
+
     
 }

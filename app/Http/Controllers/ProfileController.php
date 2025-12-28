@@ -12,41 +12,112 @@ use Illuminate\View\View;
 use App\Models\Product;
 use App\Models\OrderItem;
 
+use Illuminate\Support\Facades\Http; // для SMS API
+
+
+
+
 class ProfileController extends Controller
 {
+
+
+
+// Отправка кода на телефон
+public function sendPhoneVerification(Request $request)
+{
+    $user = $request->user();
+
+    if (!$user->phone) {
+        return back()->withErrors(['phone' => 'Сначала укажите телефон.']);
+    }
+
+    // Генерируем случайный 6-значный код
+    $code = rand(100000, 999999);
+    $user->phone_verification_code = $code;
+    $user->save();
+
+    // Пример отправки через бесплатный сервис для теста (нужна реальная интеграция для настоящих SMS)
+    // Http::get('https://sms.ru/sms/send', [
+    //     'api_id' => env('SMS_RU_KEY'),
+    //     'to'     => $user->phone,
+    //     'msg'    => "Ваш код подтверждения: $code",
+    //     'json'   => 1
+    // ]);
+
+    return back()->with('phone_sent', true);
+}
+
+// Проверка кода
+public function verifyPhone(Request $request)
+{
+    $request->validate([
+        'code' => 'required|digits:6',
+    ]);
+
+    $user = $request->user();
+
+    if ($request->code == $user->phone_verification_code) {
+        $user->phone_verified_at = now();
+        $user->phone_verification_code = null; // очищаем код
+        $user->save();
+
+        return back()->with('status', 'phone-verified');
+    }
+
+    return back()->withErrors(['code' => 'Неверный код.']);
+}
+
     public function edit(Request $request): View
     {
         return view('profile.edit', ['user' => $request->user()]);
     }
 
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $user = $request->user();
+public function update(Request $request): RedirectResponse
+{
+    $user = $request->user();
 
-        $data = $request->validate([
-            'name'   => 'required|string|max:255',
-            'email'  => 'required|email|max:255',
-            'avatar' => 'nullable|image|max:2048',
-            'phone'  => 'nullable|string|max:50',
-        ]);
+    $validated = $request->validate([
+        'name'   => 'required|string|max:255',
+        'email'  => 'required|email|max:255',
+        'phone'  => 'nullable|string|max:50',
+        'avatar' => 'nullable|image|max:2048',
+    ]);
 
-        if ($user->email !== $data['email']) {
-            $user->email_verified_at = null;
+    $updatedFields = [];
+
+    // Проверяем изменения полей
+    foreach (['name', 'email', 'phone'] as $field) {
+        if ($validated[$field] !== $user->$field) {
+            $user->$field = $validated[$field];
+            $updatedFields[] = $field;
         }
-
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar) Storage::disk('public')->delete($user->avatar);
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
-        }
-
-        $user->update($data);
-
-        if ($request->routeIs('buyer.profile.update')) {
-            return Redirect::route('buyer.profile')->with('status', 'profile-updated');
-        }
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
+
+    // Если менялся email — сбрасываем подтверждение
+    if (in_array('email', $updatedFields)) {
+        $user->email_verified_at = null;
+    }
+
+        // Если менялся телефон — сбрасываем подтверждение
+    if (in_array('phone', $updatedFields)) {
+        $user->phone_verified_at = null;
+    }
+
+
+    // Аватар
+    if ($request->hasFile('avatar')) {
+        if ($user->avatar) Storage::disk('public')->delete($user->avatar);
+        $user->avatar = $request->file('avatar')->store('avatars', 'public');
+        $updatedFields[] = 'avatar';
+    }
+
+    if (!empty($updatedFields)) {
+        $user->save();
+        return back()->with('updated_fields', $updatedFields);
+    }
+
+    return back();
+}
 
     public function updateShop(Request $request): RedirectResponse
     {
