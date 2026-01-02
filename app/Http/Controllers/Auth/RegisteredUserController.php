@@ -29,15 +29,36 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required','in:buyer,seller'],
+            'role' => ['required', 'in:buyer,seller'],
+            'phone' => ['nullable', 'string'], // телефон необязательный
         ]);
 
-        $user = User::create([
+        $data = [
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-        ]);
+        ];
+
+        // Если пользователь указал телефон — нормализуем его
+        if ($request->filled('phone')) {
+            $phone = preg_replace('/[^0-9+]/', '', $request->phone); // оставляем только цифры и плюс
+
+            // Если нет плюса в начале — добавляем
+            if (!str_starts_with($phone, '+')) {
+                $phone = '+'.$phone;
+            }
+
+            // Проверяем длину номера (от 7 до 15 цифр)
+            $digits = preg_replace('/\D/', '', $phone);
+            if (strlen($digits) < 7 || strlen($digits) > 15) {
+                return back()->withErrors(['phone' => 'Телефон указан неверно.'])->withInput();
+            }
+
+            $data['phone'] = $phone;
+        }
+
+        $user = User::create($data);
 
         event(new Registered($user));
 

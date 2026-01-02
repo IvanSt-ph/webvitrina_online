@@ -85,7 +85,6 @@
                        <span class="inline-flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-blue-500">
                             <i class="ri-check-line text-white text-xs"></i>
                         </span>
-
                     @endif
                 </label>
                 <div class="relative flex items-center">
@@ -95,22 +94,23 @@
                 </div>
             </div>
 
-            {{-- Телефон --}}
+            {{-- Телефон с intl-tel-input --}}
             <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Телефон
-                @if(Auth::user()->hasVerifiedPhone())
-                   <span class="inline-flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-blue-500">
-                        <i class="ri-check-line text-white text-xs"></i>
-                    </span>
-
-                @endif
-            </label>
-                <div class="relative flex items-center">
-                    <input type="text" name="phone" value="{{ old('phone', Auth::user()->phone) }}"
-                           placeholder="+373 777 77 777"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Телефон
+                    @if(Auth::user()->hasVerifiedPhone())
+                       <span class="inline-flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-blue-500">
+                            <i class="ri-check-line text-white text-xs"></i>
+                        </span>
+                    @endif
+                </label>
+                <input type="tel" id="phone" name="phone"
+                       value="{{ old('phone', Auth::user()->phone) }}"
+                       class="w-full py-2.5 sm:py-3 px-4 rounded-xl border border-gray-300
+                              focus:ring-indigo-500 focus:border-indigo-500 transition"
+                       placeholder="+373..."
+                       title="Введите номер телефона">
+                <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
             </div>
         </div>
 
@@ -121,38 +121,132 @@
             </button>
         </div>
     </form>
-    {{-- Кнопки подтверждения внизу --}}
-    <div class="mt-4 flex gap-2">
-        @if(!Auth::user()->hasVerifiedEmail())
-            <form method="POST" action="{{ route('verification.send') }}">
-                @csrf
-                <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">Подтвердить email</button>
-            </form>
-        @endif       
 
+    {{-- Блок подтверждения данных с улучшенным дизайном --}}
+    <div class="mt-8 pt-6 border-t border-gray-100">
+        <h3 class="text-sm font-medium text-gray-700 mb-4 flex items-center gap-2">
+            <i class="ri-shield-check-line text-gray-400"></i> Подтверждение данных
+        </h3>
+        
+        <div class="space-y-4">
+            {{-- Подтверждение email --}}
+            @if(!Auth::user()->hasVerifiedEmail())
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="ri-mail-line text-blue-500"></i>
+                            <span class="text-sm font-medium text-gray-700">Email не подтверждён</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Для полного доступа к функциям подтвердите email</p>
+                    </div>
+                    <form method="POST" action="{{ route('verification.send') }}" class="shrink-0">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center gap-2 hover:shadow-md active:scale-[0.98]">
+                            <i class="ri-send-plane-line"></i>
+                            Подтвердить email
+                        </button>
+                    </form>
+                </div>
+            @else
+                <div class="flex items-center justify-between p-4 bg-green-50/50 rounded-xl border border-green-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="ri-check-double-line text-green-600"></i>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-700">Email подтверждён</span>
+                            <p class="text-xs text-gray-500">Ваш email успешно верифицирован</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Подтверждение телефона --}}
+            @if(!Auth::user()->hasVerifiedPhone())
+                <div class="space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-yellow-50/50 rounded-xl border border-yellow-100">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="ri-phone-line text-yellow-500"></i>
+                                <span class="text-sm font-medium text-gray-700">Телефон не подтверждён</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Подтвердите телефон для безопасности аккаунта</p>
+                        </div>
+                        <form method="POST" action="{{ route('phone.send') }}" class="shrink-0">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center gap-2 hover:shadow-md active:scale-[0.98]">
+                                <i class="ri-message-2-line"></i>
+                                Отправить SMS код
+                            </button>
+                        </form>
+                    </div>
+
+                    {{-- Форма ввода кода --}}
+                    @if(session('phone_sent'))
+                        <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <p class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                <i class="ri-key-line text-gray-500"></i>
+                                Введите код из SMS
+                            </p>
+                            <form method="POST" action="{{ route('phone.verify') }}" class="flex flex-col sm:flex-row gap-3">
+                                @csrf
+                                <div class="relative flex-1">
+                                    <input type="text" name="code" 
+                                           placeholder="6-значный код"
+                                           class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                                           maxlength="6"
+                                           autocomplete="off">
+                                    <i class="ri-shield-keyhole-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button type="submit" class="px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-2 hover:shadow-md active:scale-[0.98]">
+                                    <i class="ri-check-line"></i>
+                                    Подтвердить код
+                                </button>
+                            </form>
+                            <p class="text-xs text-gray-400 mt-2">Код действителен в течение 10 минут</p>
+                        </div>
+                    @endif
+                </div>
+            @else
+                <div class="flex items-center justify-between p-4 bg-green-50/50 rounded-xl border border-green-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="ri-phone-fill text-green-600"></i>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-700">Телефон подтверждён</span>
+                            <p class="text-xs text-gray-500">Ваш номер телефона успешно верифицирован</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </div>
     </div>
-    @if(!Auth::user()->hasVerifiedPhone())
-    <div class="mt-4 flex flex-col gap-2">
-        <form method="POST" action="{{ route('phone.send') }}">
-            @csrf
-            <button class="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700">
-                Отправить код на телефон
-            </button>
-        </form>
 
-        @if(session('phone_sent'))
-            <form method="POST" action="{{ route('phone.verify') }}" class="flex gap-2">
-                @csrf
-                <input type="text" name="code" placeholder="Введите код из SMS"
-                       class="border rounded px-2 py-1 w-32">
-                <button class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
-                    Подтвердить код
-                </button>
-            </form>
-        @endif
-    </div>
-@endif
+    {{-- Подключение intl-tel-input --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.min.css">
+    <style>
+        .iti { width: 100%; }
+        .iti input { width: 100%; }
+        .iti__selected-dial-code { display: none; }
+        .iti--separate-dial-code .iti__selected-flag { padding-left: 12px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const phoneInput = document.querySelector('#phone');
+        if (!phoneInput) return;
+        if (phoneInput.closest('.iti')) return;
 
+        window.intlTelInput(phoneInput, {
+            initialCountry: "md",
+            separateDialCode: true,
+            nationalMode: false,
+            hiddenInput: "phone_full",
+            placeholderNumberType: "MOBILE",
+        });
+    });
+    </script>
 
 </section>
 @endsection

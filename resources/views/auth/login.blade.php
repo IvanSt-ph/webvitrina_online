@@ -19,21 +19,33 @@
         <form method="POST" action="{{ route('login') }}" class="space-y-5 sm:space-y-6">
             @csrf
 
-            <!-- Email -->
-            <div>
-                <label class="block text-sm mb-1 font-medium text-gray-700">Email</label>
+            <!-- Login -->
+            <div x-data="{ login: '{{ old('login') }}', isPhone: false }">
+                <label class="block text-sm mb-1 font-medium text-gray-700">
+                    Email или телефон
+                </label>
 
                 <div class="relative">
-                    <i class="ri-user-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+                    <!-- Иконка -->
+                    <template x-if="isPhone">
+                        <i class="ri-smartphone-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+                    </template>
+                    <template x-if="!isPhone">
+                        <i class="ri-user-line absolute left-3 top-3 text-gray-400 text-lg"></i>
+                    </template>
 
-                    <input type="email" name="email" required
-                           value="{{ old('email') }}"
-                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
-                                  focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    <input type="text" name="login" required
+                        x-model="login"
+                        @input="isPhone = login.startsWith('+') && /^[0-9+]*$/.test(login)"
+                        placeholder="+373… или email"
+                        class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
+                                focus:ring-indigo-500 focus:border-indigo-500 transition">
                 </div>
 
-                <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm" />
+                <x-input-error :messages="$errors->get('login')" class="mt-1 text-sm" />
             </div>
+
+
 
             <!-- Password -->
             <div x-data="{ show: false }">
