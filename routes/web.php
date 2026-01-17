@@ -56,6 +56,8 @@ use App\Http\Controllers\CurrencyProxyController;
 use App\Http\Controllers\Auth\GoogleController;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+
 
 
 /*
@@ -63,16 +65,31 @@ use Illuminate\Support\Facades\Auth;
 | 🌍 PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
+// Добавьте эти маршруты в раздел PUBLIC ROUTES
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
 
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return redirect('/cabinet')->with('status', 'Email успешно подтверждён!');
+})->middleware(['auth', 'signed'])->name('verification.verify');
 
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('status', 'Ссылка для подтверждения отправлена!');
+})->middleware(['auth', 'throttle:5,1'])->name('verification.send');
 
 
 
 Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
-    ->name('phone.send');
+    ->name('phone.send')
+    ->middleware('throttle:3,10');
 
 Route::post('/phone/verify', [PhoneVerificationController::class, 'verify'])
-    ->name('phone.verify');
+    ->name('phone.verify')
+    ->middleware('throttle:3,1');
+
 
 
 
