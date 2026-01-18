@@ -5,11 +5,6 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use App\Models\Country;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\Admin\ColorController;
-
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\PhoneVerificationController;
 
 /*
@@ -55,9 +50,6 @@ use App\Http\Controllers\Admin\{
 use App\Http\Controllers\CurrencyProxyController;
 use App\Http\Controllers\Auth\GoogleController;
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
-
 
 
 /*
@@ -65,22 +57,6 @@ use Illuminate\Http\Request;
 | 🌍 PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
-// Добавьте эти маршруты в раздел PUBLIC ROUTES
-Route::get('/email/verify', function () {
-    return view('auth.verify-email');
-})->middleware('auth')->name('verification.notice');
-
-Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-    $request->fulfill();
-    return redirect('/cabinet')->with('status', 'Email успешно подтверждён!');
-})->middleware(['auth', 'signed'])->name('verification.verify');
-
-Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
-    return back()->with('status', 'Ссылка для подтверждения отправлена!');
-})->middleware(['auth', 'throttle:5,1'])->name('verification.send');
-
-
 
 Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
     ->name('phone.send')
@@ -91,21 +67,6 @@ Route::post('/phone/verify', [PhoneVerificationController::class, 'verify'])
     ->middleware('throttle:3,1');
 
 
-
-
-
-// Ограничение логина
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('throttle:5,1');
-
-// Отправка ссылки для сброса пароля
-Route::post('/password/email', [PasswordResetLinkController::class, 'store'])
-    ->middleware('throttle:5,1');
-
-// Корзина и оформление заказа
-Route::post('/cart/add', [CartController::class, 'add'])->middleware('throttle:20,1');
-Route::post('/checkout', [OrderController::class, 'place'])->middleware('throttle:10,1');
-
 // 💱 Валюты
 Route::get('/internal/currency/agroprombank', [
     CurrencyProxyController::class, 'agroprombank'
@@ -114,10 +75,20 @@ Route::get('/internal/currency/agroprombank', [
 // 🏠 Главная
 Route::get('/', [ProductController::class, 'index'])->name('home');
 
-// 🛍 Товар
-Route::get('/p/{slug}', [ProductController::class, 'show'])->name('product.show');
-Route::get('/p/{key}',  [ProductController::class, 'show'])->name('product.short');
 
+// 🛍 Товар
+// Slug: минимум 3 символа, может содержать дефисы
+Route::get('/p/{slug}', [ProductController::class, 'show'])
+    ->where('slug', '[a-z0-9\-]{3,}')  // минимум 3 символа
+    ->name('product.show');
+
+// Key: только заглавные+цифры, фиксированная длина
+Route::get('/p/{key}', [ProductController::class, 'show'])
+    ->where('key', '[A-Z0-9]{6,15}')  // от 6 до 10 символов
+    ->name('product.short');
+
+
+    
 // 📂 Категории
 Route::get('/category',        [CategoryController::class, 'index'])->name('category.index');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
@@ -140,7 +111,10 @@ Route::post('/currency', [\App\Http\Controllers\CurrencyController::class, 'set'
 Route::view('/coming-soon', 'errors.coming-soon')->name('coming.soon');
 
 // Кабинет входа
-Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
+Route::get('/cabinet', [ProfileController::class, 'cabinet'])
+    ->middleware('auth')
+    ->name('cabinet');
+
 
 
 /*
@@ -148,6 +122,7 @@ Route::get('/cabinet', [ProfileController::class, 'cabinet'])->name('cabinet');
 | 🔐 AUTHENTICATED ROUTES
 |--------------------------------------------------------------------------
 */
+
 Route::middleware('auth')->group(function () {
     /*--------------------------------------------------------------------------
     | 🛍 PRODUCTS & CATEGORIES (общий доступ)
@@ -168,13 +143,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile/shop', [ProfileController::class, 'updateShop'])
         ->name('profile.shop.update');
 
-    // Смена пароля
-Route::put('/password', [PasswordController::class, 'update'])
-    ->middleware('auth')
-    ->name('password.update');
-
-Route::post('/reset-password', [NewPasswordController::class, 'store'])
-    ->name('password.store');
 
     /*
     |--------------------------------------------------------------------------
@@ -224,13 +192,17 @@ Route::post('/reset-password', [NewPasswordController::class, 'store'])
     |--------------------------------------------------------------------------
     */
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart/add/{product}', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/cart/add/{product}', [CartController::class, 'add'])
+    ->name('cart.add')
+    ->middleware('throttle:20,1');
+
     Route::patch('/cart/{item}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{item}', [CartController::class, 'remove'])->name('cart.remove');
 
-    Route::get('/cart-count', fn() => [
-        'count' => \App\Models\CartItem::where('user_id', auth()->id())->sum('qty')
-    ])->name('cart.count');
+    Route::get('/cart-count', fn() => ['count' => \App\Models\CartItem::where('user_id', auth()->id())->sum('qty')])
+    ->middleware('auth')
+    ->name('cart.count');
+    
 
 
     /*
