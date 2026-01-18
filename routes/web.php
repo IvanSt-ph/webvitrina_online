@@ -65,6 +65,9 @@ Route::middleware(['auth', 'role:seller'])->group(function () {
     Route::post('/shop/phone/verify', [ShopPhoneVerificationController::class, 'verify'])->name('shop.phone.verify');
 });
 
+Route::patch('/profile/shop/phone', [ProfileController::class, 'updatePhone'])
+    ->name('profile.shop.update-phone');
+
 
 Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
     ->name('phone.send')

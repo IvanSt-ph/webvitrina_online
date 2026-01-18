@@ -195,261 +195,363 @@
 
 
 
-  
-  {{-- 📱 Телефон магазина --}}
-  @if (Auth::user()->shop)
+{{-- 📱 Телефон магазина --}}
+@if (Auth::user()->shop)
     <div class="border-t border-gray-100 pt-8">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <i class="ri-phone-line text-gray-400"></i>
-            Телефон магазина
-          </h3>
-          <p class="text-sm text-gray-500 mt-1">Номер для связи с покупателями</p>
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <i class="ri-phone-line text-gray-400"></i>
+                    Телефон магазина
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">Номер для связи с покупателями</p>
+            </div>
+            @if(Auth::user()->shop->is_phone_verified)
+                <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full 
+                           flex items-center gap-1.5">
+                    <i class="ri-checkbox-circle-fill"></i> Подтверждён
+                </span>
+            @elseif(Auth::user()->shop->phone)
+                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full 
+                           flex items-center gap-1.5">
+                    <i class="ri-shield-line"></i> Не подтверждён
+                </span>
+            @endif
         </div>
+
+        {{-- Статус верификации --}}
         @if(Auth::user()->shop->is_phone_verified)
-          <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full 
-                       flex items-center gap-1.5">
-            <i class="ri-checkbox-circle-fill"></i> Подтверждён
-          </span>
-        @endif
-      </div>
-
-      {{-- Статус верификации --}}
-      @if(Auth::user()->shop->is_phone_verified)
-        <div x-data="{ editing: false, newPhone: '{{ Auth::user()->shop->phone ?? '' }}' }">
-          {{-- Режим просмотра --}}
-          <div x-show="!editing" 
-               class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <i class="ri-phone-fill text-green-600 text-xl"></i>
-              </div>
-              <div class="flex-1">
-                <p class="font-medium text-gray-900">
-                  @if(Auth::user()->shop->phone)
-                    {{ Auth::user()->shop->phone }}
-                  @else
-                    Телефон не указан
-                  @endif
-                </p>
-                <p class="text-sm text-gray-600 mt-1">Телефон успешно верифицирован</p>
-              </div>
-              <button @click="editing = true" 
-                      class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 
-                             rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
-                <i class="ri-pencil-line"></i>
-                Изменить
-              </button>
-            </div>
-          </div>
-
-          {{-- Режим редактирования --}}
-          <div x-show="editing" 
-               x-transition:enter="transition ease-out duration-300"
-               x-transition:enter-start="opacity-0 transform -translate-y-2"
-               x-transition:enter-end="opacity-100 transform translate-y-0"
-               class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200 mt-4">
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <h4 class="font-medium text-gray-900">Изменить номер телефона</h4>
-                <button @click="editing = false; newPhone = '{{ Auth::user()->shop->phone ?? '' }}'" 
-                        class="text-gray-400 hover:text-gray-600">
-                  <i class="ri-close-line text-lg"></i>
-                </button>
-              </div>
-              
-              <form method="POST" action="{{ route('shop.phone.send') }}" class="space-y-4" id="change-phone-form">
-                @csrf
-                <div class="space-y-3">
-                  <label class="block text-sm font-medium text-gray-700">Новый номер телефона</label>
-                  <div class="relative">
-                    <input id="change-phone-input" 
-                           type="tel" 
-                           name="phone"
-                           x-model="newPhone"
-                           placeholder="+373 777 00 000"
-                           class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 
-                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
-                                  transition-all duration-200"
-                           required>
-                    <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <i class="ri-phone-line text-gray-400"></i>
-                      <span class="text-gray-300">|</span>
+            <div x-data="{ editing: false, newPhone: '{{ Auth::user()->shop->phone ?? '' }}' }">
+                {{-- Режим просмотра --}}
+                <div x-show="!editing" 
+                     class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="ri-phone-fill text-green-600 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900">
+                                @if(Auth::user()->shop->phone)
+                                    {{ Auth::user()->shop->phone }}
+                                @else
+                                    Телефон не указан
+                                @endif
+                            </p>
+                            <p class="text-sm text-gray-600 mt-1">Телефон успешно верифицирован</p>
+                        </div>
+                        <button @click="editing = true" 
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 
+                                       rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+                            <i class="ri-pencil-line"></i>
+                            Изменить
+                        </button>
                     </div>
-                  </div>
                 </div>
-                
-                <div class="flex items-center gap-3">
-                  <button type="submit"
-                          class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 
-                                 hover:from-indigo-600 hover:to-blue-600 text-white font-medium 
-                                 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
-                                 flex items-center gap-2">
-                    <i class="ri-send-plane-line"></i>
-                    Отправить код подтверждения
-                  </button>
-                  <button type="button" 
-                          @click="editing = false; newPhone = '{{ Auth::user()->shop->phone ?? '' }}'"
-                          class="px-5 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 
-                                 rounded-xl hover:bg-gray-50 transition-colors">
-                    Отмена
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      @else
-        {{-- Форма верификации (если телефон не подтвержден) --}}
-        <div class="space-y-6">
-          <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
-            <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <i class="ri-shield-keyhole-line text-amber-600"></i>
-              </div>
-              <div>
-                <p class="font-medium text-gray-900">Подтвердите телефон магазина</p>
-                <p class="text-sm text-gray-600 mt-1">
-                  Это повысит доверие покупателей и откроет дополнительные возможности
-                </p>
-              </div>
-            </div>
-          </div>
 
-          {{-- Форма отправки кода --}}
-          <form method="POST" 
-                action="{{ route('shop.phone.send') }}" 
-                class="bg-gray-50 rounded-xl p-5 space-y-4"
-                id="shop-phone-form">
-            @csrf
-            <div class="space-y-3">
-              <label class="block text-sm font-medium text-gray-700">Введите номер телефона</label>
-              <div class="relative">
-                <input id="shop-phone" 
-                       type="tel" 
-                       name="phone"
-                       value="{{ old('phone', Auth::user()->shop?->phone) }}"
-                       placeholder="+373 777 00 000"
-                       class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 
-                              focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
-                              transition-all duration-200"
-                       required>
-                <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <i class="ri-phone-line text-gray-400"></i>
-                  <span class="text-gray-300">|</span>
+                {{-- Режим редактирования --}}
+                <div x-show="editing" 
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform -translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200 mt-4">
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-medium text-gray-900">Изменить номер телефона</h4>
+                            <button @click="editing = false; newPhone = '{{ Auth::user()->shop->phone ?? '' }}'" 
+                                    class="text-gray-400 hover:text-gray-600">
+                                <i class="ri-close-line text-lg"></i>
+                            </button>
+                        </div>
+                        
+                        {{-- Форма сохранения номера (без верификации) --}}
+                        <form method="POST" action="{{ route('profile.shop.update') }}" class="space-y-4" id="update-phone-form">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="update_type" value="phone">
+                            
+                            <div class="space-y-3">
+                                <label class="block text-sm font-medium text-gray-700">Новый номер телефона</label>
+                                <div class="relative">
+                                    <input id="update-phone-input" 
+                                           type="tel" 
+                                           name="phone"
+                                           x-model="newPhone"
+                                           placeholder="+373 777 00 000"
+                                           class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 
+                                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
+                                                  transition-all duration-200"
+                                           required>
+                                    <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                        <i class="ri-phone-line text-gray-400"></i>
+                                        <span class="text-gray-300">|</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500">Номер будет сохранён, но потребуется повторная верификация</p>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <button type="submit"
+                                        class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 
+                                               hover:from-indigo-600 hover:to-blue-600 text-white font-medium 
+                                               rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
+                                               flex items-center gap-2">
+                                    <i class="ri-save-3-line"></i>
+                                    Сохранить номер
+                                </button>
+                                <button type="button" 
+                                        @click="editing = false; newPhone = '{{ Auth::user()->shop->phone ?? '' }}'"
+                                        class="px-5 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 
+                                               rounded-xl hover:bg-gray-50 transition-colors">
+                                    Отмена
+                                </button>
+                            </div>
+                        </form>
+                        
+                        {{-- Разделитель --}}
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-gray-200"></div>
+                            </div>
+                            <div class="relative flex justify-center text-sm">
+                                <span class="px-2 bg-blue-50 text-gray-500">или</span>
+                            </div>
+                        </div>
+                        
+                        {{-- Форма отправки кода для верификации --}}
+                        <form method="POST" action="{{ route('shop.phone.send') }}" class="space-y-4" id="verify-phone-form">
+                            @csrf
+                            <div class="space-y-3">
+                                <label class="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                                    <i class="ri-shield-check-line text-green-600"></i>
+                                    Верифицировать текущий номер
+                                </label>
+                                <div class="bg-amber-50 border border-amber-100 rounded-lg p-4 text-sm text-amber-800">
+                                    <div class="flex items-start gap-2">
+                                        <i class="ri-information-line text-amber-600 mt-0.5"></i>
+                                        <div>
+                                            <p class="font-medium">После изменения номера потребуется верификация</p>
+                                            <p class="text-xs mt-1">На текущий номер будет отправлен SMS-код для подтверждения</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <button type="submit"
+                                        class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-500 
+                                               hover:from-amber-600 hover:to-orange-600 text-white font-medium 
+                                               rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
+                                               flex items-center gap-2">
+                                    <i class="ri-send-plane-line"></i>
+                                    Отправить код подтверждения
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-              </div>
-              <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
             </div>
-            
-            <div class="flex items-center gap-3">
-              <button type="submit"
-                      class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-500 
-                             hover:from-amber-600 hover:to-orange-600 text-white font-medium 
-                             rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
-                             flex items-center gap-2">
-                <i class="ri-send-plane-line"></i>
-                Отправить код
-              </button>
-              <p class="text-sm text-gray-500">Код придёт в течение минуты</p>
-            </div>
-          </form>
+        @else
+            {{-- Если телефон не подтвержден --}}
+            <div class="space-y-6">
+                {{-- Форма сохранения/изменения номера --}}
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-200">
+                    <h4 class="font-medium text-gray-900 mb-4 flex items-center gap-2">
+                        <i class="ri-phone-line text-blue-600"></i>
+                        Настройка номера телефона
+                    </h4>
+                    
+                    <form method="POST" action="{{ route('profile.shop.update') }}" class="space-y-4" id="shop-phone-save-form">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="update_type" value="phone">
+                        
+                        <div class="space-y-3">
+                            <label class="block text-sm font-medium text-gray-700">Номер телефона магазина</label>
+                            <div class="relative">
+                                <input id="shop-phone-input" 
+                                       type="tel" 
+                                       name="phone"
+                                       value="{{ old('phone', Auth::user()->shop?->phone) }}"
+                                       placeholder="+373 777 00 000"
+                                       class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 
+                                              focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
+                                              transition-all duration-200"
+                                       required>
+                                <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                    <i class="ri-phone-line text-gray-400"></i>
+                                    <span class="text-gray-300">|</span>
+                                </div>
+                            </div>
+                            <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <button type="submit"
+                                    class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 
+                                           hover:from-indigo-600 hover:to-blue-600 text-white font-medium 
+                                           rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
+                                           flex items-center gap-2">
+                                <i class="ri-save-3-line"></i>
+                                Сохранить номер
+                            </button>
+                            <p class="text-sm text-gray-500">После сохранения можно будет верифицировать</p>
+                        </div>
+                    </form>
+                </div>
 
-          {{-- Форма ввода кода --}}
-          @if(session('shop_phone_verification_sent'))
-            <form method="POST" 
-                  action="{{ route('shop.phone.verify') }}" 
-                  class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200"
-                  x-data="{ timer: 600, formattedTime: '10:00' }"
-                  x-init="
-                    let interval = setInterval(() => {
-                      timer--;
-                      let minutes = Math.floor(timer / 60);
-                      let seconds = timer % 60;
-                      formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                      if(timer <= 0) clearInterval(interval);
-                    }, 1000);
-                  ">
-              @csrf
-              <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                  <p class="font-medium text-gray-900">Введите 6-значный код</p>
-                  <div class="flex items-center gap-1 text-sm text-green-600 font-medium">
-                    <i class="ri-time-line"></i>
-                    <span x-text="formattedTime"></span>
-                  </div>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                  <div class="flex-1">
-                    <input type="text" 
-                           name="code" 
-                           placeholder="000000"
-                           maxlength="6"
-                           autocomplete="off"
-                           class="w-full text-center text-2xl font-bold tracking-widest 
-                                  py-3 rounded-xl border border-gray-300 
-                                  focus:border-green-500 focus:ring-2 focus:ring-green-100"
-                           required>
-                  </div>
-                  <button type="submit"
-                          class="px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 
-                                 hover:from-green-600 hover:to-emerald-600 text-white font-medium 
-                                 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
-                                 flex items-center gap-2">
-                    <i class="ri-check-line"></i>
-                    Подтвердить
-                  </button>
-                </div>
-                <p class="text-xs text-gray-500 text-center">Код отправлен на указанный номер</p>
-              </div>
-            </form>
-          @endif
-        </div>
-      @endif
+                {{-- Форма верификации (только если номер уже сохранен) --}}
+                @if(Auth::user()->shop->phone)
+                    <div class="space-y-6">
+                        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                    <i class="ri-shield-keyhole-line text-amber-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">Подтвердите телефон магазина</p>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Это повысит доверие покупателей и откроет дополнительные возможности
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Форма отправки кода --}}
+                        <form method="POST" 
+                              action="{{ route('shop.phone.send') }}" 
+                              class="bg-gray-50 rounded-xl p-5 space-y-4"
+                              id="shop-phone-verify-form">
+                            @csrf
+                            <div class="space-y-3">
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Отправить код подтверждения на номер:
+                                    <span class="font-semibold text-gray-900">{{ Auth::user()->shop->phone }}</span>
+                                </label>
+                                <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
+                                    <div class="flex items-start gap-2">
+                                        <i class="ri-information-line text-blue-600 mt-0.5"></i>
+                                        <p>На указанный номер будет отправлен SMS с 6-значным кодом подтверждения</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                <button type="submit"
+                                        class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-500 
+                                               hover:from-amber-600 hover:to-orange-600 text-white font-medium 
+                                               rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
+                                               flex items-center gap-2">
+                                    <i class="ri-send-plane-line"></i>
+                                    Отправить код
+                                </button>
+                                <p class="text-sm text-gray-500">Код придёт в течение минуты</p>
+                            </div>
+                        </form>
+
+                        {{-- Форма ввода кода --}}
+                        @if(session('shop_phone_verification_sent'))
+                            <form method="POST" 
+                                  action="{{ route('shop.phone.verify') }}" 
+                                  class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200"
+                                  x-data="{ timer: 600, formattedTime: '10:00' }"
+                                  x-init="
+                                    let interval = setInterval(() => {
+                                      timer--;
+                                      let minutes = Math.floor(timer / 60);
+                                      let seconds = timer % 60;
+                                      formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                                      if(timer <= 0) clearInterval(interval);
+                                    }, 1000);
+                                  ">
+                                @csrf
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <p class="font-medium text-gray-900">Введите 6-значный код</p>
+                                        <div class="flex items-center gap-1 text-sm text-green-600 font-medium">
+                                            <i class="ri-time-line"></i>
+                                            <span x-text="formattedTime"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-1">
+                                            <input type="text" 
+                                                   name="code" 
+                                                   placeholder="000000"
+                                                   maxlength="6"
+                                                   autocomplete="off"
+                                                   class="w-full text-center text-2xl font-bold tracking-widest 
+                                                          py-3 rounded-xl border border-gray-300 
+                                                          focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                                                   required>
+                                        </div>
+                                        <button type="submit"
+                                                class="px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 
+                                                       hover:from-green-600 hover:to-emerald-600 text-white font-medium 
+                                                       rounded-xl shadow-sm hover:shadow-md transition-all duration-200 
+                                                       flex items-center gap-2">
+                                            <i class="ri-check-line"></i>
+                                            Подтвердить
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 text-center">Код отправлен на указанный номер</p>
+                                </div>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endif
     </div>
 
     {{-- 📞 Скрипт для intl-tel-input --}}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Инициализация первого поля (форма верификации)
-      const phoneInput = document.querySelector("#shop-phone");
-      if(phoneInput){
-        const iti = window.intlTelInput(phoneInput, {
-          initialCountry: "md",
-          preferredCountries: ["md", "ru", "ro", "ua"],
-          separateDialCode: true,
-          utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
+        // Инициализация всех полей ввода телефона
+        const phoneInputs = [
+            { id: 'shop-phone-input', form: 'shop-phone-save-form' },
+            { id: 'update-phone-input', form: 'update-phone-form' },
+            { id: 'change-phone-input', form: 'change-phone-form' }
+        ];
+        
+        phoneInputs.forEach(config => {
+            const input = document.querySelector(`#${config.id}`);
+            if(input){
+                const iti = window.intlTelInput(input, {
+                    initialCountry: "md",
+                    preferredCountries: ["md", "ru", "ro", "ua"],
+                    separateDialCode: true,
+                    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
+                });
+                
+                const form = document.querySelector(`#${config.form}`);
+                if(form){
+                    form.addEventListener('submit', function(e){
+                        input.value = iti.getNumber();
+                    });
+                }
+            }
         });
         
-        document.querySelector('#shop-phone-form')?.addEventListener('submit', function(e){
-          phoneInput.value = iti.getNumber();
-        });
-      }
-      
-      // Инициализация второго поля (форма изменения)
-      const changePhoneInput = document.querySelector("#change-phone-input");
-      if(changePhoneInput){
-        const iti2 = window.intlTelInput(changePhoneInput, {
-          initialCountry: "md",
-          preferredCountries: ["md", "ru", "ro", "ua"],
-          separateDialCode: true,
-          utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
-          initialValue: changePhoneInput.value
-        });
-        
-        // Обновляем значение при отправке формы изменения
-        const form = document.querySelector('#change-phone-form');
-        if(form){
-          form.addEventListener('submit', function(e){
-            changePhoneInput.value = iti2.getNumber();
-          });
+        // Форма верификации
+        const verifyForm = document.querySelector('#shop-phone-verify-form');
+        if(verifyForm){
+            verifyForm.addEventListener('submit', function(e){
+                // Для формы верификации используем сохраненный номер
+                const phone = "{{ Auth::user()->shop->phone }}";
+                if(phone){
+                    // Можно добавить скрытое поле с номером, если нужно
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'phone';
+                    hiddenInput.value = phone;
+                    verifyForm.appendChild(hiddenInput);
+                }
+            });
         }
-      }
     });
     </script>
-  @endif
+@endif
 
   {{-- 📧 Верификация email --}}
   @if (!Auth::user()->hasVerifiedEmail())
