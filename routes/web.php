@@ -6,6 +6,8 @@ use App\Models\Country;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\Admin\ColorController;
 use App\Http\Controllers\PhoneVerificationController;
+use App\Http\Controllers\ShopPhoneVerificationController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +59,12 @@ use App\Http\Controllers\Auth\GoogleController;
 | 🌍 PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
+
+Route::middleware(['auth', 'role:seller'])->group(function () {
+    Route::post('/shop/phone/send', [ShopPhoneVerificationController::class, 'send'])->name('shop.phone.send');
+    Route::post('/shop/phone/verify', [ShopPhoneVerificationController::class, 'verify'])->name('shop.phone.verify');
+});
+
 
 Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
     ->name('phone.send')
@@ -282,6 +290,8 @@ Route::middleware('auth')->group(function () {
         ->prefix('seller')
         ->name('seller.')
         ->group(function () {
+
+
 
         // Категории
         Route::get('/categories/{parent}/children', [SellerCategoryController::class, 'children'])

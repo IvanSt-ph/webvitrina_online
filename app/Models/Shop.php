@@ -15,6 +15,9 @@ class Shop extends Model
         'name',
         'description',
         'phone',
+        'phone_verified_at',
+        'phone_verification_code',
+        'phone_verification_expires_at',
         'city',
         'banner',
         'facebook',
@@ -22,6 +25,13 @@ class Shop extends Model
         'telegram',
         'whatsapp',
     ];
+
+    // аксessor для проверки, верифицирован ли телефон
+    public function getIsPhoneVerifiedAttribute(): bool
+    {
+        return !is_null($this->phone_verified_at);
+    }
+
 
     public function user()
     {
