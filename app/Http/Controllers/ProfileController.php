@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\OrderItem;
 use App\Models\Order;
+use App\Models\User;
+use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -52,15 +54,38 @@ class ProfileController extends Controller
             $changed = true;
         }
 
-        
-    // Телефон
-    if (array_key_exists('phone', $data) && $data['phone'] !== $user->phone) {
-        $user->phone = $data['phone'];
-        $user->phone_verified_at = null;
-        $user->phone_verification_code = null;
-        $changed = true;
-    }
+        // Телефон
+        if (array_key_exists('phone', $data)) {
 
+            // Нормализуем телефон
+            $phone = $data['phone'] ? '+' . preg_replace('/\D+/', '', $data['phone']) : null;
+
+            if ($phone !== $user->phone) {
+
+                // Проверка уникальности среди пользователей
+                $userExists = User::where('phone', $phone)
+                    ->where('id', '!=', $user->id)
+                    ->exists();
+
+                if ($userExists) {
+                    return back()->withErrors(['phone' => 'Этот номер уже используется другим пользователем'])->withInput();
+                }
+
+                // Проверка уникальности среди магазинов
+                $shopExists = Shop::where('phone', $phone)
+                    ->where('user_id', '!=', $user->id)
+                    ->exists();
+
+                if ($shopExists) {
+                    return back()->withErrors(['phone' => 'Этот номер уже используется другим магазином'])->withInput();
+                }
+
+                $user->phone = $phone;
+                $user->phone_verified_at = null;
+                $user->phone_verification_code = null;
+                $changed = true;
+            }
+        }
 
         // Аватар
         if ($request->hasFile('avatar')) {
@@ -97,7 +122,7 @@ class ProfileController extends Controller
             'phone_verification_code' => $code
         ]);
 
-        // Тут должна быть реальная SMS-интеграция
+        // Здесь должна быть реальная SMS-интеграция
         // Http::get(...)
 
         return back()->with('phone_sent', true);
@@ -146,6 +171,7 @@ class ProfileController extends Controller
 
         $shop = $request->user()->shop ?? $request->user()->shop()->create([]);
 
+        // Проверка и удаление баннера
         if ($request->boolean('remove_banner') && $shop->banner) {
             Storage::disk('public')->delete($shop->banner);
             $shop->update(['banner' => null]);
@@ -156,6 +182,30 @@ class ProfileController extends Controller
                 Storage::disk('public')->delete($shop->banner);
             }
             $data['banner'] = $request->file('banner')->store('banners', 'public');
+        }
+
+        // Проверка телефона магазина
+        if (!empty($data['phone'])) {
+            $phone = '+' . preg_replace('/\D+/', '', $data['phone']);
+            $data['phone'] = $phone;
+
+            // Проверка уникальности среди магазинов
+            $shopExists = Shop::where('phone', $phone)
+                ->where('id', '!=', $shop->id)
+                ->exists();
+
+            if ($shopExists) {
+                return back()->withErrors(['phone' => 'Этот номер уже используется другим магазином'])->withInput();
+            }
+
+            // Проверка уникальности среди пользователей
+            $userExists = User::where('phone', $phone)
+                ->where('id', '!=', auth()->id())
+                ->exists();
+
+            if ($userExists) {
+                return back()->withErrors(['phone' => 'Этот номер уже привязан к аккаунту пользователя'])->withInput();
+            }
         }
 
         $shop->update($data);
