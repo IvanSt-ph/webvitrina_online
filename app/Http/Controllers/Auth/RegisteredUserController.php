@@ -56,12 +56,14 @@ class RegisteredUserController extends Controller
             }
 
             // 3. Валидация основных данных
-            $validatedData = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
-                'password' => ['required', 'confirmed', Rules\Password::defaults()],
-                'role' => ['required', 'in:' . self::ROLE_BUYER . ',' . self::ROLE_SELLER],
-            ]);
+                $validatedData = $request->validate([
+                    'name' => ['required', 'string', 'max:255'],
+                    'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+                    'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                    'role' => ['required', 'in:' . self::ROLE_BUYER . ',' . self::ROLE_SELLER],
+                    'terms' => ['accepted'],
+                ]);
+
 
             // 4. Создание пользователя
             $user = $this->createUser($validatedData, $phone);
@@ -145,7 +147,8 @@ private function createShopForSeller(User $user, ?string $phone): Shop
         : self::DEFAULT_SHOP_NAME;
 
     // Генерируем базовый slug
-    $baseSlug = Str::slug($shopName);
+    $baseSlug = Str::slug($shopName) ?: 'shop-' . $user->id;
+
 
     // Проверка уникальности slug
     $slug = $baseSlug;
@@ -177,7 +180,7 @@ private function createShopForSeller(User $user, ?string $phone): Shop
         Log::channel('registration')->info('User registered', [
             'user_id' => $user->id,
             'role' => $user->role,
-            'email' => $user->email, // Можно хэшировать если нужно
+             'email_hash' => hash('sha256', $user->email),
             'phone_provided' => !empty($user->phone),
         ]);
     }

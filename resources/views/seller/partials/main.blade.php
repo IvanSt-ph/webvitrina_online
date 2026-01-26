@@ -53,32 +53,505 @@
       </h3>
       
       <div class="flex flex-col lg:flex-row items-center gap-8">
-        {{-- Аватар --}}
-        <div class="relative group">
-          <div class="relative">
-            <img src="{{ Auth::user()->avatar_url }}"
-                 alt="Аватар"
-                 class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg object-cover 
-                        transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl">
-            <div class="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          </div>
+
+
+{{-- Аватар --}}
+<div x-data="avatarManager()" x-init="init()" class="relative group">
+  
+  <!-- Изображение аватара -->
+  <div class="relative">
+    <img x-ref="avatarImage"
+         :src="currentAvatar"
+         alt="Аватар"
+         class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg object-cover 
+                transition-all duration-300">
+    
+    <!-- Оверлей при наведении -->
+    <div class="absolute inset-0 rounded-2xl bg-black/40 
+                opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+      <div class="text-white text-center">
+        <i class="ri-edit-line text-2xl mb-1 block"></i>
+        <span class="text-xs font-medium">Изменить</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Кнопка камеры (загрузка нового фото) -->
+  <label class="absolute -bottom-2 -right-2 bg-white border border-gray-200 shadow-lg 
+                rounded-full w-10 h-10 flex items-center justify-center cursor-pointer 
+                hover:bg-indigo-50 hover:border-indigo-200 transition-all duration-200 
+                group-hover:scale-110 z-10">
+    <i class="ri-camera-line text-gray-600 group-hover:text-indigo-600"></i>
+    <input type="file" 
+           x-ref="fileInput"
+           @change="loadAndCropImage($event)"
+           class="hidden" 
+           accept="image/*">
+  </label>
+  
+  <!-- Кнопка редактирования (обрезка текущего фото) -->
+  <button type="button"
+          @click="cropCurrentImage()"
+          class="absolute -bottom-2 -left-2 bg-white border border-gray-200 shadow-lg 
+                 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer 
+                 hover:bg-purple-50 hover:border-purple-200 transition-all duration-200 
+                 group-hover:scale-110 z-10">
+    <i class="ri-crop-line text-gray-600 group-hover:text-purple-600"></i>
+  </button>
+  
+  <!-- Скрытый инпут для отправки на сервер -->
+  <input type="hidden" name="avatar" x-ref="avatarInput">
+  
+  <!-- Модальное окно обрезки -->
+  <div x-show="showCropper" 
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0"
+       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+      
+      <!-- Заголовок -->
+      <div class="flex items-center justify-between p-4 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">Обрезка фото</h3>
+        <button @click="closeCropper()" class="text-gray-400 hover:text-gray-600">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Контейнер для обрезки -->
+      <div class="p-4">
+        <div class="relative bg-gray-100 rounded-lg overflow-hidden" 
+             x-ref="cropContainer"
+             style="height: 300px;">
+          <!-- Изображение для обрезки -->
+          <img :src="imageToCrop"
+               x-ref="cropImage"
+               class="absolute max-w-none"
+               :style="imageStyle">
           
-          <label class="absolute -bottom-2 -right-2 bg-white border border-gray-200 shadow-lg 
-                        rounded-full w-10 h-10 flex items-center justify-center cursor-pointer 
-                        hover:bg-indigo-50 hover:border-indigo-200 transition-all duration-200 
-                        group-hover:scale-110">
-            <i class="ri-camera-line text-gray-600 group-hover:text-indigo-600"></i>
-            <input type="file" name="avatar" class="hidden" accept="image/*">
-          </label>
-          
-          <div class="text-center mt-4">
-            <button type="button" onclick="document.querySelector('input[name=avatar]').click()" 
-                    class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-              Сменить фото
-            </button>
+          <!-- Область обрезки - КВАДРАТ -->
+          <div class="absolute border-2 border-white shadow-lg cursor-move"
+               :style="cropAreaStyle"
+               @mousedown="startDrag($event)">
+            <!-- Угловые маркеры для ресайза -->
+            <div class="absolute -top-1 -left-1 w-3 h-3 bg-white border border-gray-400 rounded-sm"
+                 @mousedown="startResize($event, 'nw')"></div>
+            <div class="absolute -top-1 -right-1 w-3 h-3 bg-white border border-gray-400 rounded-sm"
+                 @mousedown="startResize($event, 'ne')"></div>
+            <div class="absolute -bottom-1 -left-1 w-3 h-3 bg-white border border-gray-400 rounded-sm"
+                 @mousedown="startResize($event, 'sw')"></div>
+            <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-gray-400 rounded-sm"
+                 @mousedown="startResize($event, 'se')"></div>
           </div>
         </div>
+        
+        <!-- Управление -->
+        <div class="mt-4 space-y-4">
+          <!-- Размер области -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Размер области: <span x-text="cropSize + 'px'"></span>
+            </label>
+            <input type="range" 
+                   x-model="cropSize"
+                   min="100"
+                   max="300"
+                   step="10"
+                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                   @input="constrainCropArea()">
+          </div>
+          
+          <!-- Масштаб -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Масштаб: <span x-text="Math.round(scale * 100) + '%'"></span>
+            </label>
+            <input type="range" 
+                   x-model="scale"
+                   min="0.5"
+                   max="3"
+                   step="0.1"
+                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Кнопки -->
+      <div class="border-t p-4 flex justify-between">
+        <button type="button"
+                @click="closeCropper()"
+                class="px-4 py-2 border border-gray-300 rounded-lg 
+                       text-gray-700 hover:bg-gray-50">
+          Отмена
+        </button>
+        
+        <button type="button"
+                @click="applyCrop()"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg 
+                       hover:bg-indigo-700 flex items-center gap-2">
+          <i class="ri-check-line"></i>
+          Сохранить фото
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<script>
+function avatarManager() {
+  return {
+    // Данные
+    currentAvatar: '{{ Auth::user()->avatar_url }}',
+    imageToCrop: '',
+    showCropper: false,
+    avatarData: '',
+    
+    // Параметры обрезки
+    cropSize: 150,
+    cropX: 0,
+    cropY: 0,
+    scale: 1,
+    
+    // Переменные для drag & drop
+    isDragging: false,
+    isResizing: false,
+    startX: 0,
+    startY: 0,
+    startCropX: 0,
+    startCropY: 0,
+    startCropSize: 0,
+    resizeDirection: '',
+    
+    // Вычисляемые свойства
+    get imageStyle() {
+      return {
+        left: '0px',
+        top: '0px',
+        transform: `scale(${this.scale})`,
+        transformOrigin: '0 0'
+      };
+    },
+    
+    get cropAreaStyle() {
+      return {
+        left: `${this.cropX}px`,
+        top: `${this.cropY}px`,
+        width: `${this.cropSize}px`,
+        height: `${this.cropSize}px`,
+      };
+    },
+    
+    // Методы
+    init() {
+      // Инициализация
+      this.avatarData = this.currentAvatar;
+      this.$refs.avatarInput.value = this.currentAvatar;
+    },
+    
+    // Загрузка нового фото с обрезкой
+    loadAndCropImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      if (!file.type.match('image.*')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.imageToCrop = e.target.result;
+        this.showCropper = true;
+        
+        // Сброс параметров
+        this.scale = 1;
+        this.cropSize = 150;
+        this.centerCropArea();
+      };
+      reader.readAsDataURL(file);
+    },
+    
+    // Обрезка текущего фото
+    cropCurrentImage() {
+      this.imageToCrop = this.currentAvatar;
+      this.showCropper = true;
+      this.centerCropArea();
+    },
+    
+    // Центрирование области обрезки
+    centerCropArea() {
+      setTimeout(() => {
+        const container = this.$refs.cropContainer;
+        if (!container) return;
+        
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        
+        this.cropX = (containerWidth - this.cropSize) / 2;
+        this.cropY = (containerHeight - this.cropSize) / 2;
+      }, 50);
+    },
+    
+    // Начало перетаскивания области обрезки
+    startDrag(event) {
+      event.preventDefault();
+      this.isDragging = true;
+      
+      this.startX = event.clientX;
+      this.startY = event.clientY;
+      this.startCropX = this.cropX;
+      this.startCropY = this.cropY;
+      
+      const onMove = (moveEvent) => {
+        if (!this.isDragging) return;
+        
+        const deltaX = moveEvent.clientX - this.startX;
+        const deltaY = moveEvent.clientY - this.startY;
+        
+        const container = this.$refs.cropContainer;
+        
+        this.cropX = Math.max(0, Math.min(
+          this.startCropX + deltaX,
+          container.clientWidth - this.cropSize
+        ));
+        this.cropY = Math.max(0, Math.min(
+          this.startCropY + deltaY,
+          container.clientHeight - this.cropSize
+        ));
+      };
+      
+      const onEnd = () => {
+        this.isDragging = false;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+      };
+      
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+    },
+    
+    // Начало изменения размера области
+    startResize(event, direction) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      this.isResizing = true;
+      this.resizeDirection = direction;
+      
+      this.startX = event.clientX;
+      this.startY = event.clientY;
+      this.startCropX = this.cropX;
+      this.startCropY = this.cropY;
+      this.startCropSize = this.cropSize;
+      
+      const onMove = (moveEvent) => {
+        if (!this.isResizing) return;
+        
+        const deltaX = moveEvent.clientX - this.startX;
+        const deltaY = moveEvent.clientY - this.startY;
+        
+        let newSize = this.startCropSize;
+        let newX = this.startCropX;
+        let newY = this.startCropY;
+        
+        switch(this.resizeDirection) {
+          case 'se':
+            newSize = Math.max(100, this.startCropSize + Math.max(deltaX, deltaY));
+            break;
+          case 'sw':
+            newSize = Math.max(100, this.startCropSize + Math.max(-deltaX, deltaY));
+            newX = this.startCropX + (this.startCropSize - newSize);
+            break;
+          case 'ne':
+            newSize = Math.max(100, this.startCropSize + Math.max(deltaX, -deltaY));
+            newY = this.startCropY + (this.startCropSize - newSize);
+            break;
+          case 'nw':
+            newSize = Math.max(100, this.startCropSize + Math.max(-deltaX, -deltaY));
+            newX = this.startCropX + (this.startCropSize - newSize);
+            newY = this.startCropY + (this.startCropSize - newSize);
+            break;
+        }
+        
+        // Проверяем границы
+        const container = this.$refs.cropContainer;
+        if (newX < 0) {
+          newSize += newX;
+          newX = 0;
+        }
+        if (newY < 0) {
+          newSize += newY;
+          newY = 0;
+        }
+        if (newX + newSize > container.clientWidth) {
+          newSize = container.clientWidth - newX;
+        }
+        if (newY + newSize > container.clientHeight) {
+          newSize = container.clientHeight - newY;
+        }
+        
+        // Минимальный и максимальный размер
+        this.cropSize = Math.max(100, Math.min(newSize, 300));
+        this.cropX = Math.max(0, newX);
+        this.cropY = Math.max(0, newY);
+      };
+      
+      const onEnd = () => {
+        this.isResizing = false;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+      };
+      
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+    },
+    
+    // Проверка границ области обрезки
+    constrainCropArea() {
+      const container = this.$refs.cropContainer;
+      if (!container) return;
+      
+      if (this.cropX + this.cropSize > container.clientWidth) {
+        this.cropX = container.clientWidth - this.cropSize;
+      }
+      if (this.cropY + this.cropSize > container.clientHeight) {
+        this.cropY = container.clientHeight - this.cropSize;
+      }
+      if (this.cropX < 0) this.cropX = 0;
+      if (this.cropY < 0) this.cropY = 0;
+    },
+    
+    // Применение обрезки
+    applyCrop() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Размер для аватара (квадрат 200x200)
+      const size = 200;
+      canvas.width = size;
+      canvas.height = size;
+      
+      // Создаем изображение
+      const img = new Image();
+      img.onload = () => {
+        // Рассчитываем реальные координаты в оригинальном изображении
+        const container = this.$refs.cropContainer;
+        const displayedImg = this.$refs.cropImage;
+        
+        // Размеры отображаемого изображения с учетом масштаба
+        const displayedWidth = displayedImg.naturalWidth * this.scale;
+        const displayedHeight = displayedImg.naturalHeight * this.scale;
+        
+        // Масштаб между отображаемым и оригинальным
+        const scaleToOriginalX = img.width / displayedWidth;
+        const scaleToOriginalY = img.height / displayedHeight;
+        
+        // Координаты в оригинальном изображении
+        const sourceX = this.cropX * scaleToOriginalX;
+        const sourceY = this.cropY * scaleToOriginalY;
+        const sourceSize = this.cropSize * Math.min(scaleToOriginalX, scaleToOriginalY);
+        
+        // Рисуем обрезанное изображение
+        ctx.drawImage(
+          img,
+          sourceX, sourceY, sourceSize, sourceSize,
+          0, 0, size, size
+        );
+        
+        // Сохраняем результат
+        const croppedData = canvas.toDataURL('image/jpeg', 0.9);
+        this.currentAvatar = croppedData;
+        this.avatarData = croppedData;
+        this.$refs.avatarInput.value = croppedData;
+        
+        // Закрываем обрезчик
+        this.closeCropper();
+        
+        // Показываем уведомление
+        this.showNotification('Фото обновлено!');
+      };
+      
+      img.onerror = () => {
+        alert('Ошибка при загрузке изображения');
+        this.closeCropper();
+      };
+      
+      img.src = this.imageToCrop;
+    },
+    
+    // Закрытие обрезчика
+    closeCropper() {
+      this.showCropper = false;
+      this.isDragging = false;
+      this.isResizing = false;
+      this.scale = 1;
+    },
+    
+    // Показ уведомления
+    showNotification(message) {
+      // Проверяем, есть ли уже уведомление
+      const existing = document.querySelector('.avatar-notification');
+      if (existing) existing.remove();
+      
+      // Создаем уведомление
+      const notification = document.createElement('div');
+      notification.className = 'avatar-notification fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+      notification.innerHTML = `
+        <div class="flex items-center gap-2">
+          <i class="ri-check-line"></i>
+          <span class="text-sm font-medium">${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Удаляем через 3 секунды
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s';
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+  };
+}
+</script>
+
+<style>
+/* Стили для ползунка */
+input[type="range"] {
+  -webkit-appearance: none;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #4f46e5;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #4f46e5;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+</style>
+
+        
         {{-- Имя --}}
         <div class="flex-1 w-full space-y-4">
           <div>
