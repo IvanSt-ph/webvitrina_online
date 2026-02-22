@@ -110,25 +110,22 @@
         Описание магазина
       </h3>
       
-      <div class="space-y-3">
-        <label class="block text-sm font-medium text-gray-700">Расскажите о вашем магазине</label>
-        <div class="relative">
-          <textarea name="description"
-                    rows="4"
-                    maxlength="1000"
-                    placeholder="Кратко опишите ассортимент, преимущества, доставку или особые условия..."
-                    x-data="{ count: {{ strlen(old('description', Auth::user()->shop?->description ?? '')) }} }"
-                    @input="count = $event.target.value.length"
-                    class="w-full pl-4 pr-4 py-3 rounded-xl border border-gray-300 
-                           focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
-                           transition-all duration-200 resize-none">{{ old('description', Auth::user()->shop?->description) }}</textarea>
-          <div class="absolute bottom-3 right-3 text-xs text-gray-400 bg-white px-2 py-1 rounded-lg">
-            <span x-text="count"></span>/1000
-          </div>
-        </div>
-        <p class="text-xs text-gray-500">Это описание увидят покупатели при посещении вашего магазина</p>
-      </div>
+<div class="space-y-3" x-data="{ charCount: {{ strlen(old('description', Auth::user()->shop?->description ?? '')) }} }">
+  <label class="block text-sm font-medium text-gray-700">Расскажите о вашем магазине</label>
+  <div class="relative">
+    <textarea name="description"
+              rows="4"
+              maxlength="1000"
+              placeholder="Кратко опишите ассортимент, преимущества, доставку или особые условия..."
+              @input="charCount = $event.target.value.length"
+              class="w-full pl-4 pr-4 py-3 rounded-xl border border-gray-300 
+                     focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
+                     transition-all duration-200 resize-none">{{ old('description', Auth::user()->shop?->description) }}</textarea>
+    <div class="absolute bottom-3 right-3 text-xs text-gray-400 bg-white px-2 py-1 rounded-lg">
+      <span x-text="charCount"></span>/1000
     </div>
+  </div>
+</div>
 
     {{-- 🔗 Социальные сети и мессенджеры --}}
     <div class="bg-gray-50 rounded-xl p-6 space-y-6">

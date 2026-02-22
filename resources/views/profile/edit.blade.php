@@ -135,7 +135,7 @@
               <i class="ri-arrow-down-s-line text-lg text-gray-500 transition"
                  :class="mobileOpen === section ? 'rotate-180' : ''"></i>
             </header>
-            <div x-show="mobileOpen === section" x-collapse class="bg-white">
+            <div x-show="mobileOpen === section" class="bg-white">
               <div class="p-4">
                 <template x-if="section === 'main'">
                   @include('seller.partials.main')

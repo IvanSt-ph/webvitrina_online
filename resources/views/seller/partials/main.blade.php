@@ -55,7 +55,7 @@
       <div class="flex flex-col lg:flex-row items-center gap-8">
 
 {{-- ПРОСТАЯ ОБРЕЗКА АВАТАРА --}}
-<div x-data="avatarCropper()" class="relative group">
+<div x-data="avatarCropper()" x-init="init()" class="relative group">
   
   <!-- Текущий аватар -->
   <div class="relative">
@@ -92,6 +92,7 @@
   
   <!-- Модальное окно обрезки -->
   <div x-show="showCropper" 
+       x-cloak
        x-transition.opacity
        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     
@@ -136,15 +137,24 @@
 <script>
 function avatarCropper() {
   return {
-    currentAvatar: '{{ Auth::user()->avatar_url }}',
+    currentAvatar: '{{ Auth::user()->avatar_url ?? "/default-avatar.png" }}',
     imageToCrop: '',
     showCropper: false,
     cropper: null,
     
+    init() {
+      // Инициализация, если нужно
+    },
+    
     // Открыть обрезчик
     openCropper(event) {
       const file = event.target.files[0];
-      if (!file || !file.type.match('image.*')) return;
+      if (!file) return;
+      
+      if (!file.type.match('image.*')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
       
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -152,80 +162,111 @@ function avatarCropper() {
         this.showCropper = true;
         
         // Ждем пока изображение появится в DOM
-        setTimeout(() => {
+        this.$nextTick(() => {
+          if (this.cropper) {
+            this.cropper.destroy();
+          }
           this.cropper = new Cropper(this.$refs.cropImage, {
             aspectRatio: 1,
             viewMode: 1,
-            autoCropArea: 0.8
+            autoCropArea: 0.8,
+            responsive: true,
           });
-        }, 100);
+        });
       };
       reader.readAsDataURL(file);
     },
     
-    // Обрезать и сохранить
-cropAndSave() {
-    if (!this.cropper) return;
+    // Закрыть обрезчик
+    closeCropper() {
+      this.showCropper = false;
+      this.imageToCrop = '';
+      if (this.cropper) {
+        this.cropper.destroy();
+        this.cropper = null;
+      }
+      // Очищаем input file
+      this.$refs.fileInput.value = '';
+    },
     
-    const canvas = this.cropper.getCroppedCanvas({
+    // Обрезать и сохранить
+    cropAndSave() {
+      if (!this.cropper) return;
+      
+      const canvas = this.cropper.getCroppedCanvas({
         width: 400,
         height: 400
-    });
-    
-    // Конвертируем canvas в Blob
-    canvas.toBlob((blob) => {
-        const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
-        
-        // Создаем FormData
+      });
+      
+      // Конвертируем canvas в Blob
+      canvas.toBlob((blob) => {
         const formData = new FormData();
-        formData.append('avatar', file);
+        formData.append('avatar', blob, 'avatar.jpg');
         formData.append('_token', '{{ csrf_token() }}');
         formData.append('_method', 'PATCH');
-        formData.append('name', document.querySelector('input[name="name"]').value);
-        formData.append('email', document.querySelector('input[name="email"]').value);
         
         // Отправляем
         fetch('{{ route("profile.update") }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          }
         })
         .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw err; });
-            }
-            return response;
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.message || 'Ошибка при сохранении');
+            });
+          }
+          return response.json();
         })
-        .then(() => {
-            // Показать уведомление
-            const toast = document.createElement('div');
-            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-            toast.innerHTML = '<i class="ri-check-line"></i> Аватар обновлён';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-            
-            // Обновить изображение на странице
-            this.currentAvatar = URL.createObjectURL(blob);
-            setTimeout(() => location.reload(), 1000);
+        .then(data => {
+          // Показать уведомление
+          this.showNotification('Аватар успешно обновлён', 'success');
+          
+          // Обновить изображение на странице
+          this.currentAvatar = URL.createObjectURL(blob);
+          
+          // Закрыть модалку
+          this.closeCropper();
+          
+          // Перезагрузить страницу через секунду для обновления данных
+          setTimeout(() => location.reload(), 1500);
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Ошибка при сохранении аватара');
+          console.error('Error:', error);
+          this.showNotification(error.message || 'Ошибка при сохранении аватара', 'error');
         });
-    }, 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.9);
+    },
     
-    this.closeCropper();
-},
-  };
+    // Показать уведомление
+    showNotification(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+      } text-white`;
+      toast.innerHTML = `
+        <i class="ri-${type === 'success' ? 'check' : 'error-warning'}-line"></i>
+        <span>${message}</span>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  }
 }
 </script>
 
-{{-- Подключаем Cropper.js --}}
+<!-- Добавьте это в head или перед закрывающим body -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 
+<!-- Добавьте стиль для x-cloak -->
+<style>
+[x-cloak] { display: none !important; }
+</style>
         
         {{-- Имя --}}
         <div class="flex-1 w-full space-y-4">
@@ -743,6 +784,3 @@ cropAndSave() {
 {{-- 🔹 Подключение стилей --}}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-
-{{-- 🔹 Alpine.js для анимаций --}}
-<script src="//unpkg.com/alpinejs" defer></script>

@@ -36,6 +36,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'avatar',
         'phone',
+        'phone_verified_at',
+        'phone_verification_code',
     ];
 
     /*
@@ -46,6 +48,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'phone_verification_code',
     ];
 
     /*
@@ -127,13 +130,14 @@ class User extends Authenticatable implements MustVerifyEmail
     | 🖼 AVATAR
     |--------------------------------------------------------------------------
     */
-    public function getAvatarUrlAttribute(): string
+    public function getAvatarUrlAttribute()
     {
-        if ($this->avatar) {
+        if ($this->avatar && Storage::disk('public')->exists($this->avatar)) {
             return Storage::url($this->avatar);
         }
-
-        return asset('images/default-avatar.png');
+        
+        // Аватар по умолчанию на основе имени
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }
 
     /*
@@ -214,7 +218,7 @@ class User extends Authenticatable implements MustVerifyEmail
     |--------------------------------------------------------------------------
     */
 
-    // Нормализация телефона (ВАЖНО для Twilio и уникальности)
+    // Нормализация телефона
     public function setPhoneAttribute($value): void
     {
         if ($value === null) {

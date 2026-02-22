@@ -25,7 +25,7 @@
        :class="{ 'rotate-180': open }"></i>
   </button>
 
-  <section x-show="open" x-collapse
+  <section x-show="open" 
            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     @php
       $statsData = [
@@ -66,7 +66,7 @@
        :class="{ 'rotate-180': open }"></i>
   </button>
 
-  <section x-show="open" x-collapse class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <section x-show="open" class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- 📦 Популярные товары -->
     <div class="bg-white rounded-xl shadow border border-gray-100 p-6">
       <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -131,7 +131,7 @@
        :class="{ 'rotate-180': open }"></i>
   </button>
 
-  <section x-show="open" x-collapse class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <section x-show="open"  class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="bg-white border border-gray-100 rounded-xl shadow-sm p-6 flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-800">Активность заказов</h2>
@@ -169,7 +169,7 @@
        :class="{ 'rotate-180': open }"></i>
   </button>
 
-  <section x-show="open" x-collapse>
+  <section x-show="open">
     <div class="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-100">

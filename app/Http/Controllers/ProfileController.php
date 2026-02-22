@@ -28,15 +28,38 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request)
     {
         $user = $request->user();
 
+        // Если это AJAX запрос с файлом аватара
+        if ($request->hasFile('avatar') && $request->ajax()) {
+            $request->validate([
+                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ]);
+
+            // Удаляем старый аватар
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+
+            // Сохраняем новый
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $user->avatar = $path;
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Аватар успешно обновлен',
+                'avatar_url' => Storage::url($path)
+            ]);
+        }
+
+        // Обычное обновление профиля (не AJAX)
         $data = $request->validate([
             'name'   => 'required|string|max:255',
-            'email'  => 'required|email|max:255',
+            'email'  => 'required|email|max:255|unique:users,email,' . $user->id,
             'phone'  => 'nullable|string|max:50',
-            'avatar' => 'nullable|image|max:2048',
         ]);
 
         $changed = false;
@@ -56,28 +79,16 @@ class ProfileController extends Controller
 
         // Телефон
         if (array_key_exists('phone', $data)) {
-
-            // Нормализуем телефон
             $phone = $data['phone'] ? '+' . preg_replace('/\D+/', '', $data['phone']) : null;
-
+            
             if ($phone !== $user->phone) {
-
-                // Проверка уникальности среди пользователей
+                // Проверка уникальности
                 $userExists = User::where('phone', $phone)
                     ->where('id', '!=', $user->id)
                     ->exists();
 
-                if ($userExists) {
-                    return back()->withErrors(['phone' => 'Этот номер уже используется другим пользователем'])->withInput();
-                }
-
-                // Проверка уникальности среди магазинов
-                $shopExists = Shop::where('phone', $phone)
-                    ->where('user_id', '!=', $user->id)
-                    ->exists();
-
-                if ($shopExists) {
-                    return back()->withErrors(['phone' => 'Этот номер уже используется другим магазином'])->withInput();
+                if ($userExists && $phone) {
+                    return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
                 }
 
                 $user->phone = $phone;
@@ -85,15 +96,6 @@ class ProfileController extends Controller
                 $user->phone_verification_code = null;
                 $changed = true;
             }
-        }
-
-        // Аватар
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            $user->avatar = $request->file('avatar')->store('avatars', 'public');
-            $changed = true;
         }
 
         if ($changed) {
@@ -105,7 +107,7 @@ class ProfileController extends Controller
     }
 
     /* =========================
-     * ПОДТВЕРЖДЕНИЕ ТЕЛЕФОНА
+     * ПОДТВЕРЖДЕНИЕ ТЕЛЕФОНА ПОЛЬЗОВАТЕЛЯ
      * ========================= */
 
     public function sendPhoneVerification(Request $request): RedirectResponse
@@ -149,46 +151,88 @@ class ProfileController extends Controller
     }
 
     /* =========================
+     * ПОДТВЕРЖДЕНИЕ ТЕЛЕФОНА МАГАЗИНА (НОВЫЕ МЕТОДЫ)
+     * ========================= */
+public function sendShopPhoneVerification(Request $request): RedirectResponse
+{
+    $shop = $request->user()->shop;
+    
+    if (!$shop || !$shop->phone) {
+        return back()->withErrors(['phone' => 'Укажите номер телефона магазина']);
+    }
+    
+    // Используем метод модели для генерации кода
+    $code = $shop->generateVerificationCode();
+    
+    // Здесь отправка SMS
+    // log или отправка
+    
+    return back()->with('shop_phone_verification_sent', true);
+}
+
+public function verifyShopPhone(Request $request): RedirectResponse
+{
+    $request->validate([
+        'code' => 'required|digits:6',
+    ]);
+    
+    $shop = $request->user()->shop;
+    
+    if (!$shop) {
+        return back()->withErrors(['shop' => 'Магазин не найден']);
+    }
+    
+    // Используем метод модели для верификации
+    if ($shop->verifyPhone($request->code)) {
+        return back()->with('status', 'shop-phone-verified');
+    }
+    
+    return back()->withErrors(['code' => 'Неверный или просроченный код']);
+}
+
+    /* =========================
      * МАГАЗИН ПРОДАВЦА
      * ========================= */
 
-    public function updateShop(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'name'        => 'nullable|string|max:255',
-            'city'        => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'phone'       => 'nullable|string|max:50',
-            'banner'      => 'nullable|image|max:4096',
+public function updateShop(Request $request): RedirectResponse
+{
+    $data = $request->validate([
+        'name'        => 'nullable|string|max:255',
+        'city'        => 'nullable|string|max:255',
+        'description' => 'nullable|string|max:1000',
+        'phone'       => 'nullable|string|max:50',
+        'banner'      => 'nullable|image|max:4096',
 
-            'facebook'    => 'nullable|url|max:255',
-            'instagram'   => 'nullable|url|max:255',
-            'telegram'    => 'nullable|url|max:255',
-            'whatsapp'    => 'nullable|url|max:255',
+        'facebook'    => 'nullable|url|max:255',
+        'instagram'   => 'nullable|url|max:255',
+        'telegram'    => 'nullable|url|max:255',
+        'whatsapp'    => 'nullable|url|max:255',
 
-            'remove_banner' => 'nullable|boolean',
-        ]);
+        'remove_banner' => 'nullable|boolean',
+    ]);
 
-        $shop = $request->user()->shop ?? $request->user()->shop()->create([]);
+    $shop = $request->user()->shop ?? $request->user()->shop()->create([]);
 
-        // Проверка и удаление баннера
-        if ($request->boolean('remove_banner') && $shop->banner) {
+    // Проверка и удаление баннера
+    if ($request->boolean('remove_banner') && $shop->banner) {
+        Storage::disk('public')->delete($shop->banner);
+        $shop->update(['banner' => null]);
+    }
+
+    if ($request->hasFile('banner')) {
+        if ($shop->banner) {
             Storage::disk('public')->delete($shop->banner);
-            $shop->update(['banner' => null]);
         }
+        $data['banner'] = $request->file('banner')->store('banners', 'public');
+    }
 
-        if ($request->hasFile('banner')) {
-            if ($shop->banner) {
-                Storage::disk('public')->delete($shop->banner);
-            }
-            $data['banner'] = $request->file('banner')->store('banners', 'public');
-        }
-
-        // Проверка телефона магазина
-        if (!empty($data['phone'])) {
-            $phone = '+' . preg_replace('/\D+/', '', $data['phone']);
-            $data['phone'] = $phone;
-
+    // Проверка телефона магазина
+    $phoneChanged = false;
+    if (!empty($data['phone'])) {
+        $phone = '+' . preg_replace('/\D+/', '', $data['phone']);
+        
+        // Если телефон изменился
+        if ($phone !== $shop->phone) {
             // Проверка уникальности среди магазинов
             $shopExists = Shop::where('phone', $phone)
                 ->where('id', '!=', $shop->id)
@@ -206,12 +250,28 @@ class ProfileController extends Controller
             if ($userExists) {
                 return back()->withErrors(['phone' => 'Этот номер уже привязан к аккаунту пользователя'])->withInput();
             }
+            
+            $data['phone'] = $phone;
+            $phoneChanged = true;
+        } else {
+            unset($data['phone']); // не меняем, если тот же
         }
-
-        $shop->update($data);
-
-        return Redirect::route('profile.edit')->with('status', 'shop-updated');
     }
+
+    // Обновляем основные поля
+    $shop->update($data);
+
+    // Если телефон изменился, сбрасываем верификацию через метод модели
+    if ($phoneChanged) {
+        $shop->update([
+            'phone_verified_at' => null,
+            'phone_verification_code' => null,
+            'phone_verification_expires_at' => null,
+        ]);
+    }
+
+    return Redirect::route('profile.edit')->with('status', 'shop-updated');
+}
 
     /* =========================
      * КАБИНЕТ
