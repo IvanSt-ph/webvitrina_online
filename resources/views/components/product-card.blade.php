@@ -31,14 +31,46 @@
     $country  = $p->city->country->name ?? $p->country->name ?? null;
     $category = $p->category->name ?? null;
 
+    // ✅ Добавляем проверку избранного
     $isFav = auth()->check() && $p->isFavoritedBy(auth()->user());
+    
     $currencySymbol = session('currency_symbol', '₽');
     $galleryJson = json_encode($gallery);
+    
+    // Начальное количество в корзине (будет передаваться из контроллера)
+    $cartQuantity = $p->cart_quantity ?? 0;
 @endphp
 
 {{-- ===================== CARD ===================== --}}
 <div class="pc-card"
-     x-data="{ open: false }"
+x-data="{ 
+    open: false,
+    cartCount: {{ $cartQuantity }}, // используем $cartQuantity вместо 0
+    addToCart() {
+        fetch('{{ route('cart.add', $p) }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                this.cartCount = data.quantity;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+}"
      @keydown.escape.window="open = false"
      @click="window.location.href = '{{ $url }}'">
 
@@ -184,34 +216,31 @@
             @endif
         </div>
 
-        <div class="pc-actions" @click.stop>
-            <form method="post" action="{{ route('cart.add', $p) }}" @submit.stop
-                  x-data="{ loading: false }" @submit="loading = true; setTimeout(() => loading = false, 1500)">
-                @csrf
-                <button type="submit" class="pc-btn pc-btn--cart" title="В корзину" :disabled="loading">
-                    <svg x-show="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
-                    </svg>
-                    <svg x-show="loading" class="pc-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" d="M12 2a10 10 0 0 1 10 10" opacity=".4"/>
-                        <path stroke-linecap="round" d="M12 2a10 10 0 0 1 10 10"/>
-                    </svg>
-                </button>
-            </form>
-            <form method="POST" action="{{ route('checkout.quick', $p->id) }}" class="pc-form-buy" @submit.stop
-                  x-data="{ loading: false }" @submit="loading = true">
-                @csrf
-                <button class="pc-btn pc-btn--buy" :disabled="loading">
-                    <span x-show="!loading">Купить сейчас</span>
-                    <span x-show="loading" class="pc-btn-loading">
-                        <svg class="pc-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" d="M12 2a10 10 0 0 1 10 10" opacity=".5"/>
-                            <path stroke-linecap="round" d="M12 2a10 10 0 0 1 10 10"/>
-                        </svg>
-                    </span>
-                </button>
-            </form>
+<div class="pc-actions" @click.stop>
+    {{-- Кнопка корзины с AJAX и счетчиком --}}
+    <button 
+        type="button"
+        @click.stop="addToCart()"
+        class="pc-btn pc-btn--cart"
+        title="В корзину"
+    >
+        <div class="pc-cart-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
+            </svg>
+            
+            {{-- Счетчик --}}
+            <template x-if="cartCount > 0">
+                <span class="pc-cart-count" x-text="cartCount"></span>
+            </template>
         </div>
+    </button>
+
+    <form method="POST" action="{{ route('checkout.quick', $p->id) }}" class="pc-form-buy" @submit.stop>
+        @csrf
+        <button class="pc-btn pc-btn--buy">Купить сейчас</button>
+    </form>
+</div>
     </div>
 
     {{-- ===================== MODAL ===================== --}}
@@ -220,6 +249,26 @@
              x-data="{
                  gallery: {{ $galleryJson }},
                  current: 0,
+modalCartCount: {{ $cartQuantity }},
+addToCartModal() {
+    fetch('{{ route('cart.add', $p) }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            this.modalCartCount = data.quantity;
+            // синхронизируем с основной карточкой
+            $dispatch('cart-updated', { quantity: data.quantity });
+        }
+    })
+    .catch(error => console.error('Modal error:', error));
+},
                  prev() { this.current = (this.current - 1 + this.gallery.length) % this.gallery.length },
                  next() { this.current = (this.current + 1) % this.gallery.length },
                  touchStartX: 0,
@@ -431,15 +480,25 @@
 
                         {{-- Sticky footer --}}
                         <div class="pm-actions">
-                            <form method="post" action="{{ route('cart.add', $p) }}">
-                                @csrf
-                                <button type="submit" class="pm-btn pm-btn--cart">
+                            {{-- Кнопка корзины в модалке --}}
+                            <button 
+                                type="button"
+                                @click.stop="addToCartModal()"
+                                class="pm-btn pm-btn--cart"
+                            >
+                                <div class="pm-cart-icon-wrapper">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
                                     </svg>
-                                    В корзину
-                                </button>
-                            </form>
+                                    
+                                    {{-- Счетчик --}}
+                                    <template x-if="modalCartCount > 0">
+                                        <span class="pm-cart-count" x-text="modalCartCount"></span>
+                                    </template>
+                                    <span x-show="modalCartCount === 0">В корзину</span>
+                                </div>
+                            </button>
+
                             <form method="POST" action="{{ route('checkout.quick', $p->id) }}">
                                 @csrf
                                 <button class="pm-btn pm-btn--buy">Купить сейчас</button>
@@ -584,7 +643,6 @@
 @media (hover: none), (max-width: 640px) {
     .pc-qv-desktop { display: none !important; }
     .pc-qv-mobile  { display: flex !important; }
-    /* on mobile push dots left so they don't overlap qv btn */
     .pc-dots { left: 50%; transform: translateX(-50%); bottom: 10px; }
 }
 
@@ -628,13 +686,39 @@
 }
 .pc-btn:active { transform: scale(0.97); }
 
-/* Cart — square icon */
+/* Cart button with counter */
 .pc-btn--cart {
     width: 36px; height: 36px; flex-shrink: 0; padding: 0;
     background: #f4f4f8; color: #888;
     border: 1.5px solid #e8e8ee; border-radius: 10px;
+    position: relative;
 }
 .pc-btn--cart:hover { background: #eaf4ff; border-color: #74bdfd; color: #74bdfd; }
+.pc-cart-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+.pc-cart-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    background: #ff6b6b;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+}
 
 /* Buy — blue, dominant */
 .pc-btn--buy {
@@ -883,7 +967,6 @@
     border-top: 1px solid #f0f0f4; background: #fff;
 }
 .pm-actions form { flex: 1; }
-.pm-actions form:first-child { flex: 0 0 auto; }
 .pm-btn {
     width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
     padding: 11px 14px; border-radius: 13px;
@@ -891,18 +974,45 @@
     cursor: pointer; transition: background 0.18s, transform 0.14s, box-shadow 0.18s; border: none;
 }
 .pm-btn:active { transform: scale(0.98); }
+
+/* Cart button in modal */
 .pm-btn--cart {
     background: #f4f4f8; color: #666;
     border: 1.5px solid #e8e8ee;
     width: auto; padding: 11px 16px; white-space: nowrap;
+    position: relative;
 }
 .pm-btn--cart:hover { background: #eaf4ff; border-color: #74bdfd; color: #74bdfd; }
+.pm-cart-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.pm-cart-count {
+    position: absolute;
+    top: -12px;
+    right: -8px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    background: #ff6b6b;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+}
+
 .pm-btn--buy { background: #74bdfd; color: #fff; box-shadow: 0 4px 16px rgba(116,189,253,0.4); }
 .pm-btn--buy:hover { background: #5aa8e5; box-shadow: 0 6px 20px rgba(116,189,253,0.52); }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
-    /* Центрированная модалка */
     .pm-backdrop {
         align-items: center;
         padding: 12px;
@@ -916,7 +1026,6 @@
         overflow: hidden;
     }
 
-    /* Анимация: появляется по центру */
     .pm-sheet-from { opacity: 0; transform: scale(0.95) translateY(10px); }
     .pm-sheet-to   { opacity: 1; transform: scale(1) translateY(0); }
 
@@ -925,10 +1034,8 @@
         padding-top: 12px;
         flex-shrink: 0;
     }
-    /* Убираем drag handle */
     .pm-topbar::before { display: none; }
 
-    /* pm-inner — вертикальная колонка, весь скролл здесь */
     .pm-inner {
         flex: 1;
         flex-direction: column;
@@ -939,7 +1046,6 @@
         padding-bottom: 0;
     }
 
-    /* Картинка — выше */
     .pm-image-col {
         flex: none;
         width: 100%;
@@ -960,7 +1066,6 @@
     }
     .pm-main-image-wrap .pm-image.pm-image--active { opacity: 1; }
 
-    /* Миниатюры — центрированы, без скролл-кнопок */
     .pm-thumbs {
         justify-content: center;
         padding: 6px 8px;
@@ -971,7 +1076,6 @@
     }
     .pm-thumb-scroll { display: none; }
 
-    /* Favorite button в модалке — больше */
     .pm-fav-btn {
         top: 12px;
         right: 12px;
@@ -979,7 +1083,6 @@
         height: 38px;
     }
 
-    /* Счетчик фото чуть выше */
     .pm-counter {
         bottom: 16px;
         right: 16px;
@@ -987,11 +1090,9 @@
         font-size: 12px;
     }
 
-    /* Info */
     .pm-info-col { flex: none; display: block; overflow: visible; }
     .pm-info-scroll { overflow: visible; padding: 14px 16px 6px; }
 
-    /* Кнопки: липнут к низу */
     .pm-actions {
         position: sticky;
         bottom: 0;

@@ -15,7 +15,7 @@ class ProductRepository
         $query = Product::query()
             ->with([
                 'category',
-                'seller.shop', // Добавил shop для названия магазина
+                'seller.shop',
                 'city.country',
             ])
             ->withAvg([
@@ -29,6 +29,24 @@ class ProductRepository
                 },
             ]);
 
+        /*
+         |--------------------------------------------------------------------------
+         | Количество конкретного товара в корзине пользователя
+         | Возвращает сумму qty, а не количество строк
+         |--------------------------------------------------------------------------
+        */
+        if (auth()->check()) {
+            $query->withSum([
+                'cartItems as cart_quantity' => function ($q) {
+                    $q->where('user_id', auth()->id());
+                }
+            ], 'qty');
+        }
+
+        /* ======================
+         | ФИЛЬТРЫ
+         ====================== */
+
         // 🔎 Поиск
         if ($request->filled('q')) {
             $query->where('title', 'like', '%' . $request->q . '%');
@@ -36,27 +54,30 @@ class ProductRepository
 
         // 📦 Продавец
         if ($request->filled('user_id')) {
-            $query->where('user_id', (int)$request->user_id);
+            $query->where('user_id', (int) $request->user_id);
         }
 
         // 🌍 Страна
         if ($request->filled('country_id')) {
             $query->whereHas('city', function ($q) use ($request) {
-                $q->where('country_id', (int)$request->country_id);
+                $q->where('country_id', (int) $request->country_id);
             });
         }
 
         // 🏙 Город
         if ($request->filled('city_id')) {
-            $query->where('city_id', (int)$request->city_id);
+            $query->where('city_id', (int) $request->city_id);
         }
 
         // 📂 Категория
         if ($request->filled('category_id')) {
-            $query->where('category_id', (int)$request->category_id);
+            $query->where('category_id', (int) $request->category_id);
         }
 
-        // 📊 Сортировка
+        /* ======================
+         | СОРТИРОВКА
+         ====================== */
+
         match ($request->get('sort', 'new')) {
             'price_asc'  => $query->orderBy('price', 'asc'),
             'price_desc' => $query->orderBy('price', 'desc'),
@@ -65,8 +86,7 @@ class ProductRepository
             default      => $query->latest(),
         };
 
-        // Добавляем индексы для быстрой пагинации
-        $perPage = min((int)($request->get('per_page', 20)), 100); // защита от больших значений
+        $perPage = min((int) $request->get('per_page', 20), 100);
 
         return $query->paginate($perPage)->withQueryString();
     }
@@ -76,12 +96,12 @@ class ProductRepository
      ============================================================ */
     public function getProductBySlugOrId(string|int $key)
     {
-        // Если ID — редирект на slug
+        // Если передали ID — редирект на slug
         if (is_numeric($key)) {
             $product = Product::with([
                 'city.country',
                 'category.parent',
-                'seller.shop', // Добавил shop
+                'seller.shop',
             ])->find($key);
 
             if ($product) {
@@ -92,10 +112,11 @@ class ProductRepository
         $cacheKey = "product_page:{$key}";
 
         return Cache::remember($cacheKey, 600, function () use ($key) {
+
             $product = Product::with([
                 'city.country',
                 'category.parent',
-                'seller.shop', // Добавил shop
+                'seller.shop',
                 'reviews' => function ($q) {
                     $q->where('status', 'approved')
                       ->with(['user', 'images'])
@@ -117,6 +138,7 @@ class ProductRepository
 
             if (!$product) {
                 $old = \App\Models\ProductSlug::where('slug', $key)->first();
+
                 if ($old && $old->product) {
                     return redirect()->route('product.show', $old->product->slug, 301);
                 }
@@ -134,6 +156,7 @@ class ProductRepository
     public function getRelatedProducts(Product $product)
     {
         return Cache::remember("related:{$product->id}", 600, function () use ($product) {
+
             return Product::query()
                 ->select('id', 'slug', 'title', 'price', 'image')
                 ->with('category')
@@ -151,8 +174,6 @@ class ProductRepository
     {
         Cache::forget("product_page:{$product->slug}");
         Cache::forget("related:{$product->id}");
-        
-        // Очищаем также по ID на случай редиректа
         Cache::forget("product_page:{$product->id}");
     }
 

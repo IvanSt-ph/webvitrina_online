@@ -61,6 +61,15 @@ class CartController extends Controller
     $item->qty = max(1, (int)$item->qty + $qty);
     $item->save();
 
+    // ✅ Проверяем, хочет ли клиент JSON
+    if ($request->wantsJson()) {
+        return response()->json([
+            'success' => true,
+            'quantity' => $item->qty,
+            'message' => 'Товар добавлен в корзину'
+        ]);
+    }
+
     // 🔥 Добавляем ID товара для визуальных эффектов
     return back()
         ->with('success', 'Товар добавлен в корзину!')
