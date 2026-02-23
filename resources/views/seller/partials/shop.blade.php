@@ -115,14 +115,14 @@
   <div class="relative">
     <textarea name="description"
               rows="4"
-              maxlength="1000"
+              maxlength="450"
               placeholder="Кратко опишите ассортимент, преимущества, доставку или особые условия..."
               @input="charCount = $event.target.value.length"
               class="w-full pl-4 pr-4 py-3 rounded-xl border border-gray-300 
                      focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
                      transition-all duration-200 resize-none">{{ old('description', Auth::user()->shop?->description) }}</textarea>
     <div class="absolute bottom-3 right-3 text-xs text-gray-400 bg-white px-2 py-1 rounded-lg">
-      <span x-text="charCount"></span>/1000
+      <span x-text="charCount"></span>/450
     </div>
   </div>
 </div>

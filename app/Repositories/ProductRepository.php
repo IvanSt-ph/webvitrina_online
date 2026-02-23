@@ -15,15 +15,18 @@ class ProductRepository
         $query = Product::query()
             ->with([
                 'category',
-                'seller',
+                'seller.shop', // Добавил shop для названия магазина
                 'city.country',
-                'reviews',
             ])
             ->withAvg([
-                'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
+                'reviews as reviews_avg_rating' => function ($q) {
+                    $q->where('status', 'approved');
+                },
             ], 'rating')
             ->withCount([
-                'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
+                'reviews as reviews_count' => function ($q) {
+                    $q->where('status', 'approved');
+                },
             ]);
 
         // 🔎 Поиск
@@ -36,15 +39,16 @@ class ProductRepository
             $query->where('user_id', (int)$request->user_id);
         }
 
-        // 🌍 Страна/город
+        // 🌍 Страна
         if ($request->filled('country_id')) {
             $query->whereHas('city', function ($q) use ($request) {
                 $q->where('country_id', (int)$request->country_id);
             });
+        }
 
-            if ($request->filled('city_id')) {
-                $query->where('city_id', (int)$request->city_id);
-            }
+        // 🏙 Город
+        if ($request->filled('city_id')) {
+            $query->where('city_id', (int)$request->city_id);
         }
 
         // 📂 Категория
@@ -56,14 +60,15 @@ class ProductRepository
         match ($request->get('sort', 'new')) {
             'price_asc'  => $query->orderBy('price', 'asc'),
             'price_desc' => $query->orderBy('price', 'desc'),
-            'rating'     => $query->orderBy('reviews_avg_rating', 'desc'),
-            'benefit'    => $query->orderByRaw('(price / greatest(stock,1)) asc'),
+            'rating'     => $query->orderByDesc('reviews_avg_rating'),
+            'benefit'    => $query->orderByRaw('(price / GREATEST(stock, 1)) ASC'),
             default      => $query->latest(),
         };
 
-        return $query->paginate(
-            (int)($request->get('per_page', 20))
-        )->withQueryString();
+        // Добавляем индексы для быстрой пагинации
+        $perPage = min((int)($request->get('per_page', 20)), 100); // защита от больших значений
+
+        return $query->paginate($perPage)->withQueryString();
     }
 
     /* ============================================================
@@ -76,7 +81,7 @@ class ProductRepository
             $product = Product::with([
                 'city.country',
                 'category.parent',
-                'seller',
+                'seller.shop', // Добавил shop
             ])->find($key);
 
             if ($product) {
@@ -87,24 +92,28 @@ class ProductRepository
         $cacheKey = "product_page:{$key}";
 
         return Cache::remember($cacheKey, 600, function () use ($key) {
-
             $product = Product::with([
                 'city.country',
                 'category.parent',
-                'seller',
-                'reviews' => fn($q) =>
+                'seller.shop', // Добавил shop
+                'reviews' => function ($q) {
                     $q->where('status', 'approved')
                       ->with(['user', 'images'])
-                      ->latest()
+                      ->latest();
+                }
             ])
-                ->withCount([
-                    'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
-                ])
-                ->withAvg([
-                    'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
-                ], 'rating')
-                ->where('slug', $key)
-                ->first();
+            ->withCount([
+                'reviews as reviews_count' => function ($q) {
+                    $q->where('status', 'approved');
+                },
+            ])
+            ->withAvg([
+                'reviews as reviews_avg_rating' => function ($q) {
+                    $q->where('status', 'approved');
+                },
+            ], 'rating')
+            ->where('slug', $key)
+            ->first();
 
             if (!$product) {
                 $old = \App\Models\ProductSlug::where('slug', $key)->first();
@@ -125,7 +134,8 @@ class ProductRepository
     public function getRelatedProducts(Product $product)
     {
         return Cache::remember("related:{$product->id}", 600, function () use ($product) {
-            return Product::select('id', 'slug', 'title', 'price', 'image')
+            return Product::query()
+                ->select('id', 'slug', 'title', 'price', 'image')
                 ->with('category')
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
@@ -135,20 +145,21 @@ class ProductRepository
     }
 
     /* ============================================================
-     |  ОЧИСТКА КЭША — основной метод
+     |  ОЧИСТКА КЭША
      ============================================================ */
-    public function clearCache(Product $product)
+    public function clearCache(Product $product): void
     {
         Cache::forget("product_page:{$product->slug}");
         Cache::forget("related:{$product->id}");
+        
+        // Очищаем также по ID на случай редиректа
+        Cache::forget("product_page:{$product->id}");
     }
 
-    /* ============================================================
-     |  ОЧИСТКА КЭША — статический метод (для моделей)
-     ============================================================ */
     public static function clearProductCache(Product $product): void
     {
         Cache::forget("product_page:{$product->slug}");
         Cache::forget("related:{$product->id}");
+        Cache::forget("product_page:{$product->id}");
     }
 }
