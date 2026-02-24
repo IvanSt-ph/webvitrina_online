@@ -59,10 +59,12 @@ class ProductController extends Controller
 
         $cacheKey = "product_viewed:{$product->id}:{$viewer}";
 
-        if (!Cache::has($cacheKey)) {
+        $userId = auth()->id();
+
+        // ❗ Пропускаем увеличение просмотров для автора
+        if ($product->user_id !== $userId && !Cache::has($cacheKey)) {
 
             DB::transaction(function () use ($product) {
-
                 // +1 просмотр товара
                 $product->increment('views_count');
 

@@ -12,22 +12,37 @@ class FavoriteController extends Controller
 {
     public function index()
     {
-            $items = Favorite::with([
+        $items = Favorite::with([
                 'product.category',
                 'product.city.country',
-                'product.seller',])
+                'product.seller',
+            ])
             ->where('user_id', auth()->id())
             ->latest()
             ->get();
-
 
         return view('shop.favorites', compact('items'));
     }
 
     public function toggle(Product $product)
     {
+        $userId = auth()->id();
+
+        // ❗ Защита: нельзя добавлять свой товар в избранное
+        if ($product->user_id === $userId) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'status'   => 'error',
+                    'favorite' => false,
+                    'message'  => 'Вы не можете добавить свой товар в избранное.'
+                ]);
+            }
+
+            return back()->with('error', 'Вы не можете добавить свой товар в избранное.');
+        }
+
         $fav = Favorite::where([
-            'user_id'    => auth()->id(),
+            'user_id'    => $userId,
             'product_id' => $product->id
         ])->first();
 
@@ -48,7 +63,7 @@ class FavoriteController extends Controller
         } else {
             // ✅ Добавляем в избранное
             Favorite::create([
-                'user_id'    => auth()->id(),
+                'user_id'    => $userId,
                 'product_id' => $product->id
             ]);
             $product->increment('favorites_count');
@@ -68,7 +83,6 @@ class FavoriteController extends Controller
                 'favorite' => $state,
                 'message'  => $state ? 'Добавлено в избранное' : 'Удалено из избранного'
             ]);
-
         }
 
         return back()->with(

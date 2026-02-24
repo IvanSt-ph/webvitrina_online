@@ -32,6 +32,15 @@ class OrderController extends Controller
 
         abort_if($items->isEmpty(), 400, 'Корзина пуста');
 
+        // ❌ ЗАЩИТА: проверяем, нет ли в корзине своих товаров
+        foreach ($items as $item) {
+            if ($item->product->user_id === $userId) {
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', 'В корзине есть ваш собственный товар. Пожалуйста, удалите его перед оформлением заказа.');
+            }
+        }
+
         // 1) пробуем дефолтный адрес
         $address = UserAddress::where('user_id', $userId)->where('is_default', true)->first();
 
@@ -43,14 +52,14 @@ class OrderController extends Controller
         }
 
         return DB::transaction(function () use ($items, $userId, $address) {
-            // 💰 сумма (DECIMAL, т.к. у тебя price уже decimal(10,2))
+            // 💰 сумма
             $total = $items->sum(fn($i) => $i->qty * $i->product->price);
 
             // 🧾 номер заказа
             $nextId = (Order::max('id') ?? 0) + 1;
             $orderNumber = 'ORD-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
 
-            // 🧾 создаём заказ (и фиксируем "снимок" адреса в текстовом поле)
+            // 🧾 создаём заказ
             $order = Order::create([
                 'user_id'          => $userId,
                 'address_id'       => $address->id,
@@ -66,14 +75,14 @@ class OrderController extends Controller
                 ),
             ]);
 
-            // 📦 позиции заказа (ВАЖНО: quantity/total)
+            // 📦 позиции заказа
             foreach ($items as $i) {
                 OrderItem::create([
                     'order_id'   => $order->id,
                     'product_id' => $i->product_id,
-                    'price'      => $i->product->price,                 // decimal(10,2)
-                    'quantity'   => $i->qty,                            // <-- ИМЕННО quantity
-                    'total'      => $i->qty * $i->product->price,       // decimal(10,2)
+                    'price'      => $i->product->price,
+                    'quantity'   => $i->qty,
+                    'total'      => $i->qty * $i->product->price,
                 ]);
             }
 
@@ -94,8 +103,8 @@ class OrderController extends Controller
         $order->load([
             'items.product.category',
             'items.product.city.country',
-            'address' ]);
-
+            'address'
+        ]);
 
         return view('shop.order-show', compact('order'));
     }
