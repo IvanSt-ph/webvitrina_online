@@ -53,11 +53,16 @@ class FavoriteController extends Controller
             $fav->delete();
             $product->decrement('favorites_count');
 
-            // 📊 уменьшаем счётчик за день (но не ниже 0)
-            ProductStat::updateOrCreate(
-                ['product_id' => $product->id, 'date' => $today],
-                ['favorites' => DB::raw('GREATEST(favorites - 1, 0)')]
-            );
+            // ✅ ИСПРАВЛЕНО: безопасное уменьшение счётчика
+            $stat = ProductStat::where([
+                'product_id' => $product->id,
+                'date' => $today
+            ])->first();
+
+            if ($stat && $stat->favorites > 0) {
+                $stat->decrement('favorites');
+            }
+            // Если статистики нет или favorites = 0, ничего не делаем
 
             $state = false;
         } else {

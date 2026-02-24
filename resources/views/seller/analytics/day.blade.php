@@ -9,7 +9,6 @@
                 Статистика за {{ $date }}
             </h1>
             <p class="text-gray-500 text-sm mt-1">
-               
                 Данные по активности всех опубликованных товаров
             </p>
         </div>
@@ -35,8 +34,6 @@
                 <p class="text-gray-500 text-xs">Просмотры</p>
                 <h2 class="text-3xl font-bold mt-1">{{ $totalViews }}</h2>
             </div>
-
-            {{-- ICON: Eye Line --}}
             <svg xmlns="http://www.w3.org/2000/svg"
                  class="w-7 h-7 text-indigo-500 opacity-70"
                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -52,8 +49,6 @@
                 <p class="text-gray-500 text-xs">Избранное</p>
                 <h2 class="text-3xl font-bold mt-1">{{ $totalFavs }}</h2>
             </div>
-
-            {{-- ICON: Heart Line --}}
             <svg xmlns="http://www.w3.org/2000/svg"
                  class="w-7 h-7 text-pink-500 opacity-70"
                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -68,8 +63,6 @@
                 <p class="text-gray-500 text-xs">Корзины</p>
                 <h2 class="text-3xl font-bold mt-1">{{ $totalCarts }}</h2>
             </div>
-
-            {{-- ICON: Shopping Cart Line --}}
             <svg xmlns="http://www.w3.org/2000/svg"
                  class="w-7 h-7 text-yellow-500 opacity-70"
                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -110,7 +103,8 @@
 
                             <tr class="border-b hover:bg-gray-50 transition">
                                 <td class="py-3 pr-4 font-medium">
-                                    <a href="{{ route('product.show', $s->id) }}"
+                                    {{-- ✅ ИСПРАВЛЕНО: используем slug или id --}}
+                                    <a href="{{ route('product.show', $s->slug ?? $s->id) }}"
                                        class="text-indigo-600 hover:underline">
                                         {{ $s->title }}
                                     </a>
