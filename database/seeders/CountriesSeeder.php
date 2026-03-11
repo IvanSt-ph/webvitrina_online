@@ -9,10 +9,18 @@ class CountriesSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('countries')->insertOrIgnore([
-            ['id' => 1, 'name' => 'Приднестровье', 'slug' => 'pridnestrovie', 'code' => 'PMR', 'emoji' => '🇲🇩', 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 2, 'name' => 'Молдова', 'slug' => 'moldova', 'code' => 'MD', 'emoji' => '🇲🇩', 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 3, 'name' => 'Украина', 'slug' => 'ukraine', 'code' => 'UA', 'emoji' => '🇺🇦', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // Используем updateOrCreate вместо insert
+        $countries = [
+            ['slug' => 'pmr', 'name' => 'Приднестровье', 'currency' => 'RUB', 'currency_symbol' => '₽'],
+            ['slug' => 'md', 'name' => 'Молдова', 'currency' => 'MDL', 'currency_symbol' => 'L'],
+            ['slug' => 'ua', 'name' => 'Украина', 'currency' => 'UAH', 'currency_symbol' => '₴'],
+        ];
+
+        foreach ($countries as $country) {
+            DB::table('countries')->updateOrInsert(
+                ['slug' => $country['slug']], // поиск по slug
+                $country // данные для обновления или вставки
+            );
+        }
     }
 }
