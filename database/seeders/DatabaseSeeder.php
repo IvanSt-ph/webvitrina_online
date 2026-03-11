@@ -13,7 +13,8 @@ class DatabaseSeeder extends Seeder
 
             // 1) Страны и города
             CountriesSeeder::class,
-            CitiesSeeder::class,
+            // CitiesSeeder::class - заменили на новый
+            CountryCitySeeder::class,  // 👈 Новый сидер с полным списком городов
 
             // 2) Категории (корневые + подкатегории)
             CategoriesSeeder::class,
