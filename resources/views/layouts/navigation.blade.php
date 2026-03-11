@@ -42,23 +42,31 @@
 
             <!-- ========== Центр: Поиск + иерархический выбор страны/города ========== -->
             <div class="flex-1 flex justify-center items-center gap-3 ">
+                
                 <!-- Поле поиска с крестиком очистки -->
                 <form action="{{ route('home') }}" method="GET" class="w-full max-w-2xl m-0" 
-                      x-data="{ search: '{{ request('q') }}' }">
+                    x-data="{ search: '{{ request('q') }}' }">
                     <div class="relative">
                         <input type="text" 
-                               name="q" 
-                               x-model="search"
-                               placeholder="Искать товары..."
-                               class="w-full h-10 rounded-xl border-gray-300 pr-20 pl-4
-                                      focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50
-                                      transition-all duration-200" />
+                            name="q" 
+                            x-model="search"
+                            placeholder="Искать товары..."
+                            class="w-full h-10 rounded-xl border-gray-300 pr-20 pl-4
+                                    focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50
+                                    transition-all duration-200" />
                         
                         <!-- Крестик очистки -->
                         <button type="button"
                                 x-show="search.length > 0"
                                 x-cloak
-                                @click="search = ''; $el.closest('form').querySelector('input[name=q]').value = ''"
+                                @click="
+                                    search = ''; 
+                                    $el.closest('form').querySelector('input[name=q]').value = '';
+                                    // Создаем новый URL без параметра q и переходим
+                                    let url = new URL(window.location.href);
+                                    url.searchParams.delete('q');
+                                    window.location.href = url.toString();
+                                "
                                 class="absolute inset-y-0 right-8 flex items-center px-2 text-gray-400 hover:text-gray-600 transition-colors"
                                 title="Очистить">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,10 +79,10 @@
                                 class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-indigo-600 transition-colors">
                             <div class="flex items-center justify-center w-6 h-6">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" 
-                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 
-                                             110-15 7.5 7.5 0 010 15z"/>
+                                        d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 
+                                                            110-15 7.5 7.5 0 010 15z"/>
                                 </svg>
                             </div>
                         </button>
@@ -233,7 +241,7 @@
                          x-transition:leave-start="opacity-100 translate-y-0"
                          x-transition:leave-end="opacity-0 translate-y-1"
                          @click.away="open = false"
-                         class="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
+                         class="absolute right-0 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
                         
                         <!-- Шапка с навигацией -->
                         <div class="px-3 pb-2 border-b border-gray-100 flex items-center gap-2">
@@ -450,13 +458,22 @@
                 </div>
 
                 <!-- Аккаунт -->
-                @auth
+                 @auth
                     <x-dropdown align="right" width="64">
                         <x-slot name="trigger">
                             <button class="flex items-center gap-2 pl-2 pr-1 py-1 rounded-lg hover:bg-gray-100 transition-all duration-200 group">
-                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium shadow-sm group-hover:shadow-md transition-shadow">
-                                    {{ substr(auth()->user()->name, 0, 1) }}
-                                </div>
+                                
+                                <!-- Если есть аватарка - показываем её, если нет - градиент -->
+                                @if(auth()->user()->avatar)
+                                    <img src="{{ asset('storage/' . auth()->user()->avatar) }}"
+                                        alt="{{ auth()->user()->name }}"
+                                        class="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm group-hover:shadow-md transition-shadow">
+                                @else
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium shadow-sm group-hover:shadow-md transition-shadow">
+                                        {{ substr(auth()->user()->name, 0, 1) }}
+                                    </div>
+                                @endif
+                                
                                 <span class="text-sm text-gray-700 hidden xl:block">{{ auth()->user()->name }}</span>
                                 <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
