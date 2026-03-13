@@ -12,6 +12,23 @@ class ProductRepository
      ============================================================ */
     public function getFilteredProducts($request)
     {
+        // Кэширование для популярных поисков (без пагинации)
+        if ($request->filled('q') && !$request->filled('page') && $request->get('per_page', 20) == 20) {
+            $cacheKey = 'search_' . md5($request->fullUrl());
+            
+            return Cache::remember($cacheKey, 300, function() use ($request) {
+                return $this->buildFilteredProductsQuery($request);
+            });
+        }
+        
+        return $this->buildFilteredProductsQuery($request);
+    }
+    
+    /**
+     * Построение запроса фильтрации
+     */
+    private function buildFilteredProductsQuery($request)
+    {
         $query = Product::query()
             ->with([
                 'category',
@@ -30,10 +47,9 @@ class ProductRepository
             ]);
 
         /*
-         |--------------------------------------------------------------------------
+         |----------------------------------------------------------------
          | Количество конкретного товара в корзине пользователя
-         | Возвращает сумму qty, а не количество строк
-         |--------------------------------------------------------------------------
+         |----------------------------------------------------------------
         */
         if (auth()->check()) {
             $query->withSum([
@@ -47,9 +63,9 @@ class ProductRepository
          | ФИЛЬТРЫ
          ====================== */
 
-        // 🔎 Поиск
+        // 🔎 Поиск (УМНЫЙ - масштабируется под объем)
         if ($request->filled('q')) {
-            $query->where('title', 'like', '%' . $request->q . '%');
+            $this->applySearchFilter($query, $request->q);
         }
 
         // 📦 Продавец
@@ -78,17 +94,129 @@ class ProductRepository
          | СОРТИРОВКА
          ====================== */
 
-        match ($request->get('sort', 'new')) {
-            'price_asc'  => $query->orderBy('price', 'asc'),
-            'price_desc' => $query->orderBy('price', 'desc'),
-            'rating'     => $query->orderByDesc('reviews_avg_rating'),
-            'benefit'    => $query->orderByRaw('(price / GREATEST(stock, 1)) ASC'),
-            default      => $query->latest(),
-        };
+        $this->applySorting($query, $request);
 
         $perPage = min((int) $request->get('per_page', 20), 100);
 
         return $query->paginate($perPage)->withQueryString();
+    }
+
+    /**
+     * Умный поиск с адаптацией под объем данных
+     */
+    private function applySearchFilter($query, $searchTerm)
+    {
+        $search = trim($searchTerm);
+        $search = mb_substr(strip_tags($search), 0, 100);
+        
+        // Минимальная длина поиска
+        if (mb_strlen($search) < 2) {
+            return;
+        }
+        
+        // Получаем количество товаров (кешируем на 1 час)
+        $totalProducts = Cache::remember('products_total_count', 3600, function() {
+            return Product::count();
+        });
+        
+        $query->where(function ($q) use ($search, $totalProducts) {
+            
+            // ВСЕГДА: точное совпадение по артикулу (самое быстрое)
+            $q->orWhere('sku', $search);
+            
+            // ВСЕГДА: поиск по названию (индексируется)
+            $q->orWhere('title', 'like', $this->escapeLike($search) . '%');
+            $q->orWhere('title', 'like', '%' . $this->escapeLike($search) . '%');
+            
+            // Если товаров МАЛО (< 20 000) - ищем везде
+            if ($totalProducts < 20000) {
+                // Поиск по описанию
+                $q->orWhere('description', 'like', '%' . $this->escapeLike($search) . '%');
+                
+                // Поиск по категории
+                $q->orWhereHas('category', function ($cat) use ($search) {
+                    $cat->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                });
+                
+                // Поиск по продавцу
+                $q->orWhereHas('seller', function ($seller) use ($search) {
+                    $seller->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                });
+            } 
+            // Если товаров МНОГО - умное ограничение
+            else {
+                // Для длинных запросов (> 3 символов) добавляем описание
+                if (mb_strlen($search) > 3) {
+                    $q->orWhere('description', 'like', '%' . $this->escapeLike($search) . '%');
+                }
+                
+                // Поиск по категории ТОЛЬКО если запрос похож на название категории
+                if ($this->looksLikeCategory($search)) {
+                    $q->orWhereHas('category', function ($cat) use ($search) {
+                        $cat->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                    });
+                }
+                
+                // Поиск по продавцу ТОЛЬКО если запрос похож на имя
+                if ($this->looksLikeName($search)) {
+                    $q->orWhereHas('seller', function ($seller) use ($search) {
+                        $seller->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                    });
+                }
+            }
+        });
+        
+        // Приоритет точного SKU
+        $query->orderByRaw("CASE WHEN sku = ? THEN 0 ELSE 1 END", [$search]);
+    }
+
+    /**
+     * Применение сортировки
+     */
+    private function applySorting($query, $request)
+    {
+        match ($request->get('sort', 'new')) {
+            'price_asc'  => $query->orderBy('price', 'asc')->orderBy('id'),
+            'price_desc' => $query->orderBy('price', 'desc')->orderBy('id'),
+            'rating'     => $query->orderByDesc('reviews_avg_rating')->orderBy('id'),
+            'benefit'    => $query->orderByRaw('(price / GREATEST(stock, 1)) ASC')->orderBy('id'),
+            default      => $query->latest('id'), // сортировка по ID быстрее
+        };
+    }
+
+    /* ============================================================
+     |  ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+     ============================================================ */
+    
+    /**
+     * Экранирование спецсимволов для LIKE запроса
+     */
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    /**
+     * Проверка, похож ли запрос на категорию
+     */
+    private function looksLikeCategory(string $search): bool
+    {
+        $categoryKeywords = ['категор', 'раздел', 'тип', 'вид', 'сорт', 'класс'];
+        foreach ($categoryKeywords as $keyword) {
+            if (mb_stripos($search, $keyword) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Проверка, похож ли запрос на имя
+     */
+    private function looksLikeName(string $search): bool
+    {
+        // Имена обычно не содержат цифр и спецсимволов
+        return preg_match('/^[а-яА-Яa-zA-Z\s-]+$/u', $search) && mb_strlen($search) > 3;
     }
 
     /* ============================================================
@@ -175,6 +303,9 @@ class ProductRepository
         Cache::forget("product_page:{$product->slug}");
         Cache::forget("related:{$product->id}");
         Cache::forget("product_page:{$product->id}");
+        
+        // Очищаем кэш поиска (можно выборочно по префиксу)
+        Cache::forget('products_total_count');
     }
 
     public static function clearProductCache(Product $product): void
@@ -182,5 +313,6 @@ class ProductRepository
         Cache::forget("product_page:{$product->slug}");
         Cache::forget("related:{$product->id}");
         Cache::forget("product_page:{$product->id}");
+        Cache::forget('products_total_count');
     }
 }

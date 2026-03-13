@@ -33,7 +33,7 @@ $firstImage = $firstBanner ? bannerImage($firstBanner) : asset('storage/banners/
 <x-app-layout title="Каталог">
 
   {{-- 🚀 Адаптивный баннер с плавной сменой изображений --}}
-  <div class="relative w-full flex justify-center bg-transparent min-h-[260px] sm:min-h-[340px] md:min-h-[380px] lg:min-h-[420px]">
+<div class="relative w-full flex justify-center bg-transparent min-h-[260px] lg:mt-12 sm:min-h-[340px] md:min-h-[380px] lg:min-h-[420px]">
     <div 
       class="w-[94%] max-w-[1600px] overflow-hidden rounded-b-2xl relative
              aspect-[3.4/1] sm:aspect-[2.8/1] md:aspect-[2.5/1] lg:aspect-[3.2/1]

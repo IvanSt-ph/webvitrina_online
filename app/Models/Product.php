@@ -5,24 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-
 use Illuminate\Database\Eloquent\SoftDeletes;
-
-
-
 
 class Product extends Model
 {
-
-    // удаление файлов при уничтожении товара
-     use SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'user_id','category_id','title','slug','sku','price','stock','image',
         'description','city_id','gallery','status','address','latitude','longitude',
         'currency_base','price_prb','price_mdl','price_uah',
     ];
-
 
     protected $casts = [
         'price' => 'decimal:2',
@@ -86,12 +79,12 @@ class Product extends Model
 
     public function isFavoritedBy($user): bool
     {
-    if (!$user) return false;
+        if (!$user) return false;
 
-    // Быстрое существование, без загрузки модели
-    return $this->favorites()
-        ->where('user_id', $user->id)
-        ->exists();
+        // Быстрое существование, без загрузки модели
+        return $this->favorites()
+            ->where('user_id', $user->id)
+            ->exists();
     }
 
     public function user()
@@ -99,21 +92,11 @@ class Product extends Model
         return $this->seller();
     }
 
-
-
-    
-
-
-    /** Просмотры */
-    // public function views()
-    // {
-    //     return $this->hasMany(ProductStat::class);
-    // }
+    /** Статистика просмотров */
     public function stats()
-{
-    return $this->hasMany(ProductStat::class);
-}
-
+    {
+        return $this->hasMany(ProductStat::class);
+    }
 
     /** Позиции корзины */
     public function cartItems()
@@ -122,10 +105,11 @@ class Product extends Model
     }
 
     /** Позиции в заказах */
-public function orderItems()
-{
-    return $this->hasMany(OrderItem::class);
-}
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     /** Старые slug-и */
     public function oldSlugs()
     {
@@ -196,12 +180,98 @@ public function orderItems()
     }
 
     /* -------------------------------------------------
-     | 🖼 АКСЕССОРЫ
+     | 🖼 АКСЕССОРЫ ИЗОБРАЖЕНИЙ
      |--------------------------------------------------*/
 
-    public function getImageUrlAttribute(): ?string
+    /**
+     * URL основной картинки с fallback
+     */
+    public function getImageUrlAttribute(): string
     {
-        return $this->image ? asset('storage/' . $this->image) : null;
+        return $this->image 
+            ? asset('storage/' . $this->image) 
+            : asset('images/no-image.png');
+    }
+
+    /**
+     * URL-ы галереи с fallback
+     */
+    public function getGalleryImagesAttribute(): array
+    {
+        if (!empty($this->gallery) && is_array($this->gallery)) {
+            return array_map(fn($img) => asset('storage/' . $img), $this->gallery);
+        }
+        
+        return [asset('images/no-image.png')];
+    }
+
+    /**
+     * Первое изображение из галереи (удобно для превью)
+     */
+    public function getFirstGalleryImageAttribute(): string
+    {
+        return $this->gallery_images[0] ?? $this->image_url;
+    }
+
+    /**
+     * Проверка наличия галереи
+     */
+    public function getHasGalleryAttribute(): bool
+    {
+        return !empty($this->gallery) && is_array($this->gallery) && count($this->gallery) > 0;
+    }
+
+    /**
+     * Все изображения товара (основное + галерея) для слайдеров
+     * Использует array_filter для автоматического удаления null
+     */
+    public function getAllImagesAttribute(): array
+    {
+        // Основное изображение (array_filter уберет null если картинки нет)
+        $images = array_filter([$this->image_url]);
+        
+        // Добавляем галерею
+        if ($this->has_gallery) {
+            foreach ($this->gallery_images as $galleryImage) {
+                // Проверяем, чтобы не дублировать основное
+                if ($galleryImage !== $this->image_url) {
+                    $images[] = $galleryImage;
+                }
+            }
+        }
+        
+        // Переиндексируем массив и возвращаем
+        return array_values($images);
+    }
+
+    /**
+     * Все изображения с原始 путями (без asset) для админки
+     */
+    public function getAllImagesRawAttribute(): array
+    {
+        $images = array_filter([$this->image]);
+        
+        if (is_array($this->gallery)) {
+            $images = array_merge($images, $this->gallery);
+        }
+        
+        return array_values(array_unique($images));
+    }
+
+    /**
+     * Количество изображений
+     */
+    public function getImagesCountAttribute(): int
+    {
+        return count($this->all_images);
+    }
+
+    /**
+     * Есть ли несколько изображений
+     */
+    public function getHasMultipleImagesAttribute(): bool
+    {
+        return $this->images_count > 1;
     }
 
     public function getCountryNameAttribute(): ?string
@@ -274,7 +344,6 @@ public function orderItems()
 
         /** Удаление файлов при уничтожении товара */
         static::deleting(function ($product) {
-
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
