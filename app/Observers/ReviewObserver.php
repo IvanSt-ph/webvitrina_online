@@ -41,5 +41,7 @@ class ReviewObserver
         $shop->rating = round((float)$agg->avg_rating, 2);
         $shop->reviews_count = (int)$agg->cnt;
         $shop->save();
+
+        $shop->updateReputation();
     }
 }

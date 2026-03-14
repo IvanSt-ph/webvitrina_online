@@ -75,6 +75,51 @@ class Shop extends Model
         return $code;
     }
 
+
+    // ✅ Метод для обновления репутации продавца
+    public function updateReputation(): void
+{
+    $rating = $this->rating;
+    $sales = $this->sales_count;
+
+    if ($rating < 3.0) {
+        $this->seller_reputation = 'low_rating';
+    } elseif ($sales >= 80 && $rating >= 4.6) {
+        $this->seller_reputation = 'top';
+    } elseif ($sales >= 30 && $rating >= 4.4) {
+        $this->seller_reputation = 'trusted';
+    } elseif ($sales >= 10 && $rating >= 4.2) {
+        $this->seller_reputation = 'verified';
+    } else {
+        $this->seller_reputation = 'new';
+    }
+
+    $this->save();
+}
+
+// / ✅ Метод для пересчёта продаж и обновления репутации 
+public function incrementSales(int $amount = 1): void
+{
+    $this->sales_count += $amount;
+    $this->save();
+
+    // Пересчёт репутации
+    $this->updateReputation();
+}
+
+// ✅ Удобный аксессор для отображения
+public function getReputationLabelAttribute(): string
+{
+    return match($this->seller_reputation) {
+        'top' => '🏆 Топ продавец',
+        'trusted' => '⭐ Надёжный продавец',
+        'verified' => '✔ Проверенный продавец',
+        'new' => 'Новый продавец',
+        'low_rating' => '⚠ Низкий рейтинг',
+        default => 'Продавец'
+    };
+}
+
     // ✅ Проверка, нужно ли подтверждение
     public function needsPhoneVerification(): bool
     {

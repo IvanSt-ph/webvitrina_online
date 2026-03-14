@@ -69,6 +69,27 @@ class Order extends Model
         'address',
     ];
 
+
+
+
+public function markAsPaid(): void
+{
+    if ($this->status === self::STATUS_PAID) {
+        return; // уже оплачено
+    }
+
+    $this->setStatus(self::STATUS_PAID);
+
+    // 🔹 Пересчёт продаж по всем товарам в заказе
+    foreach ($this->items as $item) {
+        $shop = $item->product->shop;
+        if ($shop) {
+            $shop->incrementSales($item->quantity);
+        }
+    }
+}
+
+
     /* -------------------------------------------------
      | 🔗 Отношения
      |--------------------------------------------------*/

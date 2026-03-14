@@ -74,48 +74,158 @@
 
             <!-- Информация -->
             <div class="flex-1">
-                <!-- Заголовок с именем и бейджами (КАК У ВАС) -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            {{ $user->name }}
-                            @if($user->hasVerifiedEmail() && $shop->is_phone_verified)
-                                <span class="px-2 py-1 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
-                                    <i class="ri-shield-check-fill text-green-500 mr-0.5"></i>
-                                    Проверенный
-                                </span>
-                            @elseif($user->hasVerifiedEmail() || $shop->is_phone_verified)
-                                <span class="px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-                                    <i class="ri-shield-user-line text-blue-500 mr-0.5"></i>
-                                    Верифицирован
-                                </span>
-                            @endif
-                        </h1>
-                        
-                        <!-- Название магазина (как дополнительная информация) -->
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-sm text-gray-500">Магазин:</span>
-                            <span class="text-sm font-medium text-indigo-600">{{ $shop->name }}</span>
-                        </div>
-                    </div>
 
-                    <!-- Рейтинг (справа) -->
-                    <div class="flex items-center gap-3">
-                        <div class="flex items-center gap-1 bg-yellow-50 px-3 py-2 rounded-xl">
-                            <div class="flex">
-                                @for($i = 1; $i <= 5; $i++)
-                                    @if($i <= round($user->reviews_avg_rating ?? 0))
-                                        <i class="ri-star-fill text-yellow-400 text-sm"></i>
-                                    @else
-                                        <i class="ri-star-line text-yellow-200 text-sm"></i>
-                                    @endif
-                                @endfor
-                            </div>
-                            <span class="text-sm font-semibold text-gray-700 ml-1">{{ number_format($user->reviews_avg_rating ?? 0, 1) }}</span>
-                            <span class="text-xs text-gray-400">({{ $user->reviews_count ?? 0 }})</span>
+
+
+
+
+                
+
+<!-- Заголовок с именем и бейджами -->
+<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-2">
+    
+    <!-- Левая часть: имя и магазин -->
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
+            {{ $user->name }}
+            @if($user->hasVerifiedEmail() && $shop->is_phone_verified)
+                <span class="px-2 py-1 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
+                    <i class="ri-shield-check-fill text-green-500 mr-0.5"></i>
+                    Проверенный
+                </span>
+            @elseif($user->hasVerifiedEmail() || $shop->is_phone_verified)
+                <span class="px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
+                    <i class="ri-shield-user-line text-blue-500 mr-0.5"></i>
+                    Верифицирован
+                </span>
+            @endif
+        </h1>
+        
+        <!-- Название магазина -->
+        <div class="flex items-center gap-2 mt-1.5">
+            <span class="text-xs text-gray-500">Магазин:</span>
+            <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                {{ $shop->name }}
+            </span>
+        </div>
+    </div>
+
+
+
+
+    
+    <!-- ПРАВАЯ ЧАСТЬ: Репутация + Рейтинг -->
+    <div class="flex flex-col  gap-2">
+        
+        <!-- БЛОК РЕПУТАЦИИ -->
+        <div class="flex items-center">
+            @switch($shop->seller_reputation)
+                @case('top')
+                    <div class="relative group">
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border-r-4 border-amber-400 rounded-l-full shadow-sm hover:shadow-md transition-all duration-300">
+                            <span class="text-sm">🏆</span>
+                            <span class="text-xs font-semibold text-amber-700">Топ продавец</span>
+                            <i class="ri-information-line text-amber-400 text-xs ml-0.5 opacity-60 group-hover:opacity-100"></i>
+                        </div>
+                        <div class="absolute top-full right-0 mt-1 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50">
+                            <div class="font-medium mb-0.5">🏆 Топ продавец</div>
+                            <div class="text-gray-300">80+ продаж, рейтинг 4.6+</div>
+                            <div class="absolute top-0 right-3 transform -translate-y-1/2 rotate-45 w-1.5 h-1.5 bg-gray-900"></div>
                         </div>
                     </div>
+                    @break
+                    
+                @case('trusted')
+                    <div class="relative group">
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-50 to-blue-50 border-r-4 border-indigo-400 rounded-l-full shadow-sm">
+                            <span class="text-sm">⭐</span>
+                            <span class="text-xs font-semibold text-indigo-700">Надёжный продавец</span>
+                            <i class="ri-information-line text-indigo-400 text-xs ml-0.5 opacity-60 group-hover:opacity-100"></i>
+                        </div>
+                        <div class="absolute top-full right-0 mt-1 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50">
+                            <div class="font-medium mb-0.5">⭐ Надёжный продавец</div>
+                            <div class="text-gray-300">30+ продаж, рейтинг 4.4+</div>
+                            <div class="absolute top-0 right-3 transform -translate-y-1/2 rotate-45 w-1.5 h-1.5 bg-gray-900"></div>
+                        </div>
+                    </div>
+                    @break
+                    
+                @case('verified')
+                    <div class="relative group">
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-green-50 border-r-4 border-emerald-400 rounded-l-full shadow-sm">
+                            <span class="text-sm">✔</span>
+                            <span class="text-xs font-semibold text-emerald-700">Проверенный продавец</span>
+                            <i class="ri-information-line text-emerald-400 text-xs ml-0.5 opacity-60 group-hover:opacity-100"></i>
+                        </div>
+                        <div class="absolute top-full right-0 mt-1 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50">
+                            <div class="font-medium mb-0.5">✔ Проверенный продавец</div>
+                            <div class="text-gray-300">10+ продаж, рейтинг 4.2+</div>
+                            <div class="absolute top-0 right-3 transform -translate-y-1/2 rotate-45 w-1.5 h-1.5 bg-gray-900"></div>
+                        </div>
+                    </div>
+                    @break
+                    
+                @case('new')
+                    <div class="relative group">
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-gray-50 to-slate-50 border-r-4 border-gray-400 rounded-l-full shadow-sm">
+                            <span class="text-sm">🆕</span>
+                            <span class="text-xs font-semibold text-gray-600">Новый продавец</span>
+                            <i class="ri-information-line text-gray-400 text-xs ml-0.5 opacity-60 group-hover:opacity-100"></i>
+                        </div>
+                        <div class="absolute top-full right-0 mt-1 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50">
+                            <div class="font-medium mb-0.5">🆕 Новый продавец</div>
+                            <div class="text-gray-300">Менее 10 продаж</div>
+                            <div class="absolute top-0 right-3 transform -translate-y-1/2 rotate-45 w-1.5 h-1.5 bg-gray-900"></div>
+                        </div>
+                    </div>
+                    @break
+                    
+                @case('low_rating')
+                    <div class="relative group">
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-50 to-red-50 border-r-4 border-rose-400 rounded-l-full shadow-sm">
+                            <span class="text-sm">⚠</span>
+                            <span class="text-xs font-semibold text-rose-700">Низкий рейтинг</span>
+                            <i class="ri-information-line text-rose-400 text-xs ml-0.5 opacity-60 group-hover:opacity-100"></i>
+                        </div>
+                        <div class="absolute top-full right-0 mt-1 hidden group-hover:block w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50">
+                            <div class="font-medium mb-0.5">⚠ Низкий рейтинг</div>
+                            <div class="text-gray-300">Рейтинг ниже 3.0</div>
+                            <div class="absolute top-0 right-3 transform -translate-y-1/2 rotate-45 w-1.5 h-1.5 bg-gray-900"></div>
+                        </div>
+                    </div>
+                    @break
+            @endswitch
+        </div>
+
+        <!-- БЛОК РЕЙТИНГА -->
+        <div class="flex items-center">
+            <div class="flex items-center gap-2 bg-yellow-50/80 px-3 py-1.5 rounded-lg border border-yellow-100">
+                <span class="text-[10px] font-medium text-gray-500 tracking-wide">РЕЙТИНГ:</span>
+                <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-0.5">
+                        @for($i = 1; $i <= 5; $i++)
+                            @if($i <= round($user->reviews_avg_rating ?? 0))
+                                <i class="ri-star-fill text-yellow-400 text-xs"></i>
+                            @else
+                                <i class="ri-star-line text-yellow-200 text-xs"></i>
+                            @endif
+                        @endfor
+                    </div>
+                    <span class="text-sm font-bold text-gray-800 leading-none">{{ number_format($user->reviews_avg_rating ?? 0, 1) }}</span>
+                    <span class="text-[10px] text-gray-400">({{ $user->reviews_count ?? 0 }})</span>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
 
                 <!-- Город и дата регистрации -->
                 <div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
