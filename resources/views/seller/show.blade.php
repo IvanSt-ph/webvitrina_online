@@ -292,54 +292,28 @@
             <button class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition text-sm">Хиты</button>
         </div>
 
-        <!-- 🔹 Сетка товаров -->
-        <div>
-            <h2 class="text-xl font-semibold mb-4">Товары магазина</h2>
 
-            @if($products->count())
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
 
-                    @foreach($products as $product)
-                        <a href="{{ route('product.show', $product->slug) }}" class="bg-white border border-gray-100 rounded-xl p-2 hover:shadow-xl hover:scale-105 transition-all duration-300 flex flex-col relative group">
+        
+<!-- 🔹 Сетка товаров -->
+<div>
+    <h2 class="text-xl font-semibold mb-4">Товары магазина</h2>
 
-                            <!-- Метки -->
-                            @if($product->is_new)
-                                <span class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-lg z-10">Новый</span>
-                            @endif
-                            @if($product->discount)
-                                <span class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-lg z-10">-{{ $product->discount }}%</span>
-                            @endif
-                            @if($product->is_popular)
-                                <span class="absolute bottom-2 left-2 bg-yellow-400 text-white text-xs px-2 py-1 rounded-lg z-10">Хит</span>
-                            @endif
-
-                            <!-- Изображение -->
-                            <div class="w-full h-32 md:h-36 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center mb-2">
-                                @if($product->image && Storage::disk('public')->exists($product->image))
-                                    <img src="{{ asset('storage/'.$product->image) }}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="{{ $product->title }}">
-                                @else
-                                    <i class="ri-image-line text-gray-300 text-3xl"></i>
-                                @endif
-                            </div>
-
-                            <!-- Название -->
-                            <div class="text-sm font-medium line-clamp-2 text-gray-800 mb-1">{{ $product->title }}</div>
-
-                            <!-- Цена -->
-                            <div class="text-indigo-600 font-semibold text-sm">{{ number_format($product->price, 0, '', ' ') }} ₽</div>
-
-                        </a>
-                    @endforeach
-
-                </div>
-
-                <div class="mt-6 flex justify-center">
-                    {{ $products->links('vendor.pagination.tailwind') }}
-                </div>
-            @else
-                <p class="text-gray-500">У этого продавца пока нет товаров.</p>
-            @endif
+    @if($products->count())
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            @foreach($products as $product)
+                {{-- Используем тот же компонент, что и на главной --}}
+                <x-product-card :p="$product" />
+            @endforeach
         </div>
+
+        <div class="mt-6 flex justify-center">
+            {{ $products->links('vendor.pagination.tailwind') }}
+        </div>
+    @else
+        <p class="text-gray-500">У этого продавца пока нет товаров.</p>
+    @endif
+</div>
 
         <!-- 🔹 Рекомендованные товары -->
         <div class="mt-8">
