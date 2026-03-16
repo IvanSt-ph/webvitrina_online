@@ -120,6 +120,6 @@ class RoleAccessTest extends TestCase
         // Админ
         $admin = User::factory()->admin()->create();
         $response = $this->actingAs($admin)->get('/profile');
-        $response->assertRedirect('/admin/profile/edit');
+        $response->assertRedirect('/admin');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory; 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -9,6 +10,9 @@ use App\Services\CategoryCacheService; // ← ДОБАВЛЕНО
 
 class Category extends Model
 {
+    // строка подключения фабрики для тестов
+    use HasFactory; // <- СТРОКА ДОБАВЛЕНА
+
     protected $fillable = [
         'name',
         'slug',

@@ -60,6 +60,26 @@ use App\Http\Controllers\Auth\GoogleController;
 |--------------------------------------------------------------------------
 */
 
+
+// Временный редирект для тестов
+Route::get('/dashboard', function() {
+    if (!auth()->check()) {
+        return redirect('/login');
+    }
+
+    $user = auth()->user();
+
+    return match($user->role) {
+        'admin' => redirect()->route('admin.dashboard'),
+        'seller' => redirect()->route('seller.cabinet'),
+        default => redirect()->route('cabinet'),
+    };
+})->name('dashboard')->middleware('auth');
+
+
+
+
+
 Route::middleware(['auth', 'role:seller'])->group(function () {
     Route::post('/shop/phone/send', [ShopPhoneVerificationController::class, 'send'])->name('shop.phone.send');
     Route::post('/shop/phone/verify', [ShopPhoneVerificationController::class, 'verify'])->name('shop.phone.verify');

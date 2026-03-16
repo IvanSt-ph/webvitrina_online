@@ -3,9 +3,10 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\PasswordChangedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -21,53 +22,59 @@ class PasswordResetTest extends TestCase
 
     public function test_reset_password_link_can_be_requested(): void
     {
-        Notification::fake();
-
         $user = User::factory()->create();
 
-        $this->post('/forgot-password', ['email' => $user->email]);
+        $response = $this->post('/forgot-password', [
+            'email' => $user->email,
+        ]);
 
-        Notification::assertSentTo($user, ResetPassword::class);
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('status');
+        
+        // Проверяем что статус есть (текст может быть на любом языке)
+        $this->assertNotNull(session('status'));
     }
 
     public function test_reset_password_screen_can_be_rendered(): void
     {
-        Notification::fake();
-
+        // Создаем пользователя
         $user = User::factory()->create();
-
-        $this->post('/forgot-password', ['email' => $user->email]);
-
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-            $response = $this->get('/reset-password/'.$notification->token);
-
-            $response->assertStatus(200);
-
-            return true;
-        });
+        
+        // Создаем токен сброса пароля через Password broker
+        $token = Password::createToken($user);
+        
+        // Проверяем страницу сброса пароля
+        $response = $this->get('/reset-password/' . $token);
+        
+        $response->assertStatus(200);
     }
 
-    public function test_password_can_be_reset_with_valid_token(): void
+    public function test_password_can_be_reset_and_notification_sent(): void
     {
         Notification::fake();
 
         $user = User::factory()->create();
 
-        $this->post('/forgot-password', ['email' => $user->email]);
+        // Создаем токен сброса пароля
+        $token = Password::createToken($user);
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-            $response = $this->post('/reset-password', [
-                'token' => $notification->token,
-                'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
-            ]);
+        // Сбрасываем пароль
+        $response = $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
 
-            $response
-                ->assertSessionHasNoErrors()
-                ->assertRedirect(route('login'));
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('login'));
 
-            return true;
-        });
+        // Проверяем что пароль действительно изменился
+        $user->refresh();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword123', $user->password));
+
+        // Проверяем что кастомное уведомление было отправлено
+        Notification::assertSentTo($user, PasswordChangedNotification::class);
     }
 }

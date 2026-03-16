@@ -279,8 +279,27 @@ public function updateShop(Request $request): RedirectResponse
 
 
 /**
- * Редирект на профиль согласно роли
+ * Редирект на профиль согласно роли (старый метод, может пригодиться для отдельных страниц профиля)
  */
+// public function redirectToRoleProfile()
+// {
+//     $user = auth()->user();
+    
+//     if ($user->role === 'buyer') {
+//         return redirect()->route('buyer.profile');
+//     }
+    
+//     if ($user->role === 'admin') {
+//         return redirect()->route('admin.profile.edit');
+//     }
+    
+//     // seller - оставляем на существующей странице
+//     return redirect()->route('profile.edit');
+// }
+
+
+
+// ридирект на профиль согласно роли (новый метод, с учетом существующих маршрутов)
 public function redirectToRoleProfile()
 {
     $user = auth()->user();
@@ -290,12 +309,15 @@ public function redirectToRoleProfile()
     }
     
     if ($user->role === 'admin') {
-        return redirect()->route('admin.profile.edit');
+        // Используем существующий маршрут админа
+        return redirect()->route('admin.dashboard'); // или redirect('/admin')
     }
     
-    // seller - оставляем на существующей странице
     return redirect()->route('profile.edit');
 }
+
+
+
 
     public function cabinet()
     {
