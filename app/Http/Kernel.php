@@ -58,6 +58,7 @@ protected $middlewareGroups = [
 
         // 🔹 наше кастомное middleware
         'admin'            => \App\Http\Middleware\AdminMiddleware::class,
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
         
     ];
 }

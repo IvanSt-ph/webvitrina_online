@@ -277,6 +277,26 @@ public function updateShop(Request $request): RedirectResponse
      * КАБИНЕТ
      * ========================= */
 
+
+/**
+ * Редирект на профиль согласно роли
+ */
+public function redirectToRoleProfile()
+{
+    $user = auth()->user();
+    
+    if ($user->role === 'buyer') {
+        return redirect()->route('buyer.profile');
+    }
+    
+    if ($user->role === 'admin') {
+        return redirect()->route('admin.profile.edit');
+    }
+    
+    // seller - оставляем на существующей странице
+    return redirect()->route('profile.edit');
+}
+
     public function cabinet()
     {
         $user = auth()->user();

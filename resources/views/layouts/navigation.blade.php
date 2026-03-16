@@ -489,11 +489,11 @@
                                     default  => route('cabinet'),
                                 };
 
-                                $profileRoute = match (strtolower(auth()->user()->role ?? '')) {
-                                    'admin'  => route('admin.profile.edit'),
-                                    'seller' => route('profile.edit'),
-                                    default  => route('buyer.profile'),
-                                };
+$profileRoute = match (strtolower(auth()->user()->role ?? '')) {
+    'admin'  => route('admin.profile.edit'),
+    'seller' => route('profile.edit'), // оставляем как есть
+    default  => route('buyer.profile'), // покупатели идут на buyer/profile
+};
                             @endphp
 
                             <div class="px-4 py-3 border-b border-gray-100">

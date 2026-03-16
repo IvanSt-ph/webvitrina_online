@@ -146,7 +146,10 @@ Route::middleware('auth')->group(function () {
     | 👤 PROFILE (основной)
     |--------------------------------------------------------------------------
     */
-    Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
+Route::get('/profile',  [ProfileController::class, 'redirectToRoleProfile'])->name('profile.redirect');
+Route::get('/profile/edit',  [ProfileController::class, 'edit'])
+    ->name('profile.edit')
+    ->middleware('role:seller'); // 👈 ТОЛЬКО ДЛЯ ПРОДАВЦОВ
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -155,12 +158,14 @@ Route::middleware('auth')->group(function () {
         ->name('profile.shop.update');
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | 👤 BUYER AREA
-    |--------------------------------------------------------------------------
-    */
 
+/*
+|--------------------------------------------------------------------------
+| 👤 BUYER AREA (ТОЛЬКО ДЛЯ ПОКУПАТЕЛЕЙ)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('role:buyer')->group(function () {
     // Основная инфа
     Route::get('/buyer/profile', fn() => view('buyer.profile.general'))
         ->name('buyer.profile');
@@ -172,6 +177,7 @@ Route::middleware('auth')->group(function () {
     // Обновление именно покупательского профиля
     Route::patch('/buyer/profile/update', [ProfileController::class, 'update'])
         ->name('buyer.profile.update');
+});
 
     // Прочие buyer-странички
     Route::view('/my-questions', 'buyer.questions.index')->name('questions.index');
