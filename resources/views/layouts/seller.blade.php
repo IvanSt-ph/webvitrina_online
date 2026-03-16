@@ -52,8 +52,8 @@
             </a>
 
             <a href="{{ route('profile.edit') }}"
-               class="{{ request()->routeIs('profile.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-settings-3-line text-[22px]"></i>
+            class="{{ request()->routeIs('profile.*') ? $active : '' }} {{ $link }}">
+                <i class="ri-user-3-line text-[22px]"></i>
                 <span>Профиль</span>
             </a>
         </nav>

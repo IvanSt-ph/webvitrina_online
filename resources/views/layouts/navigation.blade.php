@@ -488,6 +488,12 @@
                                     'seller' => route('seller.cabinet'),
                                     default  => route('cabinet'),
                                 };
+
+                                $profileRoute = match (strtolower(auth()->user()->role ?? '')) {
+                                    'admin'  => route('admin.profile.edit'),
+                                    'seller' => route('profile.edit'),
+                                    default  => route('buyer.profile'),
+                                };
                             @endphp
 
                             <div class="px-4 py-3 border-b border-gray-100">
@@ -498,12 +504,13 @@
                             <div class="py-1">
                                 <x-dropdown-link :href="$dashboard" class="flex items-center gap-2 px-4 py-2">
                                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 9.5l9-7 9 7V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z"/>
                                     </svg>
                                     Личный кабинет
                                 </x-dropdown-link>
                                 
-                                <x-dropdown-link :href="route('profile.edit')" class="flex items-center gap-2 px-4 py-2">
+                                <x-dropdown-link :href="$profileRoute" class="flex items-center gap-2 px-4 py-2">
                                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
