@@ -67,7 +67,7 @@
                                     url.searchParams.delete('q');
                                     window.location.href = url.toString();
                                 "
-                                class="absolute inset-y-0 right-8 flex items-center px-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                class="absolute inset-y-0 right-10 flex items-center px-2 text-gray-400 hover:text-gray-600 transition-colors"
                                 title="Очистить">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
