@@ -4,7 +4,7 @@
 <div class="flex min-h-screen bg-neutral-50 text-gray-800 overflow-x-hidden overflow-y-auto">
 
     <!-- Sidebar -->
-<aside class="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 fixed left-0 top-0 bottom-0 shadow-sm z-30">
+<aside class="hidden lg:flex flex-col w-64 bg-white border-r border-gray-100 fixed left-0 top-0 bottom-0 shadow-sm z-30">
 
     <!-- ВЕРХ -->
     <div class="flex-1 flex flex-col">
@@ -82,17 +82,15 @@
 
 </aside>
 
+            <!-- 🌤 Контент -->
+        <main class="flex-1 px-3 sm:px-6 py-6 bg-neutral-50 min-h-screen overflow-hidden lg:ml-64">
 
+                {{ $slot }}
 
-    <!-- 🌤 Контент -->
- <main class="flex-1 md:ml-64 px-3 sm:px-6 py-6 bg-neutral-50 min-h-screen overflow-hidden">
-
-        {{ $slot }}
-
-        <footer class="text-center text-xs text-gray-400 pt-6 border-t mt-10">
-            © {{ date('Y') }} WebVitrina — Панель продавца
-        </footer>
-    </main>
+                <footer class="text-center text-xs text-gray-400 pt-6 border-t mt-10">
+                    © {{ date('Y') }} WebVitrina — Панель продавца
+                </footer>
+        </main>
 
 </div>
 

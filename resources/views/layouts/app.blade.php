@@ -6,27 +6,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-<link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 
-<!-- 🌐 Favicon -->
-
-<link rel="icon" type="image/x-icon" href="{{ asset('icons/favicon.ico') }}">
-<!-- Основной favicon в формате .ico — используется в старых браузерах и для обратной совместимости. -->
-
-<link rel="icon" type="image/svg+xml" href="{{ asset('icons/favicon.svg') }}">
-<!-- Современный вариант favicon в формате SVG — масштабируется без потери качества и используется в новых браузерах. -->
-
-<link rel="icon" type="image/png" sizes="96x96" href="{{ asset('icons/favicon-96x96.png') }}">
-<!-- Альтернативный PNG favicon с размером 96x96 пикселей — обычно нужен для Android и некоторых десктопных систем. -->
-
-<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-touch-icon.png') }}">
-<!-- Специальная иконка для устройств Apple (iPhone, iPad). Отображается при добавлении сайта на домашний экран. -->
-
-<link rel="manifest" href="{{ asset('icons/site.webmanifest') }}">
-<!-- Файл манифеста Progressive Web App (PWA) — содержит метаданные сайта (иконки, название, цвета и т.д.) для установки как приложение. -->
-
-<meta name="theme-color" content="#4F46E5">
-<!-- Цвет оформления для мобильных браузеров (адресная строка и системные элементы интерфейса). Помогает создать фирменный стиль. -->
+    <!-- 🌐 Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('icons/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('icons/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('icons/favicon-96x96.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('icons/site.webmanifest') }}">
+    <meta name="theme-color" content="#4F46E5">
 
     @stack('meta')
     <title>{{ $title ? $title . ' — ' . config('app.name', 'Laravel') : config('app.name', 'Laravel') }}</title>
@@ -37,10 +25,13 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- ⚠️ ВАЖНО: Стили должны быть в HEAD --}}
+    @stack('styles')
 </head>
 <body class="font-sans antialiased">
 
-    <script>
+<script>
 document.addEventListener('alpine:init', () => {
     Alpine.store('specs', { open: false });
 });
@@ -78,19 +69,21 @@ document.addEventListener('alpine:init', () => {
 @endisset
 
 {{-- Контент --}}
-<main class="pt-2 {{-- mt-8 --}} md:pt-1 pb-12 py-20  mx-auto px-4 sm:px-6 lg:px-8">
+<main class="pt-2 md:pt-1 pb-12 py-20 mx-auto px-4 sm:px-6 lg:px-8">
     {{ $slot }}
 </main>
 
-{{-- Нижняя панель (мобилка) --}}
-@unless(
-    request()->routeIs('seller.*') ||   {{-- все маршруты seller/... --}}
-    request()->routeIs('cabinet')   ||   {{-- личный кабинет --}}
-    request()->routeIs('profile.*')      {{-- профиль продавца --}}
-)
-    @include('layouts.mobile-bottom-nav')
-@endunless
 
+{{-- Нижняя панель - только до 768px --}}
+@unless(
+    request()->routeIs('seller.*') ||   
+    request()->routeIs('cabinet')   ||   
+    request()->routeIs('profile.*')
+)
+    <div class="block md:hidden fixed bottom-0 left-0 right-0 z-50">
+        @include('layouts.mobile-bottom-nav')
+    </div>
+@endunless
 
 {{-- Боковое меню категорий --}}
 @include('profile.partials.category-menu')
@@ -102,10 +95,8 @@ document.addEventListener('alpine:init', () => {
 
 <style>[x-cloak]{display:none!important}</style>
 
-
-@stack('styles')
+{{-- ⚠️ ВАЖНО: Скрипты должны быть ПЕРЕД закрывающим body --}}
 @stack('scripts')
-
 
 </body>
 </html>
