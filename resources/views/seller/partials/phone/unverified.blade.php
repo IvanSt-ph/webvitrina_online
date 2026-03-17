@@ -48,6 +48,6 @@
 
     {{-- Форма верификации (только если номер уже сохранен) --}}
     @if(Auth::user()->shop->phone)
-        @include('profile.partials.phone.verification-flow')
+@include('seller.partials.phone.verification-flow')
     @endif
 </div>

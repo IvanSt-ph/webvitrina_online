@@ -21,10 +21,10 @@
         @endif
     </div>
 
-    {{-- Статус верификации --}}
-    @if(Auth::user()->shop->is_phone_verified)
-        @include('profile.partials.phone.verified')
-    @else
-        @include('profile.partials.phone.unverified')
-    @endif
+{{-- Статус верификации --}}
+@if(Auth::user()->shop->is_phone_verified)
+    @include('seller.partials.phone.verified')
+@else
+    @include('seller.partials.phone.unverified')
+@endif
 </div>

@@ -1,11 +1,11 @@
-{{-- resources/views/profile/index.blade.php --}}
+{{-- resources/views/seller/partials/main.blade.php --}}
 <section class="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 space-y-8">
 
     {{-- 🔹 Заголовок с градиентом --}}
-    @include('profile.partials.header')
+    @include('seller.partials.header')
 
     {{-- ✅ Анимированное уведомление об успехе --}}
-    @include('profile.partials.success-notification')
+    @include('seller.partials.success-notification')
 
     {{-- 🔹 Основная форма в карточках --}}
     <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-8">
@@ -20,24 +20,22 @@
             </h3>
             
             <div class="flex flex-col lg:flex-row items-center gap-8">
-                @include('profile.partials.avatar')
-                @include('profile.partials.personal-fields')
+                @include('seller.partials.avatar')
+                @include('seller.partials.personal-fields')
             </div>
         </div>
 
         {{-- 💾 Кнопка сохранения --}}
-        @include('profile.partials.submit-button')
+        @include('seller.partials.submit-button')
     </form>
 
     {{-- 📱 Телефон магазина --}}
     @if (Auth::user()->shop)
-        @include('profile.partials.shop-phone')
+        @include('seller.partials.shop-phone')
     @endif
 
     {{-- 📧 Верификация email --}}
-    @include('profile.partials.email-verification')
-
-    
+    @include('seller.partials.email-verification')
 
 </section>
 
@@ -54,3 +52,45 @@
     <script src="{{ asset('js/profile/avatar-cropper.js') }}"></script>
     <script src="{{ asset('js/profile/phone-input.js') }}"></script>
 @endpush
+
+
+
+
+
+
+
+
+{{-- 
+╔═══════════════════════════════════════════════════════════════════╗
+║   СТРУКТУРА ПРОФИЛЯ ПРОДАВЦА                                       ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+📁 resources/views/seller/partials/
+├── 📄 main.blade.php              # Главный файл (собирает всё)
+├── 📄 header.blade.php             # Заголовок + дата регистрации
+├── 📄 success-notification.blade.php # Уведомление об успехе
+├── 📄 avatar.blade.php             # Аватар + кроппер (JS внутри)
+├── 📄 personal-fields.blade.php     # Поля (имя, email)
+├── 📄 submit-button.blade.php       # Кнопка сохранения
+├── 📄 email-verification.blade.php  # Блок верификации email
+├── 📄 shop-phone.blade.php          # Главный блок телефона
+│
+📁 seller/partials/phone/           # Компоненты телефона магазина
+├── 📄 verified.blade.php            # Телефон подтверждён
+├── 📄 unverified.blade.php          # Телефон не подтверждён
+├── 📄 update-form.blade.php         # Форма изменения номера
+├── 📄 verify-form.blade.php         # Форма отправки кода
+├── 📄 verification-flow.blade.php   # Процесс верификации
+└── 📄 verify-code-form.blade.php    # Форма ввода кода
+
+📁 public/js/profile/                # JavaScript файлы
+├── 📄 avatar-cropper.js             # Логика обрезки аватара
+└── 📄 phone-input.js                 # Инициализация полей телефона
+
+─────────────────────────────────────────────────────────────────────
+📁 resources/views/profile/partials/  # Стандартные компоненты (Breeze)
+├── 📄 delete-user-form.blade.php     # Удаление аккаунта
+├── 📄 update-password-form.blade.php # Смена пароля
+├── 📄 update-profile-information-form.blade.php # Стандартный профиль
+└── 📄 category-menu.blade.php        # Меню категорий (мобилка)
+--}}
