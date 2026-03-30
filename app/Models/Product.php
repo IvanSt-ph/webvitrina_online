@@ -183,27 +183,45 @@ class Product extends Model
      | 🖼 АКСЕССОРЫ ИЗОБРАЖЕНИЙ
      |--------------------------------------------------*/
 
-    /**
-     * URL основной картинки с fallback
-     */
-    public function getImageUrlAttribute(): string
-    {
-        return $this->image 
-            ? asset('storage/' . $this->image) 
-            : asset('images/no-image.png');
-    }
-
-    /**
-     * URL-ы галереи с fallback
-     */
-    public function getGalleryImagesAttribute(): array
-    {
-        if (!empty($this->gallery) && is_array($this->gallery)) {
-            return array_map(fn($img) => asset('storage/' . $img), $this->gallery);
+/**
+ * URL основной картинки с fallback
+ */
+public function getImageUrlAttribute(): string
+{
+    // Если есть изображение в базе
+    if ($this->image && !empty($this->image)) {
+        // Проверяем, что файл существует
+        if (Storage::disk('public')->exists($this->image)) {
+            return asset('storage/' . $this->image);
         }
-        
-        return [asset('images/no-image.png')];
     }
+    
+    // Возвращаем встроенный SVG (всегда работает)
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ccircle cx="100" cy="100" r="40" fill="none" stroke="%239ca3af" stroke-width="2"/%3E%3Cpath d="M70 70L130 130M130 70L70 130" stroke="%239ca3af" stroke-width="2"/%3E%3C/svg%3E';
+}
+
+/**
+ * URL-ы галереи с fallback
+ */
+public function getGalleryImagesAttribute(): array
+{
+    $images = [];
+    
+    if (!empty($this->gallery) && is_array($this->gallery)) {
+        foreach ($this->gallery as $img) {
+            if ($img && Storage::disk('public')->exists($img)) {
+                $images[] = asset('storage/' . $img);
+            }
+        }
+    }
+    
+    // Если нет изображений в галерее
+    if (empty($images)) {
+        $images[] = $this->image_url; // используем тот же fallback
+    }
+    
+    return $images;
+}
 
     /**
      * Первое изображение из галереи (удобно для превью)

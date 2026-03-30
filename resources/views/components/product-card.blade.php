@@ -14,11 +14,26 @@
     foreach (($p->gallery ?? []) as $g) {
         if ($g && !in_array($g, $rawGallery)) $rawGallery[] = $g;
     }
-    if (empty($rawGallery)) $rawGallery = [];
+  // ✅ Добавляем заглушку, если галерея пуста
+if (empty($rawGallery)) {
+    $rawGallery[] = 'no-image.png'; // Добавляем имя файла заглушки
+}
 
-    $gallery = array_map(function($img) {
-        return (!str_starts_with($img, 'http')) ? asset('storage/' . $img) : $img;
-    }, $rawGallery);
+$gallery = array_map(function($img) {
+    // ✅ Если это наша заглушка
+    if ($img === 'no-image.png') {
+        // Встроенный SVG (работает всегда, без файлов)
+        return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ccircle cx="100" cy="100" r="40" fill="none" stroke="%239ca3af" stroke-width="2"/%3E%3Cpath d="M70 70L130 130M130 70L70 130" stroke="%239ca3af" stroke-width="2"/%3E%3C/svg%3E';
+    }
+    
+    // ✅ Если это полный URL
+    if (str_starts_with($img, 'http')) {
+        return $img;
+    }
+    
+    // ✅ Обычное изображение из storage
+    return asset('storage/' . $img);
+}, $rawGallery);
 
     $image = $gallery[0] ?? null;
     $hasGallery = count($gallery) > 1;
