@@ -36,7 +36,7 @@
                                   d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
                     </div>
-                    <span class="text-sm font-medium">Категори_и</span> 
+                    <span class="text-sm font-medium">-Категории</span> 
                 </button>
             </div>
 
