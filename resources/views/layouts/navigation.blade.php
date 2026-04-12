@@ -102,8 +102,8 @@
                 <div x-data="{ 
                         open: false,
                         step: 'country', // 'country' или 'city'
-                        selectedCountry: {{ $currentCountry ?: 'null' }},
-                        selectedCity: {{ $currentCity ?: 'null' }},
+                        selectedCountry: {{ json_encode($currentCountry) }},
+                        selectedCity: {{ json_encode($currentCity) }},
                         countries: {{ json_encode($countries->map(function($country) {
                             return [
                                 'id' => $country->id,
@@ -556,6 +556,12 @@ $profileRoute = match (strtolower(auth()->user()->role ?? '')) {
         </div>
     </div>
 </nav>
+
+<script>
+    // Глобальные переменные для всех скриптов на странице
+    window.selectedCountry = {{ json_encode($currentCountry) }};
+    window.selectedCity = {{ json_encode($currentCity) }};
+</script>
 
 <!-- Стили для скроллбара -->
 <style>
