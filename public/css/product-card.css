@@ -175,7 +175,7 @@
 .pc-qv-mobile {
     position: absolute;
     bottom: 12px;
-    right: 12px;
+    right: 7px;
     z-index: 4;
     
     /* Размеры как у fav */
@@ -257,7 +257,7 @@
 .pc-body { padding: 5px 7px 5px; display: flex; flex-direction: column; flex: 1; }
 .pc-meta-top { margin-bottom: 3px; }
 .pc-shop-name {
-    font-size: 10px; font-weight: 500; color: #b0b0bc;
+    font-size: 11px; font-weight: 500; color: #b0b0bc;
     text-decoration: none; transition: color 0.2s;
     display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     position: relative; z-index: 2;
@@ -265,7 +265,7 @@
 .pc-shop-name:hover { color: #74bdfd; }
 .pc-shop-name--empty { cursor: default; color: #d0d0da; }
 .pc-title {
-    font-size: 13px; 
+    font-size: 15px; 
     font-weight: 600; 
     color: #1a1a2e;
     margin: 0 0 6px; 
@@ -292,7 +292,7 @@
 .pc-rating-count { font-size: 10px; color: #b0b0bc; margin-left: 2px; }
 .pc-rating-empty { font-size: 10px; color: #c0c0cc; margin-left: 4px; }
 .pc-price-row { display: flex; align-items: baseline; gap: 7px; margin-bottom: 5px; }
-.pc-price { font-size: 16px; font-weight: 800; color: #1a1a2e; letter-spacing: -.02em; }
+.pc-price { font-size: 18px; font-weight: 800; color: #1a1a2e; letter-spacing: -.02em; }
 .pc-old-price { font-size: 11px; font-weight: 500; color: #c4c4cc; text-decoration: line-through; }
 
 /* Card actions — one row */
@@ -301,7 +301,7 @@
 .pc-btn {
     width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px;
     padding: 7px 10px; border-radius: 10px;
-    font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 600;
+    font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 600;
     cursor: pointer; transition: background 0.18s, transform 0.14s, box-shadow 0.18s;
     border: none; position: relative; z-index: 2;
 }
