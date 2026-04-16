@@ -3,7 +3,7 @@
 @section('title', 'Пользователи')
 
 @section('content')
-<div class="p-4 md:p-6">
+<div class="p-3 md:p-6">
     <!-- Заголовок -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div class="flex items-center gap-2">
@@ -23,7 +23,7 @@
         </a>
     </div>
 
-    <!-- Поиск и фильтры с улучшенным UX -->
+    <!-- Поиск и фильтры -->
     <div class="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
         <form method="GET" class="flex flex-col sm:flex-row gap-3">
             <div class="flex-1 relative">
@@ -181,10 +181,10 @@
         </div>
     </div>
 
-    <!-- Карточки для мобильных -->
+    <!-- Карточки для мобильных (исправленные) -->
     <div class="md:hidden space-y-3">
         @forelse($users as $user)
-            <div class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-3">
                         <img src="{{ $user->avatar_url ?? asset('images/default-avatar.png') }}"
@@ -219,20 +219,21 @@
                     </div>
                 </div>
                 
+                <!-- Кнопки - исправленные, с уменьшенными отступами -->
                 <div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">
                     <a href="{{ route('admin.users.show', $user) }}" 
-                       class="flex-1 text-center px-3 py-1.5 text-indigo-600 bg-indigo-50 rounded-md text-sm hover:bg-indigo-100 transition-colors">
+                       class="flex-1 text-center px-2 py-1.5 text-indigo-600 bg-indigo-50 rounded-md text-xs hover:bg-indigo-100 transition-colors font-medium">
                         Просмотр
                     </a>
                     <a href="{{ route('admin.users.edit', $user) }}" 
-                       class="flex-1 text-center px-3 py-1.5 text-amber-600 bg-amber-50 rounded-md text-sm hover:bg-amber-100 transition-colors">
-                        Редактировать
+                       class="flex-1 text-center px-2 py-1.5 text-amber-600 bg-amber-50 rounded-md text-xs hover:bg-amber-100 transition-colors font-medium">
+                        Редакт.
                     </a>
                     <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="flex-1">
                         @csrf
                         @method('DELETE')
                         <button type="submit" 
-                                class="w-full px-3 py-1.5 text-red-600 bg-red-50 rounded-md text-sm hover:bg-red-100 transition-colors"
+                                class="w-full px-2 py-1.5 text-red-600 bg-red-50 rounded-md text-xs hover:bg-red-100 transition-colors font-medium"
                                 onclick="return confirm('Удалить пользователя?')">
                             Удалить
                         </button>
@@ -246,7 +247,7 @@
         @endforelse
     </div>
 
-    <!-- Улучшенная пагинация -->
+    <!-- Пагинация -->
     @if($users->hasPages())
         <div class="mt-6">
             {{ $users->appends(request()->query())->onEachSide(1)->links() }}
