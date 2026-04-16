@@ -23,27 +23,28 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse
-{
-    $request->authenticate();
-    $request->session()->regenerate();
+    {
+        $request->authenticate();
+        $request->session()->regenerate();
 
-    $user = $request->user();
+        $user = $request->user();
+        $role = strtolower($user->role ?? '');
 
-    // ✅ Унифицируем значение роли (вдруг в БД 'Admin' с большой буквы)
-    $role = strtolower($user->role ?? '');
+        // 🎯 АДМИН ВСЕГДА В АДМИНКУ (игнорируем intended)
+        if ($role === 'admin') {
+            session()->forget('url.intended');
+            return redirect()->route('admin.dashboard');
+        }
 
-    // 🔻 Определяем, куда вести по роли
-    $fallback = match ($role) {
-        'admin'  => route('admin.dashboard'),
-        'seller' => route('seller.products.index'),
-        default  => route('cabinet'),
-    };
+        // 🔻 Для продавцов и покупателей — стандартная логика
+        $fallback = match ($role) {
+            'seller' => route('seller.products.index'),
+            default  => route('cabinet'), // buyer
+        };
 
-    // ⚙️ Если есть "intended" URL (например, пытался зайти на страницу без входа)
-    // Laravel вернёт туда, иначе — в fallback
-    return redirect()->intended($fallback);
-}
-
+        // ⚙️ Если есть "intended" URL — вернёт туда, иначе в fallback
+        return redirect()->intended($fallback);
+    }
 
     /**
      * Destroy an authenticated session.
