@@ -490,7 +490,7 @@
                                 };
 
 $profileRoute = match (strtolower(auth()->user()->role ?? '')) {
-    'admin'  => route('admin.profile.edit'),
+'admin'  => route('admin.profile'),
     'seller' => route('profile.edit'), // оставляем как есть
     default  => route('buyer.profile'), // покупатели идут на buyer/profile
 };
