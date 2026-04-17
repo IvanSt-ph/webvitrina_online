@@ -229,12 +229,18 @@
           </p>
         </div>
         <div class="flex gap-2">
-          <a href="{{ route('admin.categories.edit', $category) }}" class="text-indigo-600 hover:text-indigo-800">
+          {{-- 🔧 Шестеренка (атрибуты) --}}
+          <a href="{{ route('admin.categories.attributes', $category->id) }}" 
+             class="text-amber-600 hover:text-amber-800 p-2" title="Атрибуты категории">
+            <i class="ri-settings-3-line text-lg"></i>
+          </a>
+          <a href="{{ route('admin.categories.edit', $category) }}" 
+             class="text-indigo-600 hover:text-indigo-800 p-2">
             <i class="ri-edit-2-line"></i>
           </a>
           <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" onsubmit="return confirm('Удалить категорию?')">
             @csrf @method('DELETE')
-            <button class="text-red-500 hover:text-red-700">
+            <button class="text-red-500 hover:text-red-700 p-2">
               <i class="ri-delete-bin-line"></i>
             </button>
           </form>
