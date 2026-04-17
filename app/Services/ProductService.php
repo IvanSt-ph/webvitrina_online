@@ -7,9 +7,11 @@ use App\Models\ProductSlug;
 use App\Repositories\ProductCrudRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductService
 {
+
     public function __construct(
         protected ProductCrudRepository $repo,
         protected ImageService $images,
@@ -33,6 +35,7 @@ class ProductService
             if ($image) {
                 $payload['image'] = $this->images->upload($image, 'products/' . date('Y/m'));
             }
+            // Если нет изображения - оставляем null (НЕ сохраняем путь к no-image.png)
 
             /* ---------- 4. Создание товара ---------- */
             $product = $this->repo->create($payload);
@@ -66,6 +69,7 @@ class ProductService
 
             /* ---------- 3. Обновление главного фото ---------- */
             if ($image) {
+                // Удаляем старое фото (защита в ImageService)
                 $this->images->delete($product->image);
                 $payload['image'] = $this->images->upload($image, 'products/' . date('Y/m'));
             }
@@ -95,27 +99,29 @@ class ProductService
     }
 
     /* ============================================================
-     |  УДАЛЕНИЕ
+     |  УДАЛЕНИЕ ТОВАРА
      ============================================================ */
     public function delete(Product $product): void
     {
         DB::transaction(function () use ($product) {
 
-            // Удаляем главное фото
+            // Удаляем главное фото (защита в ImageService)
             $this->images->delete($product->image);
 
-            // Удаляем галерею
+            // Удаляем галерею (защита в ImageService)
             foreach ((array)$product->gallery as $path) {
                 $this->images->delete($path);
             }
 
             // Удаляем товар
             $this->repo->delete($product);
+            
+            Log::info("✅ Товар удален: ID {$product->id} - {$product->title}");
         });
     }
 
     /* ============================================================
-     |  ВСПОМОГАТЕЛЬНЫЕ
+     |  ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
      ============================================================ */
 
     protected function prepareData(array $data, bool $updating = false): array
@@ -173,6 +179,7 @@ class ProductService
 
     protected function removeGalleryImage(Product $product, string $path): void
     {
+        // Удаляем через ImageService (защита внутри)
         $this->images->delete($path);
 
         $gallery = array_filter((array)$product->gallery, fn($p) => $p !== $path);
@@ -181,8 +188,7 @@ class ProductService
     }
 
     public function deleteFromGallery(Product $product, string $path): void
-{
-    $this->removeGalleryImage($product, $path);
-}
-
+    {
+        $this->removeGalleryImage($product, $path);
+    }
 }

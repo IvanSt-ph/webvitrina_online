@@ -51,49 +51,51 @@ class ProductController extends Controller
     {
         $data = $request->validated();
 
-        $this->productService->store(
+        $this->productService->create(
             data: $data,
             image: $request->file('image'),
-            galleryFiles: $request->file('gallery', []),
-            userId: $data['user_id']
+            gallery: $request->file('gallery', [])
         );
 
-      return redirect()
-        ->route('admin.products.index')
-        ->with('success', '✅ Товар успешно создан!');
-
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', '✅ Товар успешно создан!');
     }
 
     /** ✏️ Редактирование */
-public function edit(Product $product)
-{
-    $categories = Category::whereNull('parent_id')->orderBy('name')->get();
-    $sellers = User::where('role', 'seller')->orderBy('name')->get();
-    $countries = Country::orderBy('name')->get();
+    public function edit(Product $product)
+    {
+        $categories = Category::whereNull('parent_id')->orderBy('name')->get();
+        $sellers = User::where('role', 'seller')->orderBy('name')->get();
+        $countries = Country::orderBy('name')->get();
 
-    // корректно определяем страну через связь города
-    $countryId = optional($product->city)->country_id;
+        $countryId = optional($product->city)->country_id;
+        $cities = $countryId
+            ? City::where('country_id', $countryId)->get()
+            : collect();
 
-    $cities = $countryId
-        ? City::where('country_id', $countryId)->get()
-        : collect();
-
-    return view('admin.products.edit', compact(
-        'product', 'categories', 'sellers', 'countries', 'cities'
-    ));
-}
-
+        return view('admin.products.edit', compact(
+            'product', 'categories', 'sellers', 'countries', 'cities'
+        ));
+    }
 
     /** 🔄 Обновление */
     public function update(ProductUpdateRequest $request, Product $product)
     {
         $data = $request->validated();
+        
+        $galleryToDelete = $request->input('gallery_to_delete', []);
+        
+        if (is_string($galleryToDelete)) {
+            $galleryToDelete = json_decode($galleryToDelete, true) ?? [];
+        }
 
         $this->productService->update(
             product: $product,
             data: $data,
             image: $request->file('image'),
-            galleryNew: $request->file('gallery', [])
+            galleryNew: $request->file('gallery', []),
+            galleryToDelete: $galleryToDelete
         );
 
         return redirect()->route('admin.products.index')->with('success', '✅ Товар обновлён.');
@@ -108,52 +110,38 @@ public function edit(Product $product)
     }
 
     /** 🔍 Live-поиск по названию и артикулу (SKU) */
-public function search(Request $request)
-{
-    $q = trim($request->get('q', ''));
+    public function search(Request $request)
+    {
+        $q = trim($request->get('q', ''));
 
-    // Не ищем, если запрос короткий
-    if (strlen($q) < 2) {
-        return response()->json([]);
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $products = Product::select('id', 'title', 'price', 'image', 'sku')
+            ->where(function ($query) use ($q) {
+                $query->where('title', 'like', "%{$q}%")
+                      ->orWhere('sku', 'like', "%{$q}%");
+            })
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
+
+        return response()->json($products);
     }
 
-    $products = Product::select('id', 'title', 'price', 'image', 'sku')
-        ->where(function ($query) use ($q) {
-            $query->where('title', 'like', "%{$q}%")
-                  ->orWhere('sku', 'like', "%{$q}%");
-        })
-        ->orderByDesc('created_at')
-        ->limit(10)
-        ->get();
+    /** 🖼️ Удаление изображения из галереи товара (AJAX) - ИСПРАВЛЕНО */
+    public function deleteGalleryImage(Request $request, Product $product)
+    {
+        $path = $request->input('path');
 
-    return response()->json($products);
-}
+        if (!$path) {
+            return response()->json(['error' => 'Путь к изображению не указан'], 400);
+        }
 
+        // Вся логика удаления в сервисе!
+        $this->productService->deleteGalleryImage($product, $path);
 
-/** 🖼️ Удаление изображения из галереи товара (AJAX) */
-public function deleteGalleryImage(Request $request, Product $product)
-{
-    $path = $request->input('path');
-
-    if (!$path) {
-        return response()->json(['error' => 'Путь к изображению не указан'], 400);
+        return response()->json(['success' => true]);
     }
-
-    if (\Storage::disk('public')->exists($path)) {
-        \Storage::disk('public')->delete($path);
-    }
-
-    $gallery = is_array($product->gallery)
-        ? $product->gallery
-        : json_decode($product->gallery ?? '[]', true);
-
-    $gallery = array_values(array_filter($gallery, fn($img) => $img !== $path));
-
-    $product->gallery = json_encode($gallery);
-    $product->save();
-
-    return response()->json(['success' => true]);
-}
-
-
 }

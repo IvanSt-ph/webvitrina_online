@@ -4,9 +4,20 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ImageService
 {
+    // Защищенные изображения (точное совпадение имени файла)
+    const PROTECTED_IMAGES = [
+        'no-image.png',
+        'default-product.png',
+        'placeholder.png',
+        'default/no-image.png',
+        'no-avatar.png',
+        'default-avatar.png'
+    ];
+
     /**
      * 📤 Загрузка одного изображения
      */
@@ -32,23 +43,41 @@ class ImageService
     }
 
     /**
-     * 🧹 Удаление одной картинки
+     * 🧹 Удаление одной картинки (С ЗАЩИТОЙ - только точное совпадение)
      */
     public function delete(?string $path): void
     {
-        if (!$path) return;
+        if (empty($path)) {
+            return;
+        }
+
+        // 🔥 Защита: только точное совпадение имени файла
+        if ($this->isProtectedImage($path)) {
+            Log::warning("🛡️ ImageService: попытка удалить защищенное изображение: {$path}");
+            return;
+        }
 
         // Убираем префикс storage/
         $clean = ltrim(str_replace(['storage/', '/storage/'], '', $path), '/');
 
         if ($clean === '' || str_contains($clean, '[')) {
-            return; // защита от некорректных JSON-путей
+            return;
         }
 
-        // Удаляем из стораджа
         if (Storage::disk('public')->exists($clean)) {
             Storage::disk('public')->delete($clean);
+            Log::info("✅ ImageService: удалено: {$clean}");
         }
+    }
+
+    /**
+     * Проверяет, является ли изображение защищенным
+     * ТОЛЬКО точное совпадение имени файла - безопасно!
+     */
+    protected function isProtectedImage(string $path): bool
+    {
+        $basename = basename($path);
+        return in_array($basename, self::PROTECTED_IMAGES, true);
     }
 
     /**
@@ -71,8 +100,7 @@ class ImageService
     }
 
     /**
-     * 📁 Генерация рабочего пути (если ещё понадобится)
-     * Например: products/2025/01/file.jpg
+     * 📁 Генерация рабочего пути
      */
     public function makeDir(string $base = 'products'): string
     {
