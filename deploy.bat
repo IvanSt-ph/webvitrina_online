@@ -1,31 +1,34 @@
 @echo off
 
-echo    🔨 Собираем фронтенд...
+echo.
+echo    BUILD FRONTEND...
 
+call npm install
 call npm run build
 
 echo.
-
-echo    📦 Добавляем изменения в Git...
+echo    GIT ADD...
 
 git add .
-git commit -m "Обновление фронтенда"
+
+git commit -m "Frontend update"
 
 echo.
-
-echo    🚀 Отправляем на GitHub...
+echo    PUSH TO GITHUB...
 
 git push
 
 echo.
-
-echo    ✅ Готово!
+echo    DONE!
 
 echo.
-echo 📌 Что делать на сервере:
+echo    SERVER COMMANDS:
+echo ----------------------------------------
 echo    cd /www/wwwroot/webv3
 echo    git pull
+echo    npm install
 echo    npm run build
 echo    php artisan optimize:clear
-echo.
+echo ----------------------------------------
+
 pause
