@@ -382,7 +382,7 @@ public function redirectToRoleProfile()
             'title' => $p->title,
             'price' => $p->price,
             'image' => $p->image,
-            'link'  => route('product.show', $p->id),
+          'link' => route('product.show', $p->slug),
         ])->toArray();
     }
 

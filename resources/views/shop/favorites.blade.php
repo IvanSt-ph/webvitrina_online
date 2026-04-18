@@ -4,149 +4,239 @@
       $addedId = (int) session('cart_added_id');
   @endphp
 
-  <div class="space-y-10">
+  <div class="max-w-8xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
 
-    <!-- 🔝 Заголовок -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">💖 Избранное</h1>
-        <p class="text-gray-500 text-sm">
-          Все понравившиеся вами товары. Можно добавить в корзину или купить сразу.
-        </p>
-      </div>
-
-      @if($items->isNotEmpty())
-        <a href="{{ route('cart.index') }}"
-           class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium
-                  rounded-xl shadow hover:bg-indigo-700 transition-all">
-
-          <div class="relative">
-            <i class="ri-shopping-cart-2-line text-lg" data-cart-icon></i>
-<span data-cart-count
-      class="absolute -top-1.5 -right-2 bg-red-600 text-white
-             text-[10px] font-bold px-1.5 py-0.5 rounded-full
-             opacity-0 transition-all duration-200 pointer-events-none">
-</span>
-
+    {{-- Header --}}
+    <div class="mb-6 sm:mb-10">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center">
+              <i class="ri-heart-3-line text-indigo-500 text-sm sm:text-base"></i>
+            </div>
+            <span class="text-[10px] sm:text-xs font-mono text-indigo-400 tracking-wider uppercase">Wishlist</span>
           </div>
+          <h1 class="text-2xl sm:text-3xl font-light tracking-tight text-gray-900">Избранное</h1>
+          <p class="text-gray-400 text-xs sm:text-sm mt-0.5">{{ $items->isNotEmpty() ? $items->count() . ' сохранённых товара' : 'пусто' }}</p>
+        </div>
 
-          Перейти в корзину
+        @if($items->isNotEmpty())
+        <a href="{{ route('cart.index') }}"
+           class="inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border border-indigo-200 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200">
+          <div class="relative">
+            <i class="ri-shopping-cart-line text-sm sm:text-base" data-cart-icon></i>
+            <span data-cart-count
+                  class="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[9px] font-bold min-w-[16px] h-4 px-1 rounded-full hidden items-center justify-center">
+            </span>
+          </div>
+          <span>Корзина</span>
+          <i class="ri-arrow-right-s-line text-base opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 hidden sm:inline"></i>
         </a>
-      @endif
+        @endif
+      </div>
     </div>
 
     @if($items->isEmpty())
-      <!-- 🕊 Пустое состояние -->
-      <div class="text-center py-28">
-        <div class="text-7xl mb-5 opacity-80">🛍️</div>
-        <p class="text-lg font-semibold text-gray-800">У вас пока нет избранных товаров</p>
-        <p class="text-sm text-gray-500 mt-1">
-          Добавляйте понравившиеся товары, чтобы вернуться к ним позже.
-        </p>
 
+      {{-- Empty state --}}
+      <div class="text-center py-12 sm:py-20">
+        <div class="mb-5">
+          <div class="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-indigo-50 rounded-2xl">
+            <i class="ri-heart-3-line text-3xl sm:text-4xl text-indigo-300"></i>
+          </div>
+        </div>
+        <h3 class="text-lg sm:text-xl font-light text-gray-700 mb-2">Здесь пока пусто</h3>
+        <p class="text-gray-400 text-sm mb-6">Сохраняйте понравившиеся товары</p>
         <a href="{{ route('home') }}"
-           class="mt-8 inline-block bg-indigo-600 text-white px-8 py-3.5 rounded-xl shadow hover:bg-indigo-700 transition">
-          Перейти в каталог
+           class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-full text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+          <i class="ri-arrow-left-s-line"></i>
+          <span>В каталог</span>
         </a>
       </div>
 
     @else
-      <!-- 🛍 Список избранного -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-7">
+
+      {{-- Favorites list --}}
+      <div class="space-y-2 sm:space-y-3">
         @foreach($items as $f)
           @php $p = $f->product; @endphp
 
-          <div class="fav-card bg-white rounded-2xl border border-gray-100 shadow-sm
-                      flex flex-col group overflow-hidden"
+          <div class="fav-card group bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
                data-fav-card data-id="{{ $p->id }}">
 
-            <!-- Фото -->
-            <a href="{{ route('product.show', $p) }}"
-               class="relative aspect-square bg-gray-50 overflow-hidden">
+            {{-- Мобильная версия: фото 50px, справа название+цена, внизу кнопки --}}
+            <div class="block sm:hidden">
+              <div class="p-3">
+                {{-- Верхняя строка: фото + информация --}}
+                <div class="flex gap-3">
+                  {{-- Фото 50x50 --}}
+                  <a href="{{ route('product.show', $p) }}"
+                     class="relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
+                    @if($p->image)
+                      <img src="{{ asset('storage/'.$p->image) }}"
+                           class="w-full h-full object-cover"
+                           alt="{{ $p->title }}">
+                    @else
+                      <div class="w-full h-full flex items-center justify-center text-lg text-gray-300">
+                        <i class="ri-image-line"></i>
+                      </div>
+                    @endif
 
-              @if($p->image)
-                <img src="{{ asset('storage/'.$p->image) }}"
-                     alt="{{ $p->title }}"
-                     class="w-full h-full object-cover transition duration-500 group-hover:scale-110" />
-              @else
-                <div class="flex items-center justify-center h-full text-gray-300 text-4xl">🛒</div>
-              @endif
+                    @if($addedId === (int) $p->id)
+                      <div class="absolute -top-1 -right-1 bg-emerald-500 text-white text-[8px] font-medium px-1 py-0.5 rounded-full">
+                        ✓
+                      </div>
+                    @endif
+                  </a>
 
-              <!-- ❤️ Удалить из избранного (сердце) -->
-              <form method="POST" action="{{ route('favorites.toggle', $p) }}"
-                    class="absolute top-2 right-2 z-10 fav-toggle-heart">
-                @csrf
-                <button
-                  class="w-9 h-9 flex items-center justify-center bg-white/90 backdrop-blur-md
-                         rounded-full shadow-md hover:bg-red-100 transition">
-                  <i class="ri-heart-fill text-red-500 text-lg"></i>
-                </button>
-              </form>
+                  {{-- Название и цена --}}
+                  <div class="flex-1 min-w-0">
+                    <a href="{{ route('product.show', $p) }}"
+                       class="text-sm font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug">
+                      {{ $p->title }}
+                    </a>
+                    <div class="mt-1">
+                      @if(isset($p->old_price) && $p->old_price)
+                        <span class="text-[9px] text-gray-400 line-through mr-1">
+                          {{ number_format($p->old_price, 0, ',', ' ') }} ₽
+                        </span>
+                      @endif
+                      <span class="text-sm font-bold text-gray-900">
+                        {{ number_format($p->price, 0, ',', ' ') }}
+                      </span>
+                      <span class="text-[9px] text-gray-400">₽</span>
+                    </div>
+                  </div>
 
-              {{-- 🟢 Мини-плашка "В корзине" --}}
-              @if($addedId === (int) $p->id)
-                <div class="in-cart-badge">В корзине</div>
-              @endif
+                  {{-- Discount badge если есть --}}
+                  @if(isset($p->discount_percent) && $p->discount_percent)
+                    <div class="flex-shrink-0">
+                      <span class="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        -{{ $p->discount_percent }}%
+                      </span>
+                    </div>
+                  @endif
+                </div>
 
-            </a>
+                {{-- Кнопки под информацией на всю ширину --}}
+                <div class="flex items-center gap-2 mt-3">
+                  <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form flex-1">
+                    @csrf
+                    <button type="submit"
+                      class="w-full py-2 flex items-center justify-center gap-1.5
+                             bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-all duration-200
+                             text-xs font-medium">
+                      <i class="ri-shopping-cart-line text-sm"></i>
+                      <span>В корзину</span>
+                    </button>
+                  </form>
 
-            <!-- Информация -->
-            <div class="flex-1 flex flex-col p-4">
+                  <form method="POST" action="{{ route('checkout.quick', $p->id) }}" class="flex-1">
+                    @csrf
+                    <button class="w-full py-2 flex items-center justify-center gap-1.5
+                                   border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 
+                                   text-gray-600 rounded-lg transition-all duration-200 hover:bg-indigo-50 text-xs font-medium">
+                      <i class="ri-flashlight-line text-sm"></i>
+                      <span>Купить</span>
+                    </button>
+                  </form>
 
+                  <form method="POST" action="{{ route('favorites.toggle', $p) }}" class="js-fav-remove-form">
+                    @csrf
+                    <button type="submit"
+                      class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all duration-200 rounded-lg hover:bg-red-50">
+                      <i class="ri-delete-bin-6-line text-sm"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            {{-- Десктопная версия: строка --}}
+            <div class="hidden sm:flex items-center gap-3 p-4">
+              
+              {{-- Product image --}}
               <a href="{{ route('product.show', $p) }}"
-                 class="text-sm font-medium text-gray-900 hover:text-indigo-600 line-clamp-2 min-h-[40px] mb-2">
-                {{ $p->title }}
+                 class="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
+                @if($p->image)
+                  <img src="{{ asset('storage/'.$p->image) }}"
+                       class="w-full h-full object-cover transition-transform duration-400 group-hover:scale-105"
+                       alt="{{ $p->title }}">
+                @else
+                  <div class="w-full h-full flex items-center justify-center text-2xl text-gray-300">
+                    <i class="ri-image-line"></i>
+                  </div>
+                @endif
+
+                @if($addedId === (int) $p->id)
+                  <div class="absolute bottom-1 left-1 bg-emerald-500 text-white text-[8px] font-medium px-1.5 py-0.5 rounded-full">
+                    ✓
+                  </div>
+                @endif
+
+                @if(isset($p->discount_percent) && $p->discount_percent)
+                  <div class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                    -{{ $p->discount_percent }}%
+                  </div>
+                @endif
               </a>
 
-              @if($p->price)
-                <p class="text-lg font-semibold text-gray-900 mb-4">
-                  {{ number_format($p->price, 2, ',', ' ') }} ₽
-                </p>
-              @else
-                <p class="text-sm text-gray-400 mb-4">Нет в наличии</p>
-              @endif
+              {{-- Product info --}}
+              <div class="flex-1 min-w-0">
+                <a href="{{ route('product.show', $p) }}"
+                   class="text-base font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug">
+                  {{ $p->title }}
+                </a>
+                
+                @if($p->short_description)
+                  <p class="text-xs text-gray-400 line-clamp-1 mt-0.5">
+                    {{ Str::limit($p->short_description, 60) }}
+                  </p>
+                @endif
 
-              <!-- Кнопки -->
-              <div class="mt-auto flex flex-col gap-2">
+                <div class="mt-1">
+                  @if(isset($p->old_price) && $p->old_price)
+                    <span class="text-xs text-gray-400 line-through mr-1.5">
+                      {{ number_format($p->old_price, 0, ',', ' ') }} ₽
+                    </span>
+                  @endif
+                  <span class="text-xl font-bold text-gray-900">
+                    {{ number_format($p->price, 0, ',', ' ') }}
+                  </span>
+                  <span class="text-xs text-gray-400">₽</span>
+                </div>
+              </div>
 
-                <!-- Добавить в корзину -->
-                <form method="POST"
-                      action="{{ route('cart.add', $p->id) }}"
-                      class="js-add-to-cart-form">
+              {{-- Actions --}}
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form">
                   @csrf
                   <button type="submit"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold
-                           bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                    class="px-3 py-2 flex items-center justify-center gap-1.5
+                           bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-all duration-200
+                           text-sm font-medium">
                     <i class="ri-shopping-cart-line text-sm"></i>
-                    В корзину
+                    <span>В корзину</span>
                   </button>
                 </form>
 
-                <!-- Купить сейчас -->
                 <form method="POST" action="{{ route('checkout.quick', $p->id) }}">
                   @csrf
-                  <button type="submit"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium
-                           border border-gray-200 text-gray-700 rounded-lg hover:border-indigo-400 hover:text-indigo-600 transition">
+                  <button class="px-3 py-2 flex items-center justify-center gap-1.5
+                                 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 
+                                 text-gray-600 rounded-xl transition-all duration-200 hover:bg-indigo-50 text-sm font-medium">
                     <i class="ri-flashlight-line text-sm"></i>
-                    Купить сейчас
+                    <span>Купить</span>
                   </button>
                 </form>
 
-                <!-- Удалить (fade-out карточка) -->
-                <form method="POST"
-                      action="{{ route('favorites.toggle', $p) }}"
-                      class="js-fav-remove-form">
+                <form method="POST" action="{{ route('favorites.toggle', $p) }}" class="js-fav-remove-form">
                   @csrf
                   <button type="submit"
-                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium
-                           text-gray-500 border border-gray-200 rounded-lg
-                           hover:text-red-600 hover:border-red-400 transition">
-                    <i class="ri-delete-bin-6-line text-sm"></i>
-                    Удалить
+                    class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all duration-200 rounded-xl hover:bg-red-50">
+                    <i class="ri-delete-bin-6-line text-base"></i>
                   </button>
                 </form>
-
               </div>
 
             </div>
@@ -154,257 +244,258 @@
 
         @endforeach
       </div>
+
     @endif
   </div>
 
-
-  <!-- =============================================== -->
-  <!-- ⚡ SCRIPTS (всё собрано в один чистый блок) -->
-  <!-- =============================================== -->
   <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    /* ===============================
-       🔥 Toast уведомление
-    =============================== */
     function showToast(text, type = 'success') {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      
       const el = document.createElement('div');
-      el.className = 'toast ' + (type === 'error' ? 'toast-error' : '');
-      el.innerText = text;
-
+      el.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
+      el.innerHTML = `
+        <div class="flex items-center gap-2">
+          <i class="${type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'} text-base"></i>
+          <span>${text}</span>
+        </div>
+      `;
       document.body.appendChild(el);
-      setTimeout(() => el.style.opacity = '0', 2000);
-      setTimeout(() => el.remove(), 2400);
+      
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(20px)';
+        setTimeout(() => el.remove(), 300);
+      }, 2500);
     }
 
     @if(session('success'))
       showToast("{{ session('success') }}");
     @endif
 
-    /* ===============================
-       ➕ +1 над кнопкой
-    =============================== */
     function showPlusOne(btn) {
-        const plus = document.createElement('span');
-        plus.className = 'plus-one';
-        plus.innerText = '+1';
-        btn.style.position = 'relative';
-        btn.appendChild(plus);
-        setTimeout(() => plus.remove(), 300);
+      const plus = document.createElement('span');
+      plus.className = 'plus-one';
+      plus.innerText = '+1';
+      btn.style.position = 'relative';
+      btn.appendChild(plus);
+      setTimeout(() => plus.remove(), 300);
     }
 
-    /* ===============================
-       🧲 Перелёт товара в корзину
-    =============================== */
     function flyToCart(img, cartIcon) {
-        const clone = img.cloneNode(true);
-        const start = img.getBoundingClientRect();
-        const end = cartIcon.getBoundingClientRect();
+      if (!img || !cartIcon) return;
+      
+      const clone = img.cloneNode(true);
+      const start = img.getBoundingClientRect();
+      const end = cartIcon.getBoundingClientRect();
 
-        clone.style.position = 'fixed';
-        clone.style.left = start.left + 'px';
-        clone.style.top = start.top + 'px';
-        clone.style.width = start.width + 'px';
-        clone.style.height = start.height + 'px';
-        clone.style.borderRadius = '12px';
-        clone.style.zIndex = 9999;
-        clone.style.transition = 'all .7s cubic-bezier(.25,.46,.45,.94)';
+      clone.style.position = 'fixed';
+      clone.style.left = start.left + 'px';
+      clone.style.top = start.top + 'px';
+      clone.style.width = start.width + 'px';
+      clone.style.height = start.height + 'px';
+      clone.style.borderRadius = '12px';
+      clone.style.zIndex = 9999;
+      clone.style.transition = 'all 0.6s cubic-bezier(0.34, 1.2, 0.64, 1)';
+      clone.style.pointerEvents = 'none';
 
-        document.body.appendChild(clone);
+      document.body.appendChild(clone);
 
-        setTimeout(() => {
-            clone.style.left = end.left + 'px';
-            clone.style.top = end.top + 'px';
-            clone.style.width = '20px';
-            clone.style.height = '20px';
-            clone.style.opacity = '0.3';
-            clone.style.transform = 'scale(0.4)';
-        }, 20);
+      requestAnimationFrame(() => {
+        clone.style.left = end.left + 'px';
+        clone.style.top = end.top + 'px';
+        clone.style.width = '24px';
+        clone.style.height = '24px';
+        clone.style.opacity = '0.4';
+        clone.style.transform = 'scale(0.3)';
+      });
 
-        setTimeout(() => clone.remove(), 750);
+      setTimeout(() => clone.remove(), 600);
     }
 
-    /* ===============================
-       🔢 Обновление счётчика
-    =============================== */
-function updateCartCount() {
-    fetch("/cart-count")
+    function updateCartCount() {
+      fetch("/cart-count")
         .then(r => r.json())
         .then(data => {
-            const badge = document.querySelector("[data-cart-count]");
-            if (!badge) return;
+          const badge = document.querySelector("[data-cart-count]");
+          if (!badge) return;
+          if (data.count > 0) {
+            badge.classList.remove("hidden");
+            badge.classList.add("inline-flex");
+            badge.textContent = data.count;
+          } else {
+            badge.classList.add("hidden");
+            badge.classList.remove("inline-flex");
+          }
+        })
+        .catch(e => console.log('Cart count error:', e));
+    }
 
-            if (data.count > 0) {
-                badge.classList.remove("hidden");
-                badge.textContent = data.count;
-            } else {
-                badge.classList.add("hidden");
-            }
-        });
-}
+    updateCartCount();
 
-updateCartCount();
-
-    /* ===============================
-       🛍 Добавление в корзину
-    =============================== */
     document.querySelectorAll('.js-add-to-cart-form').forEach(form => {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
+        const btn = this.querySelector('button');
+        const card = this.closest('[data-fav-card]');
+        const img = card.querySelector('img');
+        const cartIcon = document.querySelector('[data-cart-icon]');
 
-            const btn = this.querySelector('button');
-            const card = this.closest('[data-fav-card]');
-            const img  = card.querySelector('img');
-            const cartIcon = document.querySelector('[data-cart-icon]');
+        const originalContent = btn.innerHTML;
+        btn.classList.add('loading');
+        btn.disabled = true;
 
-            // spinner
-            btn.classList.add('loading');
-            btn.disabled = true;
+        showPlusOne(btn);
+        card.classList.add('card-added');
+        setTimeout(() => card.classList.remove('card-added'), 1000);
+        if (img && cartIcon) flyToCart(img, cartIcon);
 
-            // +1
-            showPlusOne(btn);
+        btn.innerHTML = '<i class="ri-check-line text-sm"></i><span>Готово</span>';
 
-            // подсветка
-            card.classList.add('card-added');
-            setTimeout(() => card.classList.remove('card-added'), 1200);
+        setTimeout(() => {
+          btn.innerHTML = originalContent;
+          btn.classList.remove('loading');
+          btn.disabled = false;
+        }, 1200);
 
-            // перелёт
-            if (img && cartIcon) flyToCart(img, cartIcon);
-
-            // ✓ В корзине
-            const old = btn.innerHTML;
-            btn.innerHTML = '<i class="ri-check-line"></i> В корзине';
-
-            setTimeout(() => {
-                btn.innerHTML = old;
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }, 1200);
-
-            // отправка
-            setTimeout(() => {
-                this.submit();
-                updateCartCount();
-            }, 250);
-        });
+        setTimeout(() => {
+          this.submit();
+          updateCartCount();
+        }, 200);
+      });
     });
 
-    /* ===============================
-       🗑 Fade-out удаление из избранного
-    =============================== */
     document.querySelectorAll('.js-fav-remove-form').forEach(form => {
-
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const card = this.closest('[data-fav-card]');
-            card.classList.add('fav-removing');
-
-            setTimeout(() => this.submit(), 200);
-        });
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const card = this.closest('[data-fav-card]');
+        card.classList.add('fav-removing');
+        setTimeout(() => this.submit(), 200);
+      });
     });
 
-});
+  });
   </script>
 
-
-  <!-- =============================================== -->
-  <!-- 🎨 СТИЛИ -->
-  <!-- =============================================== -->
   <style>
-    /* Apple shadow */
     .fav-card {
-      transition: .3s ease;
-      box-shadow: 0 18px 48px rgba(0,0,0,.06);
+      transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
     }
     .fav-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 28px 70px rgba(0,0,0,.11);
+      transform: translateY(-2px);
     }
 
-    /* Подсветка */
     .card-added {
-      outline: 3px solid #4ADE80;
-      outline-offset: -3px;
+      background: #ecfdf5 !important;
+      border-color: #10b981 !important;
     }
 
-    /* Fade-out */
     .fav-removing {
       opacity: 0 !important;
-      transform: translateY(8px) scale(.97);
-      transition: .25s ease;
+      transform: translateX(-12px);
+      transition: all 0.2s ease-out;
     }
 
-    /* Badge "В корзине" */
-    .in-cart-badge {
-      position: absolute;
-      bottom: 0.7rem;
-      left: 0.7rem;
-      background: linear-gradient(135deg,#16a34a,#22c55e);
-      color: #fff;
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 9999px;
-      box-shadow: 0 8px 18px rgba(16,185,129,.4);
-      font-weight: 600;
-    }
-
-    /* Toast */
     .toast {
       position: fixed;
-      right: 20px;
-      top: 20px;
-      padding: 12px 16px;
-      background: #fff;
-      border-left: 4px solid #6366f1;
-      border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,.12);
-      font-size: 14px;
-      animation: fadeSlide .4s;
+      right: 16px;
+      top: 80px;
+      padding: 10px 18px;
+      background: #1e293b;
+      color: white;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+      animation: slideInRight 0.3s ease;
       z-index: 99999;
+      backdrop-filter: blur(8px);
+      background: rgba(30, 41, 59, 0.95);
+    }
+    .toast-success {
+      border-left: 3px solid #10b981;
     }
     .toast-error {
-      border-left-color: #dc2626;
+      background: rgba(239, 68, 68, 0.95);
+      border-left: 3px solid #fecaca;
     }
-    @keyframes fadeSlide {
-      from { opacity: 0; transform: translateY(-10px); }
-      to   { opacity: 1; transform: translateY(0); }
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
 
-    /* +1 */
     .plus-one {
       position: absolute;
-      right: 18px;
-      top: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #bbf7d0;
-      text-shadow: 0 0 8px rgba(22,163,74,.9);
-      animation: plusMove .25s ease-out forwards;
+      right: 4px;
+      top: -4px;
+      font-size: 9px;
+      font-weight: 800;
+      color: #10b981;
+      text-shadow: 0 0 2px white;
+      animation: floatUp 0.35s ease-out forwards;
+      pointer-events: none;
+      z-index: 10;
     }
-    @keyframes plusMove {
-      from { opacity: 0; transform: translateY(6px) scale(.9); }
-      to   { opacity: 1; transform: translateY(-6px) scale(1.1); }
+    @keyframes floatUp {
+      0% {
+        opacity: 0;
+        transform: translateY(4px) scale(0.6);
+      }
+      30% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1.1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-14px) scale(0.9);
+      }
     }
 
-    /* Spinner */
     button.loading {
       color: transparent !important;
       position: relative;
+      pointer-events: none;
     }
     button.loading::after {
       content: "";
       position: absolute;
       width: 14px;
       height: 14px;
-      border: 2px solid white;
-      border-top-color: transparent;
+      top: 50%;
+      left: 50%;
+      margin-left: -7px;
+      margin-top: -7px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
       border-radius: 50%;
-      animation: spin .6s linear infinite;
+      animation: spin 0.6s linear infinite;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    .line-clamp-1 {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
     }
   </style>
 

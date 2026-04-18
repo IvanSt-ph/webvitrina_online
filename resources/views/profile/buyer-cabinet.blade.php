@@ -81,18 +81,28 @@
     </div>
 
 <!-- 🔹 РЕКОМЕНДАЦИИ -->
+@php
+    $recs = is_array($recommendations ?? null) ? $recommendations : [];
+@endphp
+
 <div class="overflow-x-auto py-2 px-4 md:hidden">
     <h3 class="font-semibold text-gray-800 mb-2">Рекомендации для вас</h3>
+
     <div class="flex gap-2">
-        @foreach(array_slice($recommendations, 0, 5) as $item)
-            <a href="{{ $item['link'] ?? '#' }}" class="flex-none w-16 h-16 rounded-lg border hover:shadow-md overflow-hidden">
-                @if($item['image'])
-                    <img src="{{ asset('storage/'.$item['image']) }}" class="w-full h-full object-cover" alt="{{ $item['title'] }}">
+        @foreach(array_slice($recs, 0, 5) as $item)
+            <a href="{{ $item['link'] ?? '#' }}"
+               class="flex-none w-16 h-16 rounded-lg border hover:shadow-md overflow-hidden">
+
+                @if(!empty($item['image']))
+                    <img src="{{ asset('storage/'.$item['image']) }}"
+                         class="w-full h-full object-cover"
+                         alt="{{ $item['title'] ?? 'item' }}">
                 @else
                     <div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300">
                         <i class="ri-image-line text-xl"></i>
                     </div>
                 @endif
+
             </a>
         @endforeach
     </div>

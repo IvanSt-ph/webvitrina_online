@@ -370,7 +370,7 @@ Route::middleware('role:buyer')->group(function () {
 Route::get('/seller/{user}', [SellerController::class, 'show'])->name('seller.show');
 
 
-
+Route::get('/cart/count', [CartController::class, 'getCount'])->name('cart.count');
 
 
 /*
