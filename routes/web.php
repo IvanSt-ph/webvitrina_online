@@ -108,9 +108,8 @@ Route::get('/', [ProductController::class, 'index'])->name('home');
 
 
 // 🛍 Товар
-// 🛍 Товар - только по slug
-Route::get('/p/{slug}', [ProductController::class, 'show'])
-    ->where('slug', '[a-z0-9\-]{3,}')  // разрешаем цифры и дефисы
+// 🛍 Товар - универсальный (работает и с ID, и со slug)
+Route::get('/p/{identifier}', [ProductController::class, 'show'])
     ->name('product.show');
 
 

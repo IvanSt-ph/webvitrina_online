@@ -48,3 +48,27 @@
         font-size: 12px;
     }
 }
+
+/* Перенос длинных слов */
+.break-words {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+}
+
+.hyphens-auto {
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+}
+
+/* Для мобильных - уменьшаем размер шрифта на очень маленьких экранах */
+@media (max-width: 480px) {
+    h1.text-2xl {
+        font-size: 1.35rem !important;
+        line-height: 1.4 !important;
+    }
+}
