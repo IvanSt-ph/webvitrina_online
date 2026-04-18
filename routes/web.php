@@ -108,15 +108,10 @@ Route::get('/', [ProductController::class, 'index'])->name('home');
 
 
 // 🛍 Товар
-// Slug: минимум 3 символа, может содержать дефисы
+// 🛍 Товар - только по slug
 Route::get('/p/{slug}', [ProductController::class, 'show'])
-    ->where('slug', '[a-z0-9\-]{3,}')  // минимум 3 символа
+    ->where('slug', '[a-z0-9\-]{3,}')  // разрешаем цифры и дефисы
     ->name('product.show');
-
-// Key: только заглавные+цифры, фиксированная длина
-Route::get('/p/{key}', [ProductController::class, 'show'])
-    ->where('key', '[A-Z0-9]{6,15}')  // от 6 до 10 символов
-    ->name('product.short');
 
 
     
