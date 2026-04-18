@@ -1,3 +1,5 @@
+@props(['product', 'reviews', 'myReview'])
+
 <div
     class="mt-12 bg-white border rounded-2xl shadow-sm p-6"
     x-data="{ tab: 'desc' }"
@@ -49,11 +51,35 @@
     {{-- Контент вкладок --}}
     <div class="mt-6">
 
-        {{-- Описание --}}
+        {{-- Описание с раскрытием --}}
         <div x-show="tab==='desc'" x-transition.opacity.duration.400ms>
-            <p class="text-gray-700 leading-relaxed">
-                {{ $product->description }}
-            </p>
+            <div x-data="{ expanded: false }" class="relative">
+                <div 
+                    x-bind:class="expanded ? '' : 'max-h-32 overflow-hidden'" 
+                    class="text-gray-700 leading-relaxed"
+                >
+                    <div class="whitespace-pre-wrap break-words">
+                        {{ $product->description }}
+                    </div>
+                </div>
+                
+                @php
+                    $descLength = strlen(strip_tags($product->description));
+                @endphp
+                
+                @if($descLength > 200)
+                    <div 
+                        x-show="!expanded" 
+                        class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none"
+                    ></div>
+                    <button 
+                        @click="expanded = !expanded" 
+                        class="mt-2 text-indigo-600 hover:text-indigo-700 text-sm font-medium inline-flex items-center gap-1 transition-colors"
+                    >
+                        <span x-text="expanded ? 'Свернуть ↑' : 'Показать полностью ↓'"></span>
+                    </button>
+                @endif
+            </div>
         </div>
 
         {{-- Размеры --}}
@@ -80,25 +106,25 @@
             x-transition.opacity.duration.400ms
             x-data
             x-init="
-                const obs = new IntersectionObserver(entries => {
+                const observer = new IntersectionObserver((entries) => {
                     entries.forEach(el => {
                         if (el.isIntersecting) {
                             el.target.classList.add('animate-fade-in-up');
+                            observer.unobserve(el.target);
                         }
                     });
                 }, { threshold: 0.1 });
-
-                document.querySelectorAll('.review-card')
-                    .forEach(c => obs.observe(c));
+                
+                $nextTick(() => {
+                    document.querySelectorAll('.review-card').forEach(card => {
+                        observer.observe(card);
+                    });
+                });
             "
         >
 
             {{-- Форма моего отзыва --}}
             @auth
-                @php
-                    $myReview = $product->reviews->firstWhere('user_id', auth()->id());
-                @endphp
-
                 <div
                     x-data="{
                         editing: {{ $myReview ? 'false' : 'true' }},
@@ -231,7 +257,7 @@
 
             {{-- Список отзывов --}}
             <div class="space-y-4">
-                @forelse ($product->reviews as $r)
+                @forelse ($reviews as $r)
                     <div
                         class="review-card opacity-0 translate-y-6
                                bg-white border rounded-2xl p-4 shadow-sm
@@ -291,13 +317,18 @@
                         </p>
                     </div>
                 @endforelse
+                
+                {{-- Пагинация --}}
+                <div class="mt-6">
+                    {{ $reviews->links() }}
+                </div>
             </div>
 
         </div>
     </div>
 </div>
 
-{{-- Анимации --}}
+{{-- Анимации и стили --}}
 <style>
     @keyframes fade-in-up {
         0% {
@@ -311,5 +342,23 @@
     }
     .animate-fade-in-up {
         animation: fade-in-up 0.6s ease forwards;
+    }
+    
+    .whitespace-pre-wrap {
+        white-space: pre-wrap;
+    }
+    
+    .break-words {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+    
+    .max-h-32 {
+        max-height: 8rem;
+    }
+    
+    .overflow-hidden {
+        overflow: hidden;
     }
 </style>

@@ -60,7 +60,7 @@
 
 
         {{-- Вкладки: описание, размеры, характеристики, отзывы --}}
-        <x-product.tabs :product="$product" />
+      <x-product.tabs :product="$product" :reviews="$reviews" :myReview="$myReview" />
 
         {{-- Похожие товары --}}
         <x-product.related :items="$related" />

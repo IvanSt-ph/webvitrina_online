@@ -78,16 +78,25 @@ class ProductController extends Controller
             Cache::put($cacheKey, true, now()->addHour());
         }
 
-        /* --------------------------------------
-         | ⭐ Отзывы (кэшируем на 10 минут)
-         -------------------------------------- */
-        $reviews = Cache::remember("product.reviews:{$product->id}", 600, function () use ($product) {
-            return $product->reviews()
-                ->where('status', 'approved')
-                ->with(['user', 'images'])
-                ->latest()
-                ->get();
-        });
+/* --------------------------------------
+ | ⭐ Отзывы (пагинация)
+ -------------------------------------- */
+$reviews = $product->reviews()
+    ->where('status', 'approved')
+    ->with(['user:id,name', 'images:id,review_id,path'])
+    ->latest()
+    ->paginate(10);
+
+/* --------------------------------------
+ | 👤 Мой отзыв (отдельный запрос)
+ -------------------------------------- */
+$myReview = null;
+if (auth()->check()) {
+    $myReview = $product->reviews()
+        ->where('user_id', auth()->id())
+        ->with('images')
+        ->first();
+}
 
         /* --------------------------------------
          | 🔄 Похожие товары (кэшируется в репозитории)
@@ -124,6 +133,7 @@ class ProductController extends Controller
             'product'     => $product,
             'related'     => $related,
             'reviews'     => $reviews,
+            'myReview'    => $myReview,  // ← мой отзыв
             'breadcrumbs' => $breadcrumbs,
         ]);
     }
