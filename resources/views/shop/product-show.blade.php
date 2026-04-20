@@ -8,8 +8,8 @@
     @php
         $isFav = auth()->check() && $product->isFavoritedBy(auth()->user());
     @endphp
-
-    <div class="w-full max-w-[1440px] mx-auto pt-20 pb-10 px-3 sm:px-4 md:px-6 lg:px-8">
+    
+    <div class="w-full max-w-[1440px] mx-auto pt-0 sm:pt-20 pb-10 px-3 sm:px-4 md:px-6 lg:px-8">
 
         {{-- Хлебные крошки --}}
         <x-product.breadcrumbs :product="$product" />

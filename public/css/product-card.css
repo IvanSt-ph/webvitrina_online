@@ -254,13 +254,19 @@
 }
 
 /* Body */
-.pc-body { padding: 5px 7px 5px; display: flex; flex-direction: column; flex: 1; }
+.pc-body { padding: 5px 9px 7px; display: flex; flex-direction: column; flex: 1; }
 .pc-meta-top { margin-bottom: 3px; }
 .pc-shop-name {
     font-size: 11px; font-weight: 500; color: #b0b0bc;
     text-decoration: none; transition: color 0.2s;
     display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     position: relative; z-index: 2;
+}
+
+@media (max-width: 640px) {
+    .pc-body { 
+        padding: 5px 2px 5px;     
+    }
 }
 .pc-shop-name:hover { color: #74bdfd; }
 .pc-shop-name--empty { cursor: default; color: #d0d0da; }
@@ -297,6 +303,12 @@
 
 /* Card actions — one row */
 .pc-actions { display: flex; flex-direction: row; gap: 6px; margin-top: auto; align-items: stretch; }
+/* Мобильные устройства */
+@media (max-width: 640px) {
+    .pc-actions { 
+        gap: 2px; 
+    }
+}
 .pc-form-buy { flex: 1; }
 .pc-btn {
     width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px;
