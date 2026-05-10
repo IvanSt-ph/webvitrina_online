@@ -71,24 +71,95 @@
               </form>
             @endunless
 
+            <x-secondary-action type="button" size="sm" x-data x-on:click="$dispatch('open-modal', 'editAddress{{ $address->id }}')">
+              <i class="ri-pencil-line"></i>
+              Изменить
+            </x-secondary-action>
+
             <form method="POST" action="{{ route('addresses.destroy', $address) }}">
               @csrf
               @method('DELETE')
-              <button type="submit" class="h-10 px-4 rounded-xl border border-rose-100 bg-rose-50 text-rose-600 hover:bg-rose-100 text-sm font-semibold transition flex items-center gap-2">
+              <x-danger-action type="submit" size="sm">
                 <i class="ri-delete-bin-line"></i>
                 Удалить
-              </button>
+              </x-danger-action>
             </form>
           </div>
         </div>
+
+        <x-modal name="editAddress{{ $address->id }}">
+          <form method="POST" action="{{ route('addresses.update', $address) }}" class="p-4 sm:p-6 space-y-5">
+            @csrf
+            @method('PUT')
+
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                <i class="ri-pencil-line text-xl"></i>
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900">Изменить адрес</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Обновите данные доставки</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Страна</label>
+                <x-form-input type="text" name="country" value="{{ old('country', $address->country) }}" required class="mt-1" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Город</label>
+                <x-form-input type="text" name="city" value="{{ old('city', $address->city) }}" required class="mt-1" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Улица</label>
+                <x-form-input type="text" name="street" value="{{ old('street', $address->street) }}" required class="mt-1" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Дом</label>
+                <x-form-input type="text" name="house" value="{{ old('house', $address->house) }}" class="mt-1" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Подъезд</label>
+                <x-form-input type="text" name="entrance" value="{{ old('entrance', $address->entrance) }}" class="mt-1" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Квартира</label>
+                <x-form-input type="text" name="apartment" value="{{ old('apartment', $address->apartment) }}" class="mt-1" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Почтовый индекс</label>
+                <x-form-input type="text" name="postal_code" value="{{ old('postal_code', $address->postal_code) }}" class="mt-1" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-600">Комментарий</label>
+              <x-form-input textarea name="comment" rows="2" class="mt-1">{{ old('comment', $address->comment) }}</x-form-input>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" name="is_default" id="is_default_{{ $address->id }}" value="1" class="rounded text-indigo-600 focus:ring-indigo-500" @checked($address->is_default)>
+              <label for="is_default_{{ $address->id }}" class="text-sm text-gray-700">Сделать основным</label>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t border-gray-100">
+              <x-secondary-action type="button" x-on:click="$dispatch('close-modal', 'editAddress{{ $address->id }}')">
+                Отмена
+              </x-secondary-action>
+              <x-action-button>
+                <i class="ri-save-line"></i>
+                Сохранить
+              </x-action-button>
+            </div>
+          </form>
+        </x-modal>
       @empty
-        <div class="text-center py-12 px-4 text-gray-500 bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm">
-          <div class="w-14 h-14 mx-auto rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4">
-            <i class="ri-map-pin-line text-3xl"></i>
-          </div>
-          <p class="text-sm font-medium text-gray-700">У вас пока нет сохранённых адресов</p>
-          <p class="text-xs text-gray-400 mt-1">Добавьте адрес, чтобы быстрее оформлять заказы.</p>
-        </div>
+        <x-empty-state
+          icon="ri-map-pin-line"
+          title="У вас пока нет сохранённых адресов"
+          description="Добавьте адрес, чтобы быстрее оформлять заказы."
+        />
       @endforelse
     </div>
 
@@ -109,33 +180,37 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-600">Страна</label>
-            <input type="text" name="country" required class="mt-1 w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
+            <x-form-input type="text" name="country" required class="mt-1" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600">Город</label>
-            <input type="text" name="city" required class="mt-1 w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
+            <x-form-input type="text" name="city" required class="mt-1" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600">Улица</label>
-            <input type="text" name="street" required class="mt-1 w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
+            <x-form-input type="text" name="street" required class="mt-1" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600">Дом</label>
-            <input type="text" name="house" class="mt-1 w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
+            <x-form-input type="text" name="house" class="mt-1" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600">Подъезд</label>
+            <x-form-input type="text" name="entrance" class="mt-1" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600">Квартира</label>
-            <input type="text" name="apartment" class="mt-1 w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
+            <x-form-input type="text" name="apartment" class="mt-1" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600">Почтовый индекс</label>
-            <input type="text" name="postal_code" class="mt-1 w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
+            <x-form-input type="text" name="postal_code" class="mt-1" />
           </div>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-600">Комментарий</label>
-          <textarea name="comment" rows="2" class="mt-1 w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none resize-none"></textarea>
+          <x-form-input textarea name="comment" rows="2" class="mt-1" />
         </div>
 
         <div class="flex items-center gap-2">

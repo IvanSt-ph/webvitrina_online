@@ -2,6 +2,14 @@
 
   @php
       $addedId = (int) session('cart_added_id');
+      $favoritesTotal = $items->sum(fn($item) => optional($item->product)->price ?? 0);
+      $discountTotal = $items->sum(function ($item) {
+          $product = $item->product;
+
+          return $product && isset($product->old_price) && $product->old_price
+              ? max(0, $product->old_price - $product->price)
+              : 0;
+      });
   @endphp
 
   <div class="max-w-8xl mx-auto px-2 sm:px-6 py-4 sm:py-8">
@@ -20,40 +28,67 @@
         </div>
 
         @if($items->isNotEmpty())
-        <a href="{{ route('cart.index') }}"
-           class="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border border-indigo-100 bg-indigo-50 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-all duration-200">
-          <div class="relative">
-            <i class="ri-shopping-cart-line text-sm sm:text-base" data-cart-icon></i>
-            <span data-cart-count
-                  class="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[9px] font-bold min-w-[16px] h-4 px-1 rounded-full hidden items-center justify-center">
-            </span>
-          </div>
-          <span>Корзина</span>
-          <i class="ri-arrow-right-s-line text-base opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 hidden sm:inline"></i>
-        </a>
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form">
+            @csrf
+            <x-action-button>
+              <i class="ri-shopping-cart-2-line"></i>
+              Добавить всё
+            </x-action-button>
+          </form>
+
+          <x-secondary-action as="a" href="{{ route('cart.index') }}">
+            <div class="relative">
+              <i class="ri-shopping-cart-line text-sm sm:text-base" data-cart-icon></i>
+              <span data-cart-count
+                    class="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[9px] font-bold min-w-[16px] h-4 px-1 rounded-full hidden items-center justify-center">
+              </span>
+            </div>
+            <span>Корзина</span>
+          </x-secondary-action>
+        </div>
         @endif
       </div>
     </div>
 
     @if($items->isEmpty())
 
-      {{-- Empty state --}}
-      <div class="text-center py-12 sm:py-20 px-4 bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm">
-        <div class="mb-5">
-          <div class="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-indigo-50 rounded-2xl">
-            <i class="ri-heart-3-line text-3xl sm:text-4xl text-indigo-300"></i>
-          </div>
-        </div>
-        <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-2">Здесь пока пусто</h3>
-        <p class="text-gray-400 text-sm mb-6">Сохраняйте понравившиеся товары</p>
+      <x-empty-state
+        icon="ri-heart-3-line"
+        title="Здесь пока пусто"
+        description="Сохраняйте понравившиеся товары, чтобы быстро вернуться к ним."
+      >
         <a href="{{ route('home') }}"
-           class="inline-flex items-center gap-2 bg-indigo-500/90 hover:bg-indigo-600 text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-          <i class="ri-arrow-left-s-line"></i>
-          <span>В каталог</span>
+           class="relative overflow-hidden group inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 backdrop-blur-sm border border-indigo-400/30">
+          <span class="relative z-10 flex items-center gap-2">
+            <i class="ri-arrow-left-s-line"></i>
+            <span>В каталог</span>
+          </span>
+          <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
         </a>
-      </div>
+      </x-empty-state>
 
     @else
+
+      <div class="grid sm:grid-cols-3 gap-3 mb-5">
+        <div class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-gray-500">В избранном</div>
+          <div class="mt-1 text-2xl font-bold text-gray-900">{{ $items->count() }}</div>
+          <div class="text-xs text-gray-400 mt-1">товара(ов)</div>
+        </div>
+
+        <div class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-gray-500">Общая сумма</div>
+          <div class="mt-1 text-2xl font-bold text-gray-900">{{ number_format($favoritesTotal, 0, ',', ' ') }} ₽</div>
+          <div class="text-xs text-gray-400 mt-1">если добавить по 1 шт.</div>
+        </div>
+
+        <div class="bg-indigo-50 border border-indigo-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
+          <div class="text-xs text-indigo-700">Экономия по скидкам</div>
+          <div class="mt-1 text-2xl font-bold text-indigo-700">{{ number_format($discountTotal, 0, ',', ' ') }} ₽</div>
+          <div class="text-xs text-indigo-500 mt-1">по товарам со старой ценой</div>
+        </div>
+      </div>
 
       {{-- Favorites list --}}
       <div class="space-y-2 sm:space-y-3">
@@ -103,7 +138,8 @@
                       <span class="text-sm font-bold text-gray-900">
                         {{ number_format($p->price, 0, ',', ' ') }}
                       </span>
-                      <span class="text-[9px] text-gray-400">₽</span>
+                  <span class="text-[9px] text-gray-400">₽</span>
+                      <span class="ml-1 text-[10px] text-gray-400">за шт.</span>
                     </div>
                   </div>
 
@@ -200,6 +236,7 @@
                     {{ number_format($p->price, 0, ',', ' ') }}
                   </span>
                   <span class="text-xs text-gray-400">₽</span>
+                  <span class="ml-1 text-xs text-gray-400">за шт.</span>
                 </div>
               </div>
 
@@ -245,6 +282,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     function showToast(text, type = 'success') {
+      if (window.showAppToast) {
+        window.showAppToast(text, type);
+        return;
+      }
+
       const existing = document.querySelector('.toast');
       if (existing) existing.remove();
       
@@ -359,6 +401,16 @@ document.addEventListener('DOMContentLoaded', () => {
           this.submit();
           updateCartCount();
         }, 200);
+      });
+    });
+
+    document.querySelectorAll('.js-add-all-to-cart-form').forEach(form => {
+      form.addEventListener('submit', function() {
+        const btn = this.querySelector('button');
+        if (!btn) return;
+
+        btn.disabled = true;
+        btn.classList.add('loading');
       });
     });
 

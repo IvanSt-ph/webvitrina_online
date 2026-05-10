@@ -1,26 +1,6 @@
 <x-buyer-layout title="Заказ {{ $order->number }}">
 
 @php
-    $labels = [
-        'pending'     => 'Ожидает обработки',
-        'processing'  => 'Принят продавцом',
-        'paid'        => 'Оплачен',
-        'shipped'     => 'Передан в доставку',
-        'delivered'   => 'Доставлен',
-        'completed'   => 'Завершён',
-        'canceled'    => 'Отменён',
-    ];
-
-    $colors = [
-        'pending'     => 'bg-yellow-100 text-yellow-800',
-        'processing'  => 'bg-indigo-100 text-indigo-700',
-        'paid'        => 'bg-green-100 text-green-800',
-        'shipped'     => 'bg-blue-100 text-blue-800',
-        'delivered'   => 'bg-emerald-100 text-emerald-800',
-        'completed'   => 'bg-gray-100 text-gray-700',
-        'canceled'    => 'bg-red-100 text-red-800',
-    ];
-
     $steps = [
         'pending'     => 1,
         'processing'  => 2,
@@ -31,6 +11,15 @@
     ];
 
     $active = $steps[$order->status] ?? 1;
+
+    $stepLabels = [
+        1 => 'Новый заказ',
+        2 => 'Принят продавцом',
+        3 => 'Оплачен',
+        4 => 'В доставке',
+        5 => 'Доставлен',
+        6 => 'Завершён',
+    ];
 @endphp
 
 
@@ -63,9 +52,7 @@
 
             <div class="mt-1 text-sm text-gray-500">
                 Статус:
-                <span class="px-3 py-1 text-xs font-medium rounded-full {{ $colors[$order->status] }}">
-                    {{ $labels[$order->status] }}
-                </span>
+                <x-status-badge :status="$order->status" />
             </div>
             </div>
         </div>
@@ -80,18 +67,29 @@
 
 
     <!-- 🔵 Прогресс бар (6 шагов) -->
-    <div class="bg-white shadow-sm border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-8 overflow-x-auto">
+    <div class="bg-white shadow-sm border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-8">
 
-        <div class="grid grid-cols-6 gap-4 text-center text-xs font-medium text-gray-600 min-w-[620px]">
+        <div class="sm:hidden space-y-3">
+            @foreach($stepLabels as $step => $text)
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
+                        {{ $step <= $active ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400' }}">
+                        @if($step < $active)
+                            <i class="ri-check-line"></i>
+                        @else
+                            {{ $step }}
+                        @endif
+                    </div>
+                    <div class="text-sm {{ $step === $active ? 'font-semibold text-gray-900' : ($step < $active ? 'text-gray-700' : 'text-gray-400') }}">
+                        {{ $text }}
+                    </div>
+                </div>
+            @endforeach
+        </div>
 
-            @foreach([
-                1 => 'Новый заказ',
-                2 => 'Принят продавцом',
-                3 => 'Оплачен',
-                4 => 'В доставке',
-                5 => 'Доставлен',
-                6 => 'Завершён'
-            ] as $step => $text)
+        <div class="hidden sm:grid grid-cols-6 gap-4 text-center text-xs font-medium text-gray-600 min-w-[620px]">
+
+            @foreach($stepLabels as $step => $text)
 
                 <div>
                     <div class="w-10 h-10 mx-auto flex items-center justify-center rounded-full
@@ -107,7 +105,7 @@
         </div>
 
         <!-- Полоски между кружками -->
-        <div class="flex justify-between -mt-5 px-4 min-w-[620px]">
+        <div class="hidden sm:flex justify-between -mt-5 px-4 min-w-[620px]">
             @foreach(range(1,5) as $line)
                 <div class="w-1/5 h-1 {{ $line < $active ? 'bg-indigo-600' : 'bg-gray-200' }}"></div>
             @endforeach
@@ -228,10 +226,9 @@
     <!-- 🎯 Кнопки -->
     <div class="flex flex-col sm:flex-row flex-wrap gap-3">
 
-        <a href="{{ route('orders.index') }}"
-           class="h-11 px-5 border border-gray-200 bg-white rounded-xl text-sm font-semibold hover:bg-gray-50 flex items-center justify-center gap-2">
+        <x-secondary-action as="a" href="{{ route('orders.index') }}">
             <i class="ri-arrow-left-line"></i> Назад
-        </a>
+        </x-secondary-action>
 
         <a href="#"
            class="relative overflow-hidden group h-11 px-5 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 backdrop-blur-sm border border-indigo-400/30">
@@ -241,15 +238,13 @@
             <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
         </a>
 
-        <a href="#"
-           class="h-11 px-5 border border-gray-200 bg-white rounded-xl text-sm font-semibold hover:bg-gray-50 flex items-center justify-center gap-2">
+        <x-secondary-action as="a" href="#">
             <i class="ri-file-download-line"></i> Скачать чек (PDF)
-        </a>
+        </x-secondary-action>
 
-        <a href="#"
-           class="h-11 px-5 border border-gray-200 bg-white rounded-xl text-sm font-semibold hover:bg-gray-50 flex items-center justify-center gap-2">
+        <x-secondary-action as="a" href="#">
             <i class="ri-star-line"></i> Оставить отзыв
-        </a>
+        </x-secondary-action>
 
     </div>
 

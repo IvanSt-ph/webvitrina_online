@@ -223,6 +223,11 @@ Route::middleware('role:buyer')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+
+    Route::post('/cart/add-favorites', [CartController::class, 'addFavorites'])
+    ->name('cart.addFavorites')
+    ->middleware('throttle:10,1');
+
     Route::post('/cart/add/{product}', [CartController::class, 'add'])
     ->name('cart.add')
     ->middleware('throttle:20,1');

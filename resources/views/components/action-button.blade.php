@@ -1,4 +1,6 @@
 @props([
+    'as' => 'button',
+    'href' => null,
     'full' => false,
     'size' => 'md',
 ])
@@ -19,9 +21,18 @@
     );
 @endphp
 
+@if($as === 'a')
+<a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }}>
+    <span class="relative z-10 flex items-center gap-2">
+        {{ $slot }}
+    </span>
+    <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+</a>
+@else
 <button {{ $attributes->merge(['type' => 'submit', 'class' => $classes]) }}>
     <span class="relative z-10 flex items-center gap-2">
         {{ $slot }}
     </span>
     <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
 </button>
+@endif

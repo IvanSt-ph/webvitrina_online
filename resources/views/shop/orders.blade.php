@@ -22,6 +22,15 @@
         ];
 
         $current = request('tab', 'active');
+
+        $stepLabels = [
+            1 => 'Новый заказ',
+            2 => 'Принят продавцом',
+            3 => 'Оплачен',
+            4 => 'В доставке',
+            5 => 'Доставлен',
+            6 => 'Завершён',
+        ];
     @endphp
 
     <div class="border-b border-gray-200 overflow-x-auto">
@@ -56,31 +65,7 @@
                         {{ number_format($order->total_price, 2, ',', ' ') }} {{ $order->currency }}
                     </div>
 
-                    @php
-                        $colors = [
-                            'pending' => 'bg-yellow-100 text-yellow-800',
-                            'processing' => 'bg-blue-100 text-blue-700',
-                            'paid' => 'bg-emerald-100 text-emerald-800',
-                            'shipped' => 'bg-sky-100 text-sky-800',
-                            'delivered' => 'bg-emerald-100 text-emerald-800',
-                            'completed' => 'bg-gray-100 text-gray-700',
-                            'canceled' => 'bg-red-100 text-red-800',
-                        ];
-
-                        $labels = [
-                            'pending' => 'Ожидает',
-                            'processing' => 'Принят продавцом',
-                            'paid' => 'Оплачен',
-                            'shipped' => 'Отправлен',
-                            'delivered' => 'Доставлен',
-                            'completed' => 'Завершён',
-                            'canceled' => 'Отменён',
-                        ];
-                    @endphp
-
-                    <span class="inline-flex mt-2 px-3 py-1 rounded-full text-xs font-medium {{ $colors[$order->status] ?? 'bg-gray-100 text-gray-700' }}">
-                        {{ $labels[$order->status] ?? 'Неизвестно' }}
-                    </span>
+                    <x-status-badge :status="$order->status" class="mt-2" />
                 </div>
             </div>
 
@@ -98,7 +83,28 @@
                 $active = $steps[$order->status] ?? 1;
             @endphp
 
-            <div class="flex items-center justify-between text-xs font-medium text-gray-500 overflow-x-auto pb-1">
+            <div class="sm:hidden rounded-xl bg-gray-50 border border-gray-100 p-3">
+                <div class="text-xs font-semibold text-gray-500 mb-3">Статус заказа</div>
+                <div class="space-y-2">
+                    @foreach($stepLabels as $step => $text)
+                        <div class="flex items-center gap-3">
+                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
+                                {{ $step <= $active ? 'bg-indigo-600 text-white' : 'bg-white text-gray-400 border border-gray-200' }}">
+                                @if($step < $active)
+                                    <i class="ri-check-line"></i>
+                                @else
+                                    {{ $step }}
+                                @endif
+                            </div>
+                            <div class="text-sm {{ $step === $active ? 'font-semibold text-gray-900' : ($step < $active ? 'text-gray-700' : 'text-gray-400') }}">
+                                {{ $text }}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="hidden sm:flex items-center justify-between text-xs font-medium text-gray-500 overflow-x-auto pb-1">
                 @foreach(range(1,6) as $step)
                     <div class="min-w-12 flex-1 flex flex-col items-center">
                         <div class="w-8 h-8 flex items-center justify-center rounded-full
@@ -171,11 +177,10 @@
 
             <!-- Кнопки -->
             <div class="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-3">
-                <a href="{{ route('orders.show', $order->id) }}"
-                   class="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-semibold hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center justify-center gap-2">
+                <x-secondary-action as="a" href="{{ route('orders.show', $order->id) }}" size="sm">
                     <i class="ri-eye-line"></i>
                     Подробнее
-                </a>
+                </x-secondary-action>
 
                 <a href="#"
                    class="relative overflow-hidden group h-10 px-4 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 backdrop-blur-sm border border-indigo-400/30">
@@ -190,16 +195,21 @@
         </div>
 
     @empty
-        <div class="text-center py-16 sm:py-20 px-4 bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm">
-            <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4">
-                <i class="ri-shopping-bag-3-line text-4xl"></i>
-            </div>
-            <div class="text-gray-700 text-lg font-medium">Пока заказов нет</div>
+        <x-empty-state
+            icon="ri-shopping-bag-3-line"
+            title="Пока заказов нет"
+            description="Когда вы оформите покупку, заказ появится здесь."
+            class="py-16 sm:py-20"
+        >
             <a href="{{ route('home') }}"
-               class="mt-5 inline-flex bg-indigo-500/90 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
-                Перейти к покупкам
+               class="relative overflow-hidden group inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 backdrop-blur-sm border border-indigo-400/30">
+                <span class="relative z-10 flex items-center gap-2">
+                    <i class="ri-arrow-left-line"></i>
+                    Перейти к покупкам
+                </span>
+                <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
             </a>
-        </div>
+        </x-empty-state>
     @endforelse
 
 </div>

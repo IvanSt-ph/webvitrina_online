@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CartItem;
+use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\ProductStat;
 use Illuminate\Http\Request;
@@ -83,6 +84,49 @@ class CartController extends Controller
         return back()
             ->with('success', 'Товар добавлен в корзину!')
             ->with('cart_added_id', $product->id);
+    }
+
+    public function addFavorites(Request $request)
+    {
+        $favorites = Favorite::with('product')
+            ->where('user_id', auth()->id())
+            ->get();
+
+        $added = 0;
+        $today = Carbon::today()->toDateString();
+
+        foreach ($favorites as $favorite) {
+            $product = $favorite->product;
+
+            if (! $product || $product->user_id === auth()->id()) {
+                continue;
+            }
+
+            $item = CartItem::firstOrNew([
+                'user_id' => auth()->id(),
+                'product_id' => $product->id,
+            ]);
+
+            if (! $item->exists) {
+                $product->increment('cart_adds_count');
+
+                ProductStat::updateOrCreate(
+                    ['product_id' => $product->id, 'date' => $today],
+                    ['carts' => DB::raw('carts + 1')]
+                );
+            }
+
+            $item->qty = max(1, (int) $item->qty + 1);
+            $item->save();
+            $added++;
+        }
+
+        return back()->with(
+            $added > 0 ? 'success' : 'error',
+            $added > 0
+                ? "Добавлено в корзину: {$added} товар(ов)"
+                : 'В избранном нет товаров, которые можно добавить в корзину.'
+        );
     }
 
     public function update(CartItem $item, Request $request)

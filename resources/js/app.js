@@ -48,6 +48,58 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// 🔔 Единый toast для быстрых уведомлений
+window.showAppToast = (text, type = 'success') => {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const styleId = 'app-toast-style';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .toast {
+        position: fixed;
+        right: 16px;
+        top: 80px;
+        padding: 10px 18px;
+        color: white;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 12px 30px -8px rgba(15,23,42,.28);
+        animation: appToastIn .25s ease;
+        z-index: 99999;
+        backdrop-filter: blur(10px);
+        background: rgba(30, 41, 59, .96);
+      }
+      .toast-success { border-left: 3px solid #10b981; }
+      .toast-error { background: rgba(239, 68, 68, .96); border-left: 3px solid #fecaca; }
+      @keyframes appToastIn {
+        from { opacity: 0; transform: translateX(24px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
+  el.innerHTML = `
+    <div class="flex items-center gap-2">
+      <i class="${type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'} text-base"></i>
+      <span>${text}</span>
+    </div>
+  `;
+  document.body.appendChild(el);
+
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(() => el.remove(), 300);
+  }, 2500);
+};
+
 
 
 // 🧩 Подключаем твои доп. скрипты (пример: форма продавца)
