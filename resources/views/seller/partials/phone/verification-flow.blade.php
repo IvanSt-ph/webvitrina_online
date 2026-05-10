@@ -1,30 +1,5 @@
 {{-- resources/views/seller/partials/phone/verification-flow.blade.php --}}
 <div class="space-y-6">
-    {{-- Уведомление о подтверждении --}}
-    <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/80 p-0.5 shadow-lg shadow-indigo-100/20">
-        <div class="absolute inset-0 bg-gradient-to-r from-indigo-200 via-purple-200 to-indigo-200 animate-gradient-slow"></div>
-        <div class="relative rounded-lg bg-white/95 backdrop-blur-sm p-5">
-            <div class="flex items-start gap-4">
-                <div class="shrink-0">
-                    <div class="relative">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200/50">
-                            <i class="ri-shield-keyhole-line text-white text-xl"></i>
-                        </div>
-                        <div class="absolute -inset-1 bg-indigo-400/20 rounded-xl blur-md animate-pulse"></div>
-                    </div>
-                </div>
-                <div class="space-y-1.5">
-                    <h4 class="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                        Подтверждение телефона
-                    </h4>
-                    <p class="text-sm text-gray-600 flex items-center gap-1.5">
-                        <i class="ri-shield-check-line text-indigo-400 text-sm"></i>
-                        <span>Повысит доверие покупателей и откроет новые возможности</span>
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     {{-- Форма отправки кода --}}
     <form method="POST" 
