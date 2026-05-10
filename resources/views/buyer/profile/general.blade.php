@@ -1,7 +1,7 @@
 @extends('buyer.profile')
 
 @section('profile_content')
-<section class="bg-white border border-gray-100 rounded-xl shadow-sm p-6 sm:p-8 space-y-6">
+<section class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-8 space-y-6">
 
     {{-- Уведомления профиля --}}
     @php $fields = session('updated_fields', []); @endphp
@@ -54,7 +54,7 @@
 
     <div class="grid lg:grid-cols-2 gap-6">
         {{-- Имя и аватар --}}
-        <form method="POST" action="{{ route('buyer.profile.update') }}" enctype="multipart/form-data" class="border border-gray-100 rounded-xl p-5 space-y-5">
+        <form method="POST" action="{{ route('buyer.profile.update') }}" enctype="multipart/form-data" class="border border-gray-100 rounded-xl p-4 sm:p-5 space-y-5">
             @csrf
             @method('PATCH')
             <input type="hidden" name="profile_section" value="personal">
@@ -72,8 +72,8 @@
             <div class="flex flex-col sm:flex-row items-center gap-5">
                 <div class="relative shrink-0">
                     <img src="{{ Auth::user()->avatar_url }}" class="w-24 h-24 rounded-full border border-gray-200 shadow-sm object-cover" />
-                    <label class="absolute bottom-0 right-0 bg-indigo-600 text-white text-xs px-2 py-1 rounded-md cursor-pointer hover:bg-indigo-700 transition">
-                        Изменить
+                    <label class="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-indigo-500/90 hover:bg-indigo-600 text-white cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center border border-indigo-400/30">
+                        <i class="ri-camera-line"></i>
                         <input type="file" name="avatar" class="hidden" accept="image/*">
                     </label>
                 </div>
@@ -81,20 +81,21 @@
                 <div class="flex-1 w-full">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Имя пользователя</label>
                     <input type="text" name="name" value="{{ old('name', Auth::user()->name) }}"
-                           class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 px-4 py-2">
+                           class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
                     <x-input-error :messages="$errors->get('name')" class="mt-1 text-sm" />
                 </div>
             </div>
 
             <div class="flex justify-end border-t border-gray-100 pt-4">
-                <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium shadow-sm flex items-center gap-2">
-                    <i class="ri-save-line"></i> Сохранить имя и аватар
-                </button>
+                <x-action-button>
+                    <i class="ri-save-line"></i>
+                    Сохранить имя и аватар
+                </x-action-button>
             </div>
         </form>
 
         {{-- Контакты --}}
-        <form method="POST" action="{{ route('buyer.profile.update') }}" class="border border-gray-100 rounded-xl p-5 space-y-5">
+        <form method="POST" action="{{ route('buyer.profile.update') }}" class="border border-gray-100 rounded-xl p-4 sm:p-5 space-y-5">
             @csrf
             @method('PATCH')
             <input type="hidden" name="profile_section" value="contacts">
@@ -122,7 +123,7 @@
                     </label>
                     <div class="relative flex items-center">
                         <input type="email" name="email" value="{{ old('email', Auth::user()->email) }}"
-                               class="w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                               class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
                         <i class="ri-mail-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
                     <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm" />
@@ -140,8 +141,8 @@
                     <input type="tel" id="phone" name="phone"
                            data-intl-manual="true"
                            value="{{ old('phone', Auth::user()->phone) }}"
-                           class="w-full py-2.5 sm:py-3 px-4 rounded-xl border border-gray-300
-                                  focus:ring-indigo-500 focus:border-indigo-500 transition"
+                           class="w-full py-3 px-4 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm
+                                  focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none"
                            placeholder="+373..."
                            title="Введите номер телефона">
                     <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
@@ -149,9 +150,10 @@
             </div>
 
             <div class="flex justify-end border-t border-gray-100 pt-4">
-                <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium shadow-sm flex items-center gap-2">
-                    <i class="ri-save-line"></i> Сохранить контакты
-                </button>
+                <x-action-button>
+                    <i class="ri-save-line"></i>
+                    Сохранить контакты
+                </x-action-button>
             </div>
         </form>
     </div>
@@ -175,10 +177,10 @@
                     </div>
                     <form method="POST" action="{{ route('verification.send') }}" class="shrink-0">
                         @csrf
-                        <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center gap-2 hover:shadow-md active:scale-[0.98]">
+                        <x-action-button size="sm">
                             <i class="ri-send-plane-line"></i>
                             Подтвердить email
-                        </button>
+                        </x-action-button>
                     </form>
                 </div>
             @else
@@ -208,10 +210,10 @@
                         </div>
                         <form method="POST" action="{{ route('phone.send') }}" class="shrink-0">
                             @csrf
-                            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center gap-2 hover:shadow-md active:scale-[0.98]">
+                            <x-action-button size="sm">
                                 <i class="ri-message-2-line"></i>
                                 Отправить SMS код
-                            </button>
+                            </x-action-button>
                         </form>
                     </div>
 
@@ -227,15 +229,15 @@
                                 <div class="relative flex-1">
                                     <input type="text" name="code" 
                                            placeholder="6-значный код"
-                                           class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                                           class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none"
                                            maxlength="6"
                                            autocomplete="off">
                                     <i class="ri-shield-keyhole-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                                 </div>
-                                <button type="submit" class="px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-2 hover:shadow-md active:scale-[0.98]">
+                                <x-action-button>
                                     <i class="ri-check-line"></i>
                                     Подтвердить код
-                                </button>
+                                </x-action-button>
                             </form>
                             <p class="text-xs text-gray-400 mt-2">Код действителен в течение 10 минут</p>
                         </div>

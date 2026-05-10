@@ -4,25 +4,24 @@
       $addedId = (int) session('cart_added_id');
   @endphp
 
-  <div class="max-w-8xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+  <div class="max-w-8xl mx-auto px-2 sm:px-6 py-4 sm:py-8">
 
     {{-- Header --}}
     <div class="mb-6 sm:mb-10">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <div class="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center">
-              <i class="ri-heart-3-line text-indigo-500 text-sm sm:text-base"></i>
-            </div>
-            <span class="text-[10px] sm:text-xs font-mono text-indigo-400 tracking-wider uppercase">Wishlist</span>
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+            <i class="ri-heart-3-line text-xl"></i>
           </div>
-          <h1 class="text-2xl sm:text-3xl font-light tracking-tight text-gray-900">Избранное</h1>
-          <p class="text-gray-400 text-xs sm:text-sm mt-0.5">{{ $items->isNotEmpty() ? $items->count() . ' сохранённых товара' : 'пусто' }}</p>
+          <div>
+          <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Избранное</h1>
+          <p class="text-gray-500 text-xs sm:text-sm mt-0.5">{{ $items->isNotEmpty() ? $items->count() . ' сохранённых товара' : 'пусто' }}</p>
+          </div>
         </div>
 
         @if($items->isNotEmpty())
         <a href="{{ route('cart.index') }}"
-           class="inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border border-indigo-200 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200">
+           class="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl border border-indigo-100 bg-indigo-50 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-all duration-200">
           <div class="relative">
             <i class="ri-shopping-cart-line text-sm sm:text-base" data-cart-icon></i>
             <span data-cart-count
@@ -39,16 +38,16 @@
     @if($items->isEmpty())
 
       {{-- Empty state --}}
-      <div class="text-center py-12 sm:py-20">
+      <div class="text-center py-12 sm:py-20 px-4 bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm">
         <div class="mb-5">
           <div class="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-indigo-50 rounded-2xl">
             <i class="ri-heart-3-line text-3xl sm:text-4xl text-indigo-300"></i>
           </div>
         </div>
-        <h3 class="text-lg sm:text-xl font-light text-gray-700 mb-2">Здесь пока пусто</h3>
+        <h3 class="text-lg sm:text-xl font-semibold text-gray-700 mb-2">Здесь пока пусто</h3>
         <p class="text-gray-400 text-sm mb-6">Сохраняйте понравившиеся товары</p>
         <a href="{{ route('home') }}"
-           class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-full text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+           class="inline-flex items-center gap-2 bg-indigo-500/90 hover:bg-indigo-600 text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
           <i class="ri-arrow-left-s-line"></i>
           <span>В каталог</span>
         </a>
@@ -122,20 +121,17 @@
                 <div class="flex items-center gap-2 mt-3">
                   <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form flex-1">
                     @csrf
-                    <button type="submit"
-                      class="w-full py-2 flex items-center justify-center gap-1.5
-                             bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-all duration-200
-                             text-xs font-medium">
+                    <x-action-button size="sm" :full="true">
                       <i class="ri-shopping-cart-line text-sm"></i>
                       <span>В корзину</span>
-                    </button>
+                    </x-action-button>
                   </form>
 
                   <form method="POST" action="{{ route('checkout.quick', $p->id) }}" class="flex-1">
                     @csrf
                     <button class="w-full py-2 flex items-center justify-center gap-1.5
                                    border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 
-                                   text-gray-600 rounded-lg transition-all duration-200 hover:bg-indigo-50 text-xs font-medium">
+                                   text-gray-600 rounded-xl transition-all duration-200 hover:bg-indigo-50 text-xs font-semibold">
                       <i class="ri-flashlight-line text-sm"></i>
                       <span>Купить</span>
                     </button>
@@ -144,7 +140,7 @@
                   <form method="POST" action="{{ route('favorites.toggle', $p) }}" class="js-fav-remove-form">
                     @csrf
                     <button type="submit"
-                      class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all duration-200 rounded-lg hover:bg-red-50">
+                      class="w-8 h-8 flex items-center justify-center text-rose-500 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all duration-200 rounded-xl">
                       <i class="ri-delete-bin-6-line text-sm"></i>
                     </button>
                   </form>
@@ -211,20 +207,17 @@
               <div class="flex items-center gap-2 flex-shrink-0">
                 <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form">
                   @csrf
-                  <button type="submit"
-                    class="px-3 py-2 flex items-center justify-center gap-1.5
-                           bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-all duration-200
-                           text-sm font-medium">
+                  <x-action-button size="sm">
                     <i class="ri-shopping-cart-line text-sm"></i>
                     <span>В корзину</span>
-                  </button>
+                  </x-action-button>
                 </form>
 
                 <form method="POST" action="{{ route('checkout.quick', $p->id) }}">
                   @csrf
                   <button class="px-3 py-2 flex items-center justify-center gap-1.5
                                  border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 
-                                 text-gray-600 rounded-xl transition-all duration-200 hover:bg-indigo-50 text-sm font-medium">
+                                 text-gray-600 rounded-xl transition-all duration-200 hover:bg-indigo-50 text-sm font-semibold">
                     <i class="ri-flashlight-line text-sm"></i>
                     <span>Купить</span>
                   </button>
@@ -233,7 +226,7 @@
                 <form method="POST" action="{{ route('favorites.toggle', $p) }}" class="js-fav-remove-form">
                   @csrf
                   <button type="submit"
-                    class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all duration-200 rounded-xl hover:bg-red-50">
+                    class="w-9 h-9 flex items-center justify-center text-rose-500 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all duration-200 rounded-xl">
                     <i class="ri-delete-bin-6-line text-base"></i>
                   </button>
                 </form>

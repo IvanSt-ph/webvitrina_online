@@ -119,19 +119,11 @@
 
         {{-- 🔘 Кнопка --}}
         <div class="flex justify-end pt-4 border-t border-gray-100">
-            <button type="submit"
-                    class="relative overflow-hidden group px-6 py-3 bg-indigo-500/90 hover:bg-indigo-600 
-                           text-white font-medium rounded-xl shadow-md hover:shadow-lg 
-                           transition-all duration-300 transform hover:-translate-y-0.5
-                           flex items-center gap-2 backdrop-blur-sm border border-indigo-400/30">
-                <span class="relative z-10 flex items-center gap-2">
-                    <i class="ri-lock-password-line text-lg"></i>
-                    Сменить пароль
-                    <i class="ri-arrow-right-line text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"></i>
-                </span>
-                <span class="absolute inset-0 bg-indigo-600 translate-y-full 
-                             group-hover:translate-y-0 transition-transform duration-300"></span>
-            </button>
+            <x-action-button>
+                <i class="ri-lock-password-line text-lg"></i>
+                Сменить пароль
+                <i class="ri-arrow-right-line text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"></i>
+            </x-action-button>
         </div>
     </form>
 

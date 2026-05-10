@@ -1,39 +1,41 @@
 {{-- resources/views/shop/cart.blade.php --}}
 <x-buyer-layout title="Моя корзина">
 
-<div x-data="cartSelection()" x-init="init" class="max-w-8xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+<div x-data="cartSelection()" x-init="init" class="max-w-8xl mx-auto px-2 sm:px-6 py-4 sm:py-8">
 
     <!-- 🔝 Элегантный заголовок -->
-    <div class="mb-8 sm:mb-12">
+    <div class="mb-6 sm:mb-10">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-                <h1 class="text-3xl sm:text-4xl font-light tracking-tight text-gray-900">Корзина</h1>
-                <p class="text-gray-400 text-sm mt-1 font-light">{{ $items->isNotEmpty() ? $items->sum('qty') . ' товара(ов)' : 'пусто' }}</p>
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                    <i class="ri-shopping-cart-2-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-4xl font-semibold tracking-tight text-gray-900">Корзина</h1>
+                    <p class="text-gray-500 text-sm mt-1">{{ $items->isNotEmpty() ? $items->sum('qty') . ' товара(ов)' : 'пусто' }}</p>
+                </div>
             </div>
 
             @if($items->isNotEmpty())
             <div class="flex items-center gap-3 flex-wrap">
-                <button @click="toggleSelectMode"
-                    class="group px-5 py-2.5 rounded-full border border-indigo-200 text-sm font-medium text-indigo-600 hover:bg-indigo-50 transition-all duration-200">
+                <button type="button" @click="toggleSelectMode"
+                    class="h-11 px-5 rounded-xl border border-indigo-100 bg-indigo-50 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition-all duration-200 flex items-center justify-center">
                     <span x-show="!selectMode" class="inline-flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
+                        <i class="ri-checkbox-multiple-line"></i>
                         Выбрать
                     </span>
                     <span x-show="selectMode" class="inline-flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
+                        <i class="ri-close-line"></i>
                         Отменить
                     </span>
                 </button>
 
                 <form method="POST" action="{{ route('checkout.prepare') }}" class="inline">
                     @csrf
-                    <button class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-full transition-all duration-200 shadow-sm hover:shadow-md">
+                    <x-action-button>
+                        <i class="ri-bank-card-line"></i>
                         Оформить всё
-                    </button>
+                    </x-action-button>
                 </form>
             </div>
             @endif
@@ -43,21 +45,17 @@
     @if($items->isEmpty())
 
         <!-- 🕊 Пустая корзина -->
-        <div class="text-center py-16 sm:py-24">
+        <div class="text-center py-16 sm:py-24 px-4 bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm">
             <div class="mb-6">
-                <div class="inline-flex items-center justify-center w-24 h-24 bg-indigo-50 rounded-full">
-                    <svg class="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                    </svg>
+                <div class="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-indigo-50 text-indigo-500 rounded-2xl">
+                    <i class="ri-shopping-cart-2-line text-5xl"></i>
                 </div>
             </div>
-            <h3 class="text-xl font-light text-gray-900 mb-2">Ваша корзина пуста</h3>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Ваша корзина пуста</h3>
             <p class="text-gray-400 mb-8">Добавьте товары из каталога</p>
             <a href="{{ route('home') }}"
-               class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full transition-all duration-200 shadow-sm hover:shadow-md">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
+               class="inline-flex items-center gap-2 bg-indigo-500/90 hover:bg-indigo-600 text-white px-8 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
+                <i class="ri-arrow-left-line"></i>
                 Перейти в каталог
             </a>
         </div>
@@ -72,9 +70,11 @@
     @endphp
 
     @if($remainingForFree > 0)
-    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-4 mb-6 border border-indigo-100">
+    <div class="bg-indigo-50/70 rounded-xl sm:rounded-2xl p-4 mb-6 border border-indigo-100">
         <div class="flex items-start gap-3">
-            <div class="text-2xl">🚚</div>
+            <div class="w-10 h-10 rounded-xl bg-white text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+                <i class="ri-truck-line text-xl"></i>
+            </div>
             <div class="flex-1">
                 <div class="text-sm text-indigo-900 mb-2 font-medium">
                     Добавьте товаров на <strong class="text-indigo-700">{{ number_format($remainingForFree, 0, ',', ' ') }} ₽</strong> для бесплатной доставки
@@ -98,8 +98,8 @@
         @php $p = $i->product; @endphp
 
         <div 
-            x-data="{ qty: {{ $i->qty }}, updating: false }"
-            class="cart-item group relative bg-white rounded-2xl border transition-all duration-200 hover:shadow-md"
+            x-data="{ qty: {{ $i->qty }}, savedQty: {{ $i->qty }}, updating: false }"
+            class="cart-item group relative bg-white rounded-xl sm:rounded-2xl border transition-all duration-200 hover:shadow-md"
             :class="{
                 'border-indigo-300 shadow-md bg-indigo-50/50': selectMode && selected.includes('{{ $i->id }}'),
                 'border-gray-100': !selectMode || !selected.includes('{{ $i->id }}')
@@ -107,7 +107,7 @@
             data-cart-id="{{ $i->id }}"
         >
             <div 
-                class="flex gap-4 p-4 sm:p-5"
+                class="flex gap-3 sm:gap-4 p-4 sm:p-5"
                 :class="selectMode ? 'cursor-pointer' : ''"
                 @click="if(selectMode) toggleSelect('{{ $i->id }}', {{ $p->price * $i->qty }})"
             >
@@ -135,7 +135,7 @@
                                  alt="{{ $p->title }}">
                         @else
                             <div class="w-full h-full flex items-center justify-center text-2xl text-gray-300">
-                                📦
+                                <i class="ri-image-line"></i>
                             </div>
                         @endif
                     </a>
@@ -171,8 +171,8 @@
                             <!-- Характеристики -->
                             @if(($p->color ?? false) || ($p->size ?? false))
                                 <div class="flex flex-wrap gap-2 mt-1 text-xs text-gray-500">
-                                    @if($p->color)<span class="inline-flex items-center gap-1">🎨 {{ $p->color }}</span>@endif
-                                    @if($p->size)<span class="inline-flex items-center gap-1">📏 {{ $p->size }}</span>@endif
+                                    @if($p->color)<span class="inline-flex items-center gap-1"><i class="ri-palette-line"></i> {{ $p->color }}</span>@endif
+                                    @if($p->size)<span class="inline-flex items-center gap-1"><i class="ri-ruler-line"></i> {{ $p->size }}</span>@endif
                                 </div>
                             @endif
                         </div>
@@ -202,26 +202,22 @@
                         <!-- Количество -->
                         <div class="flex items-center gap-2">
                             <label class="text-sm text-gray-500">Кол-во:</label>
-                            <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
                                 <button type="button" 
-                                        @click="updateQuantity({{ $i->id }}, Math.max(1, qty - 1), qty, {{ $p->price }}, $event)"
+                                        @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Math.max(1, Number(qty) - 1), savedQty, {{ $p->price }}, $event, $data)"
                                         :disabled="updating"
-                                        class="px-2 py-1 hover:bg-gray-50 transition-colors disabled:opacity-50">
-                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                    </svg>
+                                        class="w-9 h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
+                                    <i class="ri-subtract-line text-gray-500"></i>
                                 </button>
                                 <input type="number" min="1" 
                                        x-model="qty"
-                                       @blur="updateQuantity({{ $i->id }}, qty, qty, {{ $p->price }}, $event)"
-                                       class="w-14 text-center border-x border-gray-200 py-1 text-sm focus:outline-none">
+                                       @blur="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', qty, savedQty, {{ $p->price }}, $event, $data)"
+                                       class="w-14 text-center border-x border-gray-200 py-2 text-sm focus:outline-none">
                                 <button type="button"
-                                        @click="updateQuantity({{ $i->id }}, qty + 1, qty, {{ $p->price }}, $event)"
+                                        @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Number(qty) + 1, savedQty, {{ $p->price }}, $event, $data)"
                                         :disabled="updating"
-                                        class="px-2 py-1 hover:bg-gray-50 transition-colors disabled:opacity-50">
-                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
+                                        class="w-9 h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
+                                    <i class="ri-add-line text-gray-500"></i>
                                 </button>
                             </div>
                             <div x-show="updating" class="text-xs text-indigo-600">Сохранение...</div>
@@ -232,8 +228,12 @@
                             <form method="POST" action="{{ route('checkout.quick',$p->id) }}" class="inline">
                                 @csrf
                                 <input type="hidden" name="qty" :value="qty">
-                                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-all duration-200">
+                                <button class="relative overflow-hidden group h-10 px-4 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 backdrop-blur-sm border border-indigo-400/30">
+                                    <span class="relative z-10 flex items-center gap-2">
+                                        <i class="ri-bank-card-line"></i>
                                     Купить сейчас
+                                    </span>
+                                    <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
                                 </button>
                             </form>
 
@@ -241,10 +241,8 @@
                             <form method="POST" action="{{ route('cart.remove', $i) }}" class="inline delete-cart-form" data-product-title="{{ addslashes($p->title) }}">
                                 @csrf 
                                 @method('DELETE')
-                                <button type="submit" class="p-2 text-gray-400 hover:text-red-500 transition-colors duration-200" title="Удалить">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
+                                <button type="submit" class="w-10 h-10 rounded-xl border border-rose-100 bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors duration-200 flex items-center justify-center" title="Удалить">
+                                    <i class="ri-delete-bin-line text-lg"></i>
                                 </button>
                             </form>
                         </div>
@@ -269,10 +267,8 @@
                 <div class="block sm:hidden">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
+                            <div class="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i class="ri-checkbox-multiple-line text-indigo-600"></i>
                             </div>
                             <div>
                                 <div class="text-xs text-gray-500">Выбрано</div>
@@ -294,7 +290,7 @@
                             <input type="hidden" name="selected_items[]" :value="id">
                         </template>
                         <button type="submit"
-                                class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-md active:scale-95">
+                                class="w-full py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg active:scale-95">
                             Оформить выбранные (<span x-text="selected.length"></span>)
                         </button>
                     </form>
@@ -304,10 +300,8 @@
                 <div class="hidden sm:flex sm:items-center sm:justify-between gap-4">
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                </svg>
+                            <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i class="ri-checkbox-multiple-line text-indigo-600 text-lg"></i>
                             </div>
                             <div>
                                 <div class="text-xs text-gray-500">Выбрано товаров:</div>
@@ -333,7 +327,7 @@
                             <input type="hidden" name="selected_items[]" :value="id">
                         </template>
                         <button type="submit"
-                                class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg">
+                                class="px-6 py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl">
                             Оформить выбранные (<span x-text="selected.length"></span>)
                         </button>
                     </form>
@@ -342,7 +336,7 @@
         </div>
     </div>
 
-    <!-- 🛍️ С этим также покупают (Кросс-сейл) -->
+    <!-- С этим также покупают (Кросс-сейл) -->
     @php
         $categoryIds = $items->pluck('product.category_id')->unique()->filter();
         $crossSellProducts = \App\Models\Product::whereNotIn('id', $items->pluck('product.id'))
@@ -354,7 +348,10 @@
     @if($crossSellProducts->isNotEmpty())
     <div class="mt-12">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">🛍️ С этим также покупают</h3>
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <i class="ri-shopping-bag-3-line text-indigo-500"></i>
+                С этим также покупают
+            </h3>
             <a href="{{ route('home') }}" class="text-sm text-indigo-600 hover:text-indigo-700 transition-colors">Смотреть все →</a>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -370,8 +367,9 @@
                     <div class="text-indigo-600 font-bold">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
                     <form method="POST" action="{{ route('cart.add', $product->id) }}" class="inline w-full">
                         @csrf
-                        <button type="submit" class="w-full mt-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm hover:bg-indigo-100 transition-all duration-200">
-                            + В корзину
+                        <button type="submit" class="w-full mt-2 h-9 px-3 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition-all duration-200 flex items-center justify-center gap-1.5">
+                            <i class="ri-shopping-cart-line"></i>
+                            В корзину
                         </button>
                     </form>
                 </a>
@@ -381,7 +379,7 @@
     </div>
     @endif
 
-    <!-- ⭐ Рекомендации для вас -->
+    <!-- Рекомендации для вас -->
     @php
         $recommendedProducts = \App\Models\Product::whereNotIn('id', $items->pluck('product.id'))
             ->inRandomOrder()
@@ -392,7 +390,10 @@
     @if($recommendedProducts->isNotEmpty())
     <div class="mt-8">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">⭐ Рекомендуем для вас</h3>
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <i class="ri-sparkling-line text-indigo-500"></i>
+                Рекомендуем для вас
+            </h3>
             <a href="{{ route('home') }}" class="text-sm text-indigo-600 hover:text-indigo-700 transition-colors">Все товары →</a>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -408,8 +409,9 @@
                     <div class="text-indigo-600 font-bold">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
                     <form method="POST" action="{{ route('cart.add', $product->id) }}" class="inline w-full">
                         @csrf
-                        <button type="submit" class="w-full mt-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm hover:bg-indigo-100 transition-all duration-200">
-                            + В корзину
+                        <button type="submit" class="w-full mt-2 h-9 px-3 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition-all duration-200 flex items-center justify-center gap-1.5">
+                            <i class="ri-shopping-cart-line"></i>
+                            В корзину
                         </button>
                     </form>
                 </a>
@@ -456,35 +458,48 @@ function cartSelection() {
             }
         },
         
-        async updateQuantity(cartId, newQty, oldQty, price, event) {
+        async updateQuantity(updateUrl, itemId, newQty, oldQty, price, event, itemState = null) {
             if(event) event.stopPropagation();
+            newQty = Math.max(1, parseInt(newQty, 10) || 1);
+            oldQty = Math.max(1, parseInt(oldQty, 10) || 1);
+
             if(newQty === oldQty) return;
             
-            const item = this.$el.closest('.group').__x?.$data;
-            if(item) item.updating = true;
+            if(itemState) itemState.updating = true;
             
             try {
-                const response = await fetch(`/cart/${cartId}`, {
+                const response = await fetch(updateUrl, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({ quantity: newQty })
+                    body: JSON.stringify({ qty: newQty })
                 });
                 
                 if(response.ok) {
-                    location.reload();
+                    const delta = newQty - oldQty;
+
+                    if(itemState) {
+                        itemState.qty = newQty;
+                        itemState.savedQty = newQty;
+                    }
+
+                    if(this.selected.includes(String(itemId)) || this.selected.includes(itemId)) {
+                        this.selectedTotal += delta * price;
+                    }
                 } else {
-                    if(item) item.qty = oldQty;
+                    if(itemState) itemState.qty = oldQty;
                     showToast('Ошибка при обновлении количества', 'error');
                 }
             } catch(error) {
-                if(item) item.qty = oldQty;
+                if(itemState) itemState.qty = oldQty;
                 console.error('Error:', error);
                 showToast('Ошибка при обновлении количества', 'error');
             } finally {
-                if(item) item.updating = false;
+                if(itemState) itemState.updating = false;
             }
         },
         

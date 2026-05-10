@@ -32,19 +32,15 @@
                    placeholder="000000"
                    maxlength="6"
                    autocomplete="off"
-                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 text-base font-semibold tracking-[0.2em]"
+                   class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 text-base font-semibold tracking-[0.2em]"
                    required>
             <i class="ri-shield-keyhole-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
         </div>
 
-        <button type="submit"
-                class="relative overflow-hidden group h-11 px-5 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full backdrop-blur-sm border border-indigo-400/30">
-            <span class="relative z-10 flex items-center gap-2">
-                <i class="ri-check-line"></i>
-                Подтвердить код
-            </span>
-            <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-        </button>
+        <x-action-button :full="true">
+            <i class="ri-check-line"></i>
+            Подтвердить код
+        </x-action-button>
     </div>
 
     <p class="text-xs text-gray-500 flex items-start gap-2">

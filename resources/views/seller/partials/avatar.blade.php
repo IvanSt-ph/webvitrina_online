@@ -70,15 +70,10 @@
                     Отмена
                 </button>
                 
-                <button type="button"
-                        @click="cropAndSave()"
-                        class="relative overflow-hidden group px-5 py-2.5 bg-indigo-500/90 hover:bg-indigo-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center gap-2 backdrop-blur-sm border border-indigo-400/30">
-                    <span class="relative z-10 flex items-center gap-2">
-                        <i class="ri-crop-line"></i>
-                        Обрезать и сохранить
-                    </span>
-                    <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-                </button>
+                <x-action-button type="button" size="sm" x-on:click="cropAndSave()">
+                    <i class="ri-crop-line"></i>
+                    Обрезать и сохранить
+                </x-action-button>
             </div>
         </div>
     </div>

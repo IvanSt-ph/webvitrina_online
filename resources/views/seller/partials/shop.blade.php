@@ -74,7 +74,7 @@
                                    placeholder="Например: ТехноМаркет 24"
                                    maxlength="255"
                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm
-                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50 
+                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50
                                           transition-all duration-200 outline-none @error('name') border-rose-300 bg-rose-50/50 @enderror">
                             <i class="ri-building-2-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
                         </div>
@@ -101,7 +101,7 @@
                                    placeholder="Тирасполь"
                                    maxlength="255"
                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm
-                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50 
+                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50
                                           transition-all duration-200 outline-none @error('city') border-rose-300 bg-rose-50/50 @enderror">
                             <i class="ri-map-pin-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
                         </div>
@@ -170,9 +170,9 @@
                                    placeholder="https://facebook.com/yourpage"
                                    maxlength="255"
                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm
-                                          focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50 
+                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50
                                           transition-all duration-200 outline-none">
-                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
                         </div>
                     </div>
                 </div>
@@ -192,9 +192,9 @@
                                    placeholder="https://instagram.com/yourpage"
                                    maxlength="255"
                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm
-                                          focus:border-pink-300 focus:ring-4 focus:ring-pink-100/50 
+                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50
                                           transition-all duration-200 outline-none">
-                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-pink-500 transition-colors"></i>
+                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
                         </div>
                     </div>
                 </div>
@@ -214,9 +214,9 @@
                                    placeholder="https://t.me/yourchannel"
                                    maxlength="255"
                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm
-                                          focus:border-blue-300 focus:ring-4 focus:ring-blue-100/50 
+                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50
                                           transition-all duration-200 outline-none">
-                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
                         </div>
                     </div>
                 </div>
@@ -236,9 +236,9 @@
                                    placeholder="https://wa.me/79990000000"
                                    maxlength="255"
                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm
-                                          focus:border-green-300 focus:ring-4 focus:ring-green-100/50 
+                                          focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50
                                           transition-all duration-200 outline-none">
-                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-500 transition-colors"></i>
+                            <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
                         </div>
                     </div>
                 </div>
@@ -259,19 +259,11 @@
 
         {{-- 💾 Кнопка сохранения --}}
         <div class="flex justify-end pt-6 border-t border-gray-100">
-            <button type="submit"
-                    class="relative overflow-hidden group px-6 py-3.5 bg-indigo-500/90 hover:bg-indigo-600 
-                           text-white font-medium rounded-xl shadow-md hover:shadow-lg 
-                           transition-all duration-300 transform hover:-translate-y-0.5
-                           flex items-center gap-2 backdrop-blur-sm border border-indigo-400/30">
-                <span class="relative z-10 flex items-center gap-2">
-                    <i class="ri-save-3-line text-lg"></i>
-                    Сохранить изменения
-                    <i class="ri-arrow-right-line text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"></i>
-                </span>
-                <span class="absolute inset-0 bg-indigo-600 translate-y-full 
-                             group-hover:translate-y-0 transition-transform duration-300"></span>
-            </button>
+            <x-action-button size="lg">
+                <i class="ri-save-3-line text-lg"></i>
+                Сохранить изменения
+                <i class="ri-arrow-right-line text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"></i>
+            </x-action-button>
         </div>
     </form>
 </section>

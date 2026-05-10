@@ -95,6 +95,13 @@ class CartController extends Controller
 
         $item->update(['qty' => $data['qty']]);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'qty' => $item->qty,
+            ]);
+        }
+
         return back()->with('success', 'Количество обновлено');
     }
 

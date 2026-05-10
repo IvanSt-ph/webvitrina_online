@@ -50,15 +50,10 @@
                             </div>
                         </div>
 
-                        <button type="button"
-                                @click="editingEmail = true"
-                                class="relative overflow-hidden group h-11 px-5 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full backdrop-blur-sm border border-indigo-400/30">
-                            <span class="relative z-10 flex items-center gap-2">
-                                <i class="ri-pencil-line"></i>
-                                Изменить email
-                            </span>
-                            <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-                        </button>
+                        <x-action-button type="button" :full="true" x-on:click="editingEmail = true">
+                            <i class="ri-pencil-line"></i>
+                            Изменить email
+                        </x-action-button>
                     </div>
                 </div>
 
@@ -88,7 +83,7 @@
                                 <input type="email"
                                        name="email"
                                        value="{{ old('email', Auth::user()->email) }}"
-                                       class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition"
+                                       class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
                                        required>
                                 <i class="ri-mail-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
                             </div>
@@ -106,14 +101,10 @@
                                     class="h-11 px-4 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl border border-gray-200 shadow-sm transition">
                                 Отмена
                             </button>
-                            <button type="submit"
-                                    class="relative overflow-hidden group h-11 px-4 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 backdrop-blur-sm border border-indigo-400/30">
-                                <span class="relative z-10 flex items-center gap-2">
-                                    <i class="ri-save-line"></i>
-                                    Сохранить
-                                </span>
-                                <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-                            </button>
+                            <x-action-button>
+                                <i class="ri-save-line"></i>
+                                Сохранить
+                            </x-action-button>
                         </div>
                     </form>
                 </div>
@@ -158,14 +149,10 @@
 
                         <form method="POST" action="{{ route('verification.send') }}" class="w-full">
                             @csrf
-                            <button type="submit"
-                                    class="relative overflow-hidden group h-11 px-5 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full backdrop-blur-sm border border-indigo-400/30">
-                                <span class="relative z-10 flex items-center gap-2">
-                                    <i class="ri-send-plane-line"></i>
-                                    Отправить письмо
-                                </span>
-                                <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-                            </button>
+                            <x-action-button :full="true">
+                                <i class="ri-send-plane-line"></i>
+                                Отправить письмо
+                            </x-action-button>
                         </form>
                     </div>
                 @endif

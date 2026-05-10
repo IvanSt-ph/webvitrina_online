@@ -11,9 +11,9 @@
                    name="name" 
                    value="{{ old('name', Auth::user()->name) }}"
                    maxlength="255"
-                   class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 
-                          focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
-                          transition-all duration-200 @error('name') border-red-500 @enderror"
+                   class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm
+                          focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100
+                          transition-all duration-200 outline-none @error('name') border-rose-300 bg-rose-50/50 @enderror"
                    placeholder="Введите ваше имя">
             <i class="ri-user-3-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
         </div>
@@ -35,9 +35,9 @@
                    name="email"
                    value="{{ old('email', Auth::user()->email) }}"
                    maxlength="255"
-                   class="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-300 
-                          focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 
-                          transition-all duration-200 @error('email') border-red-500 @enderror"
+                   class="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm
+                          focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100
+                          transition-all duration-200 outline-none @error('email') border-rose-300 bg-rose-50/50 @enderror"
                    placeholder="email@example.com">
             <i class="ri-mail-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             @if (Auth::user()->hasVerifiedEmail())
