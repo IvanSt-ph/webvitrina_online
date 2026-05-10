@@ -31,19 +31,18 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $user = $request->user();
+        $updatedFields = [];
+        $section = $request->input('profile_section');
 
-        // Если это AJAX запрос с файлом аватара
-        if ($request->hasFile('avatar') && $request->ajax()) {
+        if ($request->ajax() && $request->hasFile('avatar')) {
             $request->validate([
                 'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 
-            // Удаляем старый аватар
             if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);
             }
 
-            // Сохраняем новый
             $path = $request->file('avatar')->store('avatars', 'public');
             $user->avatar = $path;
             $user->save();
@@ -55,34 +54,61 @@ class ProfileController extends Controller
             ]);
         }
 
-        // Обычное обновление профиля (не AJAX)
-        $data = $request->validate([
-            'name'   => 'required|string|max:255',
-            'email'  => 'required|email|max:255|unique:users,email,' . $user->id,
-            'phone'  => 'nullable|string|max:50',
-        ]);
+        if ($section === 'personal') {
+            $data = $request->validate([
+                'name' => 'required|string|max:255',
+                'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
 
-        $changed = false;
+            if ($request->hasFile('avatar')) {
+                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
 
-        // Имя
-        if ($data['name'] !== $user->name) {
-            $user->name = $data['name'];
-            $changed = true;
+                $path = $request->file('avatar')->store('avatars', 'public');
+                $user->avatar = $path;
+                $updatedFields[] = 'avatar';
+            }
+
+            if ($data['name'] !== $user->name) {
+                $user->name = $data['name'];
+                $updatedFields[] = 'name';
+            }
+
+            if (!empty($updatedFields)) {
+                $user->save();
+                return back()->with('updated_fields', $updatedFields);
+            }
+
+            return back();
         }
 
-        // Email
-        if ($data['email'] !== $user->email) {
-            $user->email = $data['email'];
-            $user->email_verified_at = null;
-            $changed = true;
+        if ($section === 'email') {
+            $data = $request->validate([
+                'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            ]);
+
+            if ($data['email'] !== $user->email) {
+                $user->email = $data['email'];
+                $user->email_verified_at = null;
+                $user->save();
+
+                return back()->with('updated_fields', ['email']);
+            }
+
+            return back();
         }
 
-        // Телефон
-        if (array_key_exists('phone', $data)) {
-            $phone = $data['phone'] ? '+' . preg_replace('/\D+/', '', $data['phone']) : null;
+        if ($section === 'phone') {
+            $data = $request->validate([
+                'phone' => 'nullable|string|max:50',
+                'phone_full' => 'nullable|string|max:50',
+            ]);
+
+            $submittedPhone = ($data['phone_full'] ?? null) ?: $data['phone'];
+            $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
             
             if ($phone !== $user->phone) {
-                // Проверка уникальности
                 $userExists = User::where('phone', $phone)
                     ->where('id', '!=', $user->id)
                     ->exists();
@@ -94,13 +120,127 @@ class ProfileController extends Controller
                 $user->phone = $phone;
                 $user->phone_verified_at = null;
                 $user->phone_verification_code = null;
+                $user->save();
+
+                return back()->with('updated_fields', ['phone']);
+            }
+
+            return back();
+        }
+
+        if ($section === 'contacts') {
+            $data = $request->validate([
+                'email'  => 'required|email|max:255|unique:users,email,' . $user->id,
+                'phone'  => 'nullable|string|max:50',
+                'phone_full' => 'nullable|string|max:50',
+                'phone_dirty' => 'nullable|boolean',
+            ]);
+
+            $changed = false;
+
+            if ($data['email'] !== $user->email) {
+                $user->email = $data['email'];
+                $user->email_verified_at = null;
+                $updatedFields[] = 'email';
+                $changed = true;
+            }
+
+            if ($request->boolean('phone_dirty')) {
+                $submittedPhone = ($data['phone_full'] ?? null) ?: $data['phone'];
+                $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
+
+                if ($phone && !preg_match('/^\+\d{8,15}$/', $phone)) {
+                    return back()->withErrors(['phone' => 'Введите полный номер с кодом страны'])->withInput();
+                }
+                
+                if ($phone !== $user->phone) {
+                    $userExists = User::where('phone', $phone)
+                        ->where('id', '!=', $user->id)
+                        ->exists();
+
+                    if ($userExists && $phone) {
+                        return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
+                    }
+
+                    $user->phone = $phone;
+                    $user->phone_verified_at = null;
+                    $user->phone_verification_code = null;
+                    $updatedFields[] = 'phone';
+                    $changed = true;
+                }
+            }
+
+            if ($changed) {
+                $user->save();
+            }
+
+            if (!empty($updatedFields)) {
+                return back()->with('updated_fields', $updatedFields);
+            }
+
+            return back();
+        }
+
+        $data = $request->validate([
+            'name'   => 'required|string|max:255',
+            'email'  => 'required|email|max:255|unique:users,email,' . $user->id,
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'phone'  => 'nullable|string|max:50',
+            'phone_full' => 'nullable|string|max:50',
+        ]);
+
+        $changed = false;
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+
+            $user->avatar = $request->file('avatar')->store('avatars', 'public');
+            $updatedFields[] = 'avatar';
+            $changed = true;
+        }
+
+        if ($data['name'] !== $user->name) {
+            $user->name = $data['name'];
+            $updatedFields[] = 'name';
+            $changed = true;
+        }
+
+        if ($data['email'] !== $user->email) {
+            $user->email = $data['email'];
+            $user->email_verified_at = null;
+            $updatedFields[] = 'email';
+            $changed = true;
+        }
+
+        if ($request->has('phone')) {
+            $submittedPhone = ($data['phone_full'] ?? null) ?: $data['phone'];
+            $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
+            
+            if ($phone !== $user->phone) {
+                $userExists = User::where('phone', $phone)
+                    ->where('id', '!=', $user->id)
+                    ->exists();
+
+                if ($userExists && $phone) {
+                    return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
+                }
+
+                $user->phone = $phone;
+                $user->phone_verified_at = null;
+                $user->phone_verification_code = null;
+                $updatedFields[] = 'phone';
                 $changed = true;
             }
         }
 
         if ($changed) {
             $user->save();
-            return back()->with('status', 'profile-updated');
+        }
+
+        if (!empty($updatedFields)) {
+            return back()->with('updated_fields', $updatedFields);
         }
 
         return back();

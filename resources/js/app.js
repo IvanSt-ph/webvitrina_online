@@ -72,6 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputs = document.querySelectorAll('input[type="tel"]');
 
   inputs.forEach((input) => {
+    // Некоторые страницы инициализируют телефонное поле сами,
+    // чтобы использовать настройки, отличные от глобальных.
+    if (input.dataset.intlManual === 'true') return;
+
     // 🔒 Предотвращаем повторную инициализацию
     if (input.dataset.intlInitialized) return;
     input.dataset.intlInitialized = 'true';
