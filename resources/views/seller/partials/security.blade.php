@@ -1,5 +1,5 @@
 {{-- resources/views/seller/partials/security.blade.php --}}
-<section class="bg-white border border-gray-100 rounded-xl shadow-sm p-6 sm:p-8 space-y-8">
+<section class="bg-transparent sm:bg-white border-0 sm:border sm:border-gray-100 rounded-none sm:rounded-2xl shadow-none sm:shadow-sm p-0 sm:p-8 space-y-6 sm:space-y-8">
     {{-- 🔐 Заголовок --}}
     <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -136,7 +136,7 @@
     </form>
 
     {{-- ⚠️ Удаление аккаунта --}}
-    <div class="border-t border-gray-100 pt-8">
+    <div class="border-t border-gray-100 pt-6 sm:pt-8">
         <div class="flex items-start gap-4">
             <div class="shrink-0">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-md">

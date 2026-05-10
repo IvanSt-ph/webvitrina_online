@@ -1,5 +1,5 @@
 {{-- resources/views/seller/partials/shop.blade.php --}}
-<section class="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 space-y-8">
+<section class="bg-transparent sm:bg-white border-0 sm:border sm:border-gray-100 rounded-none sm:rounded-2xl shadow-none sm:shadow-sm p-0 sm:p-8 space-y-6 sm:space-y-8">
 
     {{-- 🔹 Заголовок с градиентом --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -50,7 +50,7 @@
         @method('PATCH')
 
         {{-- 🏪 Основные данные магазина --}}
-        <div class="bg-gray-50 rounded-xl p-6 space-y-6">
+        <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-5 sm:space-y-6">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
                     <i class="ri-information-line text-white text-xs"></i>
@@ -116,7 +116,7 @@
         </div>
 
         {{-- 📝 Описание магазина --}}
-        <div class="bg-gray-50 rounded-xl p-6 space-y-4">
+        <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-4">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
                     <i class="ri-file-text-line text-white text-xs"></i>
@@ -146,7 +146,7 @@
         </div>
 
         {{-- 🔗 Социальные сети и мессенджеры --}}
-        <div class="bg-gray-50 rounded-xl p-6 space-y-6">
+        <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-5 sm:space-y-6">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
                     <i class="ri-share-line text-white text-xs"></i>

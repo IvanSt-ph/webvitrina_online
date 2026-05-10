@@ -93,7 +93,9 @@ class ProfileController extends Controller
                 $user->email_verified_at = null;
                 $user->save();
 
-                return back()->with('updated_fields', ['email']);
+                return back()
+                    ->with('updated_fields', ['email'])
+                    ->with('status', 'profile-updated');
             }
 
             return back();

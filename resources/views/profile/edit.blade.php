@@ -3,7 +3,7 @@
 
   <div class="min-h-screen bg-white text-gray-800">
     <main x-data="{ tab: 'main', mobileOpen: null }"
-          class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8 max-w-none   mx-auto">
+          class="pt-2 pb-10 space-y-6 sm:space-y-10 px-2 sm:px-6 lg:px-8 max-w-none mx-auto">
 
       {{-- 🏪 Баннер магазина --}}
       <section id="banner-box"
@@ -123,11 +123,11 @@
       </div>
 
       {{-- 📱 Гармошки (мобильная версия) --}}
-      <div class="block md:hidden space-y-4">
+      <div class="block md:hidden space-y-3">
         <template x-for="section in ['main', 'shop', 'security']" :key="section">
           <div class="border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <header @click="mobileOpen = mobileOpen === section ? null : section"
-                    class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer">
+                    class="flex items-center justify-between px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer">
               <span class="text-sm font-medium text-gray-800" x-text="
                 section === 'main' ? 'Основная информация' :
                 section === 'shop' ? 'Информация о магазине' :
@@ -136,7 +136,7 @@
                  :class="mobileOpen === section ? 'rotate-180' : ''"></i>
             </header>
             <div x-show="mobileOpen === section" class="bg-white">
-              <div class="p-4">
+              <div class="p-2 sm:p-4">
                 <template x-if="section === 'main'">
                   @include('seller.partials.main')
                 </template>

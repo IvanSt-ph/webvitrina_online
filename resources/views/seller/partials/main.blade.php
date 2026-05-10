@@ -1,5 +1,5 @@
 {{-- resources/views/seller/partials/main.blade.php --}}
-<section class="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 space-y-8">
+<section class="bg-transparent sm:bg-white border-0 sm:border sm:border-gray-100 rounded-none sm:rounded-2xl shadow-none sm:shadow-sm p-0 sm:p-8 space-y-6 sm:space-y-8">
 
     {{-- 🔹 Заголовок с градиентом --}}
     @include('seller.partials.header')
@@ -13,7 +13,7 @@
         @method('PATCH')
 
         {{-- 🎭 Аватар и имя --}}
-        <div class="bg-gray-50 rounded-xl p-6 space-y-6">
+        <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-5 sm:space-y-6">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <i class="ri-image-line text-indigo-500"></i>
                 Личные данные

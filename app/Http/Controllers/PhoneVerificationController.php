@@ -18,8 +18,28 @@ class PhoneVerificationController extends Controller
         );
     }
 
+    protected function verifySid(): ?string
+    {
+        return config('services.twilio.verify_sid');
+    }
+
+    protected function ensureTwilioConfigured(): ?\Illuminate\Http\RedirectResponse
+    {
+        if (!config('services.twilio.sid') || !config('services.twilio.token') || !$this->verifySid()) {
+            return back()->withErrors([
+                'phone' => 'SMS-подтверждение не настроено. Проверьте TWILIO_SID, TWILIO_AUTH_TOKEN и TWILIO_VERIFY_SERVICE_SID в .env.'
+            ]);
+        }
+
+        return null;
+    }
+
     public function send(Request $request)
     {
+        if ($response = $this->ensureTwilioConfigured()) {
+            return $response;
+        }
+
         // Защита от частых запросов
         $throttleKey = 'phone-verify:' . Auth::id();
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
@@ -42,7 +62,7 @@ class PhoneVerificationController extends Controller
             $this->twilio()
                 ->verify
                 ->v2
-                ->services(config('services.twilio.verify_sid'))
+                ->services($this->verifySid())
                 ->verifications
                 ->create($user->phone, 'sms');
 
@@ -69,6 +89,12 @@ class PhoneVerificationController extends Controller
 
         $user = Auth::user();
 
+        if (!config('services.twilio.sid') || !config('services.twilio.token') || !$this->verifySid()) {
+            throw ValidationException::withMessages([
+                'code' => 'SMS-подтверждение не настроено. Проверьте настройки Twilio.'
+            ]);
+        }
+
         // Защита от подбора кода
         $verifyThrottleKey = 'phone-verify-attempt:' . Auth::id();
         if (RateLimiter::tooManyAttempts($verifyThrottleKey, 5)) {
@@ -84,7 +110,7 @@ class PhoneVerificationController extends Controller
             $check = $this->twilio()
                 ->verify
                 ->v2
-                ->services(config('services.twilio.verify_sid'))
+                ->services($this->verifySid())
                 ->verificationChecks
                 ->create([
                     'to' => $user->phone,

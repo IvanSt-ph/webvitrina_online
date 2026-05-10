@@ -19,12 +19,32 @@ class ShopPhoneVerificationController extends Controller
         );
     }
 
+    protected function verifySid(): ?string
+    {
+        return config('services.twilio.verify_sid');
+    }
+
+    protected function ensureTwilioConfigured(): ?\Illuminate\Http\RedirectResponse
+    {
+        if (!config('services.twilio.sid') || !config('services.twilio.token') || !$this->verifySid()) {
+            return back()->withErrors([
+                'phone' => 'SMS-подтверждение не настроено. Проверьте TWILIO_SID, TWILIO_AUTH_TOKEN и TWILIO_VERIFY_SERVICE_SID в .env.'
+            ]);
+        }
+
+        return null;
+    }
+
     public function send(Request $request)
     {
         $shop = Auth::user()->shop;
 
         if (!$shop) {
             return back()->withErrors(['shop' => 'У вас нет магазина']);
+        }
+
+        if ($response = $this->ensureTwilioConfigured()) {
+            return $response;
         }
 
         // Защита от частых запросов
@@ -46,7 +66,7 @@ class ShopPhoneVerificationController extends Controller
             $this->twilio()
                 ->verify
                 ->v2
-                ->services(config('services.twilio.verify_sid'))
+                ->services($this->verifySid())
                 ->verifications
                 ->create($shop->phone, 'sms');
 
@@ -78,6 +98,12 @@ class ShopPhoneVerificationController extends Controller
             ]);
         }
 
+        if (!config('services.twilio.sid') || !config('services.twilio.token') || !$this->verifySid()) {
+            throw ValidationException::withMessages([
+                'code' => 'SMS-подтверждение не настроено. Проверьте настройки Twilio.'
+            ]);
+        }
+
         $verifyThrottleKey = 'shop-phone-verify-attempt:' . $shop->id;
         if (RateLimiter::tooManyAttempts($verifyThrottleKey, 5)) {
             $seconds = RateLimiter::availableIn($verifyThrottleKey);
@@ -92,7 +118,7 @@ class ShopPhoneVerificationController extends Controller
             $check = $this->twilio()
                 ->verify
                 ->v2
-                ->services(config('services.twilio.verify_sid'))
+                ->services($this->verifySid())
                 ->verificationChecks
                 ->create([
                     'to' => $shop->phone,
