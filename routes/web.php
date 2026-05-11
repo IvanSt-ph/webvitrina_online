@@ -281,9 +281,6 @@ Route::middleware('role:buyer')->group(function () {
         [OrderStatusController::class, 'sellerUpdate']
     )->name('seller.orders.updateStatus');
 
-    Route::post('/admin/orders/{order}/status',
-        [OrderStatusController::class, 'adminUpdate']
-    )->name('admin.orders.updateStatus');
 
 
     /*
@@ -438,6 +435,10 @@ Route::prefix('admin')
 
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
 
+    Route::post('/orders/{order}/status',
+        [OrderStatusController::class, 'adminUpdate']
+    )->name('orders.updateStatus');
+
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
@@ -459,3 +460,4 @@ Route::prefix('admin')
 |--------------------------------------------------------------------------
 */
 require __DIR__.'/auth.php';
+

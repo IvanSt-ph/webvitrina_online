@@ -58,10 +58,7 @@ public function sellerUpdate(Request $request, Order $order)
     ) {
         return back()->with('error', 'Недопустимый переход статуса.');
     }
-
-    $order->update([
-        'status' => $new,
-    ]);
+    $order->setStatus($new);
 
     return back()->with('success', 'Статус обновлён.');
 }
@@ -73,13 +70,17 @@ public function sellerUpdate(Request $request, Order $order)
      |--------------------------------------------------*/
     public function adminUpdate(Request $request, Order $order)
     {
+        abort_unless(auth()->user()?->role === 'admin', 403);
+
         $request->validate([
-            'status' => 'required|string'
+            'status' => ['required', 'in:' . implode(',', Order::allStatuses())],
         ]);
 
-        // Любой статус разрешён
         $order->setStatus($request->status);
 
         return back()->with('success', 'Статус заказа обновлён администратором.');
     }
 }
+
+
+

@@ -62,6 +62,13 @@ class Order extends Model
      | 📌 Eager loading
      |--------------------------------------------------*/
 
+    protected $casts = [
+        'paid_at' => 'datetime',
+        'accepted_at' => 'datetime',
+        'shipped_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'canceled_at' => 'datetime',
+    ];
     protected $with = [
         'items.product',
         'user',
@@ -195,3 +202,5 @@ public function markAsPaid(): void
 
 
 }
+
+
