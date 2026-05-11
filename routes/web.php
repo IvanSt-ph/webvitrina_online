@@ -85,8 +85,6 @@ Route::middleware(['auth', 'role:seller'])->group(function () {
     Route::post('/shop/phone/verify', [ShopPhoneVerificationController::class, 'verify'])->name('shop.phone.verify');
 });
 
-Route::patch('/profile/shop/phone', [ProfileController::class, 'updatePhone'])
-    ->name('profile.shop.update-phone');
 
 
 Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
@@ -169,7 +167,8 @@ Route::get('/profile/edit',  [ProfileController::class, 'edit'])
 
     // Shop info (продавец)
     Route::patch('/profile/shop', [ProfileController::class, 'updateShop'])
-        ->name('profile.shop.update');
+        ->name('profile.shop.update')
+        ->middleware('role:seller');
 
 
 
@@ -460,4 +459,6 @@ Route::prefix('admin')
 |--------------------------------------------------------------------------
 */
 require __DIR__.'/auth.php';
+
+
 

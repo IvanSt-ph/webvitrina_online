@@ -140,7 +140,7 @@ class ProductController extends Controller
         }
 
         // Вся логика удаления в сервисе!
-        $this->productService->deleteGalleryImage($product, $path);
+        $this->productService->deleteFromGallery($product, $path);
 
         return response()->json(['success' => true]);
     }

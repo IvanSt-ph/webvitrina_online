@@ -338,6 +338,8 @@ public function verifyShopPhone(Request $request): RedirectResponse
 
 public function updateShop(Request $request): RedirectResponse
 {
+    abort_unless($request->user()->role === 'seller', 403);
+
     $data = $request->validate([
         'name'        => 'nullable|string|max:255',
         'city'        => 'nullable|string|max:255',
@@ -554,3 +556,5 @@ public function redirectToRoleProfile()
         return Redirect::to('/');
     }
 }
+
+

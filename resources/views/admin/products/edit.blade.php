@@ -365,7 +365,7 @@ document.addEventListener("DOMContentLoaded", function() {
   @endphp
 
   @if(!empty($gallery))
-    <div id="gallery-container" class="flex flex-wrap gap-3 mt-2">
+    <div id="admin-gallery-container" class="flex flex-wrap gap-3 mt-2">
       @foreach($gallery as $img)
         <div class="relative group">
           <img src="{{ asset('storage/' . $img) }}"
@@ -393,34 +393,49 @@ document.addEventListener("DOMContentLoaded", function() {
 <script>
     
 document.addEventListener('DOMContentLoaded', () => {
-  const gallery = document.getElementById('gallery-container');
-  if (!gallery) return;
+  const gallery = document.getElementById('admin-gallery-container');
+  if (!gallery || gallery.dataset.deleteBound === '1') return;
+
+  gallery.dataset.deleteBound = '1';
 
   gallery.addEventListener('click', async (e) => {
-    if (!e.target.dataset.path) return;
+    const button = e.target.closest('button[data-path]');
+    if (!button || !gallery.contains(button)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (button.dataset.deleting === '1') return;
     if (!confirm('Удалить это фото из галереи?')) return;
 
-    const path = e.target.dataset.path;
+    button.dataset.deleting = '1';
+    button.disabled = true;
+
+    const path = button.dataset.path;
     const url = "{{ route('admin.products.gallery.delete', $product) }}";
 
-    const res = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ path })
-    });
-
     try {
-      const data = await res.json();
-      if (data.success) {
-        e.target.closest('.relative').remove();
-      } else {
-        alert('Ошибка: ' + (data.error || 'Не удалось удалить'));
+      const res = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRF-TOKEN': '{{ csrf_token() }}',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ path })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Не удалось удалить');
       }
+
+      button.closest('.relative')?.remove();
     } catch (err) {
-      alert('Ошибка при удалении изображения');
+      button.dataset.deleting = '0';
+      button.disabled = false;
+      alert('Ошибка при удалении изображения: ' + err.message);
     }
   });
 });
@@ -612,3 +627,5 @@ function cityPicker() {
 </style>
 
 @endsection
+
+

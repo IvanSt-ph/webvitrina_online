@@ -24,13 +24,17 @@ return redirect()
     ->with('error', 'Вы не можете купить собственный товар.');
         }
 
+        $data = $request->validate([
+            'qty' => ['nullable', 'integer', 'min:1', 'max:999'],
+        ]);
+
         // Ищем, нет ли уже этого товара в обычной корзине
         $cartItem = CartItem::where('user_id', auth()->id())
             ->where('product_id', $product->id)
             ->first();
 
         // Берём количество: либо из запроса, либо из корзины, либо 1
-        $qty = $request->qty ?? ($cartItem?->qty ?? 1);
+        $qty = (int) ($data['qty'] ?? ($cartItem?->qty ?? 1));
 
         // Кладём "корзину для оформления" в сессию
         session()->put('checkout_cart', [
@@ -223,9 +227,14 @@ return redirect()
             }
         }
 
+        $checkoutData = $request->validate([
+            'payment_method' => ['required', 'in:cash,card,bank_transfer'],
+            'delivery_method' => ['required', 'in:courier,pickup,post,express'],
+        ]);
+
         // ✅ Получаем способы оплаты и доставки из формы
-        $paymentMethod = $request->input('payment_method', 'cash');
-        $deliveryMethod = $request->input('delivery_method', 'courier');
+        $paymentMethod = $checkoutData['payment_method'];
+        $deliveryMethod = $checkoutData['delivery_method'];
 
         // ✅ ЦЕНЫ ДОСТАВКИ
         $deliveryPrices = [
@@ -235,7 +244,7 @@ return redirect()
             'express' => 175,
         ];
         
-        $deliveryCost = $deliveryPrices[$deliveryMethod] ?? 0;
+        $deliveryCost = $deliveryPrices[$deliveryMethod];
 
         // Добавляем seller_id к каждой позиции (уже проверили товары выше)
         $cartWithSellers = collect($cart)->map(function ($row) use ($products) {
@@ -302,3 +311,4 @@ return redirect()
             ->with('success', 'Создано заказов: ' . count($createdOrders));
     }
 }
+
