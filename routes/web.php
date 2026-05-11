@@ -350,7 +350,6 @@ Route::middleware('role:buyer')->group(function () {
         // Аналитика
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('/analytics/day/{date}', [AnalyticsController::class, 'dayStats'])->name('analytics.day');
-        Route::get('/analytics/products-on/{date}', [AnalyticsController::class, 'productsOn']);
     });
 
 }); // END AUTH GROUP
@@ -393,7 +392,7 @@ Route::prefix('admin')
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('colors', ColorController::class)->except(['show']);
+    Route::resource('colors', ColorController::class)->except(['show', 'create', 'edit']);
     // Очистка старых товаров из корзины
     Route::post('/products/purge-old', function () {
     Artisan::call('products:purge-old');
@@ -426,7 +425,7 @@ Route::prefix('admin')
     Route::get('/products/search', [AdminProductController::class, 'search'])
         ->name('products.search');
 
-    Route::resource('products', AdminProductController::class);
+    Route::resource('products', AdminProductController::class)->except(['show']);
 
     Route::delete('/products/{product}/gallery',
         [AdminProductController::class, 'deleteGalleryImage']
@@ -459,6 +458,7 @@ Route::prefix('admin')
 |--------------------------------------------------------------------------
 */
 require __DIR__.'/auth.php';
+
 
 
 
