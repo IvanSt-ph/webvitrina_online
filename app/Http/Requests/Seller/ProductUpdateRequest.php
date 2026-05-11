@@ -3,13 +3,15 @@
 namespace App\Http\Requests\Seller;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProductUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Тут авторизацию может дополнительно контролировать Policy
-        return auth()->check();
+        $product = $this->route('product');
+
+        return $product && $this->user()?->can('update', $product);
     }
 
     public function rules(): array
@@ -22,7 +24,7 @@ class ProductUpdateRequest extends FormRequest
 
             'category_id' => 'required|exists:categories,id',
             'country_id'  => 'required|exists:countries,id',
-            'city_id'     => 'required|exists:cities,id',
+            'city_id'     => ['required', Rule::exists('cities', 'id')->where('country_id', $this->input('country_id'))],
 
             'address'   => 'nullable|string|max:255',
             'latitude'  => 'nullable|numeric',
@@ -33,3 +35,7 @@ class ProductUpdateRequest extends FormRequest
         ];
     }
 }
+
+
+
+

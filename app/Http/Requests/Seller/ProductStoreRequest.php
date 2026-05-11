@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Seller;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProductStoreRequest extends FormRequest
 {
@@ -22,7 +23,7 @@ class ProductStoreRequest extends FormRequest
 
             'category_id' => 'required|exists:categories,id',
             'country_id'  => 'required|exists:countries,id',
-            'city_id'     => 'required|exists:cities,id',
+            'city_id'     => ['required', Rule::exists('cities', 'id')->where('country_id', $this->input('country_id'))],
 
             'address'   => 'nullable|string|max:255',
             'latitude'  => 'nullable|numeric',
@@ -48,3 +49,4 @@ class ProductStoreRequest extends FormRequest
         ];
     }
 }
+

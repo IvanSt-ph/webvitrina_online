@@ -336,8 +336,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 <label class="block text-sm font-medium text-gray-700">Статус</label>
                 <select name="status"
                         class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="1" {{ old('status', $product->status) == 1 ? 'selected' : '' }}>Опубликован</option>
-                    <option value="0" {{ old('status', $product->status) == 0 ? 'selected' : '' }}>Черновик</option>
+                    <option value="active" {{ old('status', $product->status) === 'active' ? 'selected' : '' }}>Опубликован</option>
+                    <option value="draft" {{ old('status', $product->status) === 'draft' ? 'selected' : '' }}>Черновик</option>
                 </select>
             </div>
 
@@ -627,5 +627,6 @@ function cityPicker() {
 </style>
 
 @endsection
+
 
 

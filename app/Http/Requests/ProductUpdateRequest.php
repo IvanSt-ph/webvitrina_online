@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProductUpdateRequest extends FormRequest
 {
@@ -21,15 +22,15 @@ class ProductUpdateRequest extends FormRequest
         'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku,' . $productId],
         'price'       => ['sometimes', 'required', 'numeric', 'min:0'],
         'stock'       => ['sometimes', 'required', 'integer', 'min:0'],
-        'user_id'     => ['sometimes', 'exists:users,id'],
+        'user_id'     => ['sometimes', Rule::exists('users', 'id')->where('role', 'seller')],
         'category_id' => ['sometimes', 'exists:categories,id'],
         'country_id'  => ['sometimes', 'exists:countries,id'],
-        'city_id'     => ['sometimes', 'exists:cities,id'],
+        'city_id'     => ['sometimes', 'required', Rule::exists('cities', 'id')->where('country_id', $this->input('country_id', $this->route('product')?->city?->country_id))],
         'address'     => ['nullable', 'string', 'max:255'],
         'latitude'    => ['nullable', 'numeric'],
         'longitude'   => ['nullable', 'numeric'],
         'description' => ['nullable', 'string'],
-        'status'      => ['nullable', 'boolean'],
+        'status'      => ['sometimes', 'required', 'in:active,draft'],
         'image'       => ['nullable', 'image', 'max:4096'],
         'gallery.*'   => ['nullable', 'image', 'max:4096'],
     ];
@@ -37,3 +38,6 @@ class ProductUpdateRequest extends FormRequest
 
 
 }
+
+
+

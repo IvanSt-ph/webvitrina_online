@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ProductStoreRequest extends FormRequest
 {
@@ -20,18 +21,21 @@ public function rules(): array
         'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku'],
         'price'       => ['required', 'numeric', 'min:0'],
         'stock'       => ['required', 'integer', 'min:0'],
-        'user_id'     => ['nullable', 'exists:users,id'],
+        'user_id'     => ['required', Rule::exists('users', 'id')->where('role', 'seller')],
         'category_id' => ['required', 'exists:categories,id'],
         'country_id'  => ['required', 'exists:countries,id'],
-        'city_id'     => ['required', 'exists:cities,id'],
+        'city_id'     => ['required', Rule::exists('cities', 'id')->where('country_id', $this->input('country_id'))],
         'address'     => ['nullable', 'string', 'max:255'],
         'latitude'    => ['nullable', 'numeric'],
         'longitude'   => ['nullable', 'numeric'],
         'description' => ['nullable', 'string'],
-        'status'      => ['nullable', 'boolean'],
+        'status'      => ['required', 'in:active,draft'],
         'image'       => ['nullable', 'image', 'max:4096'],
         'gallery.*'   => ['nullable', 'image', 'max:4096'],
     ];
 }
 
 }
+
+
+

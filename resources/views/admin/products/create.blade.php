@@ -317,8 +317,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 <label class="block text-sm font-medium text-gray-700">Статус</label>
                 <select name="status"
                         class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="1" {{ old('status', 1) == 1 ? 'selected' : '' }}>Опубликован</option>
-                    <option value="0" {{ old('status') == 0 ? 'selected' : '' }}>Черновик</option>
+                    <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Опубликован</option>
+                    <option value="draft" {{ old('status') === 'draft' ? 'selected' : '' }}>Черновик</option>
                 </select>
             </div>
 
@@ -452,3 +452,4 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     </script>
 @endsection
+
