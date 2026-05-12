@@ -37,6 +37,7 @@ class GoogleController extends Controller
                 $user->provider = 'google';
                 $user->provider_id = $googleUser->id;
                 $user->provider_token = $googleUser->token;
+                $user->save();
             } else {
                 // Создаём нового
                 $user = User::create([

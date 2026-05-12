@@ -8,26 +8,19 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 🏗 Запускаем сидеры строго по порядку
+        // Core reference data needed by the app.
         $this->call([
-
-            // 1) Страны и города
             CountriesSeeder::class,
-            // CitiesSeeder::class - заменили на новый
-            CountryCitySeeder::class,  // 👈 Новый сидер с полным списком городов
-
-            // 2) Категории (корневые + подкатегории)
+            CountryCitySeeder::class,
             CategoriesSeeder::class,
-
-            // 3) Атрибуты и связки
-            // AttributesSeeder::class,
-            // CategoryAttributesSeeder::class,
-
-            // 4) Пользователи (опционально)
-            UsersSeeder::class,
-
-            // 5) Демо товары (если нужно)
-            ProductsSeeder::class,
         ]);
+
+        if (filter_var(env('SEED_ADMIN_USER', false), FILTER_VALIDATE_BOOL)) {
+            $this->call(UsersSeeder::class);
+        }
+
+        if (filter_var(env('SEED_DEMO_PRODUCTS', false), FILTER_VALIDATE_BOOL)) {
+            $this->call(ProductsSeeder::class);
+        }
     }
 }
