@@ -2,6 +2,7 @@
 
 Перед запуском на продакшне проверь:
 
+- Подробная памятка по деплою: `docs/deployment.md`
 - `APP_ENV=production`
 - `APP_DEBUG=false`
 - `APP_URL=https://your-domain.example`
@@ -17,8 +18,10 @@
 - `SEED_DEMO_PRODUCTS=false` на продакшне
 - SMTP, Google OAuth и Twilio ключи не тестовые и не лежат в публичном репозитории
 - Все секреты из локального `.env`, которые когда-либо могли попасть в чужие руки, ротированы
+- Права на сервере настроены без `chmod -R 777`: запись только в `storage/` и `bootstrap/cache/`
+- Supervisor/systemd worker для очереди настроен по примеру `deploy/supervisor-webvitrina-worker.conf.example`
 - Выполнены `php artisan migrate --force`, `php artisan storage:link`
-- После деплоя выполнены `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`
+- После деплоя выполнены `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`, `php artisan queue:restart`
 - `composer audit` не показывает high/critical advisories
 - `npm audit --omit=dev` не показывает production vulnerabilities
 - `php artisan test` проходит

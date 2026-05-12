@@ -1,0 +1,11 @@
+[program:webvitrina-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/webvitrina/artisan queue:work database --sleep=3 --tries=3 --timeout=90
+directory=/var/www/webvitrina
+autostart=true
+autorestart=true
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/www/webvitrina/storage/logs/worker.log
+stopwaitsecs=3600
