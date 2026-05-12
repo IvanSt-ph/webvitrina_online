@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductStat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
 class CartController extends Controller
@@ -35,6 +36,8 @@ class CartController extends Controller
 
     public function add(Product $product, Request $request)
     {
+        abort_if($product->status !== 'active', 404);
+
         $request->validate([
             'qty' => ['nullable', 'integer', 'min:1', 'max:999'],
         ]);
@@ -58,6 +61,14 @@ class CartController extends Controller
             'product_id' => $product->id,
         ]);
 
+        $newQty = max(1, (int) $item->qty + $qty);
+
+        if ($newQty > $product->stock) {
+            throw ValidationException::withMessages([
+                'qty' => "Доступно только {$product->stock} шт. Возможно, часть товара уже купили другие пользователи.",
+            ]);
+        }
+
         $today = Carbon::today()->toDateString();
 
         // если пользователь впервые добавляет этот товар в корзину
@@ -70,7 +81,7 @@ class CartController extends Controller
             );
         }
 
-        $item->qty = max(1, (int)$item->qty + $qty);
+        $item->qty = $newQty;
         $item->save();
 
         if ($request->wantsJson()) {
@@ -98,7 +109,7 @@ class CartController extends Controller
         foreach ($favorites as $favorite) {
             $product = $favorite->product;
 
-            if (! $product || $product->user_id === auth()->id()) {
+            if (! $product || $product->status !== 'active' || $product->user_id === auth()->id()) {
                 continue;
             }
 
@@ -106,6 +117,10 @@ class CartController extends Controller
                 'user_id' => auth()->id(),
                 'product_id' => $product->id,
             ]);
+
+            if (((int) $item->qty + 1) > $product->stock) {
+                continue;
+            }
 
             if (! $item->exists) {
                 $product->increment('cart_adds_count');
@@ -136,6 +151,13 @@ class CartController extends Controller
         $data = $request->validate([
             'qty' => ['required','integer','min:1','max:999'],
         ]);
+
+        $item->loadMissing('product');
+        if ($item->product && $data['qty'] > $item->product->stock) {
+            throw ValidationException::withMessages([
+                'qty' => "Доступно только {$item->product->stock} шт. Возможно, часть товара уже купили другие пользователи.",
+            ]);
+        }
 
         $item->update(['qty' => $data['qty']]);
 

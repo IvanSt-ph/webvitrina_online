@@ -21,6 +21,7 @@ class CategoryController extends Controller
 
     // Тот же код, что в show(), но без layout
     $products = Product::filter($request->all())
+        ->active()
         ->where('category_id', $category->id)
         ->paginate(20);
 
@@ -73,6 +74,7 @@ class CategoryController extends Controller
         $products = (function () use ($categoryIds) {
 
             $query = Product::whereIn('category_id', $categoryIds)
+                ->active()
                 ->with(['category', 'seller', 'city.country', 'reviews'])
                 ->withCount([
                     'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),

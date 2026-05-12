@@ -30,6 +30,7 @@ class ProductRepository
     private function buildFilteredProductsQuery($request)
     {
         $query = Product::query()
+            ->active()
             ->with([
                 'category',
                 'seller.shop',
@@ -230,7 +231,7 @@ class ProductRepository
                 'city.country',
                 'category.parent',
                 'seller.shop',
-            ])->find($key);
+            ])->active()->find($key);
 
             if ($product) {
                 return redirect()->route('product.show', $product->slug, 301);
@@ -261,13 +262,14 @@ class ProductRepository
                     $q->where('status', 'approved');
                 },
             ], 'rating')
+            ->active()
             ->where('slug', $key)
             ->first();
 
             if (!$product) {
                 $old = \App\Models\ProductSlug::where('slug', $key)->first();
 
-                if ($old && $old->product) {
+                if ($old && $old->product && $old->product->status === 'active') {
                     return redirect()->route('product.show', $old->product->slug, 301);
                 }
 
@@ -286,6 +288,7 @@ class ProductRepository
         return Cache::remember("related:{$product->id}", 600, function () use ($product) {
 
             return Product::query()
+                ->active()
                 ->select('id', 'slug', 'title', 'price', 'image')
                 ->with('category')
                 ->where('category_id', $product->category_id)

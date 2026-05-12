@@ -624,7 +624,7 @@ function cartSelection(initialTotal = 0, initialQty = 0, freeShippingThreshold =
                     }
                 } else {
                     if(itemState) itemState.qty = oldQty;
-                    showToast('Ошибка при обновлении количества', 'error');
+                    showToast(await this.errorMessageFromResponse(response), 'error');
                 }
             } catch(error) {
                 if(itemState) itemState.qty = oldQty;
@@ -633,6 +633,26 @@ function cartSelection(initialTotal = 0, initialQty = 0, freeShippingThreshold =
             } finally {
                 if(itemState) itemState.updating = false;
             }
+        },
+
+        async errorMessageFromResponse(response) {
+            const fallback = 'Ошибка при обновлении количества';
+
+            try {
+                const data = await response.json();
+
+                if (data?.errors?.qty?.[0]) {
+                    return data.errors.qty[0];
+                }
+
+                if (data?.message) {
+                    return data.message;
+                }
+            } catch (error) {
+                return fallback;
+            }
+
+            return fallback;
         },
         
         init() {

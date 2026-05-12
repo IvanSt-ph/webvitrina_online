@@ -179,12 +179,24 @@ class ProductService
 
     protected function removeGalleryImage(Product $product, string $path): void
     {
-        // Удаляем через ImageService (защита внутри)
-        $this->images->delete($path);
+        $gallery = (array) $product->gallery;
+        $cleanPath = $this->normalizeGalleryPath($path);
 
-        $gallery = array_filter((array)$product->gallery, fn($p) => $p !== $path);
+        if (!in_array($cleanPath, $gallery, true)) {
+            abort(403, 'Изображение не принадлежит галерее этого товара.');
+        }
+
+        // Удаляем через ImageService (защита внутри)
+        $this->images->delete($cleanPath);
+
+        $gallery = array_filter($gallery, fn($p) => $p !== $cleanPath);
 
         $product->update(['gallery' => array_values($gallery)]);
+    }
+
+    protected function normalizeGalleryPath(string $path): string
+    {
+        return ltrim(str_replace(['storage/', '/storage/'], '', $path), '/');
     }
 
     public function deleteFromGallery(Product $product, string $path): void

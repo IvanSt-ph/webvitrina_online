@@ -21,6 +21,11 @@ class ProductUpdateRequest extends FormRequest
             'price'       => 'required|numeric|min:0',
             'stock'       => 'required|integer|min:0',
             'description' => 'nullable|string|max:1000',
+            'status'      => 'nullable|in:active,draft',
+            'currency_base' => 'nullable|in:PRB,MDL,UAH',
+            'price_prb'   => 'nullable|numeric|min:0',
+            'price_mdl'   => 'nullable|numeric|min:0',
+            'price_uah'   => 'nullable|numeric|min:0',
 
             'category_id' => 'required|exists:categories,id',
             'country_id'  => 'required|exists:countries,id',

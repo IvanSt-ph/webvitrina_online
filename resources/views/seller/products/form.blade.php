@@ -226,6 +226,23 @@
       </section>
 
 
+      {{-- ================= Статус ================= --}}
+      <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">Статус публикации</h2>
+
+        <select name="status"
+                class="w-full border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          <option value="draft" @selected(old('status', $product->status ?: 'draft') === 'draft')>
+            Черновик
+          </option>
+          <option value="active" @selected(old('status', $product->status ?: 'draft') === 'active')>
+            Опубликован
+          </option>
+        </select>
+        @error('status') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+      </section>
+
+
       {{-- ================= Изображения ================= --}}
       <section class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
         <h2 class="text-lg font-semibold text-gray-700 mb-4">Изображения</h2>

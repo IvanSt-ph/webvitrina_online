@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
@@ -17,6 +18,8 @@ class CheckoutController extends Controller
      */
     public function quick(Product $product, Request $request)
     {
+        abort_if($product->status !== 'active', 404);
+
         // ❗ КРИТИЧЕСКАЯ ЗАЩИТА: запрет покупки своего товара
         if ($product->user_id === auth()->id()) {
 return redirect()
@@ -35,6 +38,12 @@ return redirect()
 
         // Берём количество: либо из запроса, либо из корзины, либо 1
         $qty = (int) ($data['qty'] ?? ($cartItem?->qty ?? 1));
+
+        if ($qty > $product->stock) {
+            throw ValidationException::withMessages([
+                'qty' => "Доступно только {$product->stock} шт. Возможно, часть товара уже купили другие пользователи.",
+            ]);
+        }
 
         // Кладём "корзину для оформления" в сессию
         session()->put('checkout_cart', [
@@ -74,6 +83,18 @@ return redirect()
         // ❗ ЗАЩИТА: проверяем, нет ли своих товаров в корзине
         $userId = auth()->id();
         foreach ($items as $item) {
+            if ($item->product->status !== 'active') {
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', 'В корзине есть товар, который больше недоступен для покупки.');
+            }
+
+            if ($item->qty > $item->product->stock) {
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', "Товара \"{$item->product->title}\" доступно только {$item->product->stock} шт. Возможно, часть товара уже купили другие пользователи.");
+            }
+
             if ($item->product->user_id === $userId) {
                 return redirect()
                     ->route('cart.index')
@@ -118,6 +139,20 @@ return redirect()
 
         foreach ($cart as $item) {
             $product = $products[$item['product_id']] ?? null;
+            if (!$product || $product->status !== 'active') {
+                session()->forget('checkout_cart');
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', 'Один из товаров больше недоступен для покупки.');
+            }
+
+            if ((int) $item['qty'] > $product->stock) {
+                session()->forget('checkout_cart');
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', "Товара \"{$product->title}\" доступно только {$product->stock} шт. Возможно, часть товара уже купили другие пользователи.");
+            }
+
             if ($product && $product->user_id === $userId) {
                 // Если нашли свой товар — очищаем сессию и отправляем назад
                 session()->forget('checkout_cart');
@@ -206,6 +241,20 @@ return redirect()
                     ->route('cart.index')
                     ->with('error', 'Один из товаров не найден.');
             }
+
+            if ($product->status !== 'active') {
+                session()->forget('checkout_cart');
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', 'Один из товаров больше недоступен для покупки.');
+            }
+
+            if ((int) $item['qty'] > $product->stock) {
+                session()->forget('checkout_cart');
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', "Товара \"{$product->title}\" доступно только {$product->stock} шт. Возможно, часть товара уже купили другие пользователи.");
+            }
             
             if ($product->user_id === $userId) {
                 session()->forget('checkout_cart');
@@ -279,6 +328,16 @@ return redirect()
 
                 // Позиции заказа
                 foreach ($items as $i) {
+                    $product = Product::whereKey($i['product_id'])->lockForUpdate()->first();
+
+                    if (!$product || $product->status !== 'active' || $product->stock < $i['qty']) {
+                        throw ValidationException::withMessages([
+                            'stock' => 'Один из товаров больше недоступен в нужном количестве.',
+                        ]);
+                    }
+
+                    $product->decrement('stock', $i['qty']);
+
                     OrderItem::create([
                         'order_id'   => $order->id,
                         'product_id' => $i['product_id'],

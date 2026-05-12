@@ -196,6 +196,16 @@
           x-cloak
           class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5 transition-all duration-300 ease-in-out">
           @foreach($products as $p)
+            @php
+              $isPublished = $p->status === 'active';
+              $isDraft = $p->status === 'draft';
+              $statusLabel = $isPublished ? 'Опубликован' : ($isDraft ? 'Черновик' : 'Неверный статус');
+              $statusClass = $isPublished
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
+                  : ($isDraft
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200/50'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200/50');
+            @endphp
             <div class="relative bg-white/80 backdrop-blur-sm border border-gray-200/80 rounded-xl hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden group">
               <div class="relative h-44 bg-gray-50/50 overflow-hidden pt-[5px] px-[10px] rounded-t-xl">
                 @if($p->image)
@@ -205,9 +215,13 @@
                   <div class="flex items-center justify-center h-full text-gray-400 text-xs bg-gray-100/50">Без фото</div>
                 @endif
 
-                <span class="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full
-                      {{ $p->stock>0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' : 'bg-rose-50 text-rose-700 border border-rose-200/50' }}">
-                  {{ $p->stock>0 ? 'Активен' : 'Нет' }}
+                <span class="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full {{ $statusClass }}">
+                  {{ $statusLabel }}
+                </span>
+
+                <span class="absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full
+                      {{ $p->stock > 0 ? 'bg-white/90 text-gray-700 border border-gray-200/70' : 'bg-rose-50 text-rose-700 border border-rose-200/50' }}">
+                  {{ $p->stock > 0 ? 'Остаток: '.$p->stock : 'Нет в наличии' }}
                 </span>
 
                 <div class="absolute inset-0 bg-black/25 backdrop-blur-sm opacity-0 
@@ -253,6 +267,16 @@
           x-cloak 
           class="flex flex-col divide-y divide-indigo-100/30 transition-all duration-300 ease-in-out bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/80 overflow-hidden">
           @foreach($products as $p)
+            @php
+              $isPublished = $p->status === 'active';
+              $isDraft = $p->status === 'draft';
+              $statusLabel = $isPublished ? 'Опубликован' : ($isDraft ? 'Черновик' : 'Неверный статус');
+              $statusClass = $isPublished
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
+                  : ($isDraft
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200/50'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200/50');
+            @endphp
             <div class="flex items-center justify-between bg-transparent hover:bg-indigo-50/30 transition-all cursor-pointer
                         w-full h-[55px] px-3 hover:pl-4 duration-200">
               
@@ -271,9 +295,8 @@
                   <!-- 🔹 Название + статус -->
                   <div class="flex items-center gap-1.5">
                     <h3 class="text-[12.5px] font-medium text-gray-800 truncate">{{ $p->title }}</h3>
-                    <span class="text-[8px] px-1.5 py-[2px] rounded-full
-                                {{ $p->stock>0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' : 'bg-rose-50 text-rose-700 border border-rose-200/50' }}">
-                      {{ $p->stock>0 ? 'Активен' : 'Нет' }}
+                    <span class="text-[8px] px-1.5 py-[2px] rounded-full {{ $statusClass }}">
+                      {{ $statusLabel }}
                     </span>
                   </div>
 
@@ -282,6 +305,8 @@
                     <span>{{ $p->category->name ?? '—' }}</span>
                     <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
                     <span>{{ $p->city->name ?? '—' }}</span>
+                    <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
+                    <span>{{ $p->stock > 0 ? 'Остаток: '.$p->stock : 'Нет в наличии' }}</span>
                     <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
                     <span>👁 {{ number_format($p->views_sum ?? 0, 0, ',', ' ') }}</span>
                     <span class="w-1 h-1 rounded-full bg-indigo-300"></span>

@@ -217,6 +217,7 @@ class ProductManageController extends Controller
     {
         $data = $request->validated();
         $data['user_id'] = Auth::id();
+        $data['status'] = $data['status'] ?? 'draft';
 
         $city = City::with('country')->findOrFail($data['city_id']);
         $data['currency_base'] = $city->country->currency ?? 'MDL';
@@ -227,7 +228,7 @@ class ProductManageController extends Controller
         $data['price_uah'] = $request->price_uah;
 
         foreach (['PRB'=>'price_prb','MDL'=>'price_mdl','UAH'=>'price_uah'] as $code => $field) {
-            if (is_null($data[$field])) {
+            if (is_null($data[$field] ?? null)) {
                 $data[$field] = $this->currency->convert(
                     (float) $data['price'],
                     $data['currency_base'],
@@ -253,6 +254,7 @@ class ProductManageController extends Controller
         $this->authorize('update', $product);
 
         $data = $request->validated();
+        $data['status'] = $data['status'] ?? 'draft';
 
         $data['price']     = $request->price;
         $data['price_prb'] = $request->price_prb;
