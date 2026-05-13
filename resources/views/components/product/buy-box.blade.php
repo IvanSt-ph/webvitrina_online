@@ -1,16 +1,22 @@
 <div class="lg:col-span-3 w-full max-w-xl mx-auto">
+    @php
+        $currentPrice = $product->price_for_current_currency;
+        $price = $currentPrice['amount'] ?? $product->price;
+        $currencySymbol = $currentPrice['symbol'] ?? '₽';
+    @endphp
+
     <div class="bg-indigo-50/40 border border-indigo-100 rounded-3xl p-6 shadow-[0_18px_45px_rgba(15,23,42,0.12)] space-y-4">
 
         {{-- Цена --}}
         <div class="space-y-1">
             <div class="flex items-baseline gap-2">
                 <div class="text-3xl font-semibold text-gray-900 leading-none">
-                    {{ number_format($product->price, 0, ',', ' ') }} ₽
+                    {{ number_format($price, 0, ',', ' ') }} {{ $currencySymbol }}
                 </div>
 
                 @if ($product->old_price)
                     <div class="text-sm text-gray-400 line-through">
-                        {{ number_format($product->old_price, 0, ',', ' ') }} ₽
+                        {{ number_format($product->old_price, 0, ',', ' ') }} {{ $currencySymbol }}
                     </div>
                 @endif
             </div>

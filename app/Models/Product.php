@@ -122,17 +122,24 @@ class Product extends Model
 
     public static function currencySymbol(string $code): string
     {
-        return match (strtoupper($code)) {
-            'PRB' => '₽ ПМР',
+        return match (self::normalizeCurrencyCode($code)) {
+            'PRB' => '₽',
             'MDL' => 'L',
             'UAH' => '₴',
             default => $code,
         };
     }
 
+    public static function normalizeCurrencyCode(?string $code): string
+    {
+        $code = strtoupper($code ?: 'MDL');
+
+        return $code === 'RUB' ? 'PRB' : $code;
+    }
+
     public function getPriceForCurrentCurrencyAttribute(): array
     {
-        $code = session('currency', $this->currency_base ?: 'MDL');
+        $code = self::normalizeCurrencyCode(session('currency', $this->currency_base ?: 'MDL'));
 
         $map = [
             'PRB' => $this->price_prb,
@@ -140,7 +147,8 @@ class Product extends Model
             'UAH' => $this->price_uah,
         ];
 
-        $amount = $map[$code] ?? $this->price;
+        $amount = $map[$code] ?? null;
+        $amount = $amount ?? $this->price;
 
         return [
             'amount' => (float) $amount,
@@ -151,7 +159,7 @@ class Product extends Model
 
     public function getPriceFormattedAttribute(): string
     {
-        $code = $this->currency_base ?: 'MDL';
+        $code = self::normalizeCurrencyCode($this->currency_base ?: 'MDL');
         $symbol = self::currencySymbol($code);
         return number_format($this->price, 2, ',', ' ') . ' ' . $symbol;
     }

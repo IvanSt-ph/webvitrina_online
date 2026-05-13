@@ -50,10 +50,16 @@ public function sellerUpdate(Request $request, Order $order)
     ];
 
     $new = $request->status;
+    $cancelableStatuses = [
+        Order::STATUS_PENDING,
+        Order::STATUS_PROCESSING,
+        Order::STATUS_PAID,
+    ];
 
     // проверяем валидность перехода
     if (
         !in_array($new, ['canceled', ...array_values($allowed)])
+        || ($new === 'canceled' && ! in_array($order->status, $cancelableStatuses, true))
         || ($new !== 'canceled' && ($allowed[$order->status] ?? null) !== $new)
     ) {
         return back()->with('error', 'Недопустимый переход статуса.');

@@ -345,12 +345,12 @@ public function updateShop(Request $request): RedirectResponse
         'city'        => 'nullable|string|max:255',
         'description' => 'nullable|string|max:1000',
         'phone'       => 'nullable|string|max:50',
-        'banner'      => 'nullable|image|max:4096',
+        'banner'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
 
-        'facebook'    => 'nullable|url|max:255',
-        'instagram'   => 'nullable|url|max:255',
-        'telegram'    => 'nullable|url|max:255',
-        'whatsapp'    => 'nullable|url|max:255',
+        'facebook'    => $this->externalUrlRules(),
+        'instagram'   => $this->externalUrlRules(),
+        'telegram'    => $this->externalUrlRules(),
+        'whatsapp'    => $this->externalUrlRules(),
 
         'remove_banner' => 'nullable|boolean',
     ]);
@@ -415,6 +415,28 @@ public function updateShop(Request $request): RedirectResponse
     }
 
     return Redirect::route('profile.edit')->with('status', 'shop-updated');
+}
+
+private function externalUrlRules(): array
+{
+    return [
+        'nullable',
+        'string',
+        'max:255',
+        function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            $scheme = parse_url($value, PHP_URL_SCHEME);
+
+            if (in_array($scheme, ['http', 'https'], true) && filter_var($value, FILTER_VALIDATE_URL)) {
+                return;
+            }
+
+            $fail('Ссылка должна быть URL с http или https.');
+        },
+    ];
 }
 
     /* =========================

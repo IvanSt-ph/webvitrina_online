@@ -120,7 +120,7 @@ $cat->chart_data = $dates->map(fn($date) =>
         $data = $request->validate([
             'name'      => 'required|string|max:255',
             'slug'      => 'required|string|max:255|unique:categories',
-            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
             'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
             'parent_id' => 'nullable|exists:categories,id',
         ]);
@@ -170,7 +170,7 @@ $cat->chart_data = $dates->map(fn($date) =>
         $data = $request->validate([
             'name'      => 'required|string|max:255',
             'slug'      => 'required|string|max:255|unique:categories,slug,' . $category->id,
-            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
             'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
             'parent_id' => 'nullable|exists:categories,id',
         ]);

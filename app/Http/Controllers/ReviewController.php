@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Review;
 use App\Models\Product;
+use App\Models\Order;
 use App\Repositories\ProductRepository;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
@@ -16,6 +18,25 @@ class ReviewController extends Controller
      */
 public function store(Request $request, Product $product)
 {
+    abort_if($product->status !== 'active', 404);
+
+    if ($product->user_id === auth()->id()) {
+        throw ValidationException::withMessages([
+            'review' => 'Нельзя оставить отзыв на собственный товар.',
+        ]);
+    }
+
+    $hasPurchased = Order::where('user_id', auth()->id())
+        ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+        ->whereHas('items', fn ($q) => $q->where('product_id', $product->id))
+        ->exists();
+
+    if (! $hasPurchased) {
+        throw ValidationException::withMessages([
+            'review' => 'Отзыв можно оставить только после покупки и получения товара.',
+        ]);
+    }
+
     // 🧩 Валидация данных формы
     $data = $request->validate([
         'rating'    => 'required|integer|min:1|max:5',

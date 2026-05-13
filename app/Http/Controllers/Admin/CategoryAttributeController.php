@@ -76,7 +76,8 @@ public function index(Category $category)
     /** ✏️ Обновление */
     public function update(Request $request, $categoryId, $attributeId)
     {
-        $attribute = Attribute::findOrFail($attributeId);
+        $category = Category::findOrFail($categoryId);
+        $attribute = $category->attributes()->whereKey($attributeId)->firstOrFail();
 
         $validated = $request->validate([
             'name'    => 'required|string|max:255',
@@ -117,10 +118,15 @@ public function index(Category $category)
         try {
             DB::beginTransaction();
 
+            abort_unless(
+                $category->attributes()->whereKey($attribute->id)->exists(),
+                404
+            );
+
             $category->attributes()->detach($attribute->id);
-            $attribute->colors()->detach();
 
             if ($attribute->categories()->count() === 0) {
+                $attribute->colors()->detach();
                 $attribute->delete();
             }
 

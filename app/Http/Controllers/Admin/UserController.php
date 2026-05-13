@@ -8,7 +8,10 @@ use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class UserController extends Controller
@@ -51,14 +54,20 @@ class UserController extends Controller
     // 💾 Обновить пользователя
     public function update(Request $request, User $user)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email,' . $user->id,
             'phone'    => 'nullable|string|max:20',
             'role'     => 'required|in:admin,seller,buyer',
-            'password' => 'nullable|string|min:6|confirmed',
+            'password' => ['nullable', 'confirmed', Password::defaults()],
             'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
+
+        if ($this->wouldRemoveLastAdmin($user, $validated['role'])) {
+            throw ValidationException::withMessages([
+                'role' => 'Нельзя убрать роль администратора у последнего администратора.',
+            ]);
+        }
 
         // Нормализация телефона (единый метод)
         $phone = $this->normalizePhone($request->phone);
@@ -93,6 +102,14 @@ class UserController extends Controller
     // 🗑️ Удалить пользователя
     public function destroy(User $user)
     {
+        abort_if($user->is(auth()->user()), 403, 'Нельзя удалить собственный аккаунт через админку.');
+
+        if ($user->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
+            throw ValidationException::withMessages([
+                'user' => 'Нельзя удалить последнего администратора.',
+            ]);
+        }
+
         $user->delete();
 
         return redirect()
@@ -114,7 +131,7 @@ class UserController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users',
             'phone'    => 'nullable|string|max:20',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
             'role'     => 'required|in:admin,seller,buyer',
             'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
@@ -127,7 +144,9 @@ class UserController extends Controller
             
             // Проверка уникальности телефона после нормализации
             if ($phone && User::where('phone', $phone)->exists()) {
-                throw new \Exception('Этот телефон уже используется');
+                throw ValidationException::withMessages([
+                    'phone' => 'Этот телефон уже используется',
+                ]);
             }
             
             // Подготовка данных
@@ -157,12 +176,22 @@ class UserController extends Controller
                 ->route('admin.users.index')
                 ->with('success', "Пользователь {$user->name} успешно создан");
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            throw $e;
+
         } catch (Throwable $e) {
             DB::rollBack();
+
+            Log::error('Admin user creation failed', [
+                'error' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
             
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'Ошибка при создании пользователя: ' . $e->getMessage()]);
+                ->withErrors(['error' => 'Не удалось создать пользователя. Проверьте данные и попробуйте позже.']);
         }
     }
 
@@ -183,6 +212,13 @@ class UserController extends Controller
 
         // Всегда храним в формате E.164 (с +)
         return '+' . $digits;
+    }
+
+    private function wouldRemoveLastAdmin(User $user, string $newRole): bool
+    {
+        return $user->role === 'admin'
+            && $newRole !== 'admin'
+            && User::where('role', 'admin')->count() <= 1;
     }
 
     /**

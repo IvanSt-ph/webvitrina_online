@@ -12,30 +12,18 @@ export async function getCurrencyRates() {
   }
 
   try {
-const res = await fetch('/internal/currency/agroprombank');
+    const res = await fetch('/internal/currency/agroprombank', {
+      headers: { Accept: 'application/json' },
+    });
 
-    const html = await res.text();
+    if (!res.ok) throw new Error('Currency rates request failed');
 
-    // 🧠 Парсим из HTML курсы (примерно: "UAH 0.3650 / 0.4000")
-    const uahMatch = html.match(/UAH[^0-9]+([\d.,]+)[^0-9]+([\d.,]+)/i);
-    const mdlMatch = html.match(/MDL[^0-9]+([\d.,]+)[^0-9]+([\d.,]+)/i);
+    const data = await res.json();
+    const rates = data.rates;
 
-    const buyUAH = uahMatch ? parseFloat(uahMatch[1].replace(',', '.')) : 0.365;
-    const sellUAH = uahMatch ? parseFloat(uahMatch[2].replace(',', '.')) : 0.4;
-    const buyMDL = mdlMatch ? parseFloat(mdlMatch[1].replace(',', '.')) : 0.95;
-    const sellMDL = mdlMatch ? parseFloat(mdlMatch[2].replace(',', '.')) : 1.06;
-
-// Средние значения — заменяем на банковские
-// Банк считает: 1 PRB = 1 / buyRate
-const avgUAH = 1 / buyUAH;
-const avgMDL = 1 / buyMDL;
-
-// Переводим в "1 ПМР = X"
-const rates = {
-  PRB: { PRB: 1, MDL: avgMDL, UAH: avgUAH },
-  MDL: { PRB: 1 / avgMDL, MDL: 1, UAH: avgUAH / avgMDL },
-  UAH: { PRB: 1 / avgUAH, MDL: avgMDL / avgUAH, UAH: 1 },
-};
+    if (!rates?.PRB?.MDL || !rates?.PRB?.UAH) {
+      throw new Error('Currency rates response is invalid');
+    }
 
 
     localStorage.setItem(CACHE_KEY, JSON.stringify({ rates, timestamp: Date.now() }));

@@ -83,3 +83,15 @@ composer audit
 npm audit --omit=dev
 php artisan test
 ```
+
+## Логи
+
+Основные файлы логов:
+
+```text
+storage/logs/laravel.log
+storage/logs/twilio.log
+storage/logs/registration.log
+```
+
+Если пользователь видит сообщение `Не удалось отправить SMS. Попробуйте позже.`, реальную причину смотри в `storage/logs/twilio.log`.

@@ -11,7 +11,7 @@ class CountriesSeeder extends Seeder
     {
         // Используем updateOrCreate вместо insert
         $countries = [
-            ['slug' => 'pmr', 'name' => 'Приднестровье', 'currency' => 'RUB', 'currency_symbol' => '₽'],
+            ['slug' => 'pmr', 'name' => 'Приднестровье', 'currency' => 'PRB', 'currency_symbol' => '₽'],
             ['slug' => 'md', 'name' => 'Молдова', 'currency' => 'MDL', 'currency_symbol' => 'L'],
             ['slug' => 'ua', 'name' => 'Украина', 'currency' => 'UAH', 'currency_symbol' => '₴'],
         ];

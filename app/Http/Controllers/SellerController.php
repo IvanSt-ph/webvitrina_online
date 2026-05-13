@@ -13,7 +13,27 @@ class SellerController extends Controller
         $shop = $user->shop;
 
         // Товары продавца
-        $products = $user->products()
+        $productsQuery = $user->products()
+            ->active()
+            ->with(['category', 'seller.shop', 'city.country'])
+            ->withCount([
+                'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
+            ])
+            ->withAvg([
+                'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
+            ], 'rating');
+
+        if (auth()->check()) {
+            $productsQuery
+                ->withSum([
+                    'cartItems as cart_quantity' => fn($q) => $q->where('user_id', auth()->id()),
+                ], 'qty')
+                ->withExists([
+                    'favorites as is_favorited' => fn($q) => $q->where('user_id', auth()->id()),
+                ]);
+        }
+
+        $products = $productsQuery
             ->latest()
             ->paginate(12);
 

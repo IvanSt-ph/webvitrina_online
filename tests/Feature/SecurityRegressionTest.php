@@ -4,9 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\CartItem;
+use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -140,6 +144,35 @@ class SecurityRegressionTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_draft_product_cannot_be_favorited_or_shown_on_public_seller_page(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Public seller shop']);
+        $draft = $this->createProduct($seller, [
+            'title' => 'Hidden draft product',
+            'status' => 'draft',
+        ]);
+        $active = $this->createProduct($seller, [
+            'title' => 'Visible active product',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($buyer)
+            ->postJson(route('favorites.toggle', $draft))
+            ->assertNotFound();
+
+        $this->assertDatabaseMissing('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $draft->id,
+        ]);
+
+        $this->get(route('seller.show', $seller))
+            ->assertOk()
+            ->assertSee($active->title)
+            ->assertDontSee($draft->title);
+    }
+
     public function test_seller_can_create_active_product(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);
@@ -236,6 +269,275 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(1, $product->fresh()->stock);
     }
 
+    public function test_phone_verification_routes_require_authentication(): void
+    {
+        $this->postJson(route('phone.send'))
+            ->assertUnauthorized();
+
+        $this->postJson(route('phone.verify'), ['code' => '123456'])
+            ->assertUnauthorized();
+    }
+
+    public function test_currency_proxy_returns_json_not_external_html(): void
+    {
+        Http::fake([
+            'www.agroprombank.com/*' => Http::response('<html><script>alert(1)</script> UAH 0.3650 / 0.4000 MDL 0.9500 / 1.0600</html>'),
+        ]);
+
+        $this->getJson('/internal/currency/agroprombank')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/json')
+            ->assertJsonPath('rates.PRB.PRB', 1)
+            ->assertJsonMissing(['script' => 'alert(1)']);
+    }
+
+    public function test_currency_switch_rejects_unknown_currency(): void
+    {
+        $this->postJson(route('currency.set'), ['currency' => '<script>'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('currency');
+    }
+
+    public function test_admin_category_rejects_svg_icon_upload(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.categories.store'), [
+                'name' => 'Unsafe icon category',
+                'slug' => 'unsafe-icon-category',
+                'icon' => UploadedFile::fake()->create('icon.svg', 1, 'image/svg+xml'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('icon');
+
+        $this->assertDatabaseMissing('categories', [
+            'slug' => 'unsafe-icon-category',
+        ]);
+    }
+
+    public function test_user_cannot_review_product_without_completed_purchase(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+
+        $this->actingAs($buyer)
+            ->postJson(route('review.store', $product), [
+                'rating' => 5,
+                'body' => 'Fake review',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('review');
+
+        $this->assertDatabaseMissing('reviews', [
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+    }
+
+    public function test_user_can_review_product_after_delivery(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_DELIVERED);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('review.store', $product), [
+                'rating' => 5,
+                'body' => 'Real review',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('reviews', [
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'status' => Review::STATUS_PENDING,
+        ]);
+    }
+
+    public function test_seller_cannot_cancel_order_after_shipping(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_SHIPPED);
+
+        $this->actingAs($seller)
+            ->post(route('seller.orders.updateStatus', $order), [
+                'status' => Order::STATUS_CANCELED,
+            ])
+            ->assertSessionHas('error');
+
+        $this->assertSame(Order::STATUS_SHIPPED, $order->fresh()->status);
+    }
+
+    public function test_last_admin_cannot_demote_or_delete_self(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->patchJson(route('admin.users.update', $admin), [
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'phone' => $admin->phone,
+                'role' => 'buyer',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('role');
+
+        $this->assertSame('admin', $admin->fresh()->role);
+
+        $this->actingAs($admin)
+            ->deleteJson(route('admin.users.destroy', $admin))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $admin->id,
+            'role' => 'admin',
+        ]);
+    }
+
+    public function test_admin_banner_rejects_javascript_link(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.banners.store'), [
+                'title' => 'Unsafe banner',
+                'link' => 'javascript:alert(1)',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('link');
+
+        $this->assertDatabaseMissing('banners', [
+            'title' => 'Unsafe banner',
+        ]);
+    }
+
+    public function test_seller_shop_rejects_javascript_social_link(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $this->actingAs($seller)
+            ->patchJson(route('profile.shop.update'), [
+                'name' => 'Seller shop',
+                'facebook' => 'javascript:alert(1)',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('facebook');
+    }
+
+    public function test_seller_shop_rejects_svg_banner_upload(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $this->actingAs($seller)
+            ->patchJson(route('profile.shop.update'), [
+                'name' => 'Seller shop',
+                'banner' => UploadedFile::fake()->create('banner.svg', 1, 'image/svg+xml'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('banner');
+    }
+
+    public function test_admin_cannot_update_attribute_through_unrelated_category(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $category = \App\Models\Category::factory()->create();
+        $otherCategory = \App\Models\Category::factory()->create();
+        $attribute = \App\Models\Attribute::create([
+            'name' => 'Size',
+            'type' => 'select',
+            'options' => ['S', 'M'],
+        ]);
+
+        $category->attributes()->attach($attribute->id);
+
+        $this->actingAs($admin)
+            ->putJson(route('admin.categories.attributes.update', [$otherCategory, $attribute]), [
+                'name' => 'Hacked size',
+                'type' => 'select',
+                'options' => 'L,XL',
+            ])
+            ->assertNotFound();
+
+        $this->assertSame('Size', $attribute->fresh()->name);
+    }
+
+    public function test_admin_detaching_shared_attribute_keeps_color_links(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $category = \App\Models\Category::factory()->create();
+        $otherCategory = \App\Models\Category::factory()->create();
+        $color = \App\Models\Color::create(['name' => 'Red', 'hex' => '#ff0000']);
+        $attribute = \App\Models\Attribute::create([
+            'name' => 'Color',
+            'type' => 'color',
+            'options' => null,
+        ]);
+
+        $category->attributes()->attach($attribute->id);
+        $otherCategory->attributes()->attach($attribute->id);
+        $attribute->colors()->attach($color->id);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.categories.attributes.destroy', [$category, $attribute]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('attribute_category', [
+            'category_id' => $otherCategory->id,
+            'attribute_id' => $attribute->id,
+        ]);
+        $this->assertDatabaseHas('attribute_color', [
+            'attribute_id' => $attribute->id,
+            'color_id' => $color->id,
+        ]);
+    }
+
+    public function test_currency_switcher_stores_supported_currency_in_session(): void
+    {
+        $this->postJson(route('currency.set'), ['currency' => 'RUB'])
+            ->assertOk()
+            ->assertJson(['currency' => 'PRB'])
+            ->assertSessionHas('currency', 'PRB');
+
+        $this->post(route('currency.set'), ['currency' => 'UAH'])
+            ->assertRedirect()
+            ->assertSessionHas('currency', 'UAH');
+
+        $this->postJson(route('currency.set'), ['currency' => 'EUR'])
+            ->assertUnprocessable();
+    }
+
+    public function test_product_price_uses_selected_session_currency(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, [
+            'price' => 200,
+            'currency_base' => 'RUB',
+            'price_prb' => 200,
+            'price_mdl' => 220,
+            'price_uah' => 580,
+        ]);
+
+        session(['currency' => 'UAH']);
+
+        $price = $product->price_for_current_currency;
+
+        $this->assertSame(580.0, $price['amount']);
+        $this->assertSame('UAH', $price['code']);
+        $this->assertSame('₴', $price['symbol']);
+    }
+
     private function createProduct(User $seller, array $overrides = []): Product
     {
         return Product::create(array_merge([
@@ -252,6 +554,18 @@ class SecurityRegressionTest extends TestCase
             'description' => 'Test product',
             'status' => 'active',
         ], $overrides));
+    }
+
+    private function createOrder(User $buyer, User $seller, string $status = Order::STATUS_PENDING): Order
+    {
+        return Order::create([
+            'user_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'number' => 'ORD-SEC-' . uniqid(),
+            'status' => $status,
+            'total_price' => 100,
+            'currency' => 'RUB',
+        ]);
     }
 
     private function validSellerProductPayload(array $overrides = []): array

@@ -73,6 +73,22 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'twilio' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/twilio.log'),
+            'level' => env('TWILIO_LOG_LEVEL', env('LOG_LEVEL', 'warning')),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
+        'registration' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/registration.log'),
+            'level' => env('REGISTRATION_LOG_LEVEL', env('LOG_LEVEL', 'warning')),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

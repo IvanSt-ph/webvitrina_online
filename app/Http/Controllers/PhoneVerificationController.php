@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Twilio\Rest\Client;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
@@ -75,8 +76,13 @@ class PhoneVerificationController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            Log::channel('twilio')->warning('Phone verification SMS send failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
             return back()->withErrors([
-                'phone' => 'Ошибка отправки SMS: ' . $e->getMessage()
+                'phone' => 'Не удалось отправить SMS. Попробуйте позже.'
             ]);
         }
     }
@@ -136,8 +142,13 @@ class PhoneVerificationController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            Log::channel('twilio')->warning('Phone verification check failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
             throw ValidationException::withMessages([
-                'code' => 'Ошибка проверки кода: ' . $e->getMessage()
+                'code' => 'Не удалось проверить код. Попробуйте позже.'
             ]);
         }
     }

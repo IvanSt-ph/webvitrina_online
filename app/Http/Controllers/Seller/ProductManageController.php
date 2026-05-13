@@ -220,7 +220,8 @@ class ProductManageController extends Controller
         $data['status'] = $data['status'] ?? 'draft';
 
         $city = City::with('country')->findOrFail($data['city_id']);
-        $data['currency_base'] = $city->country->currency ?? 'MDL';
+        $currencyBase = strtoupper($city->country->currency ?? 'MDL');
+        $data['currency_base'] = $currencyBase === 'RUB' ? 'PRB' : $currencyBase;
 
         $data['price']     = $request->price;
         $data['price_prb'] = $request->price_prb;

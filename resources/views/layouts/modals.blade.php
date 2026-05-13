@@ -17,7 +17,11 @@
 
 {{-- Фильтры --}}
 @php
-    $countriesAll = \App\Models\Country::orderBy('name')->get();
+    $countriesAll = \Illuminate\Support\Facades\Cache::remember('countries.with_cities', 3600, fn () =>
+        \App\Models\Country::with(['cities' => fn ($q) => $q->select('id', 'country_id', 'name')->orderBy('name')])
+            ->orderBy('name')
+            ->get()
+    );
     $currentCountryId = request('country_id');
     $currentCityId = request('city_id');
 @endphp
@@ -84,7 +88,7 @@
 
 {{-- Настройки --}}
 @php
-    $currency = request('currency', 'MDL');
+    $currency = session('currency', 'PRB');
     $lang = request('lang', 'ru');
 @endphp
 <div x-show="openSettings" x-cloak class="fixed inset-0 z-50">
@@ -98,11 +102,15 @@
         <div class="mt-3 grid grid-cols-2 gap-3">
             <div>
                 <div class="text-xs text-gray-500">Валюта</div>
-                @foreach (['RUB'=>'₽ RUB', 'MDL'=>'MDL', 'UAH'=>'₴ UAH'] as $code=>$label)
-                    <a href="?{{ http_build_query(request()->except('currency') + ['currency' => $code]) }}"
-                       class="block px-3 py-2 border rounded-lg {{ $currency === $code ? 'bg-indigo-600 text-white border-indigo-600' : '' }}">
+                @foreach (['PRB'=>'₽ RUB', 'MDL'=>'MDL', 'UAH'=>'₴ UAH'] as $code=>$label)
+                    <form method="POST" action="{{ route('currency.set') }}">
+                        @csrf
+                        <input type="hidden" name="currency" value="{{ $code }}">
+                        <button type="submit"
+                       class="block w-full text-left px-3 py-2 border rounded-lg {{ $currency === $code ? 'bg-indigo-600 text-white border-indigo-600' : '' }}">
                         {{ $label }}
-                    </a>
+                        </button>
+                    </form>
                 @endforeach
             </div>
             <div>

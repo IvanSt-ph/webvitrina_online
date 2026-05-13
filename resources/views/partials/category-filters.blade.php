@@ -3,7 +3,7 @@
     $currentSort = request('sort', 'popular');
 
     // проверка конечной категории
-    $isLeafCategory = isset($category) && $category->children()->count() === 0;
+    $isLeafCategory = isset($category) && $category->children->isEmpty();
 
     $labels = [
         'popular'     => 'По популярности',

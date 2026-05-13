@@ -18,12 +18,31 @@ class CategoryController extends Controller
     public function ajax(Request $request, $slug)
 {
     $category = Category::where('slug', $slug)->firstOrFail();
+    $categoryIds = $category->allChildrenIds();
 
-    // Тот же код, что в show(), но без layout
-    $products = Product::filter($request->all())
+    $productsQuery = Product::query()
         ->active()
-        ->where('category_id', $category->id)
-        ->paginate(20);
+        ->whereIn('category_id', $categoryIds)
+        ->with(['category', 'seller.shop', 'city.country'])
+        ->withCount([
+            'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
+        ])
+        ->withAvg([
+            'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
+        ], 'rating')
+        ->latest('id');
+
+    if (auth()->check()) {
+        $productsQuery
+            ->withSum([
+                'cartItems as cart_quantity' => fn($q) => $q->where('user_id', auth()->id()),
+            ], 'qty')
+            ->withExists([
+                'favorites as is_favorited' => fn($q) => $q->where('user_id', auth()->id()),
+            ]);
+    }
+
+    $products = $productsQuery->paginate(20)->withQueryString();
 
     return view('partials.products-grid', compact('products'))->render();
 }
@@ -75,13 +94,23 @@ class CategoryController extends Controller
 
             $query = Product::whereIn('category_id', $categoryIds)
                 ->active()
-                ->with(['category', 'seller', 'city.country', 'reviews'])
+                ->with(['category', 'seller.shop', 'city.country'])
                 ->withCount([
                     'reviews as reviews_count' => fn($q) => $q->where('status', 'approved'),
                 ])
                 ->withAvg([
                     'reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved'),
                 ], 'rating');
+
+            if (auth()->check()) {
+                $query->withSum([
+                    'cartItems as cart_quantity' => fn($q) => $q->where('user_id', auth()->id()),
+                ], 'qty');
+
+                $query->withExists([
+                    'favorites as is_favorited' => fn($q) => $q->where('user_id', auth()->id()),
+                ]);
+            }
 
             // 🌍 Фильтр по стране/городу
             if (request()->filled('country_id')) {
@@ -175,7 +204,7 @@ class CategoryController extends Controller
             'name'      => 'required|string|max:255',
             'slug'      => 'nullable|string|max:255|unique:categories',
             'parent_id' => 'nullable|exists:categories,id',
-            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
             'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
         ]);
 
@@ -218,7 +247,7 @@ class CategoryController extends Controller
             'name'      => 'required|string|max:255',
             'slug'      => 'nullable|string|max:255|unique:categories,slug,' . $category->id,
             'parent_id' => 'nullable|exists:categories,id',
-            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
             'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
         ]);
 

@@ -1,15 +1,19 @@
 {{-- resources/views/layouts/mobile-topbar.blade.php --}}
 @php
     use App\Models\Country;
-    use App\Models\City;
-    $countries = Country::orderBy('name')->get();
+    use Illuminate\Support\Facades\Cache;
+    $countries = Cache::remember('countries.with_cities', 3600, fn () =>
+        Country::with(['cities' => fn ($q) => $q->select('id', 'country_id', 'name')->orderBy('name')])
+            ->orderBy('name')
+            ->get()
+    );
     $currentCountry = request('country_id', session('country_id'));
     $currentCity = request('city_id', session('city_id'));
     $selectedCountry = $countries->firstWhere('id', $currentCountry);
     
     // Формируем текст для кнопки
     if ($currentCity) {
-        $cityName = City::find($currentCity)?->name;
+        $cityName = $selectedCountry?->cities->firstWhere('id', (int) $currentCity)?->name;
         $filterButtonText = $cityName ?? 'Город';
     } elseif ($currentCountry) {
         $filterButtonText = $selectedCountry?->name ?? 'Страна';

@@ -38,22 +38,27 @@ $gallery = array_map(function($img) {
     $image = $gallery[0] ?? null;
     $hasGallery = count($gallery) > 1;
 
-    $price   = $p->price ?? 0;
+    $currentPrice = $p->price_for_current_currency;
+    $price   = $currentPrice['amount'] ?? ($p->price ?? 0);
     $oldPrice = $p->old_price ?? null;
     $hasDiscount = $oldPrice && $oldPrice > $price;
     $discountPercent = $hasDiscount ? round(100 - ($price * 100 / $oldPrice)) : null;
 
-    $avg = round($p->reviews->avg('rating'), 1);
+    $reviewsCount = (int) ($p->reviews_count ?? 0);
+    $avg = round((float) ($p->reviews_avg_rating ?? 0), 1);
     $rating = $avg > 0 ? $avg : null;
 
     $city     = $p->city->name ?? null;
     $country  = $p->city->country->name ?? $p->country->name ?? null;
     $category = $p->category->name ?? null;
 
-    // ✅ Добавляем проверку избранного
-    $isFav = auth()->check() && $p->isFavoritedBy(auth()->user());
+    // ✅ Используем withExists('favorites') из запросов витрины, а при точечном рендере аккуратно fallback.
+    $isFav = auth()->check()
+        && (array_key_exists('is_favorited', $p->getAttributes())
+            ? (bool) $p->is_favorited
+            : $p->isFavoritedBy(auth()->user()));
     
-    $currencySymbol = session('currency_symbol', '₽');
+    $currencySymbol = $currentPrice['symbol'] ?? '₽';
     $galleryJson = json_encode($gallery);
     
     // Начальное количество в корзине (будет передаваться из контроллера)
@@ -222,7 +227,7 @@ x-data="{
             @endfor
             @if($rating)
                 <span class="pc-rating-text">{{ $rating }}</span>
-                <span class="pc-rating-count">({{ $p->reviews->count() }})</span>
+                <span class="pc-rating-count">({{ $reviewsCount }})</span>
             @else
                 <span class="pc-rating-empty">Нет отзывов</span>
             @endif
@@ -456,7 +461,7 @@ x-data="{
                                     </svg>
                                 @endfor
                                 <span class="pm-rating-val">{{ $rating ? $rating . '/5' : '—' }}</span>
-                                <span class="pm-review-count">({{ $p->reviews->count() }} отзывов)</span>
+                                <span class="pm-review-count">({{ $reviewsCount }} отзывов)</span>
                             </div>
 
                             <div class="pm-price-block">

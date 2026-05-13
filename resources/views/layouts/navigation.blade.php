@@ -92,8 +92,12 @@
                 <!-- ИЕРАРХИЧЕСКИЙ ВЫБОР СТРАНЫ/ГОРОДА -->
                 @php
                     use App\Models\Country;
-                    use App\Models\City;
-                    $countries = Country::orderBy('name')->get();
+                    use Illuminate\Support\Facades\Cache;
+                    $countries = Cache::remember('countries.with_cities', 3600, fn () =>
+                        Country::with(['cities' => fn ($q) => $q->select('id', 'country_id', 'name')->orderBy('name')])
+                            ->orderBy('name')
+                            ->get()
+                    );
                     $currentCountry = request('country_id', session('country_id'));
                     $currentCity = request('city_id', session('city_id'));
                     $selectedCountry = $countries->firstWhere('id', $currentCountry);
@@ -376,18 +380,28 @@
                 <!-- Валюта -->
                 <div x-data="{ 
                         open: false,
-                        currency: localStorage.getItem('currency') || 'RUB',
+                        currency: @js(session('currency', 'PRB')),
                         setCurrency(code) {
                             this.currency = code;
-                            localStorage.setItem('currency', code);
                             this.open = false;
-                            window.location.search = '?currency=' + code;
+                            fetch(@js(route('currency.set')), {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': @js(csrf_token()),
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ currency: code })
+                            }).then(response => {
+                                if (!response.ok) throw new Error('Currency update failed');
+                                window.location.reload();
+                            });
                         }
                     }" class="relative">
 
                     <button @click="open = !open"
                             class="flex items-center justify-center w-8 h-8 text-gray-600 border border-gray-200 rounded-lg hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200">
-                        <template x-if="currency === 'RUB'">
+                        <template x-if="currency === 'PRB' || currency === 'RUB'">
                             <img src='{{ asset("icons/rub.png") }}' alt="RUB" class="w-5 h-5">
                         </template>
                         <template x-if="currency === 'MDL'">
@@ -403,7 +417,7 @@
                          x-transition
                          @click.away="open = false"
                          class="absolute right-0 mt-2 w-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm z-50">
-                        <button @click="setCurrency('RUB')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50">₽ RUB</button>
+                        <button @click="setCurrency('PRB')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50">₽ RUB</button>
                         <button @click="setCurrency('MDL')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50">MDL</button>
                         <button @click="setCurrency('UAH')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50">₴ UAH</button>
                     </div>

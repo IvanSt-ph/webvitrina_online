@@ -11,6 +11,11 @@
         {{-- Сетка товаров --}}
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
             @foreach ($items as $item)
+                @php
+                    $currentPrice = $item->price_for_current_currency;
+                    $price = $currentPrice['amount'] ?? $item->price;
+                    $currencySymbol = $currentPrice['symbol'] ?? '₽';
+                @endphp
                 <a href="{{ route('product.show', $item->slug) }}"
                    class="group bg-white rounded-xl lg:rounded-2xl overflow-hidden border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all duration-300">
                     
@@ -70,11 +75,11 @@
                         {{-- Цена --}}
                         <div class="mt-1.5 flex items-baseline gap-1.5 flex-wrap">
                             <span class="text-sm sm:text-base font-bold text-indigo-600">
-                                {{ number_format($item->price, 0, ',', ' ') }} ₽
+                                {{ number_format($price, 0, ',', ' ') }} {{ $currencySymbol }}
                             </span>
                             @if(isset($item->old_price) && $item->old_price > $item->price)
                                 <span class="text-[10px] text-gray-400 line-through">
-                                    {{ number_format($item->old_price, 0, ',', ' ') }} ₽
+                                    {{ number_format($item->old_price, 0, ',', ' ') }} {{ $currencySymbol }}
                                 </span>
                             @endif
                         </div>

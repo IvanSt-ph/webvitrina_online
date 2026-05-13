@@ -2,7 +2,10 @@
 
   @php
       $addedId = (int) session('cart_added_id');
-      $favoritesTotal = $items->sum(fn($item) => optional($item->product)->price ?? 0);
+      $favoritesTotal = $items->sum(function ($item) {
+          $product = $item->product;
+          return $product ? ($product->price_for_current_currency['amount'] ?? 0) : 0;
+      });
       $discountTotal = $items->sum(function ($item) {
           $product = $item->product;
 
@@ -10,6 +13,7 @@
               ? max(0, $product->old_price - $product->price)
               : 0;
       });
+      $currencySymbol = \App\Models\Product::currencySymbol(session('currency', 'PRB'));
   @endphp
 
   <div class="max-w-8xl mx-auto px-2 sm:px-6 py-4 sm:py-8">
@@ -79,13 +83,13 @@
 
         <div class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
           <div class="text-xs text-gray-500">Общая сумма</div>
-          <div class="mt-1 text-2xl font-bold text-gray-900">{{ number_format($favoritesTotal, 0, ',', ' ') }} ₽</div>
+          <div class="mt-1 text-2xl font-bold text-gray-900">{{ number_format($favoritesTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
           <div class="text-xs text-gray-400 mt-1">если добавить по 1 шт.</div>
         </div>
 
         <div class="bg-indigo-50 border border-indigo-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
           <div class="text-xs text-indigo-700">Экономия по скидкам</div>
-          <div class="mt-1 text-2xl font-bold text-indigo-700">{{ number_format($discountTotal, 0, ',', ' ') }} ₽</div>
+          <div class="mt-1 text-2xl font-bold text-indigo-700">{{ number_format($discountTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
           <div class="text-xs text-indigo-500 mt-1">по товарам со старой ценой</div>
         </div>
       </div>
@@ -93,7 +97,12 @@
       {{-- Favorites list --}}
       <div class="space-y-2 sm:space-y-3">
         @foreach($items as $f)
-          @php $p = $f->product; @endphp
+          @php
+            $p = $f->product;
+            $currentPrice = $p->price_for_current_currency;
+            $price = $currentPrice['amount'] ?? $p->price;
+            $itemCurrencySymbol = $currentPrice['symbol'] ?? $currencySymbol;
+          @endphp
 
           <div class="fav-card group bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
                data-fav-card data-id="{{ $p->id }}">
@@ -132,13 +141,13 @@
                     <div class="mt-1">
                       @if(isset($p->old_price) && $p->old_price)
                         <span class="text-[9px] text-gray-400 line-through mr-1">
-                          {{ number_format($p->old_price, 0, ',', ' ') }} ₽
+                          {{ number_format($p->old_price, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
                         </span>
                       @endif
                       <span class="text-sm font-bold text-gray-900">
-                        {{ number_format($p->price, 0, ',', ' ') }}
+                        {{ number_format($price, 0, ',', ' ') }}
                       </span>
-                  <span class="text-[9px] text-gray-400">₽</span>
+                  <span class="text-[9px] text-gray-400">{{ $itemCurrencySymbol }}</span>
                       <span class="ml-1 text-[10px] text-gray-400">за шт.</span>
                     </div>
                   </div>
@@ -229,13 +238,13 @@
                 <div class="mt-1">
                   @if(isset($p->old_price) && $p->old_price)
                     <span class="text-xs text-gray-400 line-through mr-1.5">
-                      {{ number_format($p->old_price, 0, ',', ' ') }} ₽
+                      {{ number_format($p->old_price, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
                     </span>
                   @endif
                   <span class="text-xl font-bold text-gray-900">
-                    {{ number_format($p->price, 0, ',', ' ') }}
+                    {{ number_format($price, 0, ',', ' ') }}
                   </span>
-                  <span class="text-xs text-gray-400">₽</span>
+                  <span class="text-xs text-gray-400">{{ $itemCurrencySymbol }}</span>
                   <span class="ml-1 text-xs text-gray-400">за шт.</span>
                 </div>
               </div>

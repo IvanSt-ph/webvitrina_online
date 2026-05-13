@@ -26,6 +26,8 @@ class FavoriteController extends Controller
 
     public function toggle(Product $product)
     {
+        abort_if($product->status !== 'active', 404);
+
         $userId = auth()->id();
 
         // ❗ Защита: нельзя добавлять свой товар в избранное

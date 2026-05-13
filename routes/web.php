@@ -89,11 +89,11 @@ Route::middleware(['auth', 'role:seller'])->group(function () {
 
 Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
     ->name('phone.send')
-    ->middleware('throttle:3,10');
+    ->middleware(['auth', 'throttle:3,10']);
 
 Route::post('/phone/verify', [PhoneVerificationController::class, 'verify'])
     ->name('phone.verify')
-    ->middleware('throttle:3,1');
+    ->middleware(['auth', 'throttle:3,1']);
 
 
 // 💱 Валюты

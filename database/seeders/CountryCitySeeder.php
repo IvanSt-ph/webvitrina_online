@@ -13,7 +13,7 @@ class CountryCitySeeder extends Seeder
         // Получаем страны по slug или создаем новые
         $prid = Country::firstOrCreate(
             ['slug' => 'pmr'],
-            ['name' => 'Приднестровье', 'currency' => 'RUB', 'currency_symbol' => '₽']
+            ['name' => 'Приднестровье', 'currency' => 'PRB', 'currency_symbol' => '₽']
         );
         
         $mold = Country::firstOrCreate(

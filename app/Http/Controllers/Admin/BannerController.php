@@ -24,7 +24,7 @@ class BannerController extends Controller
     {
         $data = $request->validate([
             'title'          => 'nullable|string|max:255',
-            'link'           => 'nullable|string|max:255',
+            'link'           => $this->linkRules(),
             'sort_order'     => 'nullable|integer|min:0',
             'active'         => 'nullable|boolean',
             'image_desktop'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
@@ -63,7 +63,7 @@ class BannerController extends Controller
     {
         $data = $request->validate([
             'title'          => 'nullable|string|max:255',
-            'link'           => 'nullable|string|max:255',
+            'link'           => $this->linkRules(),
             'sort_order'     => 'nullable|integer|min:0',
             'active'         => 'nullable|boolean',
             'image_desktop'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
@@ -107,5 +107,31 @@ class BannerController extends Controller
         cache()->forget('slides_home');
 
         return back()->with('success', '🗑 Баннер удалён.');
+    }
+
+    private function linkRules(): array
+    {
+        return [
+            'nullable',
+            'string',
+            'max:255',
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                if ($value === null || $value === '') {
+                    return;
+                }
+
+                if (str_starts_with($value, '/') && ! str_starts_with($value, '//')) {
+                    return;
+                }
+
+                $scheme = parse_url($value, PHP_URL_SCHEME);
+
+                if (in_array($scheme, ['http', 'https'], true) && filter_var($value, FILTER_VALIDATE_URL)) {
+                    return;
+                }
+
+                $fail('Ссылка баннера должна быть внутренним путём /... или URL с http/https.');
+            },
+        ];
     }
 }

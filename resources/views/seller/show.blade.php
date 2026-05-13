@@ -320,6 +320,11 @@
             <h2 class="text-xl font-semibold mb-4">Рекомендованные</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 @foreach($products->take(4) as $product)
+                    @php
+                        $currentPrice = $product->price_for_current_currency;
+                        $price = $currentPrice['amount'] ?? $product->price;
+                        $currencySymbol = $currentPrice['symbol'] ?? '₽';
+                    @endphp
                     <a href="{{ route('product.show', $product->slug) }}" class="bg-white border border-gray-100 rounded-xl p-2 hover:shadow-lg hover:scale-105 transition-all duration-300 flex flex-col">
                         <div class="w-full h-28 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center mb-2">
                             @if($product->image && Storage::disk('public')->exists($product->image))
@@ -329,7 +334,7 @@
                             @endif
                         </div>
                         <div class="text-sm font-medium line-clamp-2 text-gray-800 mb-1">{{ $product->title }}</div>
-                        <div class="text-indigo-600 font-semibold text-sm">{{ number_format($product->price, 0, '', ' ') }} ₽</div>
+                        <div class="text-indigo-600 font-semibold text-sm">{{ number_format($price, 0, '', ' ') }} {{ $currencySymbol }}</div>
                     </a>
                 @endforeach
             </div>

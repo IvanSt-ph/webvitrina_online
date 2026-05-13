@@ -12,15 +12,6 @@ class ProductRepository
      ============================================================ */
     public function getFilteredProducts($request)
     {
-        // Кэширование для популярных поисков (без пагинации)
-        if ($request->filled('q') && !$request->filled('page') && $request->get('per_page', 20) == 20) {
-            $cacheKey = 'search_' . md5($request->fullUrl());
-            
-            return Cache::remember($cacheKey, 300, function() use ($request) {
-                return $this->buildFilteredProductsQuery($request);
-            });
-        }
-        
         return $this->buildFilteredProductsQuery($request);
     }
     
@@ -58,6 +49,12 @@ class ProductRepository
                     $q->where('user_id', auth()->id());
                 }
             ], 'qty');
+
+            $query->withExists([
+                'favorites as is_favorited' => function ($q) {
+                    $q->where('user_id', auth()->id());
+                },
+            ]);
         }
 
         /* ======================
@@ -246,11 +243,6 @@ class ProductRepository
                 'city.country',
                 'category.parent',
                 'seller.shop',
-                'reviews' => function ($q) {
-                    $q->where('status', 'approved')
-                      ->with(['user', 'images'])
-                      ->latest();
-                }
             ])
             ->withCount([
                 'reviews as reviews_count' => function ($q) {
@@ -289,8 +281,13 @@ class ProductRepository
 
             return Product::query()
                 ->active()
-                ->select('id', 'slug', 'title', 'price', 'image')
+                ->select('id', 'user_id', 'category_id', 'city_id', 'slug', 'title', 'price', 'price_prb', 'price_mdl', 'price_uah', 'currency_base', 'image')
                 ->with('category')
+                ->withCount([
+                    'reviews as reviews_count' => function ($q) {
+                        $q->where('status', 'approved');
+                    },
+                ])
                 ->where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
                 ->limit(4)
