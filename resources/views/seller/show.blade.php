@@ -268,11 +268,11 @@
 
                     <!-- Кнопки -->
                     <div class="flex items-center gap-2">
-                        <button class="px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 rounded-xl hover:from-indigo-100 hover:to-purple-100 transition-all duration-300 text-sm font-medium flex items-center gap-1">
+                        <button class="px-4 py-2 bg-white text-indigo-700 rounded-xl hover:bg-indigo-50 transition-all duration-200 text-sm font-semibold flex items-center gap-1 border border-indigo-200 shadow-sm">
                             <i class="ri-heart-3-line"></i>
                             <span class="hidden sm:inline">Подписаться</span>
                         </button>
-                        <button class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 text-sm font-medium flex items-center gap-1 shadow-lg shadow-indigo-200">
+                        <button class="px-4 py-2 bg-indigo-500/90 text-white rounded-xl hover:bg-indigo-600 transition-all duration-300 text-sm font-semibold flex items-center gap-1 shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-indigo-400/30">
                             <i class="ri-chat-1-line"></i>
                             <span class="hidden sm:inline">Написать</span>
                         </button>

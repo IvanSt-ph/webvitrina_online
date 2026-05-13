@@ -151,7 +151,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="processing">
-                <button class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
+                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
                     Принять заказ
                 </button>
             </form>
@@ -162,7 +162,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="paid">
-                <button class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700">
+                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
                     Отметить как оплаченный
                 </button>
             </form>
@@ -173,7 +173,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="shipped">
-                <button class="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
+                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
                     Передать в доставку
                 </button>
             </form>
@@ -184,7 +184,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="delivered">
-                <button class="px-5 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">
+                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
                     Отметить доставленным
                 </button>
             </form>
@@ -195,7 +195,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="completed">
-                <button class="px-5 py-2 bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-800">
+                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
                     Завершить заказ
                 </button>
             </form>
@@ -207,7 +207,7 @@
                 onsubmit="return confirm('Вы точно хотите отменить заказ?');">
                 @csrf
                 <input type="hidden" name="status" value="canceled">
-                <button class="px-5 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700">
+                <button class="px-5 py-2 bg-rose-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-rose-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-rose-400/30">
                     Отменить заказ
                 </button>
             </form>

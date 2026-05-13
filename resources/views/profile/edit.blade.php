@@ -61,7 +61,7 @@
                 Отмена
               </button>
               <button id="save-crop"
-                      class="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg font-medium shadow-sm transition">
+                      class="px-5 py-2 bg-indigo-500/90 hover:bg-indigo-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
                 Сохранить
               </button>
             </div>
@@ -84,8 +84,8 @@
       @if (session('status'))
         @php
           $messages = [
-            'profile-updated' => ['bg-blue-50 border-blue-200 text-blue-700', 'ri-store-2-line', 'Личные данные обновлены'],
-            'shop-updated'    => ['bg-blue-50 border-blue-200 text-blue-700', 'ri-store-2-line', 'Информация о магазине обновлена'],
+            'profile-updated' => ['bg-indigo-50 border-indigo-200 text-indigo-700', 'ri-store-2-line', 'Личные данные обновлены'],
+            'shop-updated'    => ['bg-indigo-50 border-indigo-200 text-indigo-700', 'ri-store-2-line', 'Информация о магазине обновлена'],
           ];
           [$classes, $icon, $text] = $messages[session('status')] ?? ['bg-gray-50 border-gray-200 text-gray-700', 'ri-information-line', 'Изменения сохранены'];
         @endphp

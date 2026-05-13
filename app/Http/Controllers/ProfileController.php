@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use App\Services\ImageService;
 
 class ProfileController extends Controller
 {
@@ -39,11 +40,11 @@ class ProfileController extends Controller
                 'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
             ]);
 
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            if ($user->avatar) {
+                app(ImageService::class)->delete($user->avatar);
             }
 
-            $path = $request->file('avatar')->store('avatars', 'public');
+            $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
             $user->avatar = $path;
             $user->save();
 
@@ -61,11 +62,11 @@ class ProfileController extends Controller
             ]);
 
             if ($request->hasFile('avatar')) {
-                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                    Storage::disk('public')->delete($user->avatar);
+                if ($user->avatar) {
+                    app(ImageService::class)->delete($user->avatar);
                 }
 
-                $path = $request->file('avatar')->store('avatars', 'public');
+                $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
                 $user->avatar = $path;
                 $updatedFields[] = 'avatar';
             }
@@ -194,11 +195,11 @@ class ProfileController extends Controller
         $changed = false;
 
         if ($request->hasFile('avatar')) {
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            if ($user->avatar) {
+                app(ImageService::class)->delete($user->avatar);
             }
 
-            $user->avatar = $request->file('avatar')->store('avatars', 'public');
+            $user->avatar = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
             $updatedFields[] = 'avatar';
             $changed = true;
         }
@@ -359,15 +360,15 @@ public function updateShop(Request $request): RedirectResponse
 
     // Проверка и удаление баннера
     if ($request->boolean('remove_banner') && $shop->banner) {
-        Storage::disk('public')->delete($shop->banner);
+        app(ImageService::class)->delete($shop->banner);
         $shop->update(['banner' => null]);
     }
 
     if ($request->hasFile('banner')) {
         if ($shop->banner) {
-            Storage::disk('public')->delete($shop->banner);
+            app(ImageService::class)->delete($shop->banner);
         }
-        $data['banner'] = $request->file('banner')->store('banners', 'public');
+        $data['banner'] = app(ImageService::class)->upload($request->file('banner'), 'banners');
     }
 
     // Проверка телефона магазина
@@ -567,7 +568,7 @@ public function redirectToRoleProfile()
         Auth::logout();
 
         if ($user->avatar) {
-            Storage::disk('public')->delete($user->avatar);
+            app(ImageService::class)->delete($user->avatar);
         }
 
         $user->delete();

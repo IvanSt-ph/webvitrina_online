@@ -27,8 +27,7 @@
             
             <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div id="progress-bar" 
-                     class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 
-                            rounded-full transition-all duration-300"
+                     class="h-full bg-indigo-500 rounded-full transition-all duration-300"
                      style="width: 25%">
                 </div>
             </div>
@@ -83,9 +82,9 @@
                                     peer-checked:border-indigo-500 peer-checked:bg-indigo-50
                                     hover:border-indigo-300 transition-all duration-200">
                             <div class="flex flex-col items-center text-center">
-                                <div class="w-12 h-12 rounded-full bg-purple-100 
+                                <div class="w-12 h-12 rounded-full bg-indigo-100 
                                             flex items-center justify-center mb-3">
-                                    <i class="ri-store-3-line text-xl text-purple-600"></i>
+                                    <i class="ri-store-3-line text-xl text-indigo-600"></i>
                                 </div>
                                 <h3 class="font-semibold text-gray-900 mb-1">Продавец</h3>
                                 <p class="text-sm text-gray-600">
@@ -306,8 +305,8 @@
                         Назад
                     </button>
                     <button type="submit"
-                            class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium 
-                                   rounded-xl transition flex items-center gap-2">
+                            class="px-6 py-2.5 bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold 
+                                   rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 flex items-center gap-2">
                         <i class="ri-user-add-line"></i>
                         Зарегистрироваться
                     </button>

@@ -1,6 +1,8 @@
 import { getCurrencyRates } from './currency-rates.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.__sellerProductFormInitialized) return;
+  window.__sellerProductFormInitialized = true;
 
   // ===============================================================
   // === 🏷️ КЕШ ДЛЯ УСКОРЕНИЯ ======================================
@@ -45,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const select = document.createElement('select');
       select.className =
-        'category-select w-full border-gray-200 rounded-lg p-3 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-200';
+        'category-select seller-input mt-2';
 
       select.innerHTML = `<option value="">-- выберите подкатегорию --</option>`;
 
@@ -315,8 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    attrWrapper.innerHTML = `<div class="text-center py-6 text-gray-500 text-sm animate-pulse">
-      ⏳ Загружаем характеристики...
+    attrWrapper.innerHTML = `<div class="seller-empty-state text-sm text-gray-500 animate-pulse">
+      Загружаем характеристики...
     </div>`;
 
     try {
@@ -324,17 +326,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (!Array.isArray(data) || !data.length) {
-        const empty = `<p class="text-center text-gray-400 py-4 text-sm">
-            Нет характеристик для этой категории.
-          </p>`;
+        const empty = `<div class="seller-empty-state">
+            <p class="font-semibold text-gray-800">Для этой категории нет дополнительных характеристик</p>
+            <p class="mt-1 text-sm text-gray-500">Можно продолжать заполнять товар.</p>
+          </div>`;
         attributesCache.set(categoryId, empty);
         attrWrapper.innerHTML = empty;
         return;
       }
 
-      let html = `<section class='bg-white border border-gray-200 rounded-xl shadow-sm p-6'>
-        <h2 class='text-lg font-semibold text-gray-800 mb-4'>Характеристики товара</h2>
-        <div class='space-y-6'>`;
+      let html = `<section class='seller-form-card'>
+        <div class='seller-section-head'>
+          <div>
+            <p class='seller-section-kicker'>03</p>
+            <h2 class='seller-section-title'>Характеристики</h2>
+          </div>
+          <p class='seller-section-hint'>Поля меняются под выбранную категорию.</p>
+        </div>
+        <div class='grid grid-cols-1 gap-4 sm:grid-cols-2'>`;
 
       data.forEach(attr => {
         const name = `attributes[${attr.id}]`;
@@ -345,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (attr.type === 'select' && attr.options?.length) {
           html += `<select name="${name}"
-                           class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 text-sm">
+                           class="seller-input">
                      <option value="">— не выбрано —</option>
                      ${attr.options.map(o => `<option value="${o}">${o}</option>`).join('')}
                    </select>`;
@@ -353,14 +362,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         else if (attr.type === 'number') {
           html += `<input type="number" name="${name}" value="${value}"
-                          class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 text-sm"
+                          class="seller-input"
                           placeholder="Введите число">`;
         }
 
         else if (attr.type === 'boolean') {
-          html += `<label class="inline-flex items-center space-x-2">
+          html += `<label class="inline-flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                      <input type="checkbox" name="${name}" value="1"
-                            class="rounded text-indigo-600" ${value ? 'checked' : ''}>
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${value ? 'checked' : ''}>
                      <span>Да / Нет</span>
                    </label>`;
         }
@@ -404,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         else {
           html += `<input type="text" name="${name}" value="${value}"
-                          class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 text-sm"
+                          class="seller-input"
                           placeholder="Введите значение...">`;
         }
 
@@ -420,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (e) {
       console.error('Ошибка атрибутов:', e);
-      attrWrapper.innerHTML = `<div class="text-center py-6 text-red-500 text-sm">
+      attrWrapper.innerHTML = `<div class="seller-empty-state text-red-500 text-sm">
         Ошибка при загрузке характеристик
       </div>`;
     }
@@ -574,6 +583,271 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ===============================================================
+  // === ✂️ КРОП ГЛАВНОГО ФОТО ====================================
+  // ===============================================================
+  const cropInput = document.querySelector('input[type="file"][data-main-crop]');
+  const cropper = document.getElementById('main-image-cropper');
+  const cropCanvas = document.getElementById('main-image-crop-canvas');
+  const cropZoom = document.getElementById('main-image-crop-zoom');
+  const cropOpen = document.getElementById('main-image-open-crop');
+  const cropFit = document.getElementById('main-image-crop-fit');
+  const cropApply = document.getElementById('main-image-crop-apply');
+  const cropCtx = cropCanvas?.getContext('2d');
+
+  let cropImage = null;
+  let cropSourceFile = null;
+  let cropOffset = { x: 0, y: 0 };
+  let cropDragging = false;
+  let cropDragStart = { x: 0, y: 0 };
+  let cropAppliedProgrammatically = false;
+
+  function cropCanvasSize() {
+    return cropCanvas?.width || 360;
+  }
+
+  function cropBaseScale() {
+    if (!cropImage || !cropCanvas) return 1;
+    return Math.max(cropCanvas.width / cropImage.width, cropCanvas.height / cropImage.height);
+  }
+
+  function cropCurrentScale() {
+    return cropBaseScale() * (parseFloat(cropZoom?.value) || 1);
+  }
+
+  function clampCropOffset() {
+    if (!cropImage || !cropCanvas) return;
+
+    const scale = cropCurrentScale();
+    const drawnWidth = cropImage.width * scale;
+    const drawnHeight = cropImage.height * scale;
+    const minX = Math.min(0, cropCanvas.width - drawnWidth);
+    const minY = Math.min(0, cropCanvas.height - drawnHeight);
+
+    cropOffset.x = Math.min(0, Math.max(minX, cropOffset.x));
+    cropOffset.y = Math.min(0, Math.max(minY, cropOffset.y));
+  }
+
+  function drawCrop() {
+    if (!cropImage || !cropCtx || !cropCanvas) return;
+
+    clampCropOffset();
+    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.fillStyle = '#f3f4f6';
+    cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+
+    const scale = cropCurrentScale();
+    cropCtx.drawImage(
+      cropImage,
+      cropOffset.x,
+      cropOffset.y,
+      cropImage.width * scale,
+      cropImage.height * scale
+    );
+
+    cropCtx.strokeStyle = 'rgba(255,255,255,.95)';
+    cropCtx.lineWidth = 2;
+    cropCtx.strokeRect(1, 1, cropCanvas.width - 2, cropCanvas.height - 2);
+
+    cropCtx.strokeStyle = 'rgba(79,70,229,.45)';
+    cropCtx.lineWidth = 1;
+    const third = cropCanvas.width / 3;
+    cropCtx.beginPath();
+    cropCtx.moveTo(third, 0);
+    cropCtx.lineTo(third, cropCanvas.height);
+    cropCtx.moveTo(third * 2, 0);
+    cropCtx.lineTo(third * 2, cropCanvas.height);
+    cropCtx.moveTo(0, third);
+    cropCtx.lineTo(cropCanvas.width, third);
+    cropCtx.moveTo(0, third * 2);
+    cropCtx.lineTo(cropCanvas.width, third * 2);
+    cropCtx.stroke();
+  }
+
+  function showCropper(file) {
+    if (!cropper || !cropCanvas || !cropZoom) return;
+
+    cropSourceFile = file;
+    cropImage = new Image();
+    cropImage.onload = () => {
+      URL.revokeObjectURL(cropImage.src);
+      cropZoom.value = '1';
+      const scale = cropBaseScale();
+      cropOffset = {
+        x: (cropCanvas.width - cropImage.width * scale) / 2,
+        y: (cropCanvas.height - cropImage.height * scale) / 2,
+      };
+      cropper.classList.remove('hidden');
+      cropper.classList.add('flex');
+      drawCrop();
+    };
+    cropImage.src = URL.createObjectURL(file);
+  }
+
+  function closeCropper() {
+    cropper?.classList.add('hidden');
+    cropper?.classList.remove('flex');
+    cropDragging = false;
+  }
+
+  function setMainCropButtonVisible(visible) {
+    if (!cropOpen) return;
+    cropOpen.classList.toggle('hidden', !visible);
+  }
+
+  function renderPreviewForInput(input) {
+    const target = document.getElementById(input.dataset.previewTarget);
+    if (!target) return;
+
+    target.innerHTML = '';
+    const files = Array.from(input.files || []).filter(file => file.type.startsWith('image/'));
+
+    if (!files.length) {
+      target.classList.add('hidden');
+      return;
+    }
+
+    files.slice(0, 8).forEach(file => {
+      const img = document.createElement('img');
+      img.alt = file.name;
+      img.src = URL.createObjectURL(file);
+      img.onload = () => URL.revokeObjectURL(img.src);
+      target.appendChild(img);
+    });
+
+    target.classList.remove('hidden');
+  }
+
+  if (cropInput && cropper && cropCanvas && cropCtx) {
+    cropInput.addEventListener('change', () => {
+      if (cropAppliedProgrammatically) {
+        cropAppliedProgrammatically = false;
+        renderPreviewForInput(cropInput);
+        setMainCropButtonVisible(true);
+        return;
+      }
+
+      const file = cropInput.files?.[0];
+      if (!file || !file.type.startsWith('image/')) {
+        setMainCropButtonVisible(false);
+        return;
+      }
+
+      cropSourceFile = file;
+      renderPreviewForInput(cropInput);
+      setMainCropButtonVisible(true);
+    });
+
+    cropOpen?.addEventListener('click', () => {
+      const file = cropInput.files?.[0] || cropSourceFile;
+      if (!file || !file.type.startsWith('image/')) return;
+      showCropper(file);
+    });
+
+    cropZoom?.addEventListener('input', drawCrop);
+
+    cropCanvas.addEventListener('pointerdown', e => {
+      cropDragging = true;
+      cropCanvas.setPointerCapture(e.pointerId);
+      cropDragStart = {
+        x: e.clientX - cropOffset.x,
+        y: e.clientY - cropOffset.y,
+      };
+    });
+
+    cropCanvas.addEventListener('pointermove', e => {
+      if (!cropDragging) return;
+      cropOffset = {
+        x: e.clientX - cropDragStart.x,
+        y: e.clientY - cropDragStart.y,
+      };
+      drawCrop();
+    });
+
+    cropCanvas.addEventListener('pointerup', e => {
+      cropDragging = false;
+      cropCanvas.releasePointerCapture(e.pointerId);
+    });
+
+    cropper.querySelectorAll('[data-crop-cancel]').forEach(button => {
+      button.addEventListener('click', () => {
+        closeCropper();
+      });
+    });
+
+    function replaceMainImageWithCanvas(output, mimeType, suffix) {
+      output.toBlob(blob => {
+        if (!blob || !cropSourceFile) return;
+
+        const extension = mimeType === 'image/png' ? 'png' : 'jpg';
+        const croppedFile = new File(
+          [blob],
+          cropSourceFile.name.replace(/\.[^.]+$/, '') + suffix + '.' + extension,
+          { type: blob.type, lastModified: Date.now() }
+        );
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(croppedFile);
+        cropAppliedProgrammatically = true;
+        cropInput.files = dataTransfer.files;
+        cropInput.dispatchEvent(new Event('change', { bubbles: true }));
+        closeCropper();
+      }, mimeType, 0.92);
+    }
+
+    cropFit?.addEventListener('click', () => {
+      if (!cropImage || !cropSourceFile) return;
+
+      const outputSize = 1200;
+      const output = document.createElement('canvas');
+      output.width = outputSize;
+      output.height = outputSize;
+      const outputCtx = output.getContext('2d');
+      const scale = Math.min(outputSize / cropImage.width, outputSize / cropImage.height);
+      const width = cropImage.width * scale;
+      const height = cropImage.height * scale;
+
+      outputCtx.fillStyle = '#fff';
+      outputCtx.fillRect(0, 0, outputSize, outputSize);
+      outputCtx.drawImage(cropImage, (outputSize - width) / 2, (outputSize - height) / 2, width, height);
+
+      replaceMainImageWithCanvas(output, 'image/jpeg', '-fit');
+    });
+
+    cropApply?.addEventListener('click', () => {
+      if (!cropImage || !cropSourceFile) return;
+
+      const outputSize = 1200;
+      const output = document.createElement('canvas');
+      output.width = outputSize;
+      output.height = outputSize;
+      const outputCtx = output.getContext('2d');
+      const ratio = outputSize / cropCanvasSize();
+      const scale = cropCurrentScale() * ratio;
+
+      outputCtx.fillStyle = '#fff';
+      outputCtx.fillRect(0, 0, outputSize, outputSize);
+      outputCtx.drawImage(
+        cropImage,
+        cropOffset.x * ratio,
+        cropOffset.y * ratio,
+        cropImage.width * scale,
+        cropImage.height * scale
+      );
+
+      replaceMainImageWithCanvas(output, cropSourceFile.type === 'image/png' ? 'image/png' : 'image/jpeg', '-crop');
+    });
+  }
+
+  // ===============================================================
+  // === 🖼️ ЛОКАЛЬНОЕ ПРЕВЬЮ ВЫБРАННЫХ ФОТО =======================
+  // ===============================================================
+  document.querySelectorAll('input[type="file"][data-preview-target]').forEach(input => {
+    input.addEventListener('change', () => {
+      renderPreviewForInput(input);
+    });
+  });
 
   // ===============================================================
   // === 🎨 АКТИВАЦИЯ ВЫБОРА ЦВЕТА у админа ================================

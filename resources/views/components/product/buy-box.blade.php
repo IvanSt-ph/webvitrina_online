@@ -57,7 +57,7 @@
                     {{-- Чужой товар --}}
                     <form method="POST" action="{{ route('checkout.quick', $product->id) }}">
                         @csrf
-                        <button class="w-full py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-600 to-fuchsia-500 shadow-lg hover:to-fuchsia-600 active:scale-[0.98]">
+                        <button class="relative w-full overflow-hidden rounded-xl border border-indigo-400/30 bg-indigo-500/90 py-3.5 font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-xl active:scale-[0.98]">
                             ⚡ Купить сейчас
                         </button>
                     </form>
@@ -72,7 +72,7 @@
             @else
                 {{-- Не авторизован --}}
                 <a href="{{ route('login') }}"
-                   class="w-full py-3.5 rounded-xl text-white bg-gradient-to-r from-indigo-600 to-fuchsia-500 block text-center hover:opacity-90 transition">
+                   class="relative block w-full overflow-hidden rounded-xl border border-indigo-400/30 bg-indigo-500/90 py-3.5 text-center font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-xl">
                     🔑 Войти, чтобы купить
                 </a>
                 

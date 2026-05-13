@@ -319,7 +319,7 @@
             </div>
             <div x-show="columns.actions" class="flex gap-2">
               <a href="{{ route('admin.products.edit', $product) }}"
-                 class="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition"
+                 class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition"
                  title="Редактировать">
                 <i class="ri-edit-2-line text-base"></i>
               </a>
@@ -411,7 +411,7 @@
             <td x-show="columns.actions" class="px-4 py-3 text-right align-top">
               <div class="flex items-center justify-end gap-2">
                 <a href="{{ route('admin.products.edit', $product) }}"
-                   class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
+                   class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition"
                    title="Редактировать">
                   <i class="ri-edit-2-line text-sm md:text-base"></i>
                 </a>

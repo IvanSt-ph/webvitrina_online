@@ -74,7 +74,7 @@
                 <div class="flex gap-2">
                     @if($review->status !== 'approved')
                         <button @click.stop="changeStatus({{ $review->id }}, 'approve')"
-                                class="btn-approve px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs">
+                                class="btn-approve px-2.5 py-1 bg-indigo-500/90 hover:bg-indigo-600 text-white rounded-lg text-xs font-semibold shadow-sm transition">
                             Одобрить
                         </button>
                     @endif
@@ -184,7 +184,7 @@
 
             <template x-if="modal.data.status !== 'approved'">
                 <button 
-                    class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                    class="px-4 py-2 rounded-xl bg-indigo-500/90 text-white hover:bg-indigo-600 font-semibold shadow-md hover:shadow-lg transition-all duration-300 border border-indigo-400/30"
                     @click="changeStatus(modal.data.id, 'approve'); modal.open = false"
                 >Одобрить</button>
             </template>
