@@ -116,7 +116,7 @@
                   <a href="{{ route('product.show', $p) }}"
                      class="relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
                     @if($p->image)
-                      <img src="{{ asset('storage/'.$p->image) }}"
+                      <img src="{{ $p->image_thumb_url }}"
                            class="w-full h-full object-cover"
                            alt="{{ $p->title }}">
                     @else
@@ -200,7 +200,7 @@
               <a href="{{ route('product.show', $p) }}"
                  class="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
                 @if($p->image)
-                  <img src="{{ asset('storage/'.$p->image) }}"
+                  <img src="{{ $p->image_thumb_url }}"
                        class="w-full h-full object-cover transition-transform duration-400 group-hover:scale-105"
                        alt="{{ $p->title }}">
                 @else

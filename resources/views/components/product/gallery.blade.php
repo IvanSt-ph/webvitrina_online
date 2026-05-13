@@ -4,10 +4,10 @@
             activeImage: '',
             images: [
                 @if ($product->image)
-                    '{{ asset('storage/'.$product->image) }}',
+                    '{{ $product->image_url }}',
                 @endif
                 @foreach ($product->gallery ?? [] as $img)
-                    '{{ asset('storage/'.$img) }}',
+                    '{{ \App\Models\Product::storageImageUrl($img) }}',
                 @endforeach
             ],
 

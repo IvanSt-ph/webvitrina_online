@@ -146,7 +146,7 @@
                         :class="selectMode ? 'opacity-60 pointer-events-none' : ''"
                     >
                         @if($p->image)
-                            <img src="{{ asset('storage/'.$p->image) }}"
+                            <img src="{{ $p->image_thumb_url }}"
                                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                  alt="{{ $p->title }}">
                         @else
@@ -473,7 +473,7 @@
             <div class="bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
-                        <img src="{{ asset('storage/'.$product->image) }}" 
+                        <img src="{{ $product->image_thumb_url }}" 
                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                              alt="{{ $product->title }}">
                     </div>
@@ -515,7 +515,7 @@
             <div class="bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
-                        <img src="{{ asset('storage/'.$product->image) }}" 
+                        <img src="{{ $product->image_thumb_url }}" 
                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                              alt="{{ $product->title }}">
                     </div>

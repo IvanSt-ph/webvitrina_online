@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Services\ImageService;
 
 class Product extends Model
 {
@@ -170,13 +171,42 @@ class Product extends Model
 
     public function getImageUrlAttribute(): string
     {
-        if ($this->image && !empty($this->image)) {
-            if (\Storage::disk('public')->exists($this->image)) {
-                return asset('storage/' . $this->image);
+        return $this->storageImageUrl($this->image);
+    }
+
+    public function getImageThumbUrlAttribute(): string
+    {
+        if ($this->image) {
+            $thumb = ImageService::thumbPath($this->image);
+
+            if (\Storage::disk('public')->exists($thumb)) {
+                return asset('storage/' . $thumb);
             }
         }
-        
+
+        return $this->image_url;
+    }
+
+    public static function storageImageUrl(?string $path): string
+    {
+        if ($path && \Storage::disk('public')->exists($path)) {
+            return asset('storage/' . $path);
+        }
+
         return asset('storage/default/no-image.png');
+    }
+
+    public static function storageThumbUrl(?string $path): string
+    {
+        if ($path) {
+            $thumb = ImageService::thumbPath($path);
+
+            if (\Storage::disk('public')->exists($thumb)) {
+                return asset('storage/' . $thumb);
+            }
+        }
+
+        return self::storageImageUrl($path);
     }
 
     public function getGalleryImagesAttribute(): array
@@ -186,7 +216,7 @@ class Product extends Model
         if (!empty($this->gallery) && is_array($this->gallery)) {
             foreach ($this->gallery as $img) {
                 if ($img && \Storage::disk('public')->exists($img)) {
-                    $images[] = asset('storage/' . $img);
+                    $images[] = self::storageImageUrl($img);
                 }
             }
         }

@@ -32,10 +32,10 @@ $gallery = array_map(function($img) {
     }
     
     // ✅ Обычное изображение из storage
-    return asset('storage/' . $img);
+    return \App\Models\Product::storageImageUrl($img);
 }, $rawGallery);
 
-    $image = $gallery[0] ?? null;
+    $image = $p->image_thumb_url ?? ($gallery[0] ?? null);
     $hasGallery = count($gallery) > 1;
 
     $currentPrice = $p->price_for_current_currency;

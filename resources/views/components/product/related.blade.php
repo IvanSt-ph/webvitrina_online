@@ -22,7 +22,7 @@
                     {{-- Изображение --}}
                     <div class="relative aspect-square bg-gray-100 overflow-hidden">
                         @if ($item->image)
-                            <img src="{{ asset('storage/'.$item->image) }}"
+                            <img src="{{ $item->image_thumb_url }}"
                                  class="w-full h-full object-cover transition-transform duration-500 md:group-hover:scale-105"
                                  alt="{{ $item->title }}">
                         @else

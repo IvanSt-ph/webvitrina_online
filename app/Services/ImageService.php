@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ImageService
 {
@@ -23,7 +26,60 @@ class ImageService
      */
     public function upload(UploadedFile $file, string $dir): string
     {
-        return $file->store($dir, 'public');
+        try {
+            return $this->uploadOptimized($file, $dir);
+        } catch (\Throwable $e) {
+            Log::warning('ImageService: optimized upload failed, storing original file', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return $file->store($dir, 'public');
+        }
+    }
+
+    /**
+     * 📤 Загрузка изображения в WebP + создание легкой версии для карточек.
+     *
+     * Возвращаем medium-путь, который хранится в БД. Thumb лежит рядом:
+     * products/2026/05/medium/name.webp
+     * products/2026/05/thumb/name.webp
+     */
+    protected function uploadOptimized(UploadedFile $file, string $dir): string
+    {
+        $manager = new ImageManager(new Driver());
+        $image = $manager->read($file->getRealPath());
+
+        $baseName = (string) Str::uuid() . '.webp';
+        $mediumPath = trim($dir, '/') . '/medium/' . $baseName;
+        $thumbPath = trim($dir, '/') . '/thumb/' . $baseName;
+
+        $medium = clone $image;
+        $thumb = clone $image;
+
+        Storage::disk('public')->put(
+            $mediumPath,
+            $medium->scaleDown(width: 1200, height: 1200)->toWebp(82)->toString()
+        );
+
+        Storage::disk('public')->put(
+            $thumbPath,
+            $thumb->scaleDown(width: 480, height: 480)->toWebp(78)->toString()
+        );
+
+        return $mediumPath;
+    }
+
+    public static function thumbPath(string $path): string
+    {
+        $clean = ltrim(str_replace(['storage/', '/storage/'], '', $path), '/');
+        $dir = dirname($clean);
+        $base = basename($clean);
+
+        if (basename($dir) === 'medium') {
+            return dirname($dir) . '/thumb/' . $base;
+        }
+
+        return $dir . '/thumb/' . pathinfo($base, PATHINFO_FILENAME) . '.webp';
     }
 
     /**
@@ -67,6 +123,12 @@ class ImageService
         if (Storage::disk('public')->exists($clean)) {
             Storage::disk('public')->delete($clean);
             Log::info("✅ ImageService: удалено: {$clean}");
+        }
+
+        $thumb = self::thumbPath($clean);
+        if ($thumb !== $clean && Storage::disk('public')->exists($thumb)) {
+            Storage::disk('public')->delete($thumb);
+            Log::info("✅ ImageService: удалена миниатюра: {$thumb}");
         }
     }
 

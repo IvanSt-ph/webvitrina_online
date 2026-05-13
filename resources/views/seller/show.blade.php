@@ -328,7 +328,7 @@
                     <a href="{{ route('product.show', $product->slug) }}" class="bg-white border border-gray-100 rounded-xl p-2 hover:shadow-lg hover:scale-105 transition-all duration-300 flex flex-col">
                         <div class="w-full h-28 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center mb-2">
                             @if($product->image && Storage::disk('public')->exists($product->image))
-                                <img src="{{ asset('storage/'.$product->image) }}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="{{ $product->title }}">
+                                <img src="{{ $product->image_thumb_url }}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="{{ $product->title }}">
                             @else
                                 <i class="ri-image-line text-gray-300 text-3xl"></i>
                             @endif
