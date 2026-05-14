@@ -171,6 +171,11 @@ class Category extends Model
                 Cache::forget('cat.tree');
                 Cache::forget('cat.full');
                 Cache::forget('cat.root');
+                Cache::forget("categories_children_{$category->parent_id}");
+
+                if ($category->wasChanged('parent_id')) {
+                    Cache::forget("categories_children_{$category->getOriginal('parent_id')}");
+                }
 
                 if ($category->slug) {
                     Cache::forget("cat.page.{$category->slug}");
@@ -184,6 +189,7 @@ class Category extends Model
                 Cache::forget('cat.tree');
                 Cache::forget('cat.full');
                 Cache::forget('cat.root');
+                Cache::forget("categories_children_{$category->parent_id}");
 
                 if ($category->slug) {
                     Cache::forget("cat.page.{$category->slug}");

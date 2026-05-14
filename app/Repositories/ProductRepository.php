@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ProductRepository
 {
@@ -106,6 +107,7 @@ class ProductRepository
     {
         $search = trim($searchTerm);
         $search = mb_substr(strip_tags($search), 0, 100);
+        $escapedSearch = $this->escapeLike($search);
         
         // Минимальная длина поиска
         if (mb_strlen($search) < 2) {
@@ -117,48 +119,55 @@ class ProductRepository
             return Product::count();
         });
         
-        $query->where(function ($q) use ($search, $totalProducts) {
+        $query->where(function ($q) use ($search, $escapedSearch, $totalProducts) {
             
             // ВСЕГДА: точное совпадение по артикулу (самое быстрое)
             $q->orWhere('sku', $search);
             
             // ВСЕГДА: поиск по названию (индексируется)
-            $q->orWhere('title', 'like', $this->escapeLike($search) . '%');
-            $q->orWhere('title', 'like', '%' . $this->escapeLike($search) . '%');
+            $q->orWhere('title', 'like', $escapedSearch . '%');
             
             // Если товаров МАЛО (< 20 000) - ищем везде
             if ($totalProducts < 20000) {
+                $q->orWhere('title', 'like', '%' . $escapedSearch . '%');
+
                 // Поиск по описанию
-                $q->orWhere('description', 'like', '%' . $this->escapeLike($search) . '%');
+                $q->orWhere('description', 'like', '%' . $escapedSearch . '%');
                 
                 // Поиск по категории
-                $q->orWhereHas('category', function ($cat) use ($search) {
-                    $cat->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                $q->orWhereHas('category', function ($cat) use ($escapedSearch) {
+                    $cat->where('name', 'like', '%' . $escapedSearch . '%');
                 });
                 
                 // Поиск по продавцу
-                $q->orWhereHas('seller', function ($seller) use ($search) {
-                    $seller->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                $q->orWhereHas('seller', function ($seller) use ($escapedSearch) {
+                    $seller->where('name', 'like', '%' . $escapedSearch . '%');
                 });
             } 
             // Если товаров МНОГО - умное ограничение
             else {
+                if ($this->supportsFullTextSearch()) {
+                    $q->orWhereFullText('title', $search);
+                } else {
+                    $q->orWhere('title', 'like', '%' . $escapedSearch . '%');
+                }
+
                 // Для длинных запросов (> 3 символов) добавляем описание
                 if (mb_strlen($search) > 3) {
-                    $q->orWhere('description', 'like', '%' . $this->escapeLike($search) . '%');
+                    $q->orWhere('description', 'like', '%' . $escapedSearch . '%');
                 }
                 
                 // Поиск по категории ТОЛЬКО если запрос похож на название категории
                 if ($this->looksLikeCategory($search)) {
-                    $q->orWhereHas('category', function ($cat) use ($search) {
-                        $cat->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                    $q->orWhereHas('category', function ($cat) use ($escapedSearch) {
+                        $cat->where('name', 'like', '%' . $escapedSearch . '%');
                     });
                 }
                 
                 // Поиск по продавцу ТОЛЬКО если запрос похож на имя
                 if ($this->looksLikeName($search)) {
-                    $q->orWhereHas('seller', function ($seller) use ($search) {
-                        $seller->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                    $q->orWhereHas('seller', function ($seller) use ($escapedSearch) {
+                        $seller->where('name', 'like', '%' . $escapedSearch . '%');
                     });
                 }
             }
@@ -192,6 +201,11 @@ class ProductRepository
     private function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private function supportsFullTextSearch(): bool
+    {
+        return DB::connection()->getDriverName() === 'mysql';
     }
 
     /**
@@ -300,19 +314,27 @@ class ProductRepository
      ============================================================ */
     public function clearCache(Product $product): void
     {
-        Cache::forget("product_page:{$product->slug}");
-        Cache::forget("related:{$product->id}");
-        Cache::forget("product_page:{$product->id}");
-        
-        // Очищаем кэш поиска (можно выборочно по префиксу)
-        Cache::forget('products_total_count');
+        self::clearProductCache($product);
     }
 
     public static function clearProductCache(Product $product): void
     {
-        Cache::forget("product_page:{$product->slug}");
+        $slugs = collect([
+            $product->slug,
+            $product->getOriginal('slug'),
+        ])
+            ->merge($product->oldSlugs()->pluck('slug'))
+            ->filter()
+            ->unique();
+
+        foreach ($slugs as $slug) {
+            Cache::forget("product_page:{$slug}");
+            Cache::forget("product_by_slug:{$slug}");
+        }
+
         Cache::forget("related:{$product->id}");
         Cache::forget("product_page:{$product->id}");
+        Cache::forget("product_by_id:{$product->id}");
         Cache::forget('products_total_count');
     }
 }

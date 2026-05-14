@@ -56,6 +56,15 @@ class Review extends Model
         }
     });
 
+    static::deleting(function ($review) {
+        $images = $review->images()->get();
+        $imageService = app(\App\Services\ImageService::class);
+
+        foreach ($images as $image) {
+            $imageService->delete($image->path);
+        }
+    });
+
     static::deleted(function ($review) {
         if ($review->product) {
             \App\Repositories\ProductRepository::clearProductCache($review->product);

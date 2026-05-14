@@ -11,6 +11,8 @@ class Product extends Model
 {
     use SoftDeletes;
 
+    private const DEFAULT_IMAGE_PATH = 'default/no-image.png';
+
     protected $fillable = [
         'user_id','category_id','title','slug','sku','price','stock','image',
         'description','city_id','gallery','status','address','latitude','longitude',
@@ -176,12 +178,8 @@ class Product extends Model
 
     public function getImageThumbUrlAttribute(): string
     {
-        if ($this->image) {
-            $thumb = ImageService::thumbPath($this->image);
-
-            if (\Storage::disk('public')->exists($thumb)) {
-                return asset('storage/' . $thumb);
-            }
+        if ($this->image && ! self::isDefaultImagePath($this->image)) {
+            return asset('storage/' . ImageService::thumbPath($this->image));
         }
 
         return $this->image_url;
@@ -189,24 +187,32 @@ class Product extends Model
 
     public static function storageImageUrl(?string $path): string
     {
-        if ($path && \Storage::disk('public')->exists($path)) {
+        if ($path && ! self::isDefaultImagePath($path)) {
             return asset('storage/' . $path);
         }
 
-        return asset('storage/default/no-image.png');
+        return asset('storage/' . self::DEFAULT_IMAGE_PATH);
     }
 
     public static function storageThumbUrl(?string $path): string
     {
-        if ($path) {
-            $thumb = ImageService::thumbPath($path);
-
-            if (\Storage::disk('public')->exists($thumb)) {
-                return asset('storage/' . $thumb);
-            }
+        if ($path && ! self::isDefaultImagePath($path)) {
+            return asset('storage/' . ImageService::thumbPath($path));
         }
 
         return self::storageImageUrl($path);
+    }
+
+    private static function isDefaultImagePath(string $path): bool
+    {
+        $clean = ltrim(str_replace(['storage/', '/storage/'], '', $path), '/');
+
+        return in_array($clean, [
+            'no-image.png',
+            self::DEFAULT_IMAGE_PATH,
+            'default-product.png',
+            'placeholder.png',
+        ], true);
     }
 
     public function getGalleryImagesAttribute(): array
@@ -215,7 +221,7 @@ class Product extends Model
         
         if (!empty($this->gallery) && is_array($this->gallery)) {
             foreach ($this->gallery as $img) {
-                if ($img && \Storage::disk('public')->exists($img)) {
+                if ($img) {
                     $images[] = self::storageImageUrl($img);
                 }
             }

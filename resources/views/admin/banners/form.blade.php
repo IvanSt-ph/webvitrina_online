@@ -1,167 +1,643 @@
 {{-- Форма создания и редактирования баннера в админке --}}
-{{-- Страница: resources/views/admin/banners/form.blade.php --}}
 
 @extends('admin.layout')
+
+@section('title', $banner->exists ? 'Редактирование баннера' : 'Новый баннер')
 
 @section('content')
 @php
   $isEdit = $banner->exists;
+  $initialPreview = $banner->image_desktop
+      ? asset('storage/'.$banner->image_desktop)
+      : ($banner->image_tablet
+          ? asset('storage/'.$banner->image_tablet)
+          : ($banner->image_mobile ? asset('storage/'.$banner->image_mobile) : ''));
+  $initialMobilePreview = $banner->image_mobile ? asset('storage/'.$banner->image_mobile) : $initialPreview;
+
+  $previewSlots = [
+      ['key' => 'desktop', 'label' => 'Десктоп', 'icon' => 'ri-computer-line', 'size' => '1920 x 720', 'aspect' => 'aspect-[24/9]'],
+      ['key' => 'tablet', 'label' => 'Планшет', 'icon' => 'ri-tablet-line', 'size' => '1400 x 600', 'aspect' => 'aspect-[21/9]'],
+      ['key' => 'mobile', 'label' => 'Мобильный', 'icon' => 'ri-smartphone-line', 'size' => '960 x 480', 'aspect' => 'aspect-[18/9]'],
+  ];
 @endphp
 
-<div class="flex items-center justify-between mb-8">
-  <h1 class="text-2xl font-semibold text-gray-800 tracking-tight">
-    {{ $isEdit ? '✏️ Редактирование баннера' : '➕ Добавление нового баннера' }}
-  </h1>
-  <a href="{{ route('admin.banners.index') }}" class="text-sm text-gray-500 hover:text-gray-700 transition">
-    ← Назад к списку
-  </a>
-</div>
-
-@if ($errors->any())
-  <div class="mb-6 p-4 border border-red-200 bg-red-50 text-red-700 rounded-lg shadow-sm">
-    <ul class="list-disc pl-5 space-y-1">
-      @foreach ($errors->all() as $error)
-        <li>{{ $error }}</li>
-      @endforeach
-    </ul>
-  </div>
-@endif
-
-<form 
-  method="POST"
-  enctype="multipart/form-data"
-  action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}"
-  class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8 w-full"
-  autocomplete="off"
->
-  @csrf
-  @if($isEdit) @method('PUT') @endif
-
-  {{-- === Основная информация === --}}
-  <section>
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">Основная информация</h2>
-    <div class="grid md:grid-cols-2 gap-8">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Заголовок баннера</label>
-        <input type="text" name="title" value="{{ old('title', $banner->title) }}"
-               placeholder="Например: Осенние скидки до -30%"
-               maxlength="80"
-               class="w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-gray-200 transition">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Ссылка (куда ведёт баннер)</label>
-        <input type="text" name="link" value="{{ old('link', $banner->link) }}"
-               placeholder="/products?sort=new или https://example.com"
-               class="w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-gray-200 transition">
-        <p class="text-xs text-gray-500 mt-1 leading-snug">
-          Можно указать <b>внутренний путь</b> (например: <code>/products?sort=benefit</code>) 
-          или <b>внешнюю ссылку</b> (начинается с https://).
-        </p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Порядок отображения</label>
-        <input type="number" name="sort_order"
-               value="{{ old('sort_order', $banner->sort_order ?? 0) }}"
-               class="w-full border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-gray-200 transition">
-        <p class="text-xs text-gray-500 mt-1 leading-snug">
-          Меньшее число — выше в списке.
-        </p>
-      </div>
-
-      <div class="flex items-center gap-3 pt-5">
-        <input type="checkbox" id="active" name="active" value="1" {{ old('active', $banner->active) ? 'checked' : '' }}
-               class="rounded border-gray-300 text-gray-900 focus:ring-gray-400">
-        <label for="active" class="text-sm text-gray-700 select-none">
-          Отображать баннер на сайте
-        </label>
+<div class="mx-auto max-w-7xl space-y-6">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div class="space-y-2">
+      <a href="{{ route('admin.banners.index') }}"
+         class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 transition hover:text-indigo-600">
+        <i class="ri-arrow-left-line text-base"></i>
+        <span>Баннеры</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+          <i class="ri-image-add-line text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-semibold text-gray-900">
+            {{ $isEdit ? 'Редактирование баннера' : 'Новый баннер' }}
+          </h1>
+          <p class="text-sm text-gray-500">
+            Загрузите один баннер, обрежьте как фото товара и проверьте все экраны.
+          </p>
+        </div>
       </div>
     </div>
-  </section>
 
-  {{-- === Изображения для разных устройств === --}}
-  <section class="space-y-8">
-    <h2 class="text-lg font-semibold text-gray-800">Изображения баннера</h2>
-    <p class="text-xs text-gray-500">
-      Загрузите версии для разных устройств:<br>
-      🖥 <b>Десктоп</b> — 1920×500 px<br>
-      💻 <b>Планшет</b> — 1024×400 px<br>
-      📱 <b>Мобильный</b> — 768×480 px
-    </p>
+    <div class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 shadow-sm">
+      <i class="ri-shield-check-line text-emerald-500"></i>
+      <span>JPG, PNG и WebP сохраняются в легком WebP</span>
+    </div>
+  </div>
 
-    @foreach ([
-        ['field' => 'image_desktop', 'label' => '🖥 Десктоп', 'size' => '1920×500 px', 'aspect' => 'aspect-[3.84/1] sm:aspect-[2.8/1] md:aspect-[2.5/1] lg:aspect-[3.84/1]'],
-        ['field' => 'image_tablet',  'label' => '💻 Планшет', 'size' => '1024×400 px', 'aspect' => 'aspect-[2.8/1] md:aspect-[2.5/1]'],
-        ['field' => 'image_mobile',  'label' => '📱 Мобильный', 'size' => '768×480 px',  'aspect' => 'aspect-[3.84/1]'],
-    ] as $b)
-      @php
-        $field = $b['field'];
-        $image = $banner->$field ? asset('storage/'.$banner->$field) : '';
-      @endphp
+  @if ($errors->any())
+    <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
+      <div class="mb-2 flex items-center gap-2 font-semibold">
+        <i class="ri-error-warning-line text-lg"></i>
+        <span>Проверьте поля формы</span>
+      </div>
+      <ul class="list-disc space-y-1 pl-5">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
 
-      <div x-data="{ preview: '{{ $image }}' }" class="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="font-medium text-gray-700">{{ $b['label'] }}</h3>
-          <button type="button" @click="preview = ''"
-                  class="text-xs text-gray-500 hover:text-red-600 transition">
-            Очистить превью ✕
-          </button>
+  <form
+    method="POST"
+    enctype="multipart/form-data"
+    action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}"
+    autocomplete="off"
+    class="space-y-6"
+  >
+    @csrf
+    @if($isEdit) @method('PUT') @endif
+
+    <input type="hidden" name="crop_x" id="banner-crop-x" value="0">
+    <input type="hidden" name="crop_y" id="banner-crop-y" value="0">
+    <input type="hidden" name="crop_w" id="banner-crop-w" value="100">
+    <input type="hidden" name="crop_h" id="banner-crop-h" value="100">
+    <input type="hidden" name="mobile_crop_x" id="banner-mobile-crop-x" value="0">
+    <input type="hidden" name="mobile_crop_y" id="banner-mobile-crop-y" value="0">
+    <input type="hidden" name="mobile_crop_w" id="banner-mobile-crop-w" value="100">
+    <input type="hidden" name="mobile_crop_h" id="banner-mobile-crop-h" value="100">
+
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="mb-5 flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
+          <div>
+            <h2 class="text-base font-semibold text-gray-900">Основная информация</h2>
+            <p class="mt-1 text-sm text-gray-500">Название, ссылка и порядок показа.</p>
+          </div>
+          <span class="rounded-lg bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+            {{ $isEdit ? 'ID '.$banner->id : 'Черновик' }}
+          </span>
         </div>
 
-        {{-- 🖼 Реалистичный предпросмотр (как на сайте) --}}
-        <div class="relative bg-gray-200 border border-gray-300 rounded-xl overflow-hidden shadow-sm mx-auto w-full {{ $b['aspect'] }}">
-          <div class="absolute inset-0 w-full h-full bg-center bg-cover transition-all duration-500"
-               :style="preview ? `background-image: url('${preview}')` : ''"></div>
-
-          <template x-if="!preview">
-            <div class="flex items-center justify-center w-full h-full text-gray-500 text-sm">
-              Нет изображения
+        <div class="grid gap-5 md:grid-cols-2">
+          <div class="space-y-2">
+            <label for="title" class="text-sm font-medium text-gray-700">Заголовок</label>
+            <div class="relative">
+              <i class="ri-text absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <input id="title" type="text" name="title" value="{{ old('title', $banner->title) }}"
+                     placeholder="Осенние скидки" maxlength="80"
+                     class="w-full rounded-lg border-gray-300 pl-10 text-sm shadow-sm transition focus:border-indigo-500 focus:ring-indigo-500">
             </div>
-          </template>
+          </div>
 
-          <div class="absolute bottom-0 left-0 right-0 bg-black/30 text-white text-xs py-1 px-3">
-            {{ $b['label'] }} — {{ $b['size'] }}
+          <div class="space-y-2">
+            <label for="link" class="text-sm font-medium text-gray-700">Ссылка</label>
+            <div class="relative">
+              <i class="ri-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <input id="link" type="text" name="link" value="{{ old('link', $banner->link) }}"
+                     placeholder="/products?sort=new"
+                     class="w-full rounded-lg border-gray-300 pl-10 text-sm shadow-sm transition focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label for="sort_order" class="text-sm font-medium text-gray-700">Порядок</label>
+            <div class="relative">
+              <i class="ri-sort-asc absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <input id="sort_order" type="number" name="sort_order" min="0"
+                     value="{{ old('sort_order', $banner->sort_order ?? 0) }}"
+                     class="w-full rounded-lg border-gray-300 pl-10 text-sm shadow-sm transition focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <span class="text-sm font-medium text-gray-700">Статус</span>
+            <label class="flex min-h-[42px] cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 transition hover:border-indigo-200 hover:bg-indigo-50/40">
+              <span class="flex items-center gap-2 text-sm text-gray-700">
+                <i class="ri-eye-line text-indigo-500"></i>
+                Показывать на сайте
+              </span>
+              <input type="checkbox" id="active" name="active" value="1"
+                     {{ old('active', $banner->exists ? $banner->active : true) ? 'checked' : '' }}
+                     class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <aside class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm xl:row-span-2">
+        <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <i class="ri-dashboard-line text-xl"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold text-gray-900">Публикация</h2>
+            <p class="text-sm text-gray-500">Итоговые действия</p>
           </div>
         </div>
 
-        {{-- 📤 Загрузка файла --}}
-        <input 
-          type="file"
-          name="{{ $b['field'] }}"
-          accept="image/png,image/jpeg,image/webp"
-          @change="
-            const file = $event.target.files[0];
-            if (!file) return;
-            if (file.size > 2 * 1024 * 1024) {
-              alert('⚠️ Файл слишком большой! Максимум 2 МБ.');
-              $event.target.value = '';
-              return;
-            }
-            preview = URL.createObjectURL(file);
-          "
-          class="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 
-                 file:rounded-lg file:border-0 file:bg-gray-900 file:text-white 
-                 hover:file:bg-gray-800 focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 transition"
-        >
-        <p class="text-xs text-gray-500">Рекомендуемый размер: <b>{{ $b['size'] }}</b></p>
+        <div class="mt-5 space-y-3 text-sm">
+          <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+            <span class="text-gray-500">Активность</span>
+            <span class="font-medium text-gray-800">{{ old('active', $banner->exists ? $banner->active : true) ? 'Включена' : 'Выключена' }}</span>
+          </div>
+          <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+            <span class="text-gray-500">Формат</span>
+            <span class="font-medium text-gray-800">WebP</span>
+          </div>
+          <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+            <span class="text-gray-500">Версии</span>
+            <span class="font-medium text-gray-800">3 экрана</span>
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-col gap-3">
+          <button type="submit"
+                  class="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            <i class="{{ $isEdit ? 'ri-save-3-line' : 'ri-add-line' }} text-base"></i>
+            {{ $isEdit ? 'Сохранить изменения' : 'Создать баннер' }}
+          </button>
+
+          <a href="{{ route('admin.banners.index') }}"
+             class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+            <i class="ri-close-line text-base"></i>
+            Отмена
+          </a>
+        </div>
+      </aside>
+
+      <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="mb-5 flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-gray-900">Изображения баннера</h2>
+            <p class="mt-1 text-sm text-gray-500">Сначала настройте широкий баннер. Мобильный добавляйте только если на телефоне кадр режется неудачно.</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-500">
+            <i class="ri-information-line text-sm"></i>
+            <span>SVG не принимается</span>
+          </div>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div class="space-y-4">
+            <div class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+              <div class="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">1</span>
+                    Широкий баннер
+                  </h3>
+                  <p class="mt-1 text-xs text-gray-500">Для десктопа и планшета. Если мобильный файл не задан, телефон тоже возьмёт эту версию.</p>
+                </div>
+                <i class="ri-computer-line text-lg text-indigo-500"></i>
+              </div>
+
+              <label class="flex min-h-[126px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-indigo-200 bg-white px-5 py-6 text-center transition hover:border-indigo-400 hover:bg-white">
+                <input id="banner-image-source" type="file" name="image_source" class="sr-only" accept="image/jpeg,image/png,image/webp">
+                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+                  <i class="ri-image-add-line text-2xl"></i>
+                </span>
+                <span id="banner-file-name" class="font-semibold text-gray-900">Выбрать широкий баннер</span>
+                <span class="text-xs text-gray-500">Рекомендуемо: широкий кадр без мелкого текста по краям.</span>
+              </label>
+
+              <div id="banner-main-preview" class="{{ $initialPreview ? '' : 'hidden' }} mt-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 aspect-[24/9]">
+                <img src="{{ $initialPreview }}" alt="Предпросмотр баннера" class="h-full w-full object-cover" data-banner-preview>
+              </div>
+
+              <button type="button" id="banner-open-crop"
+                      class="mt-3 hidden rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50">
+                <i class="ri-crop-line mr-1"></i>
+                Настроить кадр
+              </button>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div class="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-xs font-bold text-white">2</span>
+                    Мобильный баннер
+                  </h3>
+                  <p class="mt-1 text-xs text-gray-500">Необязательно. Нужен, если на телефоне хочется другой кадр или крупнее объект.</p>
+                </div>
+                <i class="ri-smartphone-line text-lg text-indigo-500"></i>
+              </div>
+
+              <label class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-3 transition hover:border-indigo-300 hover:bg-indigo-50/30">
+                <span class="min-w-0">
+                  <span id="banner-mobile-file-name" class="block truncate text-sm font-medium text-gray-700">Выбрать мобильный баннер</span>
+                  <span id="banner-mobile-state" class="block text-xs text-gray-500">{{ $banner->image_mobile ? 'Используется отдельная мобильная версия' : 'Пока используется широкий баннер' }}</span>
+                </span>
+                <span class="inline-flex shrink-0 items-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-xs font-semibold text-white">
+                  <i class="ri-upload-cloud-2-line"></i>
+                  Загрузить
+                </span>
+                <input id="banner-mobile-source" type="file" name="image_mobile" accept="image/jpeg,image/png,image/webp" class="sr-only">
+              </label>
+
+              <button type="button" id="banner-mobile-open-crop"
+                      class="mt-3 hidden rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                <i class="ri-crop-line mr-1"></i>
+                Настроить мобильный кадр
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-900">Предпросмотр</h3>
+              <i class="ri-crop-2-line text-lg text-indigo-500"></i>
+            </div>
+
+            @foreach ($previewSlots as $slot)
+              <div>
+                <div class="mb-1 flex items-center justify-between text-xs">
+                  <span class="flex items-center gap-1 font-medium text-gray-600">
+                    <i class="{{ $slot['icon'] }}"></i>
+                    {{ $slot['label'] }}
+                  </span>
+                  <span class="text-gray-400">{{ $slot['size'] }}</span>
+                </div>
+                <div class="relative overflow-hidden rounded-lg border border-gray-200 bg-gray-100 {{ $slot['aspect'] }}">
+                  <img src="{{ $slot['key'] === 'mobile' ? $initialMobilePreview : $initialPreview }}" alt="{{ $slot['label'] }}"
+                       class="{{ $initialPreview ? '' : 'hidden' }} h-full w-full object-cover"
+                       data-banner-device-preview="{{ $slot['key'] }}">
+                  <div class="{{ $initialPreview ? 'hidden' : '' }} absolute inset-0 flex items-center justify-center text-xs text-gray-400" data-banner-empty>
+                    Нет изображения
+                  </div>
+                </div>
+              </div>
+            @endforeach
+          </div>
+        </div>
+      </section>
+    </div>
+  </form>
+</div>
+
+<div id="banner-image-cropper" class="fixed inset-0 z-[80] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-4xl rounded-2xl border border-gray-200/70 bg-white p-5 shadow-2xl">
+    <div class="mb-4 flex items-start justify-between gap-4">
+      <div>
+        <h2 id="banner-crop-title" class="text-lg font-semibold text-gray-900">Обрезать баннер</h2>
+        <p id="banner-crop-help" class="mt-1 text-sm text-gray-500">Перетаскивайте изображение внутри рамки и настройте масштаб.</p>
       </div>
-    @endforeach
-  </section>
+      <button type="button" data-banner-crop-cancel class="h-9 w-9 rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800">
+        <i class="ri-close-line text-xl"></i>
+      </button>
+    </div>
 
-  {{-- === Кнопки действий === --}}
-  <div class="flex gap-4 pt-2">
-    <button class="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 
-                   focus:ring-2 focus:ring-offset-2 focus:ring-gray-300
-                   transition-all duration-150 shadow-sm">
-      {{ $isEdit ? '💾 Сохранить изменения' : 'Создать баннер' }}
-    </button>
+    <div class="mx-auto w-full max-w-[720px]">
+      <canvas id="banner-crop-canvas" width="720" height="270" class="aspect-[24/9] w-full cursor-move rounded-xl border border-gray-200 bg-gray-100"></canvas>
+    </div>
 
-    <a href="{{ route('admin.banners.index') }}" 
-       class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 
-              transition-all duration-150">
-      Отмена
-    </a>
+    <label class="mt-4 block text-sm font-medium text-gray-700">
+      Масштаб
+      <input id="banner-crop-zoom" type="range" min="1" max="3" step="0.01" value="1" class="mt-2 w-full accent-indigo-600">
+    </label>
+
+    <div class="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <button type="button" data-banner-crop-cancel class="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100">
+        Отмена
+      </button>
+      <button type="button" id="banner-crop-fit" class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
+        Сбросить кадр
+      </button>
+      <button type="button" id="banner-crop-apply" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+        Обрезать баннер
+      </button>
+    </div>
   </div>
-</form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const cropper = document.getElementById('banner-image-cropper');
+  const canvas = document.getElementById('banner-crop-canvas');
+  const zoom = document.getElementById('banner-crop-zoom');
+  const fitButton = document.getElementById('banner-crop-fit');
+  const applyButton = document.getElementById('banner-crop-apply');
+  const title = document.getElementById('banner-crop-title');
+  const help = document.getElementById('banner-crop-help');
+  const mainPreview = document.getElementById('banner-main-preview');
+  const mobileState = document.getElementById('banner-mobile-state');
+  const ctx = canvas?.getContext('2d');
+
+  const states = {
+    main: {
+      input: document.getElementById('banner-image-source'),
+      button: document.getElementById('banner-open-crop'),
+      fileName: document.getElementById('banner-file-name'),
+      fieldPrefix: 'banner-crop',
+      title: 'Обрезать обычный баннер',
+      help: 'Этот кадр используется для десктопа и планшета.',
+      canvasWidth: 720,
+      canvasHeight: 270,
+      previewWidth: 960,
+      previewHeight: 360,
+      image: null,
+      file: null,
+      offset: { x: 0, y: 0 },
+      zoom: 1,
+      ready: false,
+    },
+    mobile: {
+      input: document.getElementById('banner-mobile-source'),
+      button: document.getElementById('banner-mobile-open-crop'),
+      fileName: document.getElementById('banner-mobile-file-name'),
+      fieldPrefix: 'banner-mobile-crop',
+      title: 'Обрезать мобильный баннер',
+      help: 'Этот кадр используется только на телефонах.',
+      canvasWidth: 720,
+      canvasHeight: 360,
+      previewWidth: 960,
+      previewHeight: 480,
+      image: null,
+      file: null,
+      offset: { x: 0, y: 0 },
+      zoom: 1,
+      ready: false,
+    },
+  };
+
+  let activeState = states.main;
+  let hasMobileOverride = {{ $banner->image_mobile ? 'true' : 'false' }};
+  let dragging = false;
+  let dragStart = { x: 0, y: 0 };
+
+  if (!cropper || !canvas || !ctx || !zoom) return;
+
+  function baseScale(state = activeState) {
+    if (!state.image) return 1;
+    return Math.max(canvas.width / state.image.width, canvas.height / state.image.height);
+  }
+
+  function currentScale(state = activeState) {
+    return baseScale(state) * state.zoom;
+  }
+
+  function clampOffset(state = activeState) {
+    if (!state.image) return;
+
+    const scale = currentScale(state);
+    const drawnWidth = state.image.width * scale;
+    const drawnHeight = state.image.height * scale;
+    const minX = Math.min(0, canvas.width - drawnWidth);
+    const minY = Math.min(0, canvas.height - drawnHeight);
+
+    state.offset.x = Math.min(0, Math.max(minX, state.offset.x));
+    state.offset.y = Math.min(0, Math.max(minY, state.offset.y));
+  }
+
+  function resetCropPosition(state = activeState) {
+    if (!state.image) return;
+
+    state.zoom = 1;
+    zoom.value = '1';
+    const scale = baseScale(state);
+    state.offset = {
+      x: (canvas.width - state.image.width * scale) / 2,
+      y: (canvas.height - state.image.height * scale) / 2,
+    };
+    state.ready = true;
+  }
+
+  function drawCrop() {
+    const state = activeState;
+    if (!state.image) return;
+
+    clampOffset(state);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const scale = currentScale(state);
+    ctx.drawImage(state.image, state.offset.x, state.offset.y, state.image.width * scale, state.image.height * scale);
+
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+    ctx.strokeStyle = 'rgba(79,70,229,.45)';
+    ctx.lineWidth = 1;
+    const thirdX = canvas.width / 3;
+    const thirdY = canvas.height / 3;
+    ctx.beginPath();
+    ctx.moveTo(thirdX, 0);
+    ctx.lineTo(thirdX, canvas.height);
+    ctx.moveTo(thirdX * 2, 0);
+    ctx.lineTo(thirdX * 2, canvas.height);
+    ctx.moveTo(0, thirdY);
+    ctx.lineTo(canvas.width, thirdY);
+    ctx.moveTo(0, thirdY * 2);
+    ctx.lineTo(canvas.width, thirdY * 2);
+    ctx.stroke();
+  }
+
+  function setFields(state) {
+    if (!state.image) return;
+
+    clampOffset(state);
+    const scale = currentScale(state);
+    const sourceX = Math.max(0, -state.offset.x / scale);
+    const sourceY = Math.max(0, -state.offset.y / scale);
+    const sourceW = Math.min(state.image.width, canvas.width / scale);
+    const sourceH = Math.min(state.image.height, canvas.height / scale);
+
+    document.getElementById(`${state.fieldPrefix}-x`).value = (sourceX / state.image.width * 100).toFixed(4);
+    document.getElementById(`${state.fieldPrefix}-y`).value = (sourceY / state.image.height * 100).toFixed(4);
+    document.getElementById(`${state.fieldPrefix}-w`).value = (sourceW / state.image.width * 100).toFixed(4);
+    document.getElementById(`${state.fieldPrefix}-h`).value = (sourceH / state.image.height * 100).toFixed(4);
+  }
+
+  function resetFields(state) {
+    document.getElementById(`${state.fieldPrefix}-x`).value = '0';
+    document.getElementById(`${state.fieldPrefix}-y`).value = '0';
+    document.getElementById(`${state.fieldPrefix}-w`).value = '100';
+    document.getElementById(`${state.fieldPrefix}-h`).value = '100';
+  }
+
+  function updateMainPreviews(url) {
+    document.querySelectorAll('[data-banner-preview], [data-banner-device-preview]:not([data-banner-device-preview="mobile"])').forEach(img => {
+      img.src = url;
+      img.classList.remove('hidden');
+    });
+    if (!hasMobileOverride) {
+      document.querySelectorAll('[data-banner-device-preview="mobile"]').forEach(img => {
+        img.src = url;
+        img.classList.remove('hidden');
+      });
+    }
+    document.querySelectorAll('[data-banner-empty]').forEach(empty => empty.classList.add('hidden'));
+    mainPreview?.classList.remove('hidden');
+  }
+
+  function updateMobilePreview(url) {
+    document.querySelectorAll('[data-banner-device-preview="mobile"]').forEach(img => {
+      img.src = url;
+      img.classList.remove('hidden');
+    });
+    document.querySelectorAll('[data-banner-empty]').forEach(empty => empty.classList.add('hidden'));
+  }
+
+  function updateCroppedPreview(state) {
+    const preview = document.createElement('canvas');
+    preview.width = state.previewWidth;
+    preview.height = state.previewHeight;
+    const previewCtx = preview.getContext('2d');
+    const ratio = preview.width / canvas.width;
+    const scale = currentScale(state) * ratio;
+
+    previewCtx.fillStyle = '#fff';
+    previewCtx.fillRect(0, 0, preview.width, preview.height);
+    previewCtx.drawImage(
+      state.image,
+      state.offset.x * ratio,
+      state.offset.y * ratio,
+      state.image.width * scale,
+      state.image.height * scale
+    );
+
+    const url = preview.toDataURL('image/jpeg', 0.9);
+    state === states.mobile ? updateMobilePreview(url) : updateMainPreviews(url);
+  }
+
+  function closeCropper() {
+    cropper.classList.add('hidden');
+    cropper.classList.remove('flex');
+    dragging = false;
+  }
+
+  function configureCanvas(state) {
+    if (canvas.width !== state.canvasWidth) {
+      canvas.width = state.canvasWidth;
+    }
+    if (canvas.height !== state.canvasHeight) {
+      canvas.height = state.canvasHeight;
+    }
+    canvas.style.aspectRatio = `${state.canvasWidth} / ${state.canvasHeight}`;
+  }
+
+  function openCropper(state) {
+    const file = state.input?.files?.[0] || state.file;
+    if (!file || !file.type.startsWith('image/')) return;
+
+    activeState = state;
+    configureCanvas(state);
+    title.textContent = state.title;
+    help.textContent = state.help;
+    zoom.value = String(state.zoom);
+
+    if (state.image && state.ready) {
+      cropper.classList.remove('hidden');
+      cropper.classList.add('flex');
+      drawCrop();
+      return;
+    }
+
+    state.file = file;
+    state.image = new Image();
+    state.image.onload = () => {
+      URL.revokeObjectURL(state.image.src);
+      resetCropPosition(state);
+      setFields(state);
+      cropper.classList.remove('hidden');
+      cropper.classList.add('flex');
+      drawCrop();
+    };
+    state.image.src = URL.createObjectURL(file);
+  }
+
+  function bindInput(state, previewCallback) {
+    state.input?.addEventListener('change', () => {
+      const file = state.input.files?.[0];
+      if (!file || !file.type.startsWith('image/')) {
+        state.button?.classList.add('hidden');
+        return;
+      }
+
+      state.file = file;
+      state.image = null;
+      state.ready = false;
+      state.zoom = 1;
+      resetFields(state);
+      state.fileName.textContent = file.name;
+      previewCallback(URL.createObjectURL(file));
+      state.button?.classList.remove('hidden');
+    });
+
+    state.button?.addEventListener('click', () => openCropper(state));
+  }
+
+  bindInput(states.main, updateMainPreviews);
+  bindInput(states.mobile, url => {
+    hasMobileOverride = true;
+    if (mobileState) mobileState.textContent = 'Используется отдельная мобильная версия';
+    updateMobilePreview(url);
+  });
+
+  zoom.addEventListener('input', () => {
+    activeState.zoom = parseFloat(zoom.value) || 1;
+    drawCrop();
+  });
+
+  canvas.addEventListener('pointerdown', event => {
+    dragging = true;
+    canvas.setPointerCapture(event.pointerId);
+    dragStart = {
+      x: event.clientX - activeState.offset.x,
+      y: event.clientY - activeState.offset.y,
+    };
+  });
+
+  canvas.addEventListener('pointermove', event => {
+    if (!dragging) return;
+    activeState.offset = {
+      x: event.clientX - dragStart.x,
+      y: event.clientY - dragStart.y,
+    };
+    drawCrop();
+  });
+
+  canvas.addEventListener('pointerup', event => {
+    dragging = false;
+    canvas.releasePointerCapture(event.pointerId);
+  });
+
+  cropper.querySelectorAll('[data-banner-crop-cancel]').forEach(button => {
+    button.addEventListener('click', closeCropper);
+  });
+
+  fitButton?.addEventListener('click', () => {
+    if (!activeState.image || !activeState.file) return;
+    resetCropPosition(activeState);
+    setFields(activeState);
+    drawCrop();
+  });
+
+  applyButton?.addEventListener('click', () => {
+    if (!activeState.image || !activeState.file) return;
+    setFields(activeState);
+    updateCroppedPreview(activeState);
+    closeCropper();
+  });
+});
+</script>
 @endsection

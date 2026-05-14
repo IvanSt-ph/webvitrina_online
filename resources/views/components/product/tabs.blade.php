@@ -146,9 +146,9 @@
                                 @if ($myReview && $myReview->images->count())
                                     <div class="mt-3 flex gap-3 flex-wrap">
                                         @foreach ($myReview->images as $img)
-                                            <a href="{{ asset('storage/'.$img->path) }}" target="_blank">
+                                            <a href="{{ $img->url }}" target="_blank">
                                                 <img
-                                                    src="{{ asset('storage/'.$img->path) }}"
+                                                    src="{{ $img->thumb_url }}"
                                                     class="w-24 h-24 object-cover rounded-lg border
                                                            hover:scale-105 transition-transform duration-300"
                                                 >
@@ -298,9 +298,9 @@
                         @if ($r->images->count())
                             <div class="mt-3 flex gap-3 flex-wrap">
                                 @foreach ($r->images as $img)
-                                    <a href="{{ asset('storage/'.$img->path) }}" target="_blank">
+                                    <a href="{{ $img->url }}" target="_blank">
                                         <img
-                                            src="{{ asset('storage/'.$img->path) }}"
+                                            src="{{ $img->thumb_url }}"
                                             class="w-24 h-24 object-cover rounded-lg border
                                                    hover:scale-105 transition-transform duration-300"
                                         >

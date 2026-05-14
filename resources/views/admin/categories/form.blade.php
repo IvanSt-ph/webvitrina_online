@@ -50,8 +50,8 @@
                  class="w-32 h-32 object-cover rounded-lg border shadow-sm">
         </div>
     @endif
-    <input type="file" name="image" class="block w-full text-sm border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
-    <p class="text-xs text-gray-500 mt-1">Используется как картинка плитки на странице категорий.</p>
+    <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+    <p class="text-xs text-gray-500 mt-1">Используется как картинка плитки на странице категорий. Сохраняется в WebP.</p>
 </div>
 
 {{-- 🔖 Иконка для меню --}}
@@ -64,8 +64,8 @@
                  class="w-16 h-16 object-contain opacity-90 rounded">
         </div>
     @endif
-    <input type="file" name="icon" class="block w-full text-sm border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
-    <p class="text-xs text-gray-500 mt-1">Используется в навигации, боковом меню или заголовках категорий.</p>
+    <input type="file" name="icon" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm border rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+    <p class="text-xs text-gray-500 mt-1">Используется в навигации, боковом меню или заголовках категорий. SVG не принимается.</p>
 </div>
 
 {{-- 💾 Кнопка --}}
@@ -182,4 +182,3 @@ function categorySelect() {
     }
 }
 </script>
-

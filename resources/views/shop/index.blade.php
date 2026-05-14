@@ -14,16 +14,16 @@ $bannerItems = cache()->remember('slides_home', 3600, function () {
 });
 
 /**
- * ✅ Вспомогательная функция для получения URL баннера
+ * ✅ Локальный helper для получения URL баннера.
  */
-function bannerImageUrl($banner, $default = 'storage/banners/sale1.jpg') {
+$bannerImageUrl = function ($banner, $default = 'storage/banners/sale1.jpg') {
     if (!$banner) return asset($default);
     $image = $banner->image_desktop ?? $banner->image_tablet ?? $banner->image_mobile;
     return $image ? asset('storage/'.$image) : asset($default);
-}
+};
 
 $firstBanner = $bannerItems->first();
-$firstImage = bannerImageUrl($firstBanner);
+$firstImage = $bannerImageUrl($firstBanner);
 @endphp
 
 {{-- ✅ Предзагрузка первого баннера для ускорения --}}
@@ -35,7 +35,7 @@ $firstImage = bannerImageUrl($firstBanner);
   {{-- ⚠️ ВНИМАНИЕ: .banner-container не должен иметь padding, иначе absolute блок "поплывёт" --}}
   <div class="relative w-full flex justify-center bg-transparent">
     <div 
-      class="w-[94%] max-w-[1600px] overflow-hidden rounded-b-2xl relative banner-container
+      class="w-[92%] max-w-[1440px] overflow-hidden rounded-b-2xl relative banner-container
              opacity-0 translate-y-3 animate-[fadeBannerIn_0.9s_ease-out_forwards]"
     >
       @if($bannerItems->isNotEmpty())
@@ -218,20 +218,20 @@ $firstImage = bannerImageUrl($firstBanner);
     100% { opacity: 1; transform: translateY(0); }
   }
 
-  /* ✅ Адаптивный aspect-ratio */
+  /* ✅ Адаптивный aspect-ratio: чуть ниже, чтобы главная быстрее показывала каталог */
   .banner-container {
-    aspect-ratio: 16/9;
+    aspect-ratio: 18/9;
   }
   
   @media (min-width: 640px) {
     .banner-container {
-      aspect-ratio: 21/9;
+      aspect-ratio: 24/9;
     }
   }
   
   @media (min-width: 1280px) {
     .banner-container {
-      aspect-ratio: 24/9;
+      aspect-ratio: 30/9;
     }
   }
 

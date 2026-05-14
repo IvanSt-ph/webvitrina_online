@@ -3,14 +3,19 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
+use App\Models\Banner;
 use App\Models\CartItem;
+use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
+use App\Repositories\ProductCrudRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -124,6 +129,21 @@ class SecurityRegressionTest extends TestCase
     {
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller, ['status' => 'draft']);
+
+        $this->get(route('product.show', $product->slug))
+            ->assertNotFound();
+    }
+
+    public function test_product_page_cache_is_cleared_when_product_becomes_draft(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['status' => 'active']);
+
+        Cache::put("product_page:{$product->slug}", $product, 600);
+
+        app(ProductCrudRepository::class)->update($product, ['status' => 'draft']);
+
+        $this->assertFalse(Cache::has("product_page:{$product->slug}"));
 
         $this->get(route('product.show', $product->slug))
             ->assertNotFound();
@@ -278,6 +298,12 @@ class SecurityRegressionTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_private_local_storage_routes_are_not_registered_by_default(): void
+    {
+        $this->assertFalse(Route::has('storage.local'));
+        $this->assertFalse(Route::has('storage.local.upload'));
+    }
+
     public function test_currency_proxy_returns_json_not_external_html(): void
     {
         Http::fake([
@@ -314,6 +340,81 @@ class SecurityRegressionTest extends TestCase
         $this->assertDatabaseMissing('categories', [
             'slug' => 'unsafe-icon-category',
         ]);
+    }
+
+    public function test_admin_category_images_are_converted_to_webp(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.store'), [
+                'name' => 'Optimized category',
+                'slug' => 'optimized-category',
+                'icon' => UploadedFile::fake()->image('icon.png', 512, 512)->size(800),
+                'image' => UploadedFile::fake()->image('tile.jpg', 1200, 800)->size(1800),
+            ])
+            ->assertRedirect(route('admin.categories.index'));
+
+        $category = Category::where('slug', 'optimized-category')->firstOrFail();
+
+        $this->assertStringStartsWith('categories/icons/', $category->icon);
+        $this->assertStringEndsWith('.webp', $category->icon);
+        $this->assertStringStartsWith('categories/thumbs/', $category->image);
+        $this->assertStringEndsWith('.webp', $category->image);
+        Storage::disk('public')->assertExists($category->icon);
+        Storage::disk('public')->assertExists($category->image);
+    }
+
+    public function test_admin_category_update_removes_previous_images(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $oldIcon = 'categories/icons/old.webp';
+        $oldImage = 'categories/thumbs/old.webp';
+        Storage::disk('public')->put($oldIcon, 'old icon');
+        Storage::disk('public')->put($oldImage, 'old image');
+
+        $category = Category::factory()->create([
+            'icon' => $oldIcon,
+            'image' => $oldImage,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.categories.update', $category), [
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'icon' => UploadedFile::fake()->image('new-icon.png', 512, 512)->size(800),
+                'image' => UploadedFile::fake()->image('new-tile.jpg', 1200, 800)->size(1800),
+            ])
+            ->assertRedirect(route('admin.categories.index'));
+
+        $category->refresh();
+
+        Storage::disk('public')->assertMissing($oldIcon);
+        Storage::disk('public')->assertMissing($oldImage);
+        Storage::disk('public')->assertExists($category->icon);
+        Storage::disk('public')->assertExists($category->image);
+    }
+
+    public function test_admin_category_cannot_be_moved_under_itself_or_descendant(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $parent = Category::factory()->create();
+        $child = Category::factory()->create(['parent_id' => $parent->id]);
+
+        $this->actingAs($admin)
+            ->putJson(route('admin.categories.update', $parent), [
+                'name' => $parent->name,
+                'slug' => $parent->slug,
+                'parent_id' => $child->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('parent_id');
+
+        $this->assertNull($parent->fresh()->parent_id);
     }
 
     public function test_user_cannot_review_product_without_completed_purchase(): void
@@ -363,6 +464,104 @@ class SecurityRegressionTest extends TestCase
             'product_id' => $product->id,
             'status' => Review::STATUS_PENDING,
         ]);
+    }
+
+    public function test_review_images_are_converted_to_webp_with_thumbnails(): void
+    {
+        Storage::fake('public');
+
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_DELIVERED);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('review.store', $product), [
+                'rating' => 5,
+                'body' => 'Review with optimized image',
+                'images' => [
+                    UploadedFile::fake()->image('review.jpg', 1600, 1200)->size(1200),
+                ],
+            ])
+            ->assertRedirect();
+
+        $review = Review::where('user_id', $buyer->id)
+            ->where('product_id', $product->id)
+            ->firstOrFail();
+        $image = $review->images()->firstOrFail();
+
+        $this->assertStringContainsString('/medium/', $image->path);
+        $this->assertStringEndsWith('.webp', $image->path);
+
+        Storage::disk('public')->assertExists($image->path);
+        Storage::disk('public')->assertExists(\App\Services\ImageService::thumbPath($image->path));
+    }
+
+    public function test_review_rejects_svg_upload(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_DELIVERED);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->postJson(route('review.store', $product), [
+                'rating' => 5,
+                'body' => 'Unsafe image',
+                'images' => [
+                    UploadedFile::fake()->create('review.svg', 1, 'image/svg+xml'),
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('images.0');
+
+        $this->assertDatabaseMissing('reviews', [
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+    }
+
+    public function test_deleting_review_removes_optimized_images(): void
+    {
+        Storage::fake('public');
+
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $review = Review::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'rating' => 5,
+            'body' => 'Review to delete',
+            'status' => Review::STATUS_APPROVED,
+        ]);
+
+        $path = 'reviews/2026/05/medium/review.webp';
+        $thumb = \App\Services\ImageService::thumbPath($path);
+        Storage::disk('public')->put($path, 'medium');
+        Storage::disk('public')->put($thumb, 'thumb');
+        $review->images()->create(['path' => $path]);
+
+        $review->delete();
+
+        Storage::disk('public')->assertMissing($path);
+        Storage::disk('public')->assertMissing($thumb);
     }
 
     public function test_seller_cannot_cancel_order_after_shipping(): void
@@ -421,6 +620,152 @@ class SecurityRegressionTest extends TestCase
         $this->assertDatabaseMissing('banners', [
             'title' => 'Unsafe banner',
         ]);
+    }
+
+    public function test_admin_banner_create_page_can_be_rendered(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.banners.create'))
+            ->assertOk()
+            ->assertSee('Новый баннер')
+            ->assertSee('Создать баннер');
+    }
+
+    public function test_admin_banner_rejects_svg_upload(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.banners.store'), [
+                'title' => 'Unsafe banner image',
+                'image_desktop' => UploadedFile::fake()->create('banner.svg', 1, 'image/svg+xml'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('image_desktop');
+
+        $this->assertDatabaseMissing('banners', [
+            'title' => 'Unsafe banner image',
+        ]);
+    }
+
+    public function test_admin_banner_images_are_converted_to_webp(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.banners.store'), [
+                'title' => 'Optimized banner',
+                'active' => '1',
+                'image_desktop' => UploadedFile::fake()->image('desktop.jpg', 2400, 800)->size(2500),
+            ])
+            ->assertRedirect(route('admin.banners.index'));
+
+        $banner = Banner::where('title', 'Optimized banner')->firstOrFail();
+
+        $this->assertStringStartsWith('banners/desktop/', $banner->image_desktop);
+        $this->assertStringEndsWith('.webp', $banner->image_desktop);
+        Storage::disk('public')->assertExists($banner->image_desktop);
+
+        $image = (new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver()))
+            ->read(Storage::disk('public')->path($banner->image_desktop));
+
+        $this->assertSame(1920, $image->width());
+        $this->assertSame(720, $image->height());
+    }
+
+    public function test_admin_banner_single_source_creates_all_device_images(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.banners.store'), [
+                'title' => 'Single source banner',
+                'active' => '1',
+                'crop_x' => '10',
+                'crop_y' => '10',
+                'crop_w' => '80',
+                'crop_h' => '70',
+                'image_source' => UploadedFile::fake()->image('hero.jpg', 2400, 1200)->size(2500),
+            ])
+            ->assertRedirect(route('admin.banners.index'));
+
+        $banner = Banner::where('title', 'Single source banner')->firstOrFail();
+
+        foreach (['desktop', 'tablet', 'mobile'] as $device) {
+            $path = $banner->{"image_{$device}"};
+            $this->assertStringStartsWith("banners/{$device}/", $path);
+            $this->assertStringEndsWith('.webp', $path);
+            Storage::disk('public')->assertExists($path);
+        }
+    }
+
+    public function test_admin_banner_mobile_upload_overrides_single_source_mobile_image(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.banners.store'), [
+                'title' => 'Banner with mobile override',
+                'active' => '1',
+                'image_source' => UploadedFile::fake()->image('hero.jpg', 2400, 1200)->size(2500),
+                'mobile_crop_x' => '20',
+                'mobile_crop_y' => '10',
+                'mobile_crop_w' => '60',
+                'mobile_crop_h' => '80',
+                'image_mobile' => UploadedFile::fake()->image('mobile.jpg', 2400, 1600)->size(1200),
+            ])
+            ->assertRedirect(route('admin.banners.index'));
+
+        $banner = Banner::where('title', 'Banner with mobile override')->firstOrFail();
+
+        $this->assertStringStartsWith('banners/desktop/', $banner->image_desktop);
+        $this->assertStringStartsWith('banners/tablet/', $banner->image_tablet);
+        $this->assertStringStartsWith('banners/mobile/', $banner->image_mobile);
+        Storage::disk('public')->assertExists($banner->image_mobile);
+
+        $image = (new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver()))
+            ->read(Storage::disk('public')->path($banner->image_mobile));
+
+        $this->assertSame(960, $image->width());
+        $this->assertSame(480, $image->height());
+    }
+
+    public function test_admin_banner_update_removes_previous_image(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $oldPath = 'banners/desktop/old.webp';
+        Storage::disk('public')->put($oldPath, 'old banner');
+
+        $banner = Banner::create([
+            'title' => 'Banner with old image',
+            'image_desktop' => $oldPath,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.banners.update', $banner), [
+                'title' => 'Banner with new image',
+                'active' => '1',
+                'image_desktop' => UploadedFile::fake()->image('new.jpg', 2400, 800)->size(2500),
+            ])
+            ->assertRedirect(route('admin.banners.index'));
+
+        $banner->refresh();
+
+        Storage::disk('public')->assertMissing($oldPath);
+        $this->assertStringStartsWith('banners/desktop/', $banner->image_desktop);
+        $this->assertStringEndsWith('.webp', $banner->image_desktop);
+        Storage::disk('public')->assertExists($banner->image_desktop);
     }
 
     public function test_seller_shop_rejects_javascript_social_link(): void

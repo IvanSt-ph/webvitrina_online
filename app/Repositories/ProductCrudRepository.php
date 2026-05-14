@@ -26,6 +26,8 @@ class ProductCrudRepository
     /** ✏️ Обновить товар */
     public function update(Product $product, array $data): Product
     {
+        $this->clearCache($product);
+
         $product->update($data);
 
         $this->clearCache($product);
@@ -44,9 +46,22 @@ class ProductCrudRepository
     /** 🧹 Полная очистка кеша */
     public function clearCache(Product $product): void
     {
-        Cache::forget("product_page:{$product->slug}");
+        $slugs = collect([
+            $product->slug,
+            $product->getOriginal('slug'),
+        ])
+            ->merge($product->oldSlugs()->pluck('slug'))
+            ->filter()
+            ->unique();
+
+        foreach ($slugs as $slug) {
+            Cache::forget("product_page:{$slug}");
+            Cache::forget("product_by_slug:{$slug}");
+        }
+
+        Cache::forget("product_page:{$product->id}");
         Cache::forget("related:{$product->id}");
         Cache::forget("product_by_id:{$product->id}");
-        Cache::forget("product_by_slug:{$product->slug}");
+        Cache::forget('products_total_count');
     }
 }
