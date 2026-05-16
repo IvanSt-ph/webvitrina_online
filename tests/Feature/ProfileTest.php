@@ -31,6 +31,7 @@ class ProfileTest extends TestCase
             ->patch('/profile', [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
+                'current_password' => 'password',
             ]);
 
         $response
@@ -60,6 +61,38 @@ class ProfileTest extends TestCase
             ->assertRedirect(); // Просто проверяем что есть редирект
 
         $this->assertNotNull($user->refresh()->email_verified_at);
+    }
+
+    public function test_current_password_is_required_to_change_email(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => 'changed@example.com',
+            ])
+            ->assertSessionHasErrors('current_password');
+
+        $this->assertSame($user->email, $user->fresh()->email);
+    }
+
+    public function test_google_only_user_is_prompted_to_set_password_before_changing_email(): void
+    {
+        $user = User::factory()->create([
+            'provider' => 'google',
+            'provider_id' => 'google-123',
+            'password_set_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => 'changed@example.com',
+            ])
+            ->assertSessionHasErrors('current_password');
+
+        $this->assertSame($user->email, $user->fresh()->email);
     }
 
     public function test_user_can_delete_their_account(): void

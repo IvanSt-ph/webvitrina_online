@@ -86,6 +86,7 @@ class UserController extends Controller
 
         if ($request->filled('password')) {
             $userData['password'] = Hash::make($request->password);
+            $userData['password_set_at'] = now();
         }
 
         if ($request->hasFile('avatar')) {
@@ -155,6 +156,7 @@ class UserController extends Controller
                 'email'    => $request->email,
                 'phone'    => $phone,
                 'password' => Hash::make($request->password),
+                'password_set_at' => now(),
                 'role'     => $request->role,
             ];
 

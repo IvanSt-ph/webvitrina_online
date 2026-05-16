@@ -51,4 +51,31 @@
             </p>
         @enderror
     </div>
+
+    @if(Auth::user()->hasLocalPassword())
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                <i class="ri-lock-password-line text-gray-400"></i>
+                Текущий пароль
+            </label>
+            <div class="relative">
+                <input type="password"
+                       name="current_password"
+                       class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm
+                              focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100
+                              transition-all duration-200 outline-none @error('current_password') border-rose-300 bg-rose-50/50 @enderror"
+                       placeholder="Нужен только при смене email">
+                <i class="ri-lock-password-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+            @error('current_password')
+                <p class="mt-2 text-sm text-red-600 flex items-center gap-1">
+                    <i class="ri-error-warning-line"></i> {{ $message }}
+                </p>
+            @enderror
+        </div>
+    @else
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Чтобы менять email, сначала установите пароль во вкладке «Безопасность».
+        </div>
+    @endif
 </div>

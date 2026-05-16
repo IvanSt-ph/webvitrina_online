@@ -29,7 +29,7 @@ class GoogleController extends Controller
             ->first();
 
         // 2) Если нет — ищем по email
-        if (!$user) {
+        if (!$user && $this->hasVerifiedGoogleEmail($googleUser)) {
             $user = User::where('email', $googleUser->email)->first();
 
             if ($user) {
@@ -47,9 +47,15 @@ class GoogleController extends Controller
                     'provider_id'     => $googleUser->id,
                     'provider_token'  => $googleUser->token,
                     'password'        => bcrypt(str()->random(16)),
+                    'password_set_at' => null,
                     'role'            => 'buyer',
                 ]);
             }
+        }
+
+        if (!$user) {
+            return redirect()->route('login')
+                ->with('error', 'Не удалось безопасно подтвердить email Google-аккаунта.');
         }
 
         // 3) Если почта НЕ подтверждена — генерируем письмо
@@ -67,5 +73,15 @@ class GoogleController extends Controller
 
         // 6) Иначе → домой
         return redirect()->route('home');
+    }
+
+    private function hasVerifiedGoogleEmail(object $googleUser): bool
+    {
+        $raw = $googleUser->user ?? [];
+
+        return filter_var(
+            $raw['email_verified'] ?? $raw['verified_email'] ?? false,
+            FILTER_VALIDATE_BOOL
+        );
     }
 }

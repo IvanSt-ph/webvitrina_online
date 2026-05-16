@@ -33,6 +33,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'password_set_at',
         'role',
         'avatar',
         'phone',
@@ -66,6 +67,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_set_at' => 'datetime',
         ];
     }
 
@@ -196,6 +198,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function phoneNeedsVerification(): bool
     {
         return !$this->hasVerifiedPhone() && !is_null($this->phone);
+    }
+
+    public function hasLocalPassword(): bool
+    {
+        return !is_null($this->password_set_at);
     }
 
     // Отметить телефон подтверждённым

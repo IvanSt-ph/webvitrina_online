@@ -90,6 +90,8 @@ class ProfileController extends Controller
             ]);
 
             if ($data['email'] !== $user->email) {
+                $this->requireCurrentPassword($request);
+
                 $user->email = $data['email'];
                 $user->email_verified_at = null;
                 $user->save();
@@ -112,6 +114,8 @@ class ProfileController extends Controller
             $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
             
             if ($phone !== $user->phone) {
+                $this->requireCurrentPassword($request);
+
                 $userExists = User::where('phone', $phone)
                     ->where('id', '!=', $user->id)
                     ->exists();
@@ -142,6 +146,8 @@ class ProfileController extends Controller
             $changed = false;
 
             if ($data['email'] !== $user->email) {
+                $this->requireCurrentPassword($request);
+
                 $user->email = $data['email'];
                 $user->email_verified_at = null;
                 $updatedFields[] = 'email';
@@ -157,6 +163,8 @@ class ProfileController extends Controller
                 }
                 
                 if ($phone !== $user->phone) {
+                    $this->requireCurrentPassword($request);
+
                     $userExists = User::where('phone', $phone)
                         ->where('id', '!=', $user->id)
                         ->exists();
@@ -211,6 +219,8 @@ class ProfileController extends Controller
         }
 
         if ($data['email'] !== $user->email) {
+            $this->requireCurrentPassword($request);
+
             $user->email = $data['email'];
             $user->email_verified_at = null;
             $updatedFields[] = 'email';
@@ -222,6 +232,8 @@ class ProfileController extends Controller
             $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
             
             if ($phone !== $user->phone) {
+                $this->requireCurrentPassword($request);
+
                 $userExists = User::where('phone', $phone)
                     ->where('id', '!=', $user->id)
                     ->exists();
@@ -378,6 +390,8 @@ public function updateShop(Request $request): RedirectResponse
         
         // Если телефон изменился
         if ($phone !== $shop->phone) {
+            $this->requireCurrentPassword($request);
+
             // Проверка уникальности среди магазинов
             $shopExists = Shop::where('phone', $phone)
                 ->where('id', '!=', $shop->id)
@@ -418,7 +432,7 @@ public function updateShop(Request $request): RedirectResponse
     return Redirect::route('profile.edit')->with('status', 'shop-updated');
 }
 
-private function externalUrlRules(): array
+    private function externalUrlRules(): array
 {
     return [
         'nullable',
@@ -438,6 +452,22 @@ private function externalUrlRules(): array
             $fail('Ссылка должна быть URL с http или https.');
         },
     ];
+}
+
+private function requireCurrentPassword(Request $request): void
+{
+    if (! $request->user()->hasLocalPassword()) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'current_password' => 'Сначала установите пароль в разделе безопасности, чтобы менять контактные данные.',
+        ]);
+    }
+
+    $request->validate([
+        'current_password' => ['required', 'current_password'],
+    ], [
+        'current_password.required' => 'Для изменения контактов подтвердите текущий пароль.',
+        'current_password.current_password' => 'Текущий пароль введён неверно.',
+    ]);
 }
 
     /* =========================

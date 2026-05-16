@@ -31,6 +31,7 @@ class AdminProfileController extends Controller
 
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
+            $user->password_set_at = now();
         }
 
         $user->save();

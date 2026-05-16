@@ -18,6 +18,21 @@
         </div>
     </div>
 
+    @if(Auth::user()->hasLocalPassword())
+        <div class="space-y-2">
+            <label class="block text-sm font-semibold text-gray-900">Текущий пароль</label>
+            <input type="password"
+                   name="current_password"
+                   class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
+                   required>
+            <x-input-error :messages="$errors->get('current_password')" class="mt-1 text-sm" />
+        </div>
+    @else
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+            Чтобы изменить телефон магазина, сначала установите пароль во вкладке «Безопасность».
+        </div>
+    @endif
+
     <div class="rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2.5 text-xs text-indigo-700 flex items-start gap-2">
         <i class="ri-information-line text-base mt-0.5"></i>
         <span>Номер сохранится сразу, а подтверждение можно выполнить через SMS справа.</span>

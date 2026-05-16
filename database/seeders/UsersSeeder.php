@@ -26,6 +26,7 @@ class UsersSeeder extends Seeder
                 'name' => 'Admin',
                 'email' => $email,
                 'password' => Hash::make($password),
+                'password_set_at' => now(),
                 'role' => 'admin',
                 'created_at' => now(),
                 'updated_at' => now(),

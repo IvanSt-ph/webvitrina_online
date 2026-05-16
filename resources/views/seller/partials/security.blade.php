@@ -34,6 +34,7 @@
         @csrf
         @method('PUT')
 
+        @if(Auth::user()->hasLocalPassword())
         {{-- 🔑 Текущий пароль --}}
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
@@ -62,6 +63,11 @@
                 </p>
             @enderror
         </div>
+        @else
+            <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+                Вы входите через внешний провайдер. Установите пароль, чтобы иметь резервный способ входа и подтверждать важные изменения.
+            </div>
+        @endif
 
         {{-- 🔄 Новый и подтверждение --}}
         <div class="grid sm:grid-cols-2 gap-6">
@@ -121,7 +127,7 @@
         <div class="flex justify-end pt-4 border-t border-gray-100">
             <x-action-button>
                 <i class="ri-lock-password-line text-lg"></i>
-                Сменить пароль
+                {{ Auth::user()->hasLocalPassword() ? 'Сменить пароль' : 'Установить пароль' }}
                 <i class="ri-arrow-right-line text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"></i>
             </x-action-button>
         </div>

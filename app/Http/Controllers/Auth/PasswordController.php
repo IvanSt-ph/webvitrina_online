@@ -23,14 +23,20 @@ class PasswordController extends Controller
         ];
 
         // Валидация
-        $validated = $request->validateWithBag('updatePassword', [
-            'current_password' => ['required', 'current_password'],
+        $rules = [
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ], $messages);
+        ];
+
+        if ($request->user()->hasLocalPassword()) {
+            $rules['current_password'] = ['required', 'current_password'];
+        }
+
+        $validated = $request->validateWithBag('updatePassword', $rules, $messages);
 
         // Обновляем пароль
         $request->user()->update([
             'password' => Hash::make($validated['password']),
+            'password_set_at' => now(),
         ]);
 
         return back()->with('status', 'password-updated');
