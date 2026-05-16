@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\Attribute;
 use App\Models\Color;
+use App\Services\CategoryFilterCacheService;
 use Illuminate\Support\Facades\DB;
 
 class CategoryAttributeController extends Controller
@@ -65,6 +66,7 @@ public function index(Category $category)
             }
 
             DB::commit();
+            CategoryFilterCacheService::clearForCategoryAndAncestors($category);
             return back()->with('success', 'Атрибут успешно добавлен!');
 
         } catch (\Throwable $e) {
@@ -109,6 +111,8 @@ public function index(Category $category)
             $attribute->colors()->detach(); // убираем, если тип сменён
         }
 
+        CategoryFilterCacheService::clearForCategoryAndAncestors($category);
+
         return back()->with('success', 'Атрибут успешно обновлён!');
     }
 
@@ -131,6 +135,7 @@ public function index(Category $category)
             }
 
             DB::commit();
+            CategoryFilterCacheService::clearForCategoryAndAncestors($category);
             return back()->with('success', 'Атрибут удалён');
 
         } catch (\Throwable $e) {

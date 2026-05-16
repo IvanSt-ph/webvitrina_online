@@ -23,7 +23,7 @@
 @endphp
 
 <div class="lg:hidden" 
-     x-data="mobileHeader()"
+     x-data="mobileHeader"
      x-init="init()">
     
     <!-- Поисковая строка -->
@@ -295,24 +295,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    function mobileHeader() {
-        return {
-            search: '{{ request('q') }}',
-            filtersOpen: false,
-            
-            init() {
-                // Инициализация
-            },
-            
-            submitSearch() {
-                if (this.search.length === 0) {
-                    let url = new URL(window.location.href);
-                    url.searchParams.delete('q');
-                    window.location.href = url.toString();
-                }
-            }
-        }
-    }
-</script>

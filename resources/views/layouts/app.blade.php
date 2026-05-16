@@ -29,28 +29,11 @@
     {{-- ⚠️ ВАЖНО: Стили должны быть в HEAD --}}
     @stack('styles')
 </head>
-<body class="font-sans antialiased">
-
-<script>
-document.addEventListener('alpine:init', () => {
-    Alpine.store('specs', { open: false });
-});
-</script>
+<body class="font-sans antialiased" data-search-query="{{ request('q') }}">
 
 <div
     class="min-h-screen bg-white-100"
-    x-data="{
-        open: false,
-        openSearch: false,
-        openFilters: false,
-        openSettings: false,
-        clearFilters() {
-            const url = new URL(window.location.href);
-            url.searchParams.delete('country_id');
-            url.searchParams.delete('city_id');
-            window.location.href = url.toString();
-        }
-    }"
+    x-data="appShell"
 >
 
 {{-- 🌐 Верхнее меню (десктоп) --}}

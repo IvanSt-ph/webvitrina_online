@@ -1,6 +1,40 @@
 import Alpine from 'alpinejs'
 
 window.Alpine = Alpine
+
+Alpine.store('specs', { open: false })
+
+Alpine.data('appShell', () => ({
+  open: false,
+  openSearch: false,
+  openFilters: false,
+  openSettings: false,
+
+  clearFilters() {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('country_id')
+    url.searchParams.delete('city_id')
+    window.location.href = url.toString()
+  },
+}))
+
+Alpine.data('mobileHeader', () => ({
+  search: document.body.dataset.searchQuery ?? '',
+  filtersOpen: false,
+
+  init() {
+    // Reserved for future mobile header initialization.
+  },
+
+  submitSearch() {
+    if (this.search.length === 0) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('q')
+      window.location.href = url.toString()
+    }
+  },
+}))
+
 Alpine.start()
 
 // 🧩 Основная инициализация Bootstrap (Laravel)

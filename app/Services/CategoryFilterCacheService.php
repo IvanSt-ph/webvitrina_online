@@ -52,6 +52,22 @@ class CategoryFilterCacheService
     }
 
     /**
+     * Сбросить фильтры категории и всех её родителей.
+     *
+     * Родительские категории агрегируют фильтры потомков, поэтому при изменении
+     * связи attribute_category нужно очищать не только leaf-категорию.
+     */
+    public static function clearForCategoryAndAncestors(Category $category): void
+    {
+        $current = $category;
+
+        while ($current) {
+            self::clearFor($current);
+            $current = $current->parent;
+        }
+    }
+
+    /**
      * 🔥 Полная очистка всех фильтров категорий
      */
     public static function clearAll()

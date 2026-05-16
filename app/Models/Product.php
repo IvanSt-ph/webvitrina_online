@@ -29,12 +29,6 @@ class Product extends Model
         'longitude' => 'decimal:6',
     ];
 
-    protected $with = [
-        'category',
-        'city.country',
-        'seller',
-    ];
-
     /* -------------------------------------------------
      | 🔗 СВЯЗИ
      |--------------------------------------------------*/

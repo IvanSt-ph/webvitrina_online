@@ -304,6 +304,20 @@ class SecurityRegressionTest extends TestCase
         $this->assertFalse(Route::has('storage.local.upload'));
     }
 
+    public function test_web_responses_include_security_headers(): void
+    {
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertHeader('x-frame-options', 'SAMEORIGIN')
+            ->assertHeader('x-content-type-options', 'nosniff')
+            ->assertHeader('referrer-policy', 'strict-origin-when-cross-origin')
+            ->assertHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()')
+            ->assertHeader(
+                'content-security-policy',
+                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: https:; font-src 'self' data: https://fonts.bunny.net https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; connect-src 'self' https://nominatim.openstreetmap.org"
+            );
+    }
+
     public function test_currency_proxy_returns_json_not_external_html(): void
     {
         Http::fake([
@@ -415,6 +429,24 @@ class SecurityRegressionTest extends TestCase
             ->assertJsonValidationErrors('parent_id');
 
         $this->assertNull($parent->fresh()->parent_id);
+    }
+
+    public function test_admin_category_attribute_changes_clear_filter_cache(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $category = Category::factory()->create();
+
+        Cache::put("cat.filters.{$category->id}", collect(['stale']), 3600);
+
+        $this->actingAs($admin)
+            ->post(route('admin.categories.attributes.store', $category), [
+                'name' => 'Filterable attribute',
+                'type' => 'select',
+                'options' => 'one,two',
+            ])
+            ->assertRedirect();
+
+        $this->assertFalse(Cache::has("cat.filters.{$category->id}"));
     }
 
     public function test_user_cannot_review_product_without_completed_purchase(): void

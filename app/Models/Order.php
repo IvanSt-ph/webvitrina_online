@@ -69,16 +69,6 @@ class Order extends Model
         'delivered_at' => 'datetime',
         'canceled_at' => 'datetime',
     ];
-    protected $with = [
-        'items.product',
-        'user',
-        'seller',
-        'address',
-    ];
-
-
-
-
 public function markAsPaid(): void
 {
     if ($this->status === self::STATUS_PAID) {
