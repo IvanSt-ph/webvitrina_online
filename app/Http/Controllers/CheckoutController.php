@@ -12,6 +12,28 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
+    private const PAYMENT_METHODS = [
+        'cash' => '💵 Наличными при получении',
+        'card' => '💳 Картой онлайн',
+        'bank_transfer' => '🏦 Банковский перевод',
+    ];
+
+    private const DELIVERY_METHODS = [
+        'courier' => '🚚 Курьерская доставка (Доставка курьером 1-2 дня (до 10 кг) )',
+        'pickup' => '🏪 Самовывоз из пункта выдачи (Магазин продавца)',
+        'post' => '📮 Почта ПМР (Время доставки зависит от загруженности почтового отделения)',
+        'express' => '⚡ Экспресс-доставка (Доставка по таксометру +50 руб до 15 кг)',
+    ];
+
+    private const DELIVERY_PRICES = [
+        'courier' => 155,
+        'pickup' => 0,
+        'post' => 80,
+        'express' => 175,
+    ];
+
+    private const DELIVERY_METHODS_WITHOUT_ADDRESS = ['pickup'];
+
     /**
      * ⚡ BUY NOW — купить конкретный товар
      * Сохраняем в сессию "виртуальную корзину" только с этим товаром.
@@ -168,32 +190,9 @@ return redirect()
         $addresses = $user->addresses;
         $defaultAddressId = $addresses->firstWhere('is_default', 1)?->id;
 
-        // ✅ СПОСОБЫ ОПЛАТЫ
-        $paymentMethods = [
-            'cash' => '💵 Наличными при получении',
-            'card' => '💳 Картой онлайн',
-            'bank_transfer' => '🏦 Банковский перевод',
-        ];
-
-        // ✅ СПОСОБЫ ДОСТАВКИ
-        $deliveryMethods = [
-            'courier' => '🚚 Курьерская доставка (Доставка курьером 1-2 дня (до 10 кг) )',
-            'pickup' => '🏪 Самовывоз из пункта выдачи (Магазин продавца)',
-            'post' => '📮 Почта ПМР (Время доставки зависит от загруженности почтового отделения)',
-            'express' => '⚡ Экспресс-доставка (Доставка по таксометру +50 руб до 15 кг)',
-        ];
-
-        // ✅ ЦЕНЫ ДОСТАВКИ (для расчета)
-        $deliveryPrices = [
-            'courier' => 155,
-            'pickup' => 0,
-            'post' => 80,
-            'express' => 175,
-        ];
-
         // ✅ Рассчитываем итог с доставкой по умолчанию
         $defaultDelivery = 'courier';
-        $deliveryCost = $deliveryPrices[$defaultDelivery] ?? 0;
+        $deliveryCost = self::DELIVERY_PRICES[$defaultDelivery] ?? 0;
         $totalWithDelivery = $total + $deliveryCost;
 
         return view('shop.order-confirm', [
@@ -201,9 +200,9 @@ return redirect()
             'total'               => $total,
             'addresses'           => $addresses,
             'defaultAddressId'    => $defaultAddressId,
-            'paymentMethods'      => $paymentMethods,
-            'deliveryMethods'     => $deliveryMethods,
-            'deliveryPrices'      => $deliveryPrices,
+            'paymentMethods'      => self::PAYMENT_METHODS,
+            'deliveryMethods'     => self::DELIVERY_METHODS,
+            'deliveryPrices'      => self::DELIVERY_PRICES,
             'totalWithDelivery'   => $totalWithDelivery,
         ]);
     }
@@ -277,23 +276,21 @@ return redirect()
         }
 
         $checkoutData = $request->validate([
-            'payment_method' => ['required', 'in:cash,card,bank_transfer'],
-            'delivery_method' => ['required', 'in:courier,pickup,post,express'],
+            'payment_method' => ['required', 'in:' . implode(',', array_keys(self::PAYMENT_METHODS))],
+            'delivery_method' => ['required', 'in:' . implode(',', array_keys(self::DELIVERY_METHODS))],
         ]);
 
         // ✅ Получаем способы оплаты и доставки из формы
         $paymentMethod = $checkoutData['payment_method'];
         $deliveryMethod = $checkoutData['delivery_method'];
 
-        // ✅ ЦЕНЫ ДОСТАВКИ
-        $deliveryPrices = [
-            'courier' => 155,
-            'pickup' => 0,
-            'post' => 80,
-            'express' => 175,
-        ];
-        
-        $deliveryCost = $deliveryPrices[$deliveryMethod];
+        if (!$addressId && !in_array($deliveryMethod, self::DELIVERY_METHODS_WITHOUT_ADDRESS, true)) {
+            throw ValidationException::withMessages([
+                'address_id' => 'Для выбранного способа доставки нужен адрес.',
+            ]);
+        }
+
+        $deliveryCost = self::DELIVERY_PRICES[$deliveryMethod];
 
         // Добавляем seller_id к каждой позиции (уже проверили товары выше)
         $cartWithSellers = collect($cart)->map(function ($row) use ($products) {
@@ -320,7 +317,7 @@ return redirect()
                     'address_id'      => $addressId,
                     'payment_method'  => $paymentMethod,
                     'delivery_method' => $deliveryMethod,
-                    'number'          => 'ORD-' . now()->timestamp . '-' . $sellerId,
+                    'number'          => Order::generateNumber(),
                     'status'          => Order::STATUS_PENDING,
                     'total_price'     => $totalWithDelivery,
                     'currency'        => 'RUB',

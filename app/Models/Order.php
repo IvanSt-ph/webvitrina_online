@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 
 class Order extends Model
 {
@@ -32,6 +33,11 @@ class Order extends Model
             self::STATUS_COMPLETED,
             self::STATUS_CANCELED,
         ];
+    }
+
+    public static function generateNumber(): string
+    {
+        return 'ORD-' . Str::ulid();
     }
 
     /* -------------------------------------------------

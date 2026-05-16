@@ -23,6 +23,15 @@ class SecurityRegressionTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_order_numbers_are_unique_and_keep_public_prefix(): void
+    {
+        $first = Order::generateNumber();
+        $second = Order::generateNumber();
+
+        $this->assertStringStartsWith('ORD-', $first);
+        $this->assertNotSame($first, $second);
+    }
+
     public function test_non_admin_cannot_update_order_status_through_admin_route(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -79,6 +88,36 @@ class SecurityRegressionTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['payment_method', 'delivery_method']);
+    }
+
+    public function test_checkout_requires_address_for_delivery_methods_that_need_one(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+
+        $this->actingAs($buyer)
+            ->withSession([
+                'checkout_cart' => [[
+                    'cart_id' => null,
+                    'product_id' => $product->id,
+                    'title' => $product->title,
+                    'price' => 100,
+                    'qty' => 1,
+                    'image' => $product->image,
+                ]],
+            ])
+            ->postJson(route('checkout.create'), [
+                'payment_method' => 'cash',
+                'delivery_method' => 'courier',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('address_id');
+
+        $this->assertDatabaseMissing('orders', [
+            'user_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
     }
 
     public function test_buyer_cannot_create_or_update_shop_profile(): void
