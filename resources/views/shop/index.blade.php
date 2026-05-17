@@ -143,14 +143,54 @@ $firstImage = $bannerImageUrl($firstBanner);
 
   {{-- 🧭 Панель сортировки / info --}}
   <div class="max-w-[90rem] mx-auto px-2 sm:px-4 lg:px-6 mt-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">
+    @php
+      $currentSort = request('sort', 'popular');
+      $labels = [
+          'popular'     => 'По популярности',
+          'rating'      => 'По рейтингу',
+          'price_asc'   => 'По возрастанию цены',
+          'price_desc'  => 'По убыванию цены',
+          'new'         => 'По новинкам',
+          'benefit'     => 'Сначала выгодные',
+      ];
+    @endphp
+
+    <div class="flex min-h-9 items-center justify-between gap-2 sm:gap-3">
+      <div class="min-w-0">
+        <h1 class="m-0 leading-none text-xl sm:text-2xl font-semibold text-gray-900">
           Каталог товаров
         </h1>
       </div>
 
-      <form method="GET" class="flex items-center gap-2 text-sm">
+      <div x-data="{ openSort: false }" class="relative shrink-0 sm:hidden">
+        <button type="button"
+                @click="openSort = !openSort"
+                class="flex h-9 items-center gap-1.5 rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-sm font-medium text-indigo-700">
+          <span class="max-w-[128px] truncate">{{ $labels[$currentSort] ?? 'По популярности' }}</span>
+          <svg class="h-4 w-4 shrink-0 transition-transform"
+               :class="{ 'rotate-180': openSort }"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div x-show="openSort"
+             x-cloak
+             x-transition
+             @click.away="openSort = false"
+             class="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-200 bg-white p-1 shadow-xl">
+          @foreach($labels as $value => $label)
+            <a href="?{{ http_build_query(request()->except('sort', 'page') + ['sort' => $value]) }}"
+               class="block rounded-xl px-3 py-2 text-sm transition-colors {{ $currentSort === $value ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-700 hover:bg-gray-50' }}">
+              {{ $label }}
+            </a>
+          @endforeach
+        </div>
+      </div>
+
+      <form method="GET" class="hidden h-9 shrink-0 items-center gap-2 text-sm sm:flex">
         @foreach(request()->except('sort', 'page') as $key => $value)
           <input type="hidden" name="{{ $key }}" value="{{ $value }}">
         @endforeach
@@ -158,20 +198,9 @@ $firstImage = $bannerImageUrl($firstBanner);
         <span class="hidden sm:inline text-gray-500">Сортировать:</span>
         <select 
           name="sort" 
-          class="border-gray-200 rounded-lg text-sm py-1.5 pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
+          class="h-9 max-w-[155px] sm:max-w-none border-gray-200 rounded-lg text-sm leading-none pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
           onchange="this.form.submit()"
         >
-          @php
-            $currentSort = request('sort', 'popular');
-            $labels = [
-                'popular'     => 'По популярности',
-                'rating'      => 'По рейтингу',
-                'price_asc'   => 'По возрастанию цены',
-                'price_desc'  => 'По убыванию цены',
-                'new'         => 'По новинкам',
-                'benefit'     => 'Сначала выгодные',
-            ];
-          @endphp
           @foreach($labels as $value => $label)
             <option value="{{ $value }}" @selected($currentSort === $value)>{{ $label }}</option>
           @endforeach

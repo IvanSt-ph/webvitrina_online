@@ -209,7 +209,7 @@ x-data="{
     <div class="pc-body">
         <div class="pc-meta-top">
             @if($p->seller && $p->seller->shop && $p->seller->shop->name)
-                <a href="{{ route('seller.show', $p->seller->id) }}" class="pc-shop-name" @click.stop>
+                <a href="{{ route('seller.show', $p->seller->shop->slug) }}" class="pc-shop-name" @click.stop>
                     {{ $p->seller->shop->name }}
                 </a>
             @else
@@ -449,7 +449,7 @@ x-data="{
                     <div class="pm-info-col">
                         <div class="pm-info-scroll">
                             @if($p->seller && $p->seller->shop && $p->seller->shop->name)
-                                <a href="{{ route('seller.show', $p->seller->id) }}" class="pm-shop">{{ $p->seller->shop->name }}</a>
+                                <a href="{{ route('seller.show', $p->seller->shop->slug) }}" class="pm-shop">{{ $p->seller->shop->name }}</a>
                             @endif
 
                             <h2 class="pm-title">{{ $p->title }}</h2>

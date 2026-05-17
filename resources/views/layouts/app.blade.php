@@ -29,7 +29,9 @@
     {{-- ⚠️ ВАЖНО: Стили должны быть в HEAD --}}
     @stack('styles')
 </head>
-<body class="font-sans antialiased" data-search-query="{{ request('q') }}">
+<body class="font-sans antialiased"
+      data-search-query="{{ request('q') }}"
+      data-currency="{{ session('currency', 'PRB') }}">
 
 <div
     class="min-h-screen bg-white-100"

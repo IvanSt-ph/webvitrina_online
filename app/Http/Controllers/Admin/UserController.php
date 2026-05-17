@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -232,20 +231,10 @@ class UserController extends Controller
             ? "Магазин {$user->name}" 
             : "Мой магазин";
 
-        $baseSlug = Str::slug($shopName) ?: 'shop-' . $user->id;
-
-        $slug = $baseSlug;
-        $counter = 1;
-        while (Shop::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter++;
-        }
-
         return Shop::create([
             'user_id'   => $user->id,
             'name'      => $shopName,
-            'slug'      => $slug,
             'phone'     => $phone,
-            'is_active' => false,
         ]);
     }
 }

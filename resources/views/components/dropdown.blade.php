@@ -1,4 +1,4 @@
-@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-2'])
+@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'p-2'])
 
 @php
 $alignmentClasses = match ($align) {
@@ -28,10 +28,10 @@ $width = match ($width) {
             x-transition:leave="transition ease-in duration-100"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
-            class="absolute z-50 mt-3 {{ $width }} rounded-2xl shadow-xl shadow-slate-900/10 {{ $alignmentClasses }}"
+            class="absolute z-50 mt-3 {{ $width }} rounded-3xl shadow-2xl shadow-slate-900/15 {{ $alignmentClasses }}"
             style="display: none;"
             @click="open = false">
-        <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white/95 backdrop-blur-xl ring-1 ring-black/5 {{ $contentClasses }}">
+        <div class="overflow-hidden rounded-3xl border border-white/80 bg-white/95 backdrop-blur-xl ring-1 ring-slate-900/5 {{ $contentClasses }}">
             {{ $content }}
         </div>
     </div>

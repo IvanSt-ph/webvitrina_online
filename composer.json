@@ -65,12 +65,7 @@
         ],
 
 
-        "post-install-cmd": [
-    "php artisan key:generate --ansi --no-interaction --quiet || true",
-    "php artisan config:cache --no-interaction --quiet || true",
-    "php artisan route:cache --no-interaction --quiet || true",
-    "php artisan view:cache --no-interaction --quiet || true"
-]
+        "post-install-cmd": []
 
     },
     "extra": {

@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Str;
 
 
 class RegisteredUserController extends Controller
@@ -142,29 +141,14 @@ class RegisteredUserController extends Controller
 
 private function createShopForSeller(User $user, ?string $phone): Shop
 {
-    // Формируем имя магазина
     $shopName = !empty($user->name) 
         ? "Магазин {$user->name}" 
         : self::DEFAULT_SHOP_NAME;
 
-    // Генерируем базовый slug
-    $baseSlug = Str::slug($shopName) ?: 'shop-' . $user->id;
-
-
-    // Проверка уникальности slug
-    $slug = $baseSlug;
-    $counter = 1;
-    while (Shop::where('slug', $slug)->exists()) {
-        $slug = $baseSlug . '-' . $counter++;
-    }
-
-    // Создаём магазин
     return Shop::create([
         'user_id' => $user->id,
         'name' => $shopName,
-        'slug' => $slug,
         'phone' => $phone,
-        'is_active' => false,
     ]);
 }
 

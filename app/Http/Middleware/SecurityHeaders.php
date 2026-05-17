@@ -15,13 +15,43 @@ class SecurityHeaders
     {
         $response = $next($request);
 
-        $styleSources = ["'self'", "'unsafe-inline'", 'https://fonts.bunny.net', 'https://cdn.jsdelivr.net', 'https://unpkg.com'];
-        $fontSources = ["'self'", 'data:', 'https://fonts.bunny.net', 'https://cdn.jsdelivr.net'];
+        $styleSources = [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.bunny.net',
+            'https://cdn.jsdelivr.net',
+            'https://cdnjs.cloudflare.com',
+            'https://unpkg.com',
+        ];
+        $fontSources = [
+            "'self'",
+            'data:',
+            'https://fonts.bunny.net',
+            'https://cdn.jsdelivr.net',
+            'https://unpkg.com',
+        ];
         // Alpine's standard build evaluates directive expressions at runtime.
         // Until the app moves to Alpine's CSP-compatible build, unsafe-eval is
         // required for x-data / x-show directives to keep working correctly.
-        $scriptSources = ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://unpkg.com'];
+        $scriptSources = [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            'https://cdn.jsdelivr.net',
+            'https://cdnjs.cloudflare.com',
+            'https://unpkg.com',
+        ];
         $connectSources = ["'self'", 'https://nominatim.openstreetmap.org'];
+        $imageSources = [
+            "'self'",
+            'data:',
+            'https://ui-avatars.com',
+            'https://cdn.jsdelivr.net',
+            'https://cdnjs.cloudflare.com',
+            'https://unpkg.com',
+            'https://*.tile.openstreetmap.org',
+        ];
+        $frameSources = ["'self'", 'https://www.youtube.com'];
 
         if (app()->environment('local')) {
             $styleSources[] = 'http://127.0.0.1:5173';
@@ -40,6 +70,13 @@ class SecurityHeaders
             'camera=(), microphone=(), geolocation=()'
         );
 
+        if (app()->environment('production')) {
+            $response->headers->set(
+                'Strict-Transport-Security',
+                'max-age=31536000; includeSubDomains'
+            );
+        }
+
         $response->headers->set(
             'Content-Security-Policy',
             implode('; ', [
@@ -48,11 +85,12 @@ class SecurityHeaders
                 "object-src 'none'",
                 "frame-ancestors 'self'",
                 "form-action 'self'",
-                "img-src 'self' data: https:",
+                'img-src ' . implode(' ', $imageSources),
                 'font-src ' . implode(' ', $fontSources),
                 'style-src ' . implode(' ', $styleSources),
                 'script-src ' . implode(' ', $scriptSources),
                 'connect-src ' . implode(' ', $connectSources),
+                'frame-src ' . implode(' ', $frameSources),
             ])
         );
 

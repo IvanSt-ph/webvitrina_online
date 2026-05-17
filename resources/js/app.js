@@ -21,6 +21,8 @@ Alpine.data('appShell', () => ({
 Alpine.data('mobileHeader', () => ({
   search: document.body.dataset.searchQuery ?? '',
   filtersOpen: false,
+  settingsOpen: false,
+  currency: document.body.dataset.currency ?? 'PRB',
 
   init() {
     // Reserved for future mobile header initialization.
@@ -32,6 +34,23 @@ Alpine.data('mobileHeader', () => ({
       url.searchParams.delete('q')
       window.location.href = url.toString()
     }
+  },
+
+  setCurrency(code) {
+    this.currency = code
+
+    fetch('/currency', {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ currency: code }),
+    }).then((response) => {
+      if (!response.ok) throw new Error('Currency update failed')
+      window.location.reload()
+    })
   },
 }))
 

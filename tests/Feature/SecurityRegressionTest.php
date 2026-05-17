@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\Shop;
 use App\Models\User;
 use App\Repositories\ProductCrudRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -138,6 +139,20 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_shop_slug_is_generated_when_shop_is_created(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Мой тестовый магазин',
+        ]);
+
+        $this->assertNotNull($shop->slug);
+        $this->assertNotSame('', $shop->slug);
+        $this->assertSame($shop->slug, $shop->fresh()->slug);
+    }
+
     public function test_seller_cannot_delete_gallery_image_from_another_product(): void
     {
         Storage::fake('public');
@@ -226,10 +241,19 @@ class SecurityRegressionTest extends TestCase
             'product_id' => $draft->id,
         ]);
 
-        $this->get(route('seller.show', $seller))
+        $this->get(route('seller.show', $seller->shop->slug))
             ->assertOk()
             ->assertSee($active->title)
             ->assertDontSee($draft->title);
+    }
+
+    public function test_numeric_seller_url_redirects_to_shop_slug(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Slug seller']);
+
+        $this->get(route('seller.show', $seller->id))
+            ->assertRedirect(route('seller.show', $shop->slug));
     }
 
     public function test_seller_can_create_active_product(): void
@@ -353,7 +377,7 @@ class SecurityRegressionTest extends TestCase
             ->assertHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()')
             ->assertHeader(
                 'content-security-policy',
-                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: https:; font-src 'self' data: https://fonts.bunny.net https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; connect-src 'self' https://nominatim.openstreetmap.org"
+                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: https://ui-avatars.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://*.tile.openstreetmap.org; font-src 'self' data: https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' https://nominatim.openstreetmap.org; frame-src 'self' https://www.youtube.com"
             );
     }
 

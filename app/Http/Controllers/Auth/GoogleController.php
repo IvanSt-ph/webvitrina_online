@@ -36,7 +36,6 @@ class GoogleController extends Controller
                 // Привязываем Google к существующему аккаунту
                 $user->provider = 'google';
                 $user->provider_id = $googleUser->id;
-                $user->provider_token = $googleUser->token;
                 $user->save();
             } else {
                 // Создаём нового
@@ -45,7 +44,6 @@ class GoogleController extends Controller
                     'email'           => $googleUser->email,
                     'provider'        => 'google',
                     'provider_id'     => $googleUser->id,
-                    'provider_token'  => $googleUser->token,
                     'password'        => bcrypt(str()->random(16)),
                     'password_set_at' => null,
                     'role'            => 'buyer',

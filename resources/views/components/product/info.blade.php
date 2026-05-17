@@ -77,7 +77,7 @@
                         · {{ $product->seller->reviews_count }} отзывов
                     </div>
                 </div>
-                <a href="{{ route('seller.show', $product->seller) }}"
+                <a href="{{ route('seller.show', $product->seller->shop->slug) }}"
                    class="text-xs font-medium text-indigo-600 hover:text-indigo-700 whitespace-nowrap flex-shrink-0">
                     Перейти →
                 </a>

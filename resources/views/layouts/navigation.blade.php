@@ -510,54 +510,72 @@ $profileRoute = match (strtolower(auth()->user()->role ?? '')) {
 };
                             @endphp
 
-                            <div class="px-4 py-3 border-b border-gray-100">
-                                <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
-                                <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
+                            <div class="mb-2 rounded-2xl bg-gradient-to-br from-slate-50 to-indigo-50/70 px-3 py-3">
+                                <div class="flex items-start gap-3">
+                                    @if(auth()->user()->avatar)
+                                        <img src="{{ asset('storage/' . auth()->user()->avatar) }}"
+                                             alt="{{ auth()->user()->name }}"
+                                             class="h-10 w-10 rounded-2xl object-cover shadow-sm">
+                                    @else
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white shadow-sm">
+                                            {{ substr(auth()->user()->name, 0, 1) }}
+                                        </div>
+                                    @endif
+
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</p>
+                                        <p class="truncate text-xs text-slate-500">{{ auth()->user()->email }}</p>
+
+                                        @if(auth()->user()->role)
+                                            <span class="mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium
+                                                @if(auth()->user()->role === 'admin') bg-purple-100 text-purple-800
+                                                @elseif(auth()->user()->role === 'seller') bg-blue-100 text-blue-800
+                                                @else bg-white text-slate-700 ring-1 ring-slate-200 @endif">
+                                                @if(auth()->user()->role === 'admin') 👑 Администратор
+                                                @elseif(auth()->user()->role === 'seller') 🏪 Продавец
+                                                @else Покупатель @endif
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="py-1">
-                                <x-dropdown-link :href="$dashboard" class="flex items-center gap-2 px-4 py-2">
-                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="space-y-1">
+                                <x-dropdown-link :href="$dashboard" class="flex items-center gap-3">
+                                    <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M3 9.5l9-7 9 7V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z"/>
                                     </svg>
+                                    </span>
                                     Личный кабинет
                                 </x-dropdown-link>
                                 
-                                <x-dropdown-link :href="$profileRoute" class="flex items-center gap-2 px-4 py-2">
-                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <x-dropdown-link :href="$profileRoute" class="flex items-center gap-3">
+                                    <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
+                                    </span>
                                     Редактировать профиль
                                 </x-dropdown-link>
                                 
-                                <div class="border-t border-gray-100 my-1"></div>
+                                <div class="my-2 border-t border-slate-100"></div>
                                 
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <x-dropdown-link :href="route('logout')" 
                                         onclick="event.preventDefault(); this.closest('form').submit();"
-                                        class="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50">
+                                        class="flex items-center gap-3 text-red-600 hover:bg-red-50 hover:text-red-700">
+                                        <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 text-red-500">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                         </svg>
+                                        </span>
                                         Выйти
                                     </x-dropdown-link>
                                 </form>
                             </div>
-
-                            @if(auth()->user()->role)
-                                <div class="px-4 py-2 bg-gray-50 rounded-b-lg border-t border-gray-100">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
-                                        @if(auth()->user()->role === 'admin') bg-purple-100 text-purple-800
-                                        @elseif(auth()->user()->role === 'seller') bg-blue-100 text-blue-800
-                                        @else bg-gray-100 text-gray-800 @endif">
-                                        @if(auth()->user()->role === 'admin') 👑 Администратор
-                                        @elseif(auth()->user()->role === 'seller') 🏪 Продавец
-                                        @else Покупатель @endif
-                                    </span>
-                                </div>
-                            @endif
                         </x-slot>
                     </x-dropdown>
                 @else

@@ -276,12 +276,6 @@ Route::middleware('role:buyer')->group(function () {
         [OrderStatusController::class, 'confirmDelivery']
     )->name('orders.confirmDelivery');
 
-    Route::post('/seller/orders/{order}/status',
-        [OrderStatusController::class, 'sellerUpdate']
-    )->name('seller.orders.updateStatus');
-
-
-
     /*
     |--------------------------------------------------------------------------
     | 📬 ADDRESSES
@@ -343,6 +337,8 @@ Route::middleware('role:buyer')->group(function () {
         // Заказы продавца
         Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->name('orders.show');
+        Route::post('/orders/{order}/status', [OrderStatusController::class, 'sellerUpdate'])
+            ->name('orders.updateStatus');
 
         // Финансы
         Route::view('/finance', 'seller.finance.index')->name('finance.index');
@@ -361,7 +357,7 @@ Route::middleware('role:buyer')->group(function () {
 | 🧾 PUBLIC SELLER PAGE
 |--------------------------------------------------------------------------
 */
-Route::get('/seller/{user}', [SellerController::class, 'show'])->name('seller.show');
+Route::get('/seller/{identifier}', [SellerController::class, 'show'])->name('seller.show');
 
 
 /*

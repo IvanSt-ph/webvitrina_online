@@ -41,7 +41,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone_verification_code',
         'provider',
         'provider_id',
-        'provider_token',
     ];
 
     /*
@@ -53,7 +52,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'remember_token',
         'phone_verification_code',
-        'provider_token',
     ];
 
     /*

@@ -2,13 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Shop;
 use App\Models\User;
 use App\Models\Review;
 
 class SellerController extends Controller
 {
-    public function show(User $user)
+    public function show(string $identifier)
     {
+        if (ctype_digit($identifier)) {
+            $user = User::findOrFail((int) $identifier);
+
+            if ($user->shop?->slug) {
+                return redirect()
+                    ->route('seller.show', $user->shop->slug)
+                    ->setStatusCode(301);
+            }
+        } else {
+            $shop = Shop::where('slug', $identifier)->firstOrFail();
+            $user = $shop->user;
+        }
+
         // Магазин продавца
         $shop = $user->shop;
 

@@ -7,6 +7,22 @@
     display: none !important;
 }
 
+.mobile-topbar-row {
+    height: 36px;
+}
+
+.mobile-topbar-search,
+.mobile-topbar-settings {
+    height: 36px !important;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.mobile-topbar-search {
+    display: block;
+    line-height: 1.25rem;
+}
+
 
 .cat403 {
     width: 75%;

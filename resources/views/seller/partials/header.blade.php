@@ -23,7 +23,7 @@
         {{-- Магазин (если есть) --}}
         @if (Auth::user()->shop)
             <div class="flex items-center gap-1.5 w-full lg:w-auto">
-                <a href="{{ route('seller.show', Auth::user()->id) }}" 
+                <a href="{{ route('seller.show', Auth::user()->shop->slug) }}" 
                    class="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 rounded-lg text-sm border border-purple-100 transition-all group flex-1 lg:flex-auto">
                     <i class="ri-store-2-line text-purple-600"></i>
                     

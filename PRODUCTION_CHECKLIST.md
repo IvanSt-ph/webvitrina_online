@@ -7,6 +7,7 @@
 - `APP_DEBUG=false`
 - `APP_URL=https://your-domain.example`
 - `APP_KEY` сгенерирован командой `php artisan key:generate`
+- `APP_KEY` не генерируется автоматически во время обычного деплоя и хранится стабильно между релизами
 - `SESSION_SECURE_COOKIE=true`
 - `SESSION_ENCRYPT=true`
 - `LOG_LEVEL=warning` или `error`
@@ -22,6 +23,7 @@
 - Supervisor/systemd worker для очереди настроен по примеру `deploy/supervisor-webvitrina-worker.conf.example`
 - Выполнены `php artisan migrate --force`, `php artisan storage:link`
 - После деплоя выполнены `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`, `php artisan queue:restart`
+- Веб-сервер отдаёт сайт только по HTTPS, а приложение возвращает HSTS-заголовок в production
 - `composer audit` не показывает high/critical advisories
 - `npm audit --omit=dev` не показывает production vulnerabilities
 - `php artisan test` проходит

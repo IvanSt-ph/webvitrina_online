@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Shop extends Model
 {
@@ -24,6 +25,7 @@ class Shop extends Model
         'instagram',
         'telegram',
         'whatsapp',
+        'slug',
     ];
 
     // ❌ НЕ ДОБАВЛЯЕМ is_phone_verified в fillable!
@@ -33,6 +35,30 @@ class Shop extends Model
         'phone_verified_at' => 'datetime',
         'phone_verification_expires_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Shop $shop): void {
+            if (blank($shop->slug)) {
+                $shop->slug = self::generateUniqueSlug($shop);
+            }
+        });
+    }
+
+    public static function generateUniqueSlug(Shop $shop): string
+    {
+        $base = Str::slug($shop->name ?? '') ?: 'shop-' . ($shop->user_id ?: Str::lower(Str::random(8)));
+        $slug = $base;
+        $counter = 1;
+
+        while (self::where('slug', $slug)
+            ->when($shop->exists, fn ($query) => $query->whereKeyNot($shop->getKey()))
+            ->exists()) {
+            $slug = $base . '-' . $counter++;
+        }
+
+        return $slug;
+    }
 
     // ✅ Аксессор для удобства (только для чтения)
     public function getIsPhoneVerifiedAttribute(): bool
