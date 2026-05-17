@@ -67,4 +67,21 @@
 
     </div>
 
+    @if($chatConversation)
+        @include('chats.partials.widget', [
+            'conversation' => $chatConversation,
+            'messages' => $chatMessages,
+            'hasOlderMessages' => $chatHasOlderMessages,
+            'oldestMessageId' => $chatOldestMessageId,
+            'latestMessageId' => $chatLatestMessageId,
+            'latestReadOutgoingMessageId' => $chatLatestReadOutgoingMessageId,
+            'contextProduct' => $product,
+            'returnUrl' => route('product.show', [
+                'identifier' => $product->slug,
+                'chat' => $chatConversation->id,
+            ], false),
+            'closeUrl' => route('product.show', $product->slug, false),
+        ])
+    @endif
+
 </x-app-layout>

@@ -26,6 +26,7 @@ use App\Http\Controllers\{
     SellerController,
     CheckoutController,
     OrderStatusController
+    ,ChatController
 };
 
 use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
@@ -194,7 +195,26 @@ Route::middleware('role:buyer')->group(function () {
 
     // Прочие buyer-странички
     Route::view('/my-questions', 'buyer.questions.index')->name('questions.index');
-    Route::view('/my-chats', 'buyer.chats.index')->name('chats.index');
+    Route::get('/my-chats', [ChatController::class, 'index'])->name('chats.index');
+    Route::post('/seller/{shop:slug}/chat', [ChatController::class, 'start'])
+        ->middleware('throttle:20,1')
+        ->name('chats.start');
+    Route::post('/p/{product:slug}/chat', [ChatController::class, 'startForProduct'])
+        ->middleware('throttle:20,1')
+        ->name('chats.product.start');
+    Route::get('/my-chats/{conversation}', [ChatController::class, 'show'])->name('chats.show');
+    Route::get('/my-chats/{conversation}/messages/older', [ChatController::class, 'olderMessages'])
+        ->middleware('throttle:60,1')
+        ->name('chats.messages.older');
+    Route::get('/my-chats/{conversation}/messages/newer', [ChatController::class, 'newerMessages'])
+        ->middleware('throttle:120,1')
+        ->name('chats.messages.newer');
+    Route::get('/my-chats/{conversation}/messages/{message}/image', [ChatController::class, 'image'])
+        ->middleware('throttle:120,1')
+        ->name('chats.messages.image');
+    Route::post('/my-chats/{conversation}/messages', [ChatController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('chats.messages.store');
     Route::view('/notifications/settings', 'buyer.notifications.settings')->name('notifications.settings');
     Route::view('/settings/language', 'buyer.settings.language')->name('settings.language');
     Route::view('/settings/currency', 'buyer.settings.currency')->name('settings.currency');
@@ -454,7 +474,6 @@ Route::prefix('admin')
 |--------------------------------------------------------------------------
 */
 require __DIR__.'/auth.php';
-
 
 
 

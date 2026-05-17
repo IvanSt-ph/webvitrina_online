@@ -272,10 +272,23 @@
                             <i class="ri-heart-3-line"></i>
                             <span class="hidden sm:inline">Подписаться</span>
                         </button>
-                        <button class="px-4 py-2 bg-indigo-500/90 text-white rounded-xl hover:bg-indigo-600 transition-all duration-300 text-sm font-semibold flex items-center gap-1 shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-indigo-400/30">
-                            <i class="ri-chat-1-line"></i>
-                            <span class="hidden sm:inline">Написать</span>
-                        </button>
+                        @auth
+                            @if(!auth()->user()->is($user))
+                                <form method="POST" action="{{ route('chats.start', $shop) }}">
+                                    @csrf
+                                    <button class="px-4 py-2 bg-indigo-500/90 text-white rounded-xl hover:bg-indigo-600 transition-all duration-300 text-sm font-semibold flex items-center gap-1 shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-indigo-400/30">
+                                        <i class="ri-chat-1-line"></i>
+                                        <span class="hidden sm:inline">Написать</span>
+                                    </button>
+                                </form>
+                            @endif
+                        @else
+                            <a href="{{ route('login') }}"
+                               class="px-4 py-2 bg-indigo-500/90 text-white rounded-xl hover:bg-indigo-600 transition-all duration-300 text-sm font-semibold flex items-center gap-1 shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-indigo-400/30">
+                                <i class="ri-chat-1-line"></i>
+                                <span class="hidden sm:inline">Написать</span>
+                            </a>
+                        @endauth
                     </div>
                 </div>
             </div>
@@ -355,6 +368,21 @@
     </div>
 
     @include('layouts.mobile-bottom-nav')
+    @if($chatConversation)
+        @include('chats.partials.widget', [
+            'conversation' => $chatConversation,
+            'messages' => $chatMessages,
+            'hasOlderMessages' => $chatHasOlderMessages,
+            'oldestMessageId' => $chatOldestMessageId,
+            'latestMessageId' => $chatLatestMessageId,
+            'latestReadOutgoingMessageId' => $chatLatestReadOutgoingMessageId,
+            'returnUrl' => route('seller.show', [
+                'identifier' => $shop->slug,
+                'chat' => $chatConversation->id,
+            ], false),
+            'closeUrl' => route('seller.show', $shop->slug, false),
+        ])
+    @endif
 
     <style>
     .line-clamp-1 {

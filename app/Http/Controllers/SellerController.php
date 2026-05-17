@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Shop;
 use App\Models\User;
 use App\Models\Review;
+use App\Models\Conversation;
 
 class SellerController extends Controller
 {
+    private const RECENT_MESSAGES_LIMIT = 50;
+
     public function show(string $identifier)
     {
         if (ctype_digit($identifier)) {
@@ -60,11 +63,42 @@ class SellerController extends Controller
             ->limit(10)
             ->get();
 
+        $chatConversation = null;
+        $chatMessages = collect();
+        $chatHasOlderMessages = false;
+        $chatOldestMessageId = null;
+        $chatLatestMessageId = null;
+        $chatLatestReadOutgoingMessageId = 0;
+
+        if (auth()->check() && request()->filled('chat')) {
+            $chatConversation = Conversation::with(['buyer', 'seller'])
+                ->findOrFail(request()->integer('chat'));
+
+            abort_unless($chatConversation->includes(auth()->user()), 403);
+
+            $chatConversation->messages()
+                ->where('sender_id', '!=', auth()->id())
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            $chatMessages = $chatConversation->recentMessages(self::RECENT_MESSAGES_LIMIT);
+            $chatHasOlderMessages = $chatConversation->hasMoreThanRecentMessages(self::RECENT_MESSAGES_LIMIT);
+            $chatOldestMessageId = $chatMessages->first()?->id;
+            $chatLatestMessageId = $chatMessages->last()?->id;
+            $chatLatestReadOutgoingMessageId = $chatConversation->latestReadOutgoingMessageIdFor(auth()->user());
+        }
+
         return view('seller.show', compact(
             'user',
             'shop',
             'products',
-            'reviews'
+            'reviews',
+            'chatConversation',
+            'chatMessages',
+            'chatHasOlderMessages',
+            'chatOldestMessageId',
+            'chatLatestMessageId',
+            'chatLatestReadOutgoingMessageId'
         ));
     }
 }

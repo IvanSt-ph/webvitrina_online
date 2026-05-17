@@ -39,6 +39,19 @@
                 <span>Заказы</span>
             </a>
 
+            <a href="{{ route('chats.index') }}"
+               class="{{ request()->routeIs('chats.*') ? $active : '' }} {{ $link }}">
+                <span class="relative">
+                    <i class="ri-chat-3-line text-[22px]"></i>
+                    @if(($unreadChatsCount ?? 0) > 0)
+                        <span class="absolute -right-3 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                            {{ min($unreadChatsCount, 99) }}
+                        </span>
+                    @endif
+                </span>
+                <span>Чаты</span>
+            </a>
+
             <a href="{{ route('seller.finance.index') }}"
                class="{{ request()->routeIs('seller.finance.*') ? $active : '' }} {{ $link }}">
                 <i class="ri-cash-line text-[22px]"></i>

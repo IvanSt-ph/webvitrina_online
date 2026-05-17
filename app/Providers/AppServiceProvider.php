@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 
 use App\Models\Category;
+use App\Models\Message;
 use App\Models\Review;
+use App\Observers\MessageObserver;
 use App\Observers\ReviewObserver;
 
 use Laravel\Fortify\Contracts\LoginResponse;
@@ -72,12 +74,31 @@ class AppServiceProvider extends ServiceProvider
             $view->with('categories', $categories);
         });
 
+        View::composer([
+            'layouts.buyer-layout',
+            'layouts.mobile-bottom-nav',
+            'layouts.seller',
+            'layouts.mobile-bottom-seller-nav',
+        ], function ($view) {
+            $unreadChatsCount = auth()->check()
+                ? once(fn () => Message::whereHas('conversation', fn ($query) => $query
+                    ->where('buyer_id', auth()->id())
+                    ->orWhere('seller_id', auth()->id()))
+                    ->where('sender_id', '!=', auth()->id())
+                    ->whereNull('read_at')
+                    ->count())
+                : 0;
+
+            $view->with('unreadChatsCount', $unreadChatsCount);
+        });
+
         /*
         |--------------------------------------------------------------------------
         | 📌 Подключаем Observer для отзывов
         |--------------------------------------------------------------------------
         */
         Review::observe(ReviewObserver::class);
+        Message::observe(MessageObserver::class);
 
         /*
         |--------------------------------------------------------------------------

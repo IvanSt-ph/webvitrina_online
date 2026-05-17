@@ -69,7 +69,27 @@
                 @endif
             </a>
 
-{{-- 4. КОРЗИНА  --}}
+{{-- 4. ЧАТЫ --}}
+            @auth
+                <a href="{{ route('chats.index') }}"
+                   class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 {{ request()->routeIs('chats.*') ? 'scale-105' : 'hover:scale-105' }}">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 {{ request()->routeIs('chats.*') ? 'opacity-100' : 'group-hover:opacity-60' }}"></div>
+                        <i class="ri-chat-3-line relative text-[20px] transition-all duration-300 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}"></i>
+                        @if(($unreadChatsCount ?? 0) > 0)
+                            <span class="absolute -right-2 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[9px] font-bold text-white">
+                                {{ min($unreadChatsCount, 9) }}
+                            </span>
+                        @endif
+                    </div>
+                    <span class="text-[10px] font-semibold tracking-tight {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}">Чаты</span>
+                    @if(request()->routeIs('chats.*'))
+                        <div class="absolute -top-1.5 w-8 h-0.5 bg-indigo-500 rounded-full"></div>
+                    @endif
+                </a>
+            @endauth
+
+{{-- 5. КОРЗИНА  --}}
             <a href="{{ route('cart.index') }}" 
             class="relative group flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105">
                 
@@ -122,7 +142,7 @@
                 @endif
             </a>
 
- {{-- 5. ПРОФИЛЬ --}}
+ {{-- 6. ПРОФИЛЬ --}}
             <a href="{{ route('cabinet') }}" 
                class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
                 <div class="relative">

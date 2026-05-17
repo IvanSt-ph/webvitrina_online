@@ -36,6 +36,18 @@
         <span class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-semibold px-1.5 rounded-full">5</span>
     </button>
 
+    <!-- Чаты -->
+    <a href="{{ route('chats.index') }}"
+       class="relative flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-500' }}">
+        <i class="ri-chat-3-line text-xl"></i>
+        <span>Чаты</span>
+        @if(($unreadChatsCount ?? 0) > 0)
+            <span class="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] font-semibold px-1.5 rounded-full">
+                {{ min($unreadChatsCount, 9) }}
+            </span>
+        @endif
+    </a>
+
     <!-- Кабинет (меню) -->
     <button 
       @click="openCabinetMenu = !openCabinetMenu; openOrdersMenu = false"

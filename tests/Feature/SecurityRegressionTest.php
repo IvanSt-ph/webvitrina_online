@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\Banner;
 use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
@@ -151,6 +153,545 @@ class SecurityRegressionTest extends TestCase
         $this->assertNotNull($shop->slug);
         $this->assertNotSame('', $shop->slug);
         $this->assertSame($shop->slug, $shop->fresh()->slug);
+    }
+
+    public function test_buyer_can_start_chat_with_seller_and_send_message(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Chat seller']);
+
+        $this->actingAs($buyer)
+            ->post(route('chats.start', $shop))
+            ->assertRedirect();
+
+        $conversation = Conversation::firstOrFail();
+
+        $this->actingAs($buyer)
+            ->post(route('chats.messages.store', $conversation), ['body' => 'Здравствуйте!'])
+            ->assertRedirect(route('chats.show', $conversation));
+
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $buyer->id,
+            'body' => 'Здравствуйте!',
+        ]);
+    }
+
+    public function test_starting_chat_from_seller_page_opens_widget_mode(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Widget seller']);
+
+        $response = $this->actingAs($buyer)
+            ->post(route('chats.start', $shop));
+
+        $conversation = Conversation::firstOrFail();
+
+        $response->assertRedirect(route('seller.show', [
+            'identifier' => $shop->slug,
+            'chat' => $conversation->id,
+        ]));
+
+        $this->actingAs($buyer)
+            ->get(route('seller.show', [
+            'identifier' => $shop->slug,
+            'chat' => $conversation->id,
+        ]))
+            ->assertOk()
+            ->assertSee('Поздороваться')
+            ->assertSee('value="' . route('seller.show', [
+                'identifier' => $shop->slug,
+                'chat' => $conversation->id,
+            ], false) . '"', false);
+    }
+
+    public function test_starting_chat_from_product_page_opens_product_context_widget(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Product seller']);
+        $product = $this->createProduct($seller, ['title' => 'Product chat context']);
+
+        $response = $this->actingAs($buyer)
+            ->post(route('chats.product.start', $product->slug));
+
+        $conversation = Conversation::firstOrFail();
+
+        $this->assertSame($product->id, $conversation->product_id);
+
+        $response->assertRedirect(route('product.show', [
+            'identifier' => $product->slug,
+            'chat' => $conversation->id,
+        ]));
+
+        $this->actingAs($buyer)
+            ->get(route('product.show', [
+                'identifier' => $product->slug,
+                'chat' => $conversation->id,
+            ]))
+            ->assertOk()
+            ->assertSee('Диалог по товару')
+            ->assertSee('Product chat context')
+            ->assertSee('Есть в наличии?');
+    }
+
+    public function test_chat_creation_reuses_general_and_product_contexts_without_duplicates(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Unique seller']);
+        $product = $this->createProduct($seller, ['title' => 'Unique chat product']);
+
+        $this->actingAs($buyer)->post(route('chats.start', $shop));
+        $this->actingAs($buyer)->post(route('chats.start', $shop));
+        $this->actingAs($buyer)->post(route('chats.product.start', $product->slug));
+        $this->actingAs($buyer)->post(route('chats.product.start', $product->slug));
+
+        $this->assertDatabaseCount('conversations', 2);
+        $this->assertDatabaseHas('conversations', [
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'general',
+        ]);
+        $this->assertDatabaseHas('conversations', [
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'product_id' => $product->id,
+            'context_key' => 'product:' . $product->id,
+        ]);
+    }
+
+    public function test_seller_can_start_product_chat_with_another_seller(): void
+    {
+        $sellerBuyer = User::factory()->create(['role' => 'seller']);
+        $sellerOwner = User::factory()->create(['role' => 'seller']);
+        $sellerOwner->shop()->create(['name' => 'Other seller']);
+        $product = $this->createProduct($sellerOwner, ['title' => 'Seller to seller product']);
+
+        $this->actingAs($sellerBuyer)
+            ->post(route('chats.product.start', $product->slug))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('conversations', [
+            'buyer_id' => $sellerBuyer->id,
+            'seller_id' => $sellerOwner->id,
+            'product_id' => $product->id,
+        ]);
+    }
+
+    public function test_chat_is_visible_only_to_participants(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $outsider = User::factory()->create(['role' => 'buyer']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($outsider)
+            ->get(route('chats.show', $conversation))
+            ->assertNotFound();
+
+        $this->actingAs($outsider)
+            ->post(route('chats.messages.store', $conversation), ['body' => 'Чужое сообщение'])
+            ->assertNotFound();
+
+        $this->actingAs($outsider)
+            ->getJson(route('chats.messages.older', [
+                'conversation' => $conversation,
+                'before' => 1,
+            ]))
+            ->assertNotFound();
+    }
+
+    public function test_chat_page_renders_for_participant(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Начните разговор');
+    }
+
+    public function test_chat_page_loads_only_latest_fifty_messages(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'general',
+        ]);
+
+        foreach (range(1, 51) as $number) {
+            $conversation->messages()->create([
+                'sender_id' => $buyer->id,
+                'body' => $number === 1 ? 'Oldest hidden message' : 'Message ' . $number,
+            ]);
+        }
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Показать предыдущие сообщения')
+            ->assertDontSee('Oldest hidden message')
+            ->assertSee('Message 51');
+    }
+
+    public function test_chat_can_load_older_messages_in_batches(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'general',
+        ]);
+
+        foreach (range(1, 125) as $number) {
+            $conversation->messages()->create([
+                'sender_id' => $buyer->id,
+                'body' => 'Message ' . $number,
+            ]);
+        }
+
+        $oldestVisibleId = $conversation->messages()->orderByDesc('id')->skip(49)->value('id');
+
+        $firstBatch = $this->actingAs($buyer)
+            ->getJson(route('chats.messages.older', [
+                'conversation' => $conversation,
+                'before' => $oldestVisibleId,
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'has_older_messages' => true,
+            ])
+            ->assertJsonPath('oldest_message_id', fn ($id) => is_int($id) && $id > 0);
+
+        $this->assertStringContainsString('Message 26', $firstBatch->json('html'));
+        $this->assertStringContainsString('Message 75', $firstBatch->json('html'));
+        $this->assertStringNotContainsString('Message 76', $firstBatch->json('html'));
+
+        $secondBatch = $this->actingAs($buyer)
+            ->getJson(route('chats.messages.older', [
+                'conversation' => $conversation,
+                'before' => $firstBatch->json('oldest_message_id'),
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'has_older_messages' => false,
+            ]);
+
+        $this->assertStringContainsString('Message 1', $secondBatch->json('html'));
+        $this->assertStringNotContainsString('Message 26', $secondBatch->json('html'));
+    }
+
+    public function test_chat_can_fetch_newer_messages_after_latest_visible_id(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $first = $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Первое сообщение',
+        ]);
+
+        $second = $conversation->messages()->create([
+            'sender_id' => $seller->id,
+            'body' => 'Новое сообщение продавца',
+        ]);
+
+        $response = $this->actingAs($buyer)
+            ->getJson(route('chats.messages.newer', [
+                'conversation' => $conversation,
+                'after' => $first->id,
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'latest_message_id' => $second->id,
+                'count' => 1,
+            ]);
+
+        $this->assertStringContainsString('Новое сообщение продавца', $response->json('html'));
+
+        $this->assertNotNull($second->fresh()->read_at);
+    }
+
+    public function test_chat_newer_messages_response_includes_latest_read_outgoing_message_id(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $sent = $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Моё сообщение',
+            'read_at' => now(),
+        ]);
+
+        $this->actingAs($buyer)
+            ->getJson(route('chats.messages.newer', [
+                'conversation' => $conversation,
+                'after' => 0,
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'latest_read_outgoing_message_id' => $sent->id,
+            ]);
+    }
+
+    public function test_chat_page_shows_read_indicator_for_own_read_message(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Прочитанное сообщение',
+            'read_at' => now(),
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('wv-read-status is-read', false)
+            ->assertSee('title="Прочитано"', false);
+    }
+
+    public function test_chat_can_send_message_as_json_without_page_reload(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $response = $this->actingAs($buyer)
+            ->postJson(route('chats.messages.store', $conversation), [
+                'body' => 'Сообщение без перезагрузки',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('latest_message_id', fn ($id) => is_int($id) && $id > 0);
+
+        $this->assertStringContainsString('Сообщение без перезагрузки', $response->json('html'));
+    }
+
+    public function test_chat_can_send_private_optimized_image_message(): void
+    {
+        Storage::fake('local');
+
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('chats.messages.store', $conversation), [
+                'image' => UploadedFile::fake()->image('chat.png', 320, 240),
+            ])
+            ->assertRedirect(route('chats.show', $conversation));
+
+        $message = Message::firstOrFail();
+
+        $this->assertSame('', $message->body);
+        $this->assertNotNull($message->image_path);
+        $this->assertStringEndsWith('.webp', $message->image_path);
+        Storage::disk('local')->assertExists($message->image_path);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.messages.image', [$conversation, $message]))
+            ->assertOk()
+            ->assertHeader('content-type', 'image/webp')
+            ->assertHeader('x-content-type-options', 'nosniff');
+    }
+
+    public function test_chat_rejects_svg_image_upload(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->from(route('chats.show', $conversation))
+            ->post(route('chats.messages.store', $conversation), [
+                'image' => UploadedFile::fake()->create('chat.svg', 1, 'image/svg+xml'),
+            ])
+            ->assertRedirect(route('chats.show', $conversation))
+            ->assertSessionHasErrors('image');
+
+        $this->assertDatabaseCount('messages', 0);
+    }
+
+    public function test_chat_rejects_oversized_image_dimensions(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->from(route('chats.show', $conversation))
+            ->post(route('chats.messages.store', $conversation), [
+                'image' => UploadedFile::fake()->image('huge.png', 8001, 100),
+            ])
+            ->assertRedirect(route('chats.show', $conversation))
+            ->assertSessionHasErrors('image');
+
+        $this->assertDatabaseCount('messages', 0);
+    }
+
+    public function test_chat_rejects_external_redirect_target_after_sending_message(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('chats.messages.store', $conversation), [
+                'body' => 'Проверка редиректа',
+                'redirect_to' => config('app.url') . '.evil.example/phishing',
+            ])
+            ->assertRedirect(route('chats.show', $conversation));
+    }
+
+    public function test_chat_image_is_visible_only_to_participants(): void
+    {
+        Storage::fake('local');
+
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $outsider = User::factory()->create(['role' => 'buyer']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        Storage::disk('local')->put('chat-images/test.webp', 'private image');
+        $message = $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => '',
+            'image_path' => 'chat-images/test.webp',
+        ]);
+
+        $this->actingAs($outsider)
+            ->get(route('chats.messages.image', [$conversation, $message]))
+            ->assertNotFound();
+    }
+
+    public function test_chat_image_file_is_removed_when_message_is_deleted(): void
+    {
+        Storage::fake('local');
+
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        Storage::disk('local')->put('chat-images/delete-me.webp', 'private image');
+        $message = $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => '',
+            'image_path' => 'chat-images/delete-me.webp',
+        ]);
+
+        $message->delete();
+
+        Storage::disk('local')->assertMissing('chat-images/delete-me.webp');
+    }
+
+    public function test_chat_image_files_are_removed_when_conversation_is_deleted(): void
+    {
+        Storage::fake('local');
+
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        Storage::disk('local')->put('chat-images/delete-with-conversation.webp', 'private image');
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => '',
+            'image_path' => 'chat-images/delete-with-conversation.webp',
+        ]);
+
+        $conversation->delete();
+
+        Storage::disk('local')->assertMissing('chat-images/delete-with-conversation.webp');
+    }
+
+    public function test_chat_list_shows_product_context_and_general_label(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'List seller']);
+        $product = $this->createProduct($seller, ['title' => 'List context product']);
+
+        Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'product_id' => $product->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.index'))
+            ->assertOk()
+            ->assertSee('Общий диалог')
+            ->assertSee('List context product')
+            ->assertDontSee('По товару: List context product')
+            ->assertSee(route('product.show', $product->slug), false)
+            ->assertSee(route('seller.show', $shop->slug), false)
+            ->assertSee('aria-label="Открыть чат"', false);
+    }
+
+    public function test_seller_navigation_contains_chats_link(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $this->actingAs($seller)
+            ->view('layouts.seller', ['slot' => ''])
+            ->assertSee('Чаты')
+            ->assertSee(route('chats.index'), false);
     }
 
     public function test_seller_cannot_delete_gallery_image_from_another_product(): void

@@ -7,9 +7,12 @@ use App\Repositories\ProductRepository;
 use App\Models\ProductStat;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use App\Models\Conversation;
 
 class ProductController extends Controller
 {
+    private const RECENT_MESSAGES_LIMIT = 50;
+
     public function __construct(protected ProductRepository $products) {}
 
     /* ============================================================
@@ -103,6 +106,32 @@ if (auth()->check()) {
          -------------------------------------- */
         $related = $this->products->getRelatedProducts($product);
 
+        $chatConversation = null;
+        $chatMessages = collect();
+        $chatHasOlderMessages = false;
+        $chatOldestMessageId = null;
+        $chatLatestMessageId = null;
+        $chatLatestReadOutgoingMessageId = 0;
+
+        if (auth()->check() && request()->filled('chat')) {
+            $chatConversation = Conversation::with(['buyer', 'seller', 'product'])
+                ->findOrFail(request()->integer('chat'));
+
+            abort_unless($chatConversation->includes(auth()->user()), 403);
+            abort_unless($chatConversation->product_id === $product->id, 404);
+
+            $chatConversation->messages()
+                ->where('sender_id', '!=', auth()->id())
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            $chatMessages = $chatConversation->recentMessages(self::RECENT_MESSAGES_LIMIT);
+            $chatHasOlderMessages = $chatConversation->hasMoreThanRecentMessages(self::RECENT_MESSAGES_LIMIT);
+            $chatOldestMessageId = $chatMessages->first()?->id;
+            $chatLatestMessageId = $chatMessages->last()?->id;
+            $chatLatestReadOutgoingMessageId = $chatConversation->latestReadOutgoingMessageIdFor(auth()->user());
+        }
+
         /* --------------------------------------
          | 📘 Кэш хлебных крошек (быстро + безопасно)
          -------------------------------------- */
@@ -135,6 +164,12 @@ if (auth()->check()) {
             'reviews'     => $reviews,
             'myReview'    => $myReview,  // ← мой отзыв
             'breadcrumbs' => $breadcrumbs,
+            'chatConversation' => $chatConversation,
+            'chatMessages' => $chatMessages,
+            'chatHasOlderMessages' => $chatHasOlderMessages,
+            'chatOldestMessageId' => $chatOldestMessageId,
+            'chatLatestMessageId' => $chatLatestMessageId,
+            'chatLatestReadOutgoingMessageId' => $chatLatestReadOutgoingMessageId,
         ]);
     }
 }

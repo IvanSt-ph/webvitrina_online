@@ -68,6 +68,13 @@
                             🛒 В корзину
                         </button>
                     </form>
+
+                    <form method="POST" action="{{ route('chats.product.start', $product->slug) }}">
+                        @csrf
+                        <button class="w-full rounded-xl border border-indigo-200 bg-white py-3 font-medium text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 active:scale-[0.98]">
+                            💬 Написать продавцу
+                        </button>
+                    </form>
                 @endif
             @else
                 {{-- Не авторизован --}}

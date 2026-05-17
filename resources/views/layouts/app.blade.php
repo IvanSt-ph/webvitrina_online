@@ -29,12 +29,12 @@
     {{-- ⚠️ ВАЖНО: Стили должны быть в HEAD --}}
     @stack('styles')
 </head>
-<body class="font-sans antialiased"
+<body class="overflow-x-hidden font-sans antialiased"
       data-search-query="{{ request('q') }}"
       data-currency="{{ session('currency', 'PRB') }}">
 
 <div
-    class="min-h-screen bg-white-100"
+    class="min-h-screen overflow-x-hidden bg-white-100"
     x-data="appShell"
 >
 
@@ -54,7 +54,7 @@
 @endisset
 
 {{-- Контент --}}
-<main class="w-full pt-2 pb-12 px-0 sm:px-4 lg:px-6">
+<main class="w-full overflow-x-hidden pt-2 pb-12 px-0 sm:px-4 lg:px-6 lg:pt-20">
     {{ $slot }}
 </main>
 
