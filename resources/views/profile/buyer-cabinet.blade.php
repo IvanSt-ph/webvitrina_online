@@ -47,7 +47,7 @@
     ];
 @endphp
 
-<div class="max-w-8xl mx-auto px-2 sm:px-6 py-4 sm:py-8 pb-24 md:pb-8 space-y-6 sm:space-y-8">
+<div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-24 md:pb-8 space-y-6 sm:space-y-8">
 
     <section class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
         <div class="p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

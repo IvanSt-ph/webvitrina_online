@@ -1,7 +1,7 @@
 {{-- resources/views/buyer/profile.blade.php --}}
 <x-buyer-layout title="Настройки профиля">
 
-<div class="py-4 sm:py-6 space-y-6 sm:space-y-8 text-gray-800">
+<div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-6 sm:space-y-8 text-gray-800">
 
     <!-- 🧭 Вкладки -->
     <div class="border-b border-gray-200 overflow-x-auto">

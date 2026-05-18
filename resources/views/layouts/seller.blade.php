@@ -1,3 +1,5 @@
+@props(['title' => null, 'chatMode' => false])
+
 {{-- resources/views/layouts/seller.blade.php --}}
 <x-seller-base :title="$title ?? 'Панель продавца'">
 
@@ -96,13 +98,15 @@
 </aside>
 
             <!-- 🌤 Контент -->
-        <main class="flex-1 px-3 sm:px-6 py-6 bg-neutral-50 min-h-screen overflow-hidden lg:ml-64">
+        <main class="flex-1 bg-neutral-50 min-h-screen overflow-hidden lg:ml-64 {{ $chatMode ? 'p-0' : 'px-3 sm:px-6 py-6' }}">
 
                 {{ $slot }}
 
+                @unless($chatMode)
                 <footer class="text-center text-xs text-gray-400 pt-6 border-t mt-10">
                     © {{ date('Y') }} WebVitrina — Панель продавца
                 </footer>
+                @endunless
         </main>
 
 </div>

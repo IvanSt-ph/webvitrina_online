@@ -1,6 +1,6 @@
 <x-buyer-layout title="Мои заказы">
 
-<div class="space-y-6 sm:space-y-8 max-w-8xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+<div class="space-y-6 sm:space-y-8 max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
     <!-- Заголовок -->
     <div class="flex items-center gap-3">

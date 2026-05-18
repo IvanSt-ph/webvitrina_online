@@ -6,7 +6,7 @@
     $freeShippingThreshold = 5000;
 @endphp
 
-<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="max-w-8xl mx-auto px-2 sm:px-6 py-4 sm:py-8 {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
+<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
 
     <!-- 🔝 Элегантный заголовок -->
     <div class="mb-6 sm:mb-10">

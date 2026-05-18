@@ -1,5 +1,5 @@
 <x-buyer-layout title="Справка WebVitrina">
-    <div class="p-6 space-y-4">
+    <div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4">
 
         <p class="text-gray-500">
             Здесь вы найдёте ответы на самые популярные вопросы о работе приложения.

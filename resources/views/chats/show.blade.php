@@ -1,4 +1,8 @@
-<x-app-layout title="Чат">
+@php
+    $chatLayout = auth()->user()->isSeller() ? 'seller-layout' : 'buyer-layout';
+@endphp
+
+<x-dynamic-component :component="$chatLayout" title="Чат" :chat-mode="true">
     @php
         $other = $conversation->otherParticipant(auth()->user());
     @endphp
@@ -150,14 +154,14 @@
         }"
         x-init="$nextTick(() => { resize(); scrollToBottom(); poller = setInterval(() => loadNewerMessages(), 5000) })"
         @beforeunload.window="if (poller) clearInterval(poller)"
-        class="mx-auto flex h-[calc(100dvh-4.75rem)] w-full max-w-6xl min-w-0 flex-col overflow-hidden px-4 py-4 sm:h-auto sm:min-h-0 sm:overflow-visible sm:px-6 sm:py-6 lg:px-8"
+        class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden sm:h-auto sm:min-h-0 sm:overflow-visible sm:px-6 sm:py-8"
     >
         <div class="grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
             <aside class="hidden min-h-0 min-w-0 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-50/70 p-3 lg:block">
                 @include('chats.partials.list', ['currentConversation' => $conversation])
             </aside>
 
-            <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+            <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white sm:rounded-[2rem] sm:border sm:border-slate-200 sm:shadow-sm">
                 <header class="sticky top-0 z-10 flex shrink-0 items-center gap-3 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur">
                     <a href="{{ route('chats.index') }}" class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 lg:hidden">
                         <i class="ri-arrow-left-line text-lg"></i>
@@ -277,7 +281,7 @@
             </section>
         </div>
     </div>
-</x-app-layout>
+</x-dynamic-component>
 
 <style>
 .wv-read-status {

@@ -1,5 +1,5 @@
 <x-buyer-layout title="Личный кабинет">
-  <div class="space-y-6 sm:space-y-8">
+  <div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-6 sm:space-y-8">
 
     <!-- Заголовок -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

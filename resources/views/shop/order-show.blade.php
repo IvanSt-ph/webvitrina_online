@@ -23,7 +23,7 @@
 @endphp
 
 
-<div class="max-w-8xl mx-auto px-2 sm:px-4 py-4 sm:py-10 space-y-6 sm:space-y-10">
+<div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-6 sm:space-y-8">
 
     <!-- 🔙 Навигация -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

@@ -320,7 +320,7 @@ class SecurityRegressionTest extends TestCase
             ->get(route('chats.show', $conversation))
             ->assertOk()
             ->assertSee('Начните разговор')
-            ->assertSee('h-[calc(100dvh-4.75rem)]', false)
+            ->assertSee('h-dvh', false)
             ->assertDontSee('data-mobile-bottom-nav', false);
     }
 
@@ -694,6 +694,41 @@ class SecurityRegressionTest extends TestCase
             ->view('layouts.seller', ['slot' => ''])
             ->assertSee('Чаты')
             ->assertSee(route('chats.index'), false);
+    }
+
+    public function test_seller_chat_pages_use_seller_layout(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('chats.index'))
+            ->assertOk()
+            ->assertSee('WebVitrina Seller')
+            ->assertSee('Назад в кабинет')
+            ->assertSee('data-mobile-bottom-seller-nav', false);
+
+        $this->actingAs($seller)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('WebVitrina Seller');
+    }
+
+    public function test_seller_public_product_page_uses_seller_mobile_bottom_nav(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Seller product shop']);
+        $product = $this->createProduct($seller);
+
+        $this->actingAs($seller)
+            ->get(route('product.show', $product->slug))
+            ->assertOk()
+            ->assertDontSee('data-mobile-bottom-nav', false)
+            ->assertSee('data-mobile-bottom-seller-nav', false);
     }
 
     public function test_seller_cannot_delete_gallery_image_from_another_product(): void

@@ -1,11 +1,15 @@
 @props(['title' => null, 'hideHeader' => false])
 
 @php
-    $showMobileBottomNav = ! (
+    $hideMobileBottomNav = request()->routeIs('chats.show');
+    $showSellerMobileBottomNav = auth()->check()
+        && auth()->user()->isSeller()
+        && ! $hideMobileBottomNav;
+    $showBuyerMobileBottomNav = ! $showSellerMobileBottomNav && ! (
         request()->routeIs('seller.*') ||
         request()->routeIs('cabinet') ||
         request()->routeIs('profile.*') ||
-        request()->routeIs('chats.show')
+        $hideMobileBottomNav
     );
 
     $mainTopPadding = $hideHeader ? 'pt-0' : 'pt-0 lg:pt-20';
@@ -64,15 +68,21 @@
 @endisset
 
 {{-- Контент --}}
-<main class="w-full overflow-x-hidden {{ $mainTopPadding }} {{ $showMobileBottomNav ? 'pb-12' : 'pb-0' }} px-0 sm:px-4 lg:px-6">
+<main class="w-full overflow-x-hidden {{ $mainTopPadding }} {{ ($showBuyerMobileBottomNav || $showSellerMobileBottomNav) ? 'pb-12' : 'pb-0' }} px-0 sm:px-4 lg:px-6">
     {{ $slot }}
 </main>
 
 
 {{-- Нижняя панель - только до 768px --}}
-@if($showMobileBottomNav)
+@if($showBuyerMobileBottomNav)
     <div data-mobile-bottom-nav class="block md:hidden fixed bottom-0 left-0 right-0 z-50">
         @include('layouts.mobile-bottom-nav')
+    </div>
+@endif
+
+@if($showSellerMobileBottomNav)
+    <div data-mobile-bottom-seller-nav>
+        @include('layouts.mobile-bottom-seller-nav')
     </div>
 @endif
 

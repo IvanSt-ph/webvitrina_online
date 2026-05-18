@@ -1,6 +1,17 @@
-<x-buyer-layout title="Чаты">
-    <div class="mx-auto flex min-h-[calc(100dvh-8.75rem)] w-full max-w-6xl min-w-0 flex-col overflow-x-hidden px-4 py-4 sm:min-h-0 sm:px-6 sm:py-6 lg:px-8">
-        <div class="mb-4 shrink-0 sm:mb-6">
+@php
+    $chatLayout = auth()->user()->isSeller() ? 'seller-layout' : 'buyer-layout';
+@endphp
+
+<x-dynamic-component :component="$chatLayout" title="Чаты">
+    <div class="mx-auto flex min-h-[calc(100dvh-8.75rem)] w-full max-w-8xl min-w-0 flex-col overflow-x-hidden px-3 pb-4 pt-[9.75rem] sm:min-h-0 sm:px-6 sm:py-8">
+        <div class="fixed inset-x-0 top-0 z-30 mb-4 shrink-0 border-b border-slate-100 bg-neutral-50/95 px-3 pb-4 pt-4 backdrop-blur sm:static sm:mx-0 sm:mb-6 sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-0">
+            @if(auth()->user()->isSeller())
+                <a href="{{ route('seller.cabinet') }}"
+                   class="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-indigo-600 lg:hidden">
+                    <i class="ri-arrow-left-line"></i>
+                    Назад в кабинет
+                </a>
+            @endif
             <p class="text-sm font-medium text-indigo-600">Сообщения</p>
             <h1 class="mt-1 text-3xl font-semibold tracking-tight text-slate-900">Чаты</h1>
             <p class="mt-2 text-slate-500">Обсуждайте детали покупки напрямую с продавцами.</p>
@@ -26,4 +37,8 @@
             </section>
         </div>
     </div>
-</x-buyer-layout>
+
+    @if(auth()->user()->isSeller())
+        @include('layouts.mobile-bottom-seller-nav')
+    @endif
+</x-dynamic-component>

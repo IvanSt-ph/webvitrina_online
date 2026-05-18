@@ -16,7 +16,7 @@
       $currencySymbol = \App\Models\Product::currencySymbol(session('currency', 'PRB'));
   @endphp
 
-  <div class="max-w-8xl mx-auto px-2 sm:px-6 py-4 sm:py-8">
+  <div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
     {{-- Header --}}
     <div class="mb-6 sm:mb-10">
