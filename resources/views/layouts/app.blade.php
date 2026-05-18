@@ -7,6 +7,8 @@
         request()->routeIs('profile.*') ||
         request()->routeIs('chats.show')
     );
+
+    $mainTopPadding = $hideHeader ? 'pt-0' : 'pt-0 lg:pt-20';
 @endphp
 
 <!DOCTYPE html>
@@ -62,7 +64,7 @@
 @endisset
 
 {{-- Контент --}}
-<main class="w-full overflow-x-hidden pt-2 {{ $showMobileBottomNav ? 'pb-12' : 'pb-0' }} px-0 sm:px-4 lg:px-6 lg:pt-20">
+<main class="w-full overflow-x-hidden {{ $mainTopPadding }} {{ $showMobileBottomNav ? 'pb-12' : 'pb-0' }} px-0 sm:px-4 lg:px-6">
     {{ $slot }}
 </main>
 

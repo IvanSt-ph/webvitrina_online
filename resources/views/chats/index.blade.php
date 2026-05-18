@@ -1,4 +1,4 @@
-<x-app-layout title="Чаты">
+<x-buyer-layout title="Чаты">
     <div class="mx-auto flex min-h-[calc(100dvh-8.75rem)] w-full max-w-6xl min-w-0 flex-col overflow-x-hidden px-4 py-4 sm:min-h-0 sm:px-6 sm:py-6 lg:px-8">
         <div class="mb-4 shrink-0 sm:mb-6">
             <p class="text-sm font-medium text-indigo-600">Сообщения</p>
@@ -26,4 +26,4 @@
             </section>
         </div>
     </div>
-</x-app-layout>
+</x-buyer-layout>

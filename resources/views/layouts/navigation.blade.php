@@ -508,16 +508,37 @@ $profileRoute = match (strtolower(auth()->user()->role ?? '')) {
     'seller' => route('profile.edit'), // оставляем как есть
     default  => route('buyer.profile'), // покупатели идут на buyer/profile
 };
+
+                                $quickLinks = match (strtolower(auth()->user()->role ?? '')) {
+                                    'admin' => [
+                                        ['href' => route('admin.dashboard'), 'label' => 'Панель', 'icon' => 'ri-dashboard-line'],
+                                        ['href' => route('admin.orders.index'), 'label' => 'Заказы', 'icon' => 'ri-file-list-3-line'],
+                                        ['href' => route('admin.products.index'), 'label' => 'Товары', 'icon' => 'ri-store-2-line'],
+                                        ['href' => route('admin.users.index'), 'label' => 'Пользователи', 'icon' => 'ri-group-line'],
+                                    ],
+                                    'seller' => [
+                                        ['href' => route('seller.cabinet'), 'label' => 'Кабинет', 'icon' => 'ri-dashboard-line'],
+                                        ['href' => route('chats.index'), 'label' => 'Чаты', 'icon' => 'ri-chat-3-line'],
+                                        ['href' => route('seller.products.index'), 'label' => 'Товары', 'icon' => 'ri-store-2-line'],
+                                        ['href' => route('seller.orders.index'), 'label' => 'Заказы', 'icon' => 'ri-file-list-3-line'],
+                                    ],
+                                    default => [
+                                        ['href' => route('cabinet'), 'label' => 'Кабинет', 'icon' => 'ri-dashboard-line'],
+                                        ['href' => route('chats.index'), 'label' => 'Чаты', 'icon' => 'ri-chat-3-line'],
+                                        ['href' => route('orders.index'), 'label' => 'Заказы', 'icon' => 'ri-shopping-bag-3-line'],
+                                        ['href' => route('coming.soon'), 'label' => 'Для вас', 'icon' => 'ri-sparkling-2-line'],
+                                    ],
+                                };
                             @endphp
 
-                            <div class="mb-2 rounded-2xl bg-gradient-to-br from-slate-50 to-indigo-50/70 px-3 py-3">
+                            <div class="mb-3 rounded-[1.4rem] border border-indigo-100/80 bg-gradient-to-br from-white via-slate-50 to-indigo-50/80 px-3.5 py-3.5 shadow-sm shadow-indigo-900/5">
                                 <div class="flex items-start gap-3">
                                     @if(auth()->user()->avatar)
                                         <img src="{{ asset('storage/' . auth()->user()->avatar) }}"
                                              alt="{{ auth()->user()->name }}"
-                                             class="h-10 w-10 rounded-2xl object-cover shadow-sm">
+                                             class="h-11 w-11 rounded-2xl object-cover ring-2 ring-white shadow-sm">
                                     @else
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white shadow-sm">
+                                        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20">
                                             {{ substr(auth()->user()->name, 0, 1) }}
                                         </div>
                                     @endif
@@ -540,17 +561,26 @@ $profileRoute = match (strtolower(auth()->user()->role ?? '')) {
                                 </div>
                             </div>
 
-                            <div class="space-y-1">
-                                <x-dropdown-link :href="$dashboard" class="flex items-center gap-3">
-                                    <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M3 9.5l9-7 9 7V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V9.5z"/>
-                                    </svg>
-                                    </span>
-                                    Личный кабинет
-                                </x-dropdown-link>
-                                
+                            <div class="mb-3">
+                                <p class="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                    Быстрый доступ
+                                </p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    @foreach($quickLinks as $link)
+                                        <a href="{{ $link['href'] }}"
+                                           class="group flex min-h-[68px] flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 transition hover:-translate-y-0.5 hover:border-indigo-100 hover:bg-white hover:shadow-md hover:shadow-slate-900/5">
+                                            <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-900/5 transition group-hover:text-indigo-600">
+                                                <i class="{{ $link['icon'] }} text-base"></i>
+                                            </span>
+                                            <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900">
+                                                {{ $link['label'] }}
+                                            </span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="space-y-1 border-t border-slate-100 pt-2">
                                 <x-dropdown-link :href="$profileRoute" class="flex items-center gap-3">
                                     <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
