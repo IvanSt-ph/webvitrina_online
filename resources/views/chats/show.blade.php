@@ -150,7 +150,7 @@
         }"
         x-init="$nextTick(() => { resize(); scrollToBottom(); poller = setInterval(() => loadNewerMessages(), 5000) })"
         @beforeunload.window="if (poller) clearInterval(poller)"
-        class="mx-auto flex h-[calc(100dvh-8.75rem)] w-full max-w-6xl min-w-0 flex-col overflow-hidden px-4 py-4 sm:h-auto sm:min-h-0 sm:overflow-visible sm:px-6 sm:py-6 lg:px-8"
+        class="mx-auto flex h-[calc(100dvh-4.75rem)] w-full max-w-6xl min-w-0 flex-col overflow-hidden px-4 py-4 sm:h-auto sm:min-h-0 sm:overflow-visible sm:px-6 sm:py-6 lg:px-8"
     >
         <div class="grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
             <aside class="hidden min-h-0 min-w-0 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-50/70 p-3 lg:block">
@@ -164,7 +164,7 @@
                     </a>
                     <img src="{{ $other->avatar_url }}" alt="{{ $other->name }}" class="h-12 w-12 rounded-2xl object-cover">
                     <div class="min-w-0 flex-1">
-                        <div class="truncate font-bold text-slate-900">{{ $other->name }}</div>
+                        <div class="truncate font-semibold text-slate-900">{{ $other->name }}</div>
                         <div class="text-sm text-slate-500">
                             {{ $other->isSeller() ? ($other->shop?->name ?? 'Продавец') : 'Покупатель' }}
                         </div>
@@ -189,7 +189,7 @@
                             <div class="flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600">
                                 <i class="ri-sparkling-2-line text-3xl"></i>
                             </div>
-                            <h2 class="mt-4 text-xl font-bold text-slate-900">Начните разговор</h2>
+                            <h2 class="mt-4 text-xl font-semibold text-slate-900">Начните разговор</h2>
                             <p class="mt-2 max-w-sm text-sm text-slate-500">Спросите о товаре, доставке или условиях покупки — всё останется внутри сайта.</p>
                         </div>
                     @endforelse

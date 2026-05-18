@@ -176,7 +176,7 @@
             <div class="relative flex items-center gap-3">
                 <img src="{{ $other->avatar_url }}" alt="{{ $other->name }}" class="h-12 w-12 rounded-2xl object-cover ring-2 ring-white/25">
                 <div class="min-w-0 flex-1">
-                    <div class="truncate font-bold">{{ $other->name }}</div>
+                    <div class="truncate font-semibold">{{ $other->name }}</div>
                     <div class="truncate text-sm text-indigo-100">
                         {{ $other->isSeller() ? ($other->shop?->name ?? 'Продавец') : 'Покупатель' }}
                     </div>
@@ -270,7 +270,7 @@
                     <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600">
                         <i class="ri-chat-smile-3-line text-2xl"></i>
                     </div>
-                    <div class="mt-4 font-bold text-slate-900">Начните разговор</div>
+                    <div class="mt-4 font-semibold text-slate-900">Начните разговор</div>
                     <div class="mt-1 max-w-xs text-sm text-slate-500">
                         {{ $contextProduct ? 'Можно уточнить наличие, доставку или детали именно по этому товару.' : 'Можно задать общий вопрос продавцу, уточнить доставку или способ связи.' }}
                     </div>

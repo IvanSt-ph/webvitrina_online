@@ -319,7 +319,9 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($buyer)
             ->get(route('chats.show', $conversation))
             ->assertOk()
-            ->assertSee('Начните разговор');
+            ->assertSee('Начните разговор')
+            ->assertSee('h-[calc(100dvh-4.75rem)]', false)
+            ->assertDontSee('data-mobile-bottom-nav', false);
     }
 
     public function test_chat_page_loads_only_latest_fifty_messages(): void

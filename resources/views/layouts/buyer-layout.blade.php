@@ -17,7 +17,7 @@
           $active = 'bg-indigo-50 text-indigo-600 font-medium border-l-4 border-indigo-500';
           $link = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
         @endphp
-        <nav class="flex flex-col mt-6 text-[17px] font-normal text-gray-700">
+        <nav class="flex flex-col mt-6 text-[16px] font-normal text-gray-700">
           <a href="{{ route('home') }}" class="{{ $link }}">
             <i class="ri-arrow-left-line text-[22px]"></i>
             <span>Вернутся к товарам</span>

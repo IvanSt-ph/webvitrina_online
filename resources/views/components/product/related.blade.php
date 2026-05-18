@@ -3,7 +3,7 @@
         {{-- Заголовок --}}
         <div class="flex items-center gap-2 mb-5 sm:mb-6">
             <div class="w-1 h-6 sm:h-7 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
-            <h2 class="text-lg sm:text-2xl font-bold text-gray-800">
+            <h2 class="text-lg sm:text-2xl font-semibold text-gray-800">
                 Похожие товары
             </h2>
         </div>

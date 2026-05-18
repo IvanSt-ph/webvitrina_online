@@ -1,6 +1,6 @@
 <div class="lg:col-span-4 w-full max-w-xl mx-auto">
 
-    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 leading-snug break-words overflow-wrap-anywhere hyphens-auto">
+    <h1 class="text-2xl sm:text-3xl font-semibold text-gray-900 leading-snug break-words overflow-wrap-anywhere hyphens-auto">
         {{ $product->title }}
     </h1>
 

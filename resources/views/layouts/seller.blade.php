@@ -20,7 +20,7 @@
             $link   = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
         @endphp
 
-        <nav class="flex flex-col mt-6 text-[16px] font-normal text-gray-700">
+        <nav class="flex flex-col mt-6 text-[15px] font-normal text-gray-700">
             <a href="{{ route('seller.cabinet') }}"
                class="{{ request()->routeIs('seller.cabinet') ? $active : '' }} {{ $link }}">
                 <i class="ri-home-5-line text-[22px]"></i>

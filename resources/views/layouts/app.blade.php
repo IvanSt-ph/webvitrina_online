@@ -1,5 +1,14 @@
 @props(['title' => null, 'hideHeader' => false])
 
+@php
+    $showMobileBottomNav = ! (
+        request()->routeIs('seller.*') ||
+        request()->routeIs('cabinet') ||
+        request()->routeIs('profile.*') ||
+        request()->routeIs('chats.show')
+    );
+@endphp
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -9,7 +18,6 @@
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 
     <!-- 🌐 Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('icons/favicon.ico') }}">
     <link rel="icon" type="image/svg+xml" href="{{ asset('icons/favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('icons/favicon-96x96.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-touch-icon.png') }}">
@@ -21,7 +29,7 @@
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700,800&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -54,21 +62,17 @@
 @endisset
 
 {{-- Контент --}}
-<main class="w-full overflow-x-hidden pt-2 pb-12 px-0 sm:px-4 lg:px-6 lg:pt-20">
+<main class="w-full overflow-x-hidden pt-2 {{ $showMobileBottomNav ? 'pb-12' : 'pb-0' }} px-0 sm:px-4 lg:px-6 lg:pt-20">
     {{ $slot }}
 </main>
 
 
 {{-- Нижняя панель - только до 768px --}}
-@unless(
-    request()->routeIs('seller.*') ||   
-    request()->routeIs('cabinet')   ||   
-    request()->routeIs('profile.*')
-)
-    <div class="block md:hidden fixed bottom-0 left-0 right-0 z-50">
+@if($showMobileBottomNav)
+    <div data-mobile-bottom-nav class="block md:hidden fixed bottom-0 left-0 right-0 z-50">
         @include('layouts.mobile-bottom-nav')
     </div>
-@endunless
+@endif
 
 {{-- Боковое меню категорий --}}
 @include('profile.partials.category-menu')

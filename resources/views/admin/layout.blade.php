@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="robots" content="noindex, nofollow">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <link rel="icon" href="{{ asset('favicon.ico') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ asset('icons/favicon.svg') }}">
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
 </head>

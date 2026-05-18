@@ -10,7 +10,7 @@
 </head>
 
 <body style="margin:0;padding:0;background:#f2f3fb;
-             font-family:'Inter', -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+             font-family:'Manrope', -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
 
 <!-- Внешний фон -->
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f2f3fb;">
