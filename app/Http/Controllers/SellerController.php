@@ -75,6 +75,7 @@ class SellerController extends Controller
                 ->findOrFail(request()->integer('chat'));
 
             abort_unless($chatConversation->includes(auth()->user()), 403);
+            abort_unless($chatConversation->seller_id === $user->id, 404);
 
             $chatConversation->messages()
                 ->where('sender_id', '!=', auth()->id())

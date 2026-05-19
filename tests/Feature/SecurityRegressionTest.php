@@ -207,6 +207,35 @@ class SecurityRegressionTest extends TestCase
             ], false) . '"', false);
     }
 
+    public function test_seller_page_rejects_chat_from_another_seller_context(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $otherSeller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Correct seller']);
+        $otherShop = $otherSeller->shop()->create(['name' => 'Other seller']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => Conversation::generalContextKey(),
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('seller.show', [
+                'identifier' => $otherShop->slug,
+                'chat' => $conversation->id,
+            ]))
+            ->assertNotFound();
+
+        $this->actingAs($buyer)
+            ->get(route('seller.show', [
+                'identifier' => $shop->slug,
+                'chat' => $conversation->id,
+            ]))
+            ->assertOk();
+    }
+
     public function test_starting_chat_from_product_page_opens_product_context_widget(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -853,6 +882,24 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_seller_product_rejects_svg_images(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $payload = $this->validSellerProductPayload([
+            'image' => UploadedFile::fake()->create('product.svg', 1, 'image/svg+xml'),
+            'gallery' => [
+                UploadedFile::fake()->create('gallery.svg', 1, 'image/svg+xml'),
+            ],
+        ]);
+
+        $this->actingAs($seller)
+            ->postJson(route('seller.products.store'), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['image', 'gallery.0']);
+
+        $this->assertDatabaseMissing('products', ['title' => $payload['title']]);
+    }
+
     public function test_cart_rejects_quantity_above_product_stock(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -1137,6 +1184,97 @@ class SecurityRegressionTest extends TestCase
             'product_id' => $product->id,
             'status' => Review::STATUS_PENDING,
         ]);
+    }
+
+    public function test_buyer_reviews_page_shows_reviews_written_by_buyer(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, [
+            'title' => 'Reviewed product',
+        ]);
+
+        Review::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'rating' => 5,
+            'body' => 'Отзыв покупателя виден в кабинете',
+            'status' => Review::STATUS_APPROVED,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('reviews.index'))
+            ->assertOk()
+            ->assertSee('Reviewed product')
+            ->assertSee('Отзыв покупателя виден в кабинете')
+            ->assertSee('Одобрен');
+    }
+
+    public function test_admin_rejection_reason_is_visible_to_buyer(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, [
+            'title' => 'Rejected review product',
+        ]);
+        $review = Review::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'rating' => 2,
+            'body' => 'Текст требует проверки',
+            'status' => Review::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.reviews.reject', $review), [
+                'reason' => 'Отзыв содержит неподходящий текст.',
+            ])
+            ->assertOk()
+            ->assertJson(['status' => Review::STATUS_REJECTED]);
+
+        $this->actingAs($buyer)
+            ->get(route('reviews.index', ['status' => Review::STATUS_REJECTED]))
+            ->assertOk()
+            ->assertSee('Причина отклонения')
+            ->assertSee('Отзыв содержит неподходящий текст.');
+    }
+
+    public function test_admin_reviews_can_be_searched_and_filtered_by_rating(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $matchingProduct = $this->createProduct($seller, [
+            'title' => 'Searchable camera',
+        ]);
+        $otherProduct = $this->createProduct($seller, [
+            'title' => 'Ordinary kettle',
+        ]);
+
+        Review::create([
+            'user_id' => $buyer->id,
+            'product_id' => $matchingProduct->id,
+            'rating' => 1,
+            'body' => 'Needs moderator attention',
+            'status' => Review::STATUS_PENDING,
+        ]);
+        Review::create([
+            'user_id' => $buyer->id,
+            'product_id' => $otherProduct->id,
+            'rating' => 5,
+            'body' => 'Positive review',
+            'status' => Review::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.reviews.index', [
+                'q' => 'camera',
+                'rating' => '1',
+            ]))
+            ->assertOk()
+            ->assertSee('Searchable camera')
+            ->assertDontSee('Ordinary kettle');
     }
 
     public function test_review_images_are_converted_to_webp_with_thumbnails(): void

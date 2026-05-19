@@ -1,4 +1,4 @@
-@props(['title' => null, 'hideHeader' => false])
+@props(['title' => null, 'hideHeader' => false, 'flushMain' => false])
 
 @php
     $hideMobileBottomNav = request()->routeIs('chats.show');
@@ -68,7 +68,7 @@
 @endisset
 
 {{-- Контент --}}
-<main class="w-full overflow-x-hidden {{ $mainTopPadding }} {{ ($showBuyerMobileBottomNav || $showSellerMobileBottomNav) ? 'pb-12' : 'pb-0' }} px-0 sm:px-4 lg:px-6">
+<main class="w-full overflow-x-hidden {{ $mainTopPadding }} {{ $flushMain ? 'px-0 pb-0' : (($showBuyerMobileBottomNav || $showSellerMobileBottomNav) ? 'pb-12' : 'pb-0') . ' px-0 sm:px-4 lg:px-6' }}">
     {{ $slot }}
 </main>
 

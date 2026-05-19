@@ -459,6 +459,7 @@ Route::prefix('admin')
     Route::resource('banners', BannerController::class)->except(['show']);
 
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
+    Route::post('/reviews/bulk', [AdminReviewController::class, 'bulk'])->name('reviews.bulk');
     Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
     Route::post('/reviews/{review}/reject',  [AdminReviewController::class, 'reject'])->name('reviews.reject');
     Route::delete('/reviews/{review}',       [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
@@ -474,6 +475,5 @@ Route::prefix('admin')
 |--------------------------------------------------------------------------
 */
 require __DIR__.'/auth.php';
-
 
 

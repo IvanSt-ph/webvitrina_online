@@ -8,6 +8,7 @@ use App\Models\Country;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class AdminProductValidationTest extends TestCase
@@ -43,6 +44,24 @@ class AdminProductValidationTest extends TestCase
             'user_id' => $seller->id,
             'status' => 'active',
         ]);
+    }
+
+    public function test_admin_product_create_rejects_svg_images(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $payload = $this->validProductPayload([
+            'image' => UploadedFile::fake()->create('product.svg', 1, 'image/svg+xml'),
+            'gallery' => [
+                UploadedFile::fake()->create('gallery.svg', 1, 'image/svg+xml'),
+            ],
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.products.store'), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['image', 'gallery.0']);
+
+        $this->assertDatabaseMissing('products', ['title' => $payload['title']]);
     }
 
     public function test_admin_product_update_rejects_invalid_status_negative_stock_and_buyer_owner(): void

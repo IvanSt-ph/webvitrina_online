@@ -87,15 +87,58 @@ public function store(Request $request, Product $product)
 
 
     // Отзывы покупателя
-    public function userReviews()
+    public function userReviews(Request $request)
 {
-    $reviews = auth()->user()
-        ->reviews()
-        ->with(['product'])
-        ->orderBy('created_at', 'desc')
+    $status = $request->query('status', 'all');
+    $rating = $request->query('rating', 'all');
+    $sort = $request->query('sort', 'new');
+    $allowedStatuses = [
+        'all',
+        Review::STATUS_APPROVED,
+        Review::STATUS_PENDING,
+        Review::STATUS_REJECTED,
+    ];
+
+    if (! in_array($status, $allowedStatuses, true)) {
+        $status = 'all';
+    }
+
+    if (! in_array($rating, ['all', '1', '2', '3', '4', '5'], true)) {
+        $rating = 'all';
+    }
+
+    if (! in_array($sort, ['new', 'old', 'high', 'low'], true)) {
+        $sort = 'new';
+    }
+
+    $baseQuery = Review::query()
+        ->where('user_id', auth()->id());
+
+    $rawCounters = (clone $baseQuery)
+        ->selectRaw('status, COUNT(*) as total')
+        ->groupBy('status')
+        ->pluck('total', 'status');
+
+    $counters = [
+        'all' => (int) $rawCounters->sum(),
+        Review::STATUS_APPROVED => (int) ($rawCounters[Review::STATUS_APPROVED] ?? 0),
+        Review::STATUS_PENDING => (int) ($rawCounters[Review::STATUS_PENDING] ?? 0),
+        Review::STATUS_REJECTED => (int) ($rawCounters[Review::STATUS_REJECTED] ?? 0),
+    ];
+
+    $avgRating = (float) (clone $baseQuery)->avg('rating');
+
+    $reviews = $baseQuery
+        ->when($status !== 'all', fn ($query) => $query->where('status', $status))
+        ->when($rating !== 'all', fn ($query) => $query->where('rating', (int) $rating))
+        ->with(['product', 'images'])
+        ->when($sort === 'old', fn ($query) => $query->orderBy('created_at', 'asc'))
+        ->when($sort === 'high', fn ($query) => $query->orderBy('rating', 'desc')->orderBy('created_at', 'desc'))
+        ->when($sort === 'low', fn ($query) => $query->orderBy('rating', 'asc')->orderBy('created_at', 'desc'))
+        ->when($sort === 'new', fn ($query) => $query->orderBy('created_at', 'desc'))
         ->get();
 
-    return view('buyer.reviews.index', compact('reviews'));
+    return view('buyer.reviews.index', compact('reviews', 'status', 'rating', 'sort', 'counters', 'avgRating'));
 }
 
 }

@@ -13,6 +13,13 @@ class Review extends Model
         'rating',
         'body',
         'status',
+        'rejection_reason',
+        'moderated_by',
+        'moderated_at',
+    ];
+
+    protected $casts = [
+        'moderated_at' => 'datetime',
     ];
 
     // 🔹 Константы статусов
@@ -34,6 +41,11 @@ class Review extends Model
     public function images()
     {
         return $this->hasMany(ReviewImage::class);
+    }
+
+    public function moderator()
+    {
+        return $this->belongsTo(User::class, 'moderated_by');
     }
 
     // 🔹 Удобный “человеческий” статус

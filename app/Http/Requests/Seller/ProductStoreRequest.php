@@ -34,8 +34,8 @@ class ProductStoreRequest extends FormRequest
             'latitude'  => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
 
-            'image'     => 'nullable|image|max:4096',
-            'gallery.*' => 'nullable|image|max:4096',
+            'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'gallery.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }
 

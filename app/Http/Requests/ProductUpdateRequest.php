@@ -31,8 +31,8 @@ class ProductUpdateRequest extends FormRequest
         'longitude'   => ['nullable', 'numeric'],
         'description' => ['nullable', 'string'],
         'status'      => ['sometimes', 'required', 'in:active,draft'],
-        'image'       => ['nullable', 'image', 'max:4096'],
-        'gallery.*'   => ['nullable', 'image', 'max:4096'],
+        'image'       => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        'gallery.*'   => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
     ];
 }
 

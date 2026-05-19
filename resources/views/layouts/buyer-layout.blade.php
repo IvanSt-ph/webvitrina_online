@@ -1,7 +1,7 @@
-@props(['title' => null, 'chatMode' => false])
+@props(['title' => null, 'chatMode' => false, 'flushContent' => true])
 
 {{-- resources/views/layouts/buyer-layout.blade.php — боковая панель покупателя --}}
-<x-app-layout :title="$title ?? 'Личный кабинет'" :hideHeader="true">
+<x-app-layout :title="$title ?? 'Личный кабинет'" :hideHeader="true" :flushMain="$flushContent || $chatMode">
     <div class="flex min-h-screen bg-neutral-50 text-gray-800">
         <!-- 🧭 Sidebar -->
         <aside class="fixed bottom-0 left-0 top-0 hidden w-64 flex-col justify-between border-r border-gray-100 bg-white shadow-sm md:flex">
@@ -148,7 +148,7 @@
         </aside>
 
         <!-- 🌤 Контент -->
-        <main class="flex-1 bg-neutral-50 {{ $chatMode ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10' }}">
+        <main class="flex-1 bg-neutral-50 {{ ($chatMode || $flushContent) ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10' }}">
             {{ $slot }}
         </main>
     </div>
