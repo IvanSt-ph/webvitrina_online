@@ -1,4 +1,4 @@
-@props(['title' => null, 'chatMode' => false])
+@props(['title' => null, 'chatMode' => false, 'flushContent' => true])
 
 {{-- resources/views/layouts/seller.blade.php --}}
 <x-seller-base :title="$title ?? 'Панель продавца'">
@@ -22,7 +22,18 @@
             $link   = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
         @endphp
 
-        <nav class="flex flex-col mt-6 text-[15px] font-normal text-gray-700">
+        <nav class="flex flex-col mt-5 text-[15px] font-normal text-gray-700">
+            <div class="px-4 pb-5">
+                <a href="{{ route('home') }}"
+                   class="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100">
+                    <span class="flex items-center gap-2">
+                        <i class="ri-store-3-line text-[20px]"></i>
+                        <span>К витрине</span>
+                    </span>
+                    <i class="ri-arrow-right-up-line text-[18px] text-indigo-500"></i>
+                </a>
+            </div>
+
             <a href="{{ route('seller.cabinet') }}"
                class="{{ request()->routeIs('seller.cabinet') ? $active : '' }} {{ $link }}">
                 <i class="ri-home-5-line text-[22px]"></i>
@@ -98,7 +109,7 @@
 </aside>
 
             <!-- 🌤 Контент -->
-        <main class="flex-1 bg-neutral-50 min-h-screen overflow-hidden lg:ml-64 {{ $chatMode ? 'p-0' : 'px-3 sm:px-6 py-6' }}">
+        <main class="flex-1 bg-neutral-50 overflow-hidden lg:ml-64 {{ $chatMode ? 'h-dvh p-0' : (($flushContent ? 'min-h-screen p-0' : 'min-h-screen px-3 sm:px-6 py-6')) }}">
 
                 {{ $slot }}
 

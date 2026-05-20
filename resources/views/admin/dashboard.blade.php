@@ -29,14 +29,17 @@
            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     @php
       $statsData = [
-        ['label' => 'Товаров', 'value' => $stats['products'], 'color' => 'indigo', 'icon' => 'ri-box-3-line', 'delta' => '+4%'],
-        ['label' => 'Категорий', 'value' => $stats['categories'], 'color' => 'blue', 'icon' => 'ri-folder-3-line', 'delta' => '+2%'],
-        ['label' => 'Заказов', 'value' => $stats['orders'], 'color' => 'green', 'icon' => 'ri-shopping-bag-3-line', 'delta' => '-1%'],
-        ['label' => 'Пользователей', 'value' => $stats['users'], 'color' => 'yellow', 'icon' => 'ri-user-3-line', 'delta' => '+8%'],
+        ['key' => 'products', 'label' => 'Товаров', 'value' => $stats['products'], 'color' => 'indigo', 'icon' => 'ri-box-3-line'],
+        ['key' => 'categories', 'label' => 'Категорий', 'value' => $stats['categories'], 'color' => 'blue', 'icon' => 'ri-folder-3-line'],
+        ['key' => 'orders', 'label' => 'Заказов', 'value' => $stats['orders'], 'color' => 'green', 'icon' => 'ri-shopping-bag-3-line'],
+        ['key' => 'users', 'label' => 'Пользователей', 'value' => $stats['users'], 'color' => 'yellow', 'icon' => 'ri-user-3-line'],
       ];
     @endphp
 
     @foreach ($statsData as $s)
+      @php
+        $delta = $statDeltas[$s['key']] ?? ['label' => '0%', 'positive' => true];
+      @endphp
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition p-6">
         <div class="flex flex-col items-center text-center">
           <div class="p-2 bg-{{ $s['color'] }}-50 rounded-lg text-{{ $s['color'] }}-600 mb-2">
@@ -45,9 +48,9 @@
           <div class="text-3xl font-semibold text-gray-800">{{ $s['value'] }}</div>
           <div class="text-sm text-gray-500 mt-1">{{ $s['label'] }}</div>
           <span class="inline-flex items-center gap-1 text-xs font-medium mt-2
-                       {{ str_contains($s['delta'], '+') ? 'text-green-600' : 'text-red-600' }}">
-            <i class="{{ str_contains($s['delta'], '+') ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line' }}"></i>
-            {{ $s['delta'] }} за неделю
+                       {{ $delta['positive'] ? 'text-green-600' : 'text-red-600' }}">
+            <i class="{{ $delta['positive'] ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line' }}"></i>
+            {{ $delta['label'] }} за неделю
           </span>
         </div>
       </div>

@@ -154,7 +154,7 @@
         }"
         x-init="$nextTick(() => { resize(); scrollToBottom(); poller = setInterval(() => loadNewerMessages(), 5000) })"
         @beforeunload.window="if (poller) clearInterval(poller)"
-        class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden sm:h-auto sm:min-h-0 sm:overflow-visible sm:px-6 sm:py-8"
+        class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden sm:px-5 sm:py-5 lg:px-6 lg:py-6"
     >
         <div class="grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
             <aside class="hidden min-h-0 min-w-0 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-50/70 p-3 lg:block">
@@ -175,7 +175,7 @@
                     </div>
                 </header>
 
-                <div x-ref="thread" class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-4 py-5 sm:px-6 lg:max-h-[62vh] lg:min-h-[420px]">
+                <div x-ref="thread" class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-4 py-5 sm:px-6">
                     <div x-show="hasOlderMessages" class="flex justify-center">
                         <button type="button"
                                 @click="loadOlderMessages()"

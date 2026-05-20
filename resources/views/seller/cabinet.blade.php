@@ -1,6 +1,6 @@
 {{-- resources/views/seller/cabinet.blade.php --}}
 <x-seller-layout title="Панель продавца" :hideHeader="true">
-  <div class="pt-2 pb-10 space-y-10 pl-4 pr-6">
+  <div class="space-y-6 px-3 py-4 sm:space-y-8 sm:px-5 sm:py-6 lg:px-6">
 
     @php
       $user = auth()->user();

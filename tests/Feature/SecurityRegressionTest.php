@@ -712,7 +712,33 @@ class SecurityRegressionTest extends TestCase
             ->assertDontSee('По товару: List context product')
             ->assertSee(route('product.show', $product->slug), false)
             ->assertSee(route('seller.show', $shop->slug), false)
-            ->assertSee('aria-label="Открыть чат"', false);
+            ->assertSee('aria-label="Открыть чат"', false)
+            ->assertSee('aria-label="Показать чат справа"', false);
+    }
+
+    public function test_chat_index_can_select_conversation_inline_on_desktop(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => Conversation::generalContextKey(),
+            'last_message_at' => now(),
+        ]);
+
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $seller->id,
+            'body' => 'Inline desktop chat body',
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.index', ['chat' => $conversation->id]))
+            ->assertOk()
+            ->assertSee(route('chats.index', ['chat' => $conversation->id]), false)
+            ->assertSee(route('chats.show', $conversation), false)
+            ->assertSee('Inline desktop chat body');
     }
 
     public function test_seller_navigation_contains_chats_link(): void
@@ -1275,6 +1301,36 @@ class SecurityRegressionTest extends TestCase
             ->assertOk()
             ->assertSee('Searchable camera')
             ->assertDontSee('Ordinary kettle');
+    }
+
+    public function test_admin_dashboard_analytics_use_real_filtered_data(): void
+    {
+        Cache::flush();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Real dashboard seller']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Buyer with product']);
+
+        for ($i = 0; $i < 12; $i++) {
+            $this->createProduct($seller, [
+                'title' => 'Dashboard product ' . $i,
+            ]);
+        }
+
+        $this->createProduct($buyer, [
+            'title' => 'Buyer owned dashboard product',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.dashboard', ['page' => 2]))
+            ->assertOk()
+            ->assertViewHas('statDeltas')
+            ->assertViewHas('ordersActivity', fn (array $series) => count($series) === 14)
+            ->assertViewHas('userGrowth', fn (array $series) => count($series) === 7)
+            ->assertViewHas('topSellers', fn ($sellers) => $sellers->contains('id', $seller->id)
+                && ! $sellers->contains('id', $buyer->id));
+
+        $this->assertSame(2, $response->viewData('products')->currentPage());
     }
 
     public function test_review_images_are_converted_to_webp_with_thumbnails(): void

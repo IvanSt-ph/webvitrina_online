@@ -22,10 +22,29 @@ class ChatController extends Controller
 
     public function index(Request $request)
     {
-        $conversations = $this->conversationQuery($request)
+        $query = $this->conversationQuery($request);
+        $selectedConversationId = $request->integer('chat');
+
+        $conversations = (clone $query)
             ->paginate(20);
 
-        return view('chats.index', compact('conversations'));
+        $selectedConversation = $selectedConversationId
+            ? (clone $query)->whereKey($selectedConversationId)->first()
+            : $conversations->getCollection()->first();
+
+        $selectedMessages = collect();
+
+        if ($selectedConversation) {
+            $selectedConversation->load(['buyer', 'seller', 'product']);
+            $selectedConversation->messages()
+                ->where('sender_id', '!=', $request->user()->id)
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            $selectedMessages = $selectedConversation->recentMessages(self::RECENT_MESSAGES_LIMIT);
+        }
+
+        return view('chats.index', compact('conversations', 'selectedConversation', 'selectedMessages'));
     }
 
     public function start(Request $request, Shop $shop)

@@ -27,7 +27,7 @@
         ];
     @endphp
 
-    <div class="space-y-6">
+    <div class="space-y-6 px-3 py-4 sm:px-5 sm:py-6 lg:px-6">
 
         {{-- Заголовок --}}
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">

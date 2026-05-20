@@ -35,7 +35,7 @@
         $itemsCount = $order->items->sum('quantity');
     @endphp
 
-    <div class="space-y-6">
+    <div class="space-y-6 px-3 py-4 sm:px-5 sm:py-6 lg:px-6">
 
         {{-- Верхняя панель --}}
         <div class="flex items-center justify-between gap-3">

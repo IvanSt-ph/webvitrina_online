@@ -18,17 +18,23 @@
                     $link = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
                 @endphp
 
-                <nav class="mt-6 text-[16px] font-normal text-gray-700">
+                <nav class="mt-5 text-[16px] font-normal text-gray-700">
+                    <div class="px-4 pb-5">
+                        <a href="{{ route('home') }}"
+                           class="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100">
+                            <span class="flex items-center gap-2">
+                                <i class="ri-store-3-line text-[20px]"></i>
+                                <span>К витрине</span>
+                            </span>
+                            <i class="ri-arrow-right-up-line text-[18px] text-indigo-500"></i>
+                        </a>
+                    </div>
+
                     <div class="px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
                         Основное
                     </div>
 
                     <div class="flex flex-col">
-                        <a href="{{ route('home') }}" class="{{ $link }}">
-                            <i class="ri-arrow-left-line text-[22px]"></i>
-                            <span>Вернутся к товарам</span>
-                        </a>
-
                         <a href="{{ route('cabinet') }}" class="{{ request()->routeIs('cabinet') ? $active : '' }} {{ $link }}">
                             <i class="ri-home-5-line text-[22px]"></i>
                             <span>Кабинет</span>
@@ -148,7 +154,7 @@
         </aside>
 
         <!-- 🌤 Контент -->
-        <main class="flex-1 bg-neutral-50 {{ ($chatMode || $flushContent) ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10' }}">
+        <main class="flex-1 bg-neutral-50 {{ $chatMode ? 'h-dvh overflow-hidden p-0 md:ml-64 md:p-0' : ($flushContent ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10') }}">
             {{ $slot }}
         </main>
     </div>

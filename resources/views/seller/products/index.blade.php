@@ -11,7 +11,7 @@
 
   <!-- 🧩 Обёртка с Alpine -->
   <div x-data="{ viewMode: localStorage.getItem('seller_view') || 'grid', showConfirm:false, productId:null }"
-       class="min-h-screen bg-white text-gray-800 pb-[5.5rem]">
+       class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-gray-800 sm:px-5 sm:py-6 lg:px-6">
 
     {{-- 🌌 Модалка подтверждения удаления --}}
     <div x-show="showConfirm"
