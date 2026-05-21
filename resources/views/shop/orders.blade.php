@@ -1,217 +1,191 @@
 <x-buyer-layout title="Мои заказы">
-
-<div class="space-y-6 sm:space-y-8 max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
-
-    <!-- Заголовок -->
-    <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-            <i class="ri-shopping-bag-3-line text-xl"></i>
-        </div>
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Мои заказы</h1>
-            <p class="text-sm sm:text-base text-gray-600 mt-1">Отслеживайте покупки в удобном формате.</p>
-        </div>
-    </div>
-
-    <!-- Вкладки -->
     @php
         $tabs = [
-            'active' => 'Активные',
-            'completed' => 'Завершённые',
-            'canceled' => 'Отменённые',
+            'active' => [
+                'label' => 'Активные',
+                'count' => $statusCounts->except([\App\Models\Order::STATUS_COMPLETED, \App\Models\Order::STATUS_CANCELED])->sum(),
+            ],
+            'completed' => [
+                'label' => 'Завершённые',
+                'count' => $statusCounts[\App\Models\Order::STATUS_COMPLETED] ?? 0,
+            ],
+            'canceled' => [
+                'label' => 'Отменённые',
+                'count' => $statusCounts[\App\Models\Order::STATUS_CANCELED] ?? 0,
+            ],
         ];
 
-        $current = request('tab', 'active');
+        $steps = [
+            \App\Models\Order::STATUS_PENDING => 1,
+            \App\Models\Order::STATUS_PROCESSING => 2,
+            \App\Models\Order::STATUS_PAID => 3,
+            \App\Models\Order::STATUS_SHIPPED => 4,
+            \App\Models\Order::STATUS_DELIVERED => 5,
+            \App\Models\Order::STATUS_COMPLETED => 6,
+        ];
 
         $stepLabels = [
-            1 => 'Новый заказ',
-            2 => 'Принят продавцом',
+            1 => 'Новый',
+            2 => 'Принят',
             3 => 'Оплачен',
-            4 => 'В доставке',
+            4 => 'В пути',
             5 => 'Доставлен',
             6 => 'Завершён',
         ];
     @endphp
 
-    <div class="border-b border-gray-200 overflow-x-auto">
-        <div class="flex gap-5 min-w-max">
-        @foreach($tabs as $key => $label)
-            <a href="{{ route('orders.index', ['tab' => $key]) }}"
-               class="pb-3 text-sm font-medium
-                    {{ $current === $key ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700' }}">
-                {{ $label }}
-            </a>
-        @endforeach
+    <div class="orders-mobile-safe min-h-screen w-full max-w-full overflow-x-hidden bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6" style="max-width:100vw;">
+        <div class="w-full max-w-none space-y-5 overflow-hidden">
+            <header class="grid w-full min-w-0 gap-4 sm:flex sm:items-end sm:justify-between">
+                <div class="min-w-0">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                        <i class="ri-shopping-bag-3-line"></i>
+                        Покупки
+                    </div>
+                    <h1 class="mt-3 text-2xl font-bold text-slate-950 sm:text-3xl">Мои заказы</h1>
+                    <p class="mt-1 max-w-2xl text-sm text-slate-500">
+                        Статусы, состав заказа и быстрый переход к деталям в одном списке.
+                    </p>
+                </div>
+
+                @if($orders->count())
+                    <div class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:w-auto">
+                        Показано <span class="font-semibold text-slate-900">{{ $orders->firstItem() }}-{{ $orders->lastItem() }}</span>
+                        из <span class="font-semibold text-slate-900">{{ $orders->total() }}</span>
+                    </div>
+                @endif
+            </header>
+
+            <nav class="w-full overflow-hidden border-b border-slate-200">
+                <div class="grid w-full min-w-0 grid-cols-3 gap-1 sm:flex sm:gap-2">
+                    @foreach($tabs as $key => $item)
+                        <a href="{{ route('orders.index', ['tab' => $key]) }}"
+                           class="flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-center text-xs font-semibold transition sm:inline-flex sm:justify-start sm:gap-2 sm:px-3 sm:text-sm {{ $tab === $key ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
+                            <span class="min-w-0 truncate">{{ $item['label'] }}</span>
+                            <span class="shrink-0 rounded-full {{ $tab === $key ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-500' }} px-1.5 py-0.5 text-[11px] sm:px-2 sm:text-xs">
+                                {{ $item['count'] }}
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </nav>
+
+            <div class="w-full max-w-full space-y-3 overflow-hidden">
+                @forelse($orders as $order)
+                    @php
+                        $activeStep = $order->status === \App\Models\Order::STATUS_CANCELED ? 0 : ($steps[$order->status] ?? 1);
+                        $firstItem = $order->items->first();
+                        $itemsCount = $order->items->sum('quantity');
+                        $firstTitle = $firstItem?->product?->title;
+                        $shortTitle = $firstTitle ? \Illuminate\Support\Str::limit($firstTitle, 14) : null;
+                    @endphp
+
+                    <article class="w-full max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+                        <div class="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-[1fr_220px] lg:items-start">
+                            <div class="min-w-0">
+                                <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                                    <h2 class="max-w-full truncate text-base font-bold text-slate-950">Заказ {{ $order->number }}</h2>
+                                    <x-status-badge :status="$order->status" class="max-w-full justify-center truncate px-2 sm:px-3" />
+                                </div>
+                                <div class="mt-1 text-sm text-slate-500">
+                                    {{ $order->created_at->format('d.m.Y · H:i') }}
+                                </div>
+                            </div>
+
+                            <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 lg:block lg:text-right">
+                                <div class="min-w-0 truncate text-lg font-bold text-slate-950">
+                                    {{ number_format($order->total_price, 2, ',', ' ') }} {{ $order->currency }}
+                                </div>
+                                <a href="{{ route('orders.show', $order) }}"
+                                   class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
+                                    <i class="ri-eye-line"></i>
+                                    <span class="hidden sm:inline">Подробнее</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 border-t border-slate-100 pt-4">
+                            <div class="flex min-w-0 items-center gap-3 overflow-hidden">
+                                @if($firstItem?->product)
+                                    <img src="{{ $firstItem->product->image_thumb_url }}"
+                                         alt="{{ $firstItem->product->title }}"
+                                         class="h-14 w-14 shrink-0 rounded-lg border border-slate-200 object-cover sm:h-16 sm:w-16">
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="sm:hidden max-w-full truncate text-sm font-semibold leading-5 text-slate-900"
+                                            title="{{ $firstItem->product->title }}"
+                                        >
+                                            {{ $shortTitle }}
+                                        </div>
+                                        <div class="hidden sm:block">
+                                            <div
+                                                class="max-w-full overflow-hidden text-sm font-semibold leading-5 text-slate-900"
+                                                style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;word-break:break-word;"
+                                                title="{{ $firstItem->product->title }}"
+                                            >
+                                                {{ $firstItem->product->title }}
+                                            </div>
+                                        </div>
+                                        <div class="mt-1 text-xs text-slate-500">
+                                            {{ $itemsCount }} шт.
+                                            @if($order->items->count() > 1)
+                                                · {{ $order->items->count() }} позиции
+                                            @endif
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-400 sm:h-16 sm:w-16">
+                                        <i class="ri-image-off-line text-2xl"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-semibold text-slate-500">Товар был удалён продавцом</div>
+                                        <div class="mt-1 text-xs text-slate-400">{{ $itemsCount }} шт.</div>
+                                    </div>
+                                @endif
+
+                                @if($order->items->count() > 1)
+                                    <div class="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 sm:block">
+                                        +{{ $order->items->count() - 1 }}
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </article>
+                @empty
+                    <x-empty-state
+                        icon="ri-shopping-bag-3-line"
+                        title="Заказов здесь пока нет"
+                        description="Когда появятся покупки с выбранным статусом, они будут показаны в этом разделе."
+                        class="py-16 sm:py-20"
+                    >
+                        <a href="{{ route('home') }}"
+                           class="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                            <i class="ri-store-3-line"></i>
+                            Перейти к покупкам
+                        </a>
+                    </x-empty-state>
+                @endforelse
+            </div>
+
+            @if($orders->hasPages())
+                <div>
+                    {{ $orders->links() }}
+                </div>
+            @endif
         </div>
     </div>
 
-    <!-- Список заказов -->
-    @forelse($orders as $order)
-        <div class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition p-4 sm:p-6 space-y-5">
+    <style>
+        @media (max-width: 767px) {
+            .orders-mobile-safe,
+            .orders-mobile-safe * {
+                box-sizing: border-box;
+            }
 
-            <!-- Верхняя часть -->
-            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div>
-                    <div class="font-semibold text-gray-900">
-                        Заказ <span class="text-indigo-600">{{ $order->number }}</span>
-                    </div>
-                    <div class="text-gray-500 text-sm">
-                        {{ $order->created_at->format('d.m.Y · H:i') }}
-                    </div>
-                </div>
-
-                <div class="sm:text-right">
-                    <div class="text-lg font-semibold text-gray-900">
-                        {{ number_format($order->total_price, 2, ',', ' ') }} {{ $order->currency }}
-                    </div>
-
-                    <x-status-badge :status="$order->status" class="mt-2" />
-                </div>
-            </div>
-
-            <!-- Прогресс-бар -->
-            @php
-                $steps = [
-                    'pending' => 1,
-                    'processing' => 2,
-                    'paid' => 3,
-                    'shipped' => 4,
-                    'delivered' => 5,
-                    'completed' => 6,
-                ];
-
-                $active = $steps[$order->status] ?? 1;
-            @endphp
-
-            <div class="sm:hidden rounded-xl bg-gray-50 border border-gray-100 p-3">
-                <div class="text-xs font-semibold text-gray-500 mb-3">Статус заказа</div>
-                <div class="space-y-2">
-                    @foreach($stepLabels as $step => $text)
-                        <div class="flex items-center gap-3">
-                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
-                                {{ $step <= $active ? 'bg-indigo-600 text-white' : 'bg-white text-gray-400 border border-gray-200' }}">
-                                @if($step < $active)
-                                    <i class="ri-check-line"></i>
-                                @else
-                                    {{ $step }}
-                                @endif
-                            </div>
-                            <div class="text-sm {{ $step === $active ? 'font-semibold text-gray-900' : ($step < $active ? 'text-gray-700' : 'text-gray-400') }}">
-                                {{ $text }}
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <div class="hidden sm:flex items-center justify-between text-xs font-medium text-gray-500 overflow-x-auto pb-1">
-                @foreach(range(1,6) as $step)
-                    <div class="min-w-12 flex-1 flex flex-col items-center">
-                        <div class="w-8 h-8 flex items-center justify-center rounded-full
-                            {{ $step <= $active ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500' }}">
-                            {{ $step }}
-                        </div>
-
-                        @if($step !== 6)
-                            <div class="h-1 w-full
-                                {{ $step < $active ? 'bg-indigo-600' : 'bg-gray-200' }}"></div>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-
-            <!-- Товары -->
-            <div class="space-y-3 border-t pt-4">
-                @foreach($order->items->take(2) as $item)
-                    <div class="flex items-center gap-3 sm:gap-4">
-
-                        {{-- ЕСЛИ ТОВАР ЕЩЁ СУЩЕСТВУЕТ --}}
-                        @if($item->product)
-
-                            <img src="{{ $item->product->image_url ?? asset('images/no-image.png') }}"
-                                class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border object-cover">
-
-                            <div class="flex-1">
-                                <div class="font-medium text-gray-900 text-sm">
-                                    {{ $item->product->title }}
-                                </div>
-                                <div class="text-gray-500 text-xs">
-                                    Кол-во: {{ $item->quantity }}
-                                </div>
-                            </div>
-
-                            <div class="font-semibold text-gray-900 text-sm text-right">
-                                {{ number_format($item->total, 2, ',', ' ') }} {{ $order->currency }}
-                            </div>
-
-                        {{-- ЕСЛИ ТОВАР УДАЛЁН (soft deleted) --}}
-                        @else
-                            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border bg-gray-100 flex items-center justify-center">
-                                <i class="ri-image-off-line text-2xl text-gray-400"></i>
-                            </div>
-
-                            <div class="flex-1">
-                                <div class="font-medium text-gray-500 text-sm">
-                                    Товар был удалён продавцом
-                                </div>
-                                <div class="text-gray-400 text-xs">
-                                    Кол-во: {{ $item->quantity }}
-                                </div>
-                            </div>
-
-                            <div class="font-semibold text-gray-400 text-sm">
-                                {{ number_format($item->total, 2, ',', ' ') }} {{ $order->currency }}
-                            </div>
-                        @endif
-
-                    </div>
-                @endforeach
-
-                @if($order->items->count() > 2)
-                    <div class="text-xs text-indigo-600 font-medium">
-                        + ещё {{ $order->items->count() - 2 }} товара
-                    </div>
-                @endif
-            </div>
-
-
-            <!-- Кнопки -->
-            <div class="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-3">
-                <x-secondary-action as="a" href="{{ route('orders.show', $order->id) }}" size="sm">
-                    <i class="ri-eye-line"></i>
-                    Подробнее
-                </x-secondary-action>
-
-                <a href="#"
-                   class="relative overflow-hidden group h-10 px-4 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 backdrop-blur-sm border border-indigo-400/30">
-                    <span class="relative z-10 flex items-center gap-2">
-                        <i class="ri-repeat-line"></i>
-                    Купить снова
-                    </span>
-                    <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-                </a>
-            </div>
-
-        </div>
-
-    @empty
-        <x-empty-state
-            icon="ri-shopping-bag-3-line"
-            title="Пока заказов нет"
-            description="Когда вы оформите покупку, заказ появится здесь."
-            class="py-16 sm:py-20"
-        >
-            <a href="{{ route('home') }}"
-               class="relative overflow-hidden group inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 backdrop-blur-sm border border-indigo-400/30">
-                <span class="relative z-10 flex items-center gap-2">
-                    <i class="ri-arrow-left-line"></i>
-                    Перейти к покупкам
-                </span>
-                <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-            </a>
-        </x-empty-state>
-    @endforelse
-
-</div>
-
+            .orders-mobile-safe {
+                inline-size: 100%;
+                max-inline-size: 100vw;
+            }
+        }
+    </style>
 </x-buyer-layout>

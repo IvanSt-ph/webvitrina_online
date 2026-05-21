@@ -30,14 +30,23 @@ class ProductManageController extends Controller
     /** 📋 Список товаров продавца */
     public function index(Request $request)
     {
-        $period = (int) $request->get('period', 7);
+        $period = max(1, min(90, (int) $request->get('period', 7)));
 
-        $to   = $request->get('to', now()->toDateString());
-        $from = $request->get('from', now()->subDays($period)->toDateString());
+        $to = $this->dateOrDefault($request->get('to'), now())->toDateString();
+        $from = $this->dateOrDefault($request->get('from'), now()->subDays($period))->toDateString();
+
+        if (Carbon::parse($from)->gt(Carbon::parse($to))) {
+            [$from, $to] = [$to, $from];
+        }
 
         // 🔍 Поиск и сортировка
-        $search = trim($request->get('q'));
-        $sort   = $request->get('sort', 'new');
+        $search = trim((string) $request->get('q', ''));
+        $sort = in_array($request->get('sort'), ['new', 'cheap', 'expensive', 'popular'], true)
+            ? $request->get('sort')
+            : 'new';
+        $status = in_array($request->get('status'), ['active', 'draft'], true)
+            ? $request->get('status')
+            : null;
 
         /* =========================
          | СВОДКА ЗА ПЕРИОД
@@ -81,6 +90,19 @@ class ProductManageController extends Controller
                 $q->whereBetween('date', [$from, $to]);
             }], 'views');
 
+        $statusCounts = Product::where('user_id', Auth::id())
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $productTotals = Product::where('user_id', Auth::id())
+            ->selectRaw('
+                COUNT(*) as total,
+                COALESCE(AVG(price), 0) as avg_price,
+                SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out_of_stock
+            ')
+            ->first();
+
         /* 🔍 ПОИСК */
         if ($search) {
             $productsQuery->where(function ($q) use ($search) {
@@ -89,6 +111,10 @@ class ProductManageController extends Controller
                       $c->where('name', 'like', "%{$search}%");
                   });
             });
+        }
+
+        if ($status) {
+            $productsQuery->where('status', $status);
         }
 
         /* 🔃 СОРТИРОВКА */
@@ -138,9 +164,21 @@ class ProductManageController extends Controller
             'to',
             'activityPercent',
             'newProductsCount',
+            'productTotals',
             'search',
-            'sort'
+            'sort',
+            'status',
+            'statusCounts'
         ));
+    }
+
+    private function dateOrDefault(mixed $value, Carbon|\Illuminate\Support\Carbon $default): Carbon
+    {
+        try {
+            return $value ? Carbon::parse($value) : Carbon::parse($default);
+        } catch (\Throwable) {
+            return Carbon::parse($default);
+        }
     }
 
     /** ➕ Создать товар */

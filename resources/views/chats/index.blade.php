@@ -3,7 +3,7 @@
 @endphp
 
 <x-dynamic-component :component="$chatLayout" title="Чаты" :chat-mode="true">
-    <div class="mx-auto flex min-h-dvh w-full max-w-8xl min-w-0 flex-col overflow-x-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pb-6">
+    <div class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-6 lg:pb-6">
         <div class="sticky top-0 z-20 mb-4 shrink-0 border-b border-slate-100 bg-neutral-50/95 pb-4 backdrop-blur sm:mb-5 sm:border-0 sm:bg-transparent sm:pb-0">
             @if(auth()->user()->isSeller())
                 <a href="{{ route('seller.cabinet') }}"
@@ -28,11 +28,11 @@
             </div>
         </div>
 
-        <div class="grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
-            <section class="min-h-0 min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/70 p-2 shadow-sm sm:rounded-[2rem] sm:p-3 lg:h-full lg:overflow-y-auto">
+        <div class="grid min-h-0 min-w-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[380px_minmax(0,1fr)]">
+            <section class="min-h-0 min-w-0 overflow-y-auto rounded-2xl border border-slate-200/80 bg-slate-50/70 p-2 shadow-sm sm:rounded-[2rem] sm:p-3 lg:h-full">
                 @include('chats.partials.list', ['currentConversation' => $selectedConversation, 'inlineDesktop' => true])
                 @if(method_exists($conversations, 'links'))
-                    <div class="mt-4">{{ $conversations->links() }}</div>
+                    <div class="mt-4 pb-3">{{ $conversations->links() }}</div>
                 @endif
             </section>
 

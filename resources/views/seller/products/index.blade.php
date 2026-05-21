@@ -1,365 +1,344 @@
 @php
-    function delta($now, $prev) {
-        if ($prev == 0) return $now > 0 ? '+100%' : '0%';
-        $d = (($now - $prev) / $prev) * 100;
-        return ($d >= 0 ? '+' : '') . round($d, 1) . '%';
-    }
+    $viewsDelta = (function ($now, $previous) {
+        $now = (float) $now;
+        $previous = (float) $previous;
+
+        if ($previous <= 0) {
+            return $now > 0 ? '+100%' : '0%';
+        }
+
+        $delta = (($now - $previous) / $previous) * 100;
+
+        return ($delta >= 0 ? '+' : '') . round($delta, 1) . '%';
+    })($summary->views ?? 0, $prev->views ?? 0);
+
+    $statusLabels = [
+        'active' => 'Опубликован',
+        'draft' => 'Черновик',
+    ];
+
+    $statusClasses = [
+        'active' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        'draft' => 'border-amber-200 bg-amber-50 text-amber-700',
+    ];
+
+    $sortLabels = [
+        'new' => 'Сначала новые',
+        'cheap' => 'Сначала дешевле',
+        'expensive' => 'Сначала дороже',
+        'popular' => 'По просмотрам',
+    ];
 @endphp
 
 <x-seller-layout title="Мои товары" :hideHeader="true">
-  <style>[x-cloak]{display:none!important}</style>
+    <style>[x-cloak]{display:none!important}</style>
 
-  <!-- 🧩 Обёртка с Alpine -->
-  <div x-data="{ viewMode: localStorage.getItem('seller_view') || 'grid', showConfirm:false, productId:null }"
-       class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-gray-800 sm:px-5 sm:py-6 lg:px-6">
+    <div
+        x-data="{ viewMode: localStorage.getItem('seller_view') || 'grid', showConfirm: false, productId: null, productTitle: '' }"
+        class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6"
+    >
+        <template x-teleport="body">
+            <div
+                x-show="showConfirm"
+                x-cloak
+                class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3"
+                @keydown.escape.window="showConfirm = false"
+            >
+                <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                            <i class="ri-delete-bin-6-line text-xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h2 class="text-lg font-semibold text-slate-950">Удалить товар?</h2>
+                            <p class="mt-1 text-sm text-slate-500">
+                                <span class="font-medium text-slate-700" x-text="productTitle"></span>
+                                исчезнет из витрины и кабинета продавца.
+                            </p>
+                        </div>
+                    </div>
 
-    {{-- 🌌 Модалка подтверждения удаления --}}
-    <div x-show="showConfirm"
-         x-cloak
-         class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200/50">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-md">
-            <i class="ri-delete-bin-6-line text-white text-lg"></i>
-          </div>
-          <h2 class="text-lg font-semibold text-gray-900">Удалить товар?</h2>
-        </div>
-        <p class="text-sm text-gray-600 mb-5 pl-13">
-          Это действие <span class="font-semibold text-rose-600">необратимо</span>.<br>
-          После удаления товар исчезнет из магазина навсегда.
-        </p>
-        <div class="flex justify-end gap-3">
-          <button @click="showConfirm=false"
-                  class="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors">
-            Отмена
-          </button>
-
-          <form :action="`/seller/products/${productId}`" method="POST" x-ref="deleteForm">
-            @csrf @method('DELETE')
-            <button type="submit"
-                    class="relative overflow-hidden group px-4 py-2 bg-rose-500/90 hover:bg-rose-600 
-                           text-white font-medium rounded-lg shadow-md hover:shadow-lg 
-                           transition-all duration-300 transform hover:-translate-y-0.5
-                           flex items-center gap-2 backdrop-blur-sm border border-rose-400/30 text-sm">
-              <span class="relative z-10 flex items-center gap-1">
-                <i class="ri-delete-bin-line"></i>
-                Удалить
-              </span>
-              <span class="absolute inset-0 bg-rose-600 translate-y-full 
-                           group-hover:translate-y-0 transition-transform duration-300"></span>
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- 🔹 Заголовок страницы -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Мои товары</h1>
-        <p class="text-sm text-gray-500 mt-1">Управляйте своим ассортиментом и следите за активностью</p>
-      </div>
-      <a href="{{ route('seller.products.create') }}"
-         class="relative overflow-hidden group px-5 py-2.5 bg-indigo-500/90 hover:bg-indigo-600 
-                text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg 
-                transition-all duration-300 transform hover:-translate-y-0.5
-                flex items-center gap-2 backdrop-blur-sm border border-indigo-400/30">
-        <span class="relative z-10 flex items-center gap-2">
-          <i class="ri-add-line text-lg"></i>
-          Добавить товар
-          <i class="ri-arrow-right-line text-lg opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"></i>
-        </span>
-        <span class="absolute inset-0 bg-indigo-600 translate-y-full 
-                     group-hover:translate-y-0 transition-transform duration-300"></span>
-      </a>
-    </div>
-
-    <!-- 📊 Аналитика -->
-    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white/80 backdrop-blur-sm border border-gray-100/80 rounded-xl p-6 hover:bg-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-        <p class="text-sm text-gray-500 flex items-center gap-1">
-          <i class="ri-stack-line text-indigo-400 text-xs"></i>
-          Всего товаров
-        </p>
-        <h3 class="text-2xl font-semibold mt-2 text-gray-800">{{ $products->total() ?? 0 }}</h3>
-        <p class="text-xs mt-1 {{ $newProductsCount > 0 ? 'text-emerald-600' : 'text-gray-400' }} flex items-center gap-1">
-          <i class="ri-{{ $newProductsCount > 0 ? 'arrow-up-line' : 'minus-line' }}"></i>
-          {{ $newProductsCount > 0 ? '+' . $newProductsCount . ' новых за период' : 'Без новых товаров' }}
-        </p>
-      </div>
-
-      <div class="bg-white/80 backdrop-blur-sm border border-gray-100/80 rounded-xl p-6 hover:bg-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-        <p class="text-sm text-gray-500 flex items-center gap-1">
-          <i class="ri-eye-line text-indigo-400 text-xs"></i>
-          Просмотры за неделю
-        </p>
-        @php $d = delta($summary->views, $prev->views); @endphp
-        <h3 class="text-2xl font-semibold mt-2 text-blue-600">
-          {{ number_format($summary->views, 0, ',', ' ') }}
-        </h3>
-        <p class="text-xs mt-1 {{ str_starts_with($d,'+') ? 'text-emerald-600' : 'text-rose-600' }} flex items-center gap-1">
-          <i class="ri-{{ str_starts_with($d,'+') ? 'arrow-up-line' : 'arrow-down-line' }}"></i>
-          {{ $d }}
-        </p>
-      </div>
-
-      <div class="bg-white/80 backdrop-blur-sm border border-gray-100/80 rounded-xl p-6 hover:bg-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-        <p class="text-sm text-gray-500 flex items-center gap-1">
-          <i class="ri-price-tag-3-line text-indigo-400 text-xs"></i>
-          Средняя цена
-        </p>
-        <h3 class="text-2xl font-semibold mt-2 text-gray-800">
-          {{ number_format($products->avg('price') ?? 0, 0, ',', ' ') }} ₽
-        </h3>
-      </div>
-
-      <div class="bg-white/80 backdrop-blur-sm border border-gray-100/80 rounded-xl p-6 hover:bg-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-        <p class="text-sm text-gray-500 flex items-center gap-1">
-          <i class="ri-flashlight-line text-indigo-400 text-xs"></i>
-          Активность продавца
-        </p>
-        <h3 class="text-2xl font-semibold mt-2
-            {{ $activityPercent >= 70 ? 'text-emerald-600' : ($activityPercent >= 40 ? 'text-amber-600' : 'text-rose-600') }}">
-            {{ $activityPercent }}%
-        </h3>
-        <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
-          <i class="ri-information-line text-indigo-300"></i>
-          {{ $activityPercent >= 70 ? 'Высокая активность' : ($activityPercent >= 40 ? 'Средняя активность' : 'Низкая активность') }}
-        </p>
-      </div>
-    </section>
-
-    <!-- 🧭 Фильтры и переключатель -->
-    <section class="bg-white/90 backdrop-blur-sm border border-gray-100/80 rounded-xl shadow-sm p-6">
-      <form method="GET" action="{{ route('seller.products.index') }}" class="mb-5 space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <div class="w-5 h-5 rounded bg-indigo-100 flex items-center justify-center">
-                <i class="ri-store-2-line text-indigo-600 text-xs"></i>
-              </div>
-              Все товары
-            </h2>
-
-            <!-- 🔘 Переключатель вида -->
-            <div class="flex items-center border border-gray-200/80 rounded-lg overflow-hidden bg-white/50 backdrop-blur-sm">
-              <button
-                type="button"
-                @click="viewMode='grid'; localStorage.setItem('seller_view','grid')"
-                :class="viewMode==='grid' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'"
-                class="px-3 py-1.5 text-sm transition">
-                <i class="ri-layout-grid-fill text-lg"></i>
-              </button>
-              <button
-                type="button"
-                @click="viewMode='list'; localStorage.setItem('seller_view','list')"
-                :class="viewMode==='list' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:text-gray-700'"
-                class="px-3 py-1.5 text-sm transition border-l border-gray-200/80">
-                <i class="ri-list-unordered text-lg"></i>
-              </button>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            @click="showConfirm = false"
+                            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                            Отмена
+                        </button>
+                        <form :action="`/seller/products/${productId}`" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700">
+                                <i class="ri-delete-bin-line"></i>
+                                Удалить
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-          </div>
+        </template>
 
-          <!-- 🔃 СОРТИРОВКА -->
-          <select
-            name="sort"
-            onchange="this.form.submit()"
-            class="h-10 text-sm border border-gray-200/80 rounded-xl px-3 bg-white/80 backdrop-blur-sm
-                   focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50 
-                   transition-all duration-200 outline-none w-48 sm:w-56">
-            <option value="new"        @selected($sort === 'new')>Сначала новые</option>
-            <option value="cheap"      @selected($sort === 'cheap')>Сначала дешёвые</option>
-            <option value="expensive"  @selected($sort === 'expensive')>Сначала дорогие</option>
-            <option value="popular"    @selected($sort === 'popular')>По просмотрам</option>
-          </select>
-        </div>
-
-        <!-- 🔍 ПОИСК -->
-        <div class="relative group">
-          <div class="absolute -inset-0.5 bg-indigo-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
-          <input
-            type="text"
-            name="q"
-            value="{{ $search }}"
-            placeholder="Поиск по названию или категории..."
-            class="relative w-full h-11 text-sm border border-gray-200/80 rounded-xl px-4
-                   focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100/50
-                   bg-white/80 backdrop-blur-sm transition-all duration-200 outline-none"
-          />
-        </div>
-      </form>
-
-      @if($products->count())
-        {{-- 🟦 Плитка --}}
-        <div 
-          x-show="viewMode==='grid'" 
-          x-cloak
-          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5 transition-all duration-300 ease-in-out">
-          @foreach($products as $p)
-            @php
-              $isPublished = $p->status === 'active';
-              $isDraft = $p->status === 'draft';
-              $statusLabel = $isPublished ? 'Опубликован' : ($isDraft ? 'Черновик' : 'Неверный статус');
-              $statusClass = $isPublished
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
-                  : ($isDraft
-                      ? 'bg-amber-50 text-amber-700 border border-amber-200/50'
-                      : 'bg-rose-50 text-rose-700 border border-rose-200/50');
-            @endphp
-            <div class="relative bg-white/80 backdrop-blur-sm border border-gray-200/80 rounded-xl hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden group">
-              <div class="relative h-44 bg-gray-50/50 overflow-hidden pt-[5px] px-[10px] rounded-t-xl">
-                @if($p->image)
-                  <img src="{{ asset('storage/'.$p->image) }}" alt="{{ $p->title }}"
-                       class="object-cover w-full h-full group-hover:scale-105 transition duration-300 rounded-t-[10px]">
-                @else
-                  <div class="flex items-center justify-center h-full text-gray-400 text-xs bg-gray-100/50">Без фото</div>
-                @endif
-
-                <span class="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full {{ $statusClass }}">
-                  {{ $statusLabel }}
-                </span>
-
-                <span class="absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full
-                      {{ $p->stock > 0 ? 'bg-white/90 text-gray-700 border border-gray-200/70' : 'bg-rose-50 text-rose-700 border border-rose-200/50' }}">
-                  {{ $p->stock > 0 ? 'Остаток: '.$p->stock : 'Нет в наличии' }}
-                </span>
-
-                <div class="absolute inset-0 bg-black/25 backdrop-blur-sm opacity-0 
-                            group-hover:opacity-100 flex items-center justify-center gap-2 transition duration-300">
-                  <a href="{{ route('seller.products.edit',$p) }}"
-                     class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/90 hover:bg-white text-indigo-700 border border-indigo-200/50 backdrop-blur-sm transition-all hover:-translate-y-0.5">
-                    <i class="ri-edit-line mr-1"></i>Редактировать
-                  </a>
-                  <button type="button"
-                          @click="productId={{ $p->id }}; showConfirm=true"
-                          class="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/90 hover:bg-white text-rose-700 border border-rose-200/50 backdrop-blur-sm transition-all hover:-translate-y-0.5">
-                    <i class="ri-delete-bin-6-line mr-1"></i>Удалить
-                  </button>
+        <div class="w-full max-w-none space-y-5">
+            <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                        <i class="ri-box-3-line"></i>
+                        Ассортимент
+                    </div>
+                    <h1 class="mt-3 text-2xl font-bold text-slate-950 sm:text-3xl">Мои товары</h1>
+                    <p class="mt-1 max-w-2xl text-sm text-slate-500">
+                        Управляйте публикацией, остатками, ценами и быстрым поиском по своему каталогу.
+                    </p>
                 </div>
-              </div>
 
-              <div class="p-3">
-                <h3 class="text-sm font-medium text-gray-800 line-clamp-1">{{ $p->title }}</h3>
-                <div class="mt-1 text-xs text-gray-500 flex justify-between">
-                  <span>{{ $p->category->name ?? '—' }}</span>
-                  <span>{{ $p->city->name ?? '' }}</span>
-                </div>
-                <div class="mt-2 text-sm font-semibold text-gray-800">{{ number_format($p->price,0,',',' ') }} ₽</div>
-              </div>
-
-              <div class="bg-indigo-50/30 text-[11px] text-gray-500 px-3 py-1.5 flex justify-between border-t border-indigo-100/30">
-                <span class="flex items-center gap-1">
-                  <i class="ri-calendar-line text-indigo-300"></i>
-                  {{ $p->created_at->format('d.m.Y') }}
-                </span>
-                <span class="flex items-center gap-1">
-                  <i class="ri-eye-line text-indigo-300"></i>
-                  {{ number_format($p->views_sum ?? 0, 0, ',', ' ') }}
-                </span>
-              </div>
-            </div>
-          @endforeach
-        </div>
-
-        {{-- 🟧 Список (ультра-компактный режим) --}}
-        <div 
-          x-show="viewMode==='list'" 
-          x-cloak 
-          class="flex flex-col divide-y divide-indigo-100/30 transition-all duration-300 ease-in-out bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/80 overflow-hidden">
-          @foreach($products as $p)
-            @php
-              $isPublished = $p->status === 'active';
-              $isDraft = $p->status === 'draft';
-              $statusLabel = $isPublished ? 'Опубликован' : ($isDraft ? 'Черновик' : 'Неверный статус');
-              $statusClass = $isPublished
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
-                  : ($isDraft
-                      ? 'bg-amber-50 text-amber-700 border border-amber-200/50'
-                      : 'bg-rose-50 text-rose-700 border border-rose-200/50');
-            @endphp
-            <div class="flex items-center justify-between bg-transparent hover:bg-indigo-50/30 transition-all cursor-pointer
-                        w-full h-[55px] px-3 hover:pl-4 duration-200">
-              
-              <!-- 🖼 Изображение + инфо -->
-              <div class="flex items-center gap-3 w-full overflow-hidden">
-                @if($p->image)
-                  <img src="{{ asset('storage/'.$p->image) }}" alt="{{ $p->title }}"
-                       class="w-8 h-8 object-cover rounded-lg flex-shrink-0 border border-gray-200/50">
-                @else
-                  <div class="w-8 h-8 bg-indigo-50/50 rounded-lg flex items-center justify-center text-[9px] text-indigo-400 border border-indigo-200/50">
-                    <i class="ri-image-line"></i>
-                  </div>
-                @endif
-
-                <div class="flex flex-col justify-center min-w-0 leading-tight">
-                  <!-- 🔹 Название + статус -->
-                  <div class="flex items-center gap-1.5">
-                    <h3 class="text-[12.5px] font-medium text-gray-800 truncate">{{ $p->title }}</h3>
-                    <span class="text-[8px] px-1.5 py-[2px] rounded-full {{ $statusClass }}">
-                      {{ $statusLabel }}
-                    </span>
-                  </div>
-
-                  <!-- 🔸 всё остальное -->
-                  <p class="text-[10px] text-gray-500 truncate flex items-center gap-1">
-                    <span>{{ $p->category->name ?? '—' }}</span>
-                    <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
-                    <span>{{ $p->city->name ?? '—' }}</span>
-                    <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
-                    <span>{{ $p->stock > 0 ? 'Остаток: '.$p->stock : 'Нет в наличии' }}</span>
-                    <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
-                    <span>👁 {{ number_format($p->views_sum ?? 0, 0, ',', ' ') }}</span>
-                    <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
-                    <span><i class="ri-calendar-line text-indigo-300"></i> {{ $p->created_at->format('d.m.Y') }}</span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- 💰 Цена + иконки -->
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <span class="text-[12.5px] font-semibold text-gray-800 whitespace-nowrap">
-                  {{ number_format($p->price,0,',',' ') }} ₽
-                </span>
-
-                <a href="{{ route('seller.products.edit',$p) }}" 
-                   class="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-all hover:-translate-y-0.5">
-                   <i class="ri-edit-line text-sm"></i>
+                <a href="{{ route('seller.products.create') }}"
+                   class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                    <i class="ri-add-line text-lg"></i>
+                    Добавить товар
                 </a>
-                <button type="button"
-                        @click="productId={{ $p->id }}; showConfirm=true"
-                        class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all hover:-translate-y-0.5">
-                  <i class="ri-delete-bin-6-line text-sm"></i>
-                </button>
-              </div>
-            </div>
-          @endforeach
+            </header>
+
+            <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="flex items-center justify-between text-sm text-slate-500">
+                        <span>Всего товаров</span>
+                        <i class="ri-stack-line text-indigo-500"></i>
+                    </div>
+                    <div class="mt-2 text-2xl font-bold">{{ number_format($productTotals->total ?? 0, 0, ',', ' ') }}</div>
+                    <div class="mt-1 text-xs {{ $newProductsCount > 0 ? 'text-emerald-600' : 'text-slate-400' }}">
+                        {{ $newProductsCount > 0 ? '+' . $newProductsCount . ' за период' : 'Без новых за период' }}
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                    <div class="flex items-center justify-between text-sm text-indigo-700">
+                        <span>Просмотры за период</span>
+                        <i class="ri-eye-line"></i>
+                    </div>
+                    <div class="mt-2 text-2xl font-bold text-indigo-900">{{ number_format($summary->views ?? 0, 0, ',', ' ') }}</div>
+                    <div class="mt-1 text-xs {{ str_starts_with($viewsDelta, '+') ? 'text-emerald-700' : 'text-rose-700' }}">{{ $viewsDelta }} к прошлому периоду</div>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <div class="flex items-center justify-between text-sm text-slate-500">
+                        <span>Средняя цена</span>
+                        <i class="ri-price-tag-3-line text-indigo-500"></i>
+                    </div>
+                    <div class="mt-2 text-2xl font-bold">{{ number_format($productTotals->avg_price ?? 0, 0, ',', ' ') }} ₽</div>
+                    <div class="mt-1 text-xs text-slate-400">По всем товарам продавца</div>
+                </div>
+
+                <div class="rounded-xl border {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50' }} p-4">
+                    <div class="flex items-center justify-between text-sm {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'text-rose-700' : 'text-emerald-700' }}">
+                        <span>Нет в наличии</span>
+                        <i class="ri-alert-line"></i>
+                    </div>
+                    <div class="mt-2 text-2xl font-bold {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'text-rose-800' : 'text-emerald-800' }}">
+                        {{ number_format($productTotals->out_of_stock ?? 0, 0, ',', ' ') }}
+                    </div>
+                    <div class="mt-1 text-xs {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'text-rose-600' : 'text-emerald-700' }}">
+                        {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'Стоит пополнить остатки' : 'Остатки выглядят хорошо' }}
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-xl border border-slate-200 bg-white">
+                <div class="border-b border-slate-100 p-3 sm:p-4">
+                    <form method="GET" action="{{ route('seller.products.index') }}" class="grid gap-3 xl:grid-cols-[1fr_220px_220px_auto]">
+                        <label class="relative block">
+                            <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input
+                                type="search"
+                                name="q"
+                                value="{{ $search }}"
+                                placeholder="Поиск по названию или категории"
+                                class="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                            >
+                        </label>
+
+                        <select name="status" class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <option value="">Все статусы</option>
+                            @foreach($statusLabels as $key => $label)
+                                <option value="{{ $key }}" @selected($status === $key)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+
+                        <select name="sort" class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            @foreach($sortLabels as $key => $label)
+                                <option value="{{ $key }}" @selected($sort === $key)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+
+                        <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                            <i class="ri-filter-3-line"></i>
+                            Применить
+                        </button>
+                    </form>
+                </div>
+
+                <div class="flex flex-col gap-3 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex min-w-0 gap-2 overflow-x-auto">
+                        @php
+                            $filterBase = array_filter(['q' => $search, 'sort' => $sort]);
+                            $allCount = $productTotals->total ?? 0;
+                        @endphp
+                        <a href="{{ route('seller.products.index', $filterBase) }}"
+                           class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ $status === null ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+                            Все
+                            <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $allCount }}</span>
+                        </a>
+                        @foreach($statusLabels as $key => $label)
+                            <a href="{{ route('seller.products.index', array_merge($filterBase, ['status' => $key])) }}"
+                               class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ $status === $key ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+                                {{ $label }}
+                                <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $statusCounts[$key] ?? 0 }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+
+                    <div class="inline-flex w-fit overflow-hidden rounded-lg border border-slate-200 bg-white">
+                        <button
+                            type="button"
+                            title="Плитка"
+                            @click="viewMode = 'grid'; localStorage.setItem('seller_view', 'grid')"
+                            :class="viewMode === 'grid' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'"
+                            class="flex h-10 w-11 items-center justify-center transition"
+                        >
+                            <i class="ri-layout-grid-fill text-lg"></i>
+                        </button>
+                        <button
+                            type="button"
+                            title="Список"
+                            @click="viewMode = 'list'; localStorage.setItem('seller_view', 'list')"
+                            :class="viewMode === 'list' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'"
+                            class="flex h-10 w-11 items-center justify-center border-l border-slate-200 transition"
+                        >
+                            <i class="ri-list-unordered text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                @if($products->count())
+                    <div x-show="viewMode === 'grid'" x-cloak class="grid gap-4 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                        @foreach($products as $p)
+                            @php
+                                $statusLabel = $statusLabels[$p->status] ?? 'Неизвестный статус';
+                                $statusClass = $statusClasses[$p->status] ?? 'border-rose-200 bg-rose-50 text-rose-700';
+                            @endphp
+                            <article class="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-indigo-200 hover:shadow-sm">
+                                <div class="relative aspect-[4/3] bg-slate-50">
+                                    <img src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
+                                    <div class="absolute left-2 top-2 flex flex-wrap gap-2">
+                                        <span class="rounded-full border {{ $statusClass }} px-2 py-1 text-xs font-medium">{{ $statusLabel }}</span>
+                                        @if($p->stock <= 0)
+                                            <span class="rounded-full border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700">Нет в наличии</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3 p-3">
+                                    <div>
+                                        <h3 class="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-slate-950">{{ $p->title }}</h3>
+                                        <p class="mt-1 truncate text-xs text-slate-500">{{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }}</p>
+                                    </div>
+
+                                    <div class="flex items-end justify-between gap-3">
+                                        <div>
+                                            <div class="text-base font-bold text-slate-950">{{ number_format($p->price, 0, ',', ' ') }} ₽</div>
+                                            <div class="text-xs text-slate-500">Остаток: {{ $p->stock }}</div>
+                                        </div>
+                                        <div class="text-right text-xs text-slate-500">
+                                            <div class="font-semibold text-slate-700">{{ number_format($p->views_sum ?? 0, 0, ',', ' ') }}</div>
+                                            <div>просм.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-[1fr_auto] gap-2 pt-1">
+                                        <a href="{{ route('seller.products.edit', $p) }}" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                                            <i class="ri-edit-line"></i>
+                                            Редактировать
+                                        </a>
+                                        <button
+                                            type="button"
+                                            title="Удалить"
+                                            @click="productId = {{ $p->id }}; productTitle = @js($p->title); showConfirm = true"
+                                            class="flex h-9 w-10 items-center justify-center rounded-lg border border-rose-200 text-rose-600 transition hover:bg-rose-50"
+                                        >
+                                            <i class="ri-delete-bin-6-line"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+
+                    <div x-show="viewMode === 'list'" x-cloak class="divide-y divide-slate-100">
+                        @foreach($products as $p)
+                            @php
+                                $statusLabel = $statusLabels[$p->status] ?? 'Неизвестный статус';
+                                $statusClass = $statusClasses[$p->status] ?? 'border-rose-200 bg-rose-50 text-rose-700';
+                            @endphp
+                            <div class="grid gap-3 px-4 py-3 transition hover:bg-slate-50 lg:grid-cols-[1fr_170px_120px_130px] lg:items-center">
+                                <div class="flex min-w-0 items-center gap-3">
+                                    <img src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-12 w-12 shrink-0 rounded-lg border border-slate-200 object-cover">
+                                    <div class="min-w-0">
+                                        <div class="flex min-w-0 flex-wrap items-center gap-2">
+                                            <h3 class="truncate text-sm font-semibold text-slate-950">{{ $p->title }}</h3>
+                                            <span class="rounded-full border {{ $statusClass }} px-2 py-0.5 text-xs font-medium">{{ $statusLabel }}</span>
+                                        </div>
+                                        <div class="mt-1 truncate text-xs text-slate-500">
+                                            {{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }} · {{ $p->created_at->format('d.m.Y') }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-sm text-slate-600">
+                                    <span class="font-semibold text-slate-950">{{ number_format($p->price, 0, ',', ' ') }} ₽</span>
+                                </div>
+
+                                <div class="text-sm {{ $p->stock > 0 ? 'text-slate-600' : 'text-rose-600' }}">
+                                    Остаток: <span class="font-semibold">{{ $p->stock }}</span>
+                                </div>
+
+                                <div class="flex items-center gap-2 lg:justify-end">
+                                    <a href="{{ route('seller.products.edit', $p) }}" class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700 transition hover:bg-indigo-100" title="Редактировать">
+                                        <i class="ri-edit-line"></i>
+                                    </a>
+                                    <button
+                                        type="button"
+                                        title="Удалить"
+                                        @click="productId = {{ $p->id }}; productTitle = @js($p->title); showConfirm = true"
+                                        class="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                                    >
+                                        <i class="ri-delete-bin-6-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if($products->hasPages())
+                        <div class="border-t border-slate-100 p-4">
+                            {{ $products->links() }}
+                        </div>
+                    @endif
+                @else
+                    <div class="px-6 py-14 text-center">
+                        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl text-slate-400">
+                            <i class="ri-store-2-line"></i>
+                        </div>
+                        <h2 class="mt-4 text-lg font-semibold text-slate-900">Товары не найдены</h2>
+                        <p class="mt-1 text-sm text-slate-500">Попробуйте изменить фильтр или добавить новый товар.</p>
+                        <a href="{{ route('seller.products.create') }}" class="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                            <i class="ri-add-line"></i>
+                            Добавить товар
+                        </a>
+                    </div>
+                @endif
+            </section>
         </div>
+    </div>
 
-        <div class="mt-10">{{ $products->links() }}</div>
-
-      @else
-        <div class="text-center text-gray-500 mt-20 py-12 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200/50">
-          <div class="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-4">
-            <i class="ri-store-2-line text-indigo-400 text-2xl"></i>
-          </div>
-          <p class="text-lg mb-2">Нет товаров</p>
-          <a href="{{ route('seller.products.create') }}" 
-             class="relative overflow-hidden group inline-flex px-5 py-2.5 bg-indigo-500/90 hover:bg-indigo-600 
-                    text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg 
-                    transition-all duration-300 transform hover:-translate-y-0.5
-                    items-center gap-2 backdrop-blur-sm border border-indigo-400/30">
-            <span class="relative z-10 flex items-center gap-2">
-              <i class="ri-add-line text-lg"></i>
-              Добавить первый товар
-            </span>
-            <span class="absolute inset-0 bg-indigo-600 translate-y-full 
-                         group-hover:translate-y-0 transition-transform duration-300"></span>
-          </a>
-        </div>
-      @endif
-    </section>
-  </div>
-
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
-  @include('layouts.mobile-bottom-seller-nav')
+    @include('layouts.mobile-bottom-seller-nav')
 </x-seller-layout>

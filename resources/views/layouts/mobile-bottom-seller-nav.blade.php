@@ -33,7 +33,6 @@
       class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-500' }} relative">
         <i class="ri-file-list-3-line text-xl"></i>
         <span>Заказы</span>
-        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-semibold px-1.5 rounded-full">5</span>
     </button>
 
     <!-- Чаты -->
@@ -79,9 +78,9 @@
 
     <ul class="space-y-3 text-sm text-gray-700">
       <li><a href="{{ route('seller.orders.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-list-unordered text-lg"></i> Все заказы</a></li>
-      <li><a href="{{ route('seller.orders.index') }}?status=new" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-time-line text-lg"></i> Новые</a></li>
-      <li><a href="{{ route('seller.orders.index') }}?status=delivery" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-truck-line text-lg"></i> В пути</a></li>
-      <li><a href="{{ route('seller.orders.index') }}?status=completed" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-check-double-line text-lg"></i> Завершённые</a></li>
+      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_PENDING]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-time-line text-lg"></i> Ожидают</a></li>
+      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_SHIPPED]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-truck-line text-lg"></i> В пути</a></li>
+      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_COMPLETED]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-check-double-line text-lg"></i> Завершённые</a></li>
     </ul>
   </div>
 

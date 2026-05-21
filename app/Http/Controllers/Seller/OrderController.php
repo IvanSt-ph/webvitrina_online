@@ -13,19 +13,39 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
+        $status = in_array($request->get('status'), Order::allStatuses(), true)
+            ? $request->get('status')
+            : null;
+        $search = trim((string) $request->get('q', ''));
+
         $query = Order::query()
             ->where('seller_id', auth()->id())
             ->with(['user', 'items.product'])
             ->latest();
 
-        // фильтр по статусу ?status=pending
-        if ($request->filled('status')) {
-            $query->where('status', $request->get('status'));
+        if ($status) {
+            $query->where('status', $status);
         }
 
-        $orders = $query->paginate(20);
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('number', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
 
-        return view('seller.orders.index', compact('orders'));
+        $orders = $query->paginate(20)->withQueryString();
+
+        $statusCounts = Order::query()
+            ->where('seller_id', auth()->id())
+            ->select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return view('seller.orders.index', compact('orders', 'status', 'search', 'statusCounts'));
     }
 
     /**

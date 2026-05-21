@@ -35,34 +35,34 @@
         $itemsCount = $order->items->sum('quantity');
     @endphp
 
-    <div class="space-y-6 px-3 py-4 sm:px-5 sm:py-6 lg:px-6">
+    <div class="seller-order-show-safe min-h-screen space-y-6 overflow-x-hidden px-3 py-4 pb-[5.5rem] sm:px-5 sm:py-6 lg:px-6">
 
         {{-- Верхняя панель --}}
-        <div class="flex items-center justify-between gap-3">
-            <div class="space-y-1">
+        <div class="grid min-w-0 gap-3 sm:flex sm:items-center sm:justify-between">
+            <div class="min-w-0 space-y-1">
                 <a href="{{ route('seller.orders.index') }}"
-                   class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700">
-                    <x-icon name="arrow-left" class="w-4 h-4 mr-1"/>
-                    Назад к списку заказов
+                   class="inline-flex min-w-0 items-center text-sm text-gray-500 hover:text-gray-700">
+                    <x-icon name="arrow-left" class="w-4 h-4 mr-1 shrink-0"/>
+                    <span class="min-w-0 truncate">Назад к списку заказов</span>
                 </a>
 
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+                <h1 class="truncate text-2xl sm:text-3xl font-bold text-gray-900">
                     Заказ {{ $order->number ?? ('#' . $order->id) }}
                 </h1>
 
-                <div class="text-sm text-gray-500">
+                <div class="break-words text-sm text-gray-500">
                     от {{ $order->created_at?->format('d.m.Y H:i') }}
                     • Покупатель: {{ $order->user->name ?? 'Неизвестен' }}
                     (ID: {{ $order->user_id }})
                 </div>
             </div>
 
-            <div class="text-right space-y-2">
-                <div class="text-lg font-semibold text-gray-900">
+            <div class="min-w-0 space-y-2 sm:shrink-0 sm:text-right">
+                <div class="truncate text-lg font-semibold text-gray-900">
                     {{ $order->formatted_total_price ?? (number_format($order->total_price, 2, ',', ' ') . ' ' . ($order->currency ?? '')) }}
                 </div>
 
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $currentStatusClass }}">
+                <span class="inline-flex max-w-full items-center truncate px-3 py-1 rounded-full text-xs font-medium {{ $currentStatusClass }}">
                     {{ $order->status_ru }}
                 </span>
             </div>
@@ -103,13 +103,13 @@
             </div>
         </div>
 {{-- Покупатель --}}
-<div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex items-center gap-4">
+<div class="min-w-0 overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex items-center gap-4">
 
     {{-- Аватар --}}
     <img src="{{ $order->user->avatar_url ?? asset('images/default-avatar.png') }}"
          class="w-14 h-14 rounded-xl object-cover border shadow-sm" alt="avatar">
 
-    <div class="flex-1 space-y-1">
+    <div class="min-w-0 flex-1 space-y-1">
         <h2 class="text-sm font-semibold text-gray-800">Покупатель</h2>
 
         <div class="text-sm font-medium text-gray-900">
@@ -128,9 +128,9 @@
         @endif
 
         @if(isset($order->user->email))
-            <div class="text-xs text-gray-500 flex items-center gap-1">
+            <div class="min-w-0 text-xs text-gray-500 flex items-center gap-1">
                 <i class="ri-mail-line text-gray-500 text-sm"></i>
-                <span>{{ $order->user->email }}</span>
+                <span class="min-w-0 break-all">{{ $order->user->email }}</span>
             </div>
         @endif
     </div>
@@ -144,14 +144,14 @@
 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
     <h2 class="text-sm font-semibold text-gray-800 mb-3">Действия продавца</h2>
 
-    <div class="flex flex-wrap gap-3">
+    <div class="grid gap-3 sm:flex sm:flex-wrap">
 
         {{-- PENDING → PROCESSING --}}
         @if($order->status === 'pending')
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="processing">
-                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
+                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
                     Принять заказ
                 </button>
             </form>
@@ -162,7 +162,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="paid">
-                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
+                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
                     Отметить как оплаченный
                 </button>
             </form>
@@ -173,7 +173,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="shipped">
-                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
+                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
                     Передать в доставку
                 </button>
             </form>
@@ -184,7 +184,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="delivered">
-                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
+                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
                     Отметить доставленным
                 </button>
             </form>
@@ -195,7 +195,7 @@
             <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
                 @csrf
                 <input type="hidden" name="status" value="completed">
-                <button class="px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30">
+                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
                     Завершить заказ
                 </button>
             </form>
@@ -207,7 +207,7 @@
                 onsubmit="return confirm('Вы точно хотите отменить заказ?');">
                 @csrf
                 <input type="hidden" name="status" value="canceled">
-                <button class="px-5 py-2 bg-rose-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-rose-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-rose-400/30">
+                <button class="w-full px-5 py-2 bg-rose-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-rose-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-rose-400/30 sm:w-auto">
                     Отменить заказ
                 </button>
             </form>
@@ -236,7 +236,7 @@
         {{ $deliveryLabels[$order->delivery_method] ?? $order->delivery_method ?? 'Способ не указан' }}
     </div>
 
-    <div class="text-xs text-gray-500 mt-2">
+    <div class="break-words text-xs text-gray-500 mt-2">
         @if($order->delivery_address)
             📦 {{ $order->delivery_address }}
         @elseif($order->address)
@@ -286,8 +286,8 @@
         </div>
 
         {{-- Товары в заказе --}}
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div class="min-w-0 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex min-w-0 items-center justify-between gap-3">
                 <h2 class="text-sm font-semibold text-gray-800">
                     Товары в заказе
                 </h2>
@@ -298,17 +298,30 @@
 
             <div class="divide-y divide-gray-100">
                 @foreach($order->items as $item)
-                    <div class="px-5 py-4 flex items-center justify-between gap-4">
-                        <div class="flex-1">
-                            <div class="text-sm font-medium text-gray-900">
-                                {{ $item->product->title ?? 'Товар удалён' }}
+                    @php
+                        $itemTitle = $item->product->title ?? 'Товар удалён';
+                        $shortItemTitle = \Illuminate\Support\Str::limit($itemTitle, 18);
+                    @endphp
+                    <div class="grid min-w-0 gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+                        <div class="min-w-0">
+                            <div class="truncate text-sm font-medium text-gray-900 sm:hidden" title="{{ $itemTitle }}">
+                                {{ $shortItemTitle }}
+                            </div>
+                            <div class="hidden sm:block">
+                                <div
+                                    class="overflow-hidden text-sm font-medium text-gray-900"
+                                    style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;word-break:break-word;"
+                                    title="{{ $itemTitle }}"
+                                >
+                                    {{ $itemTitle }}
+                                </div>
                             </div>
                             <div class="text-xs text-gray-400 mt-0.5">
                                 ID товара: {{ $item->product_id }}
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-6 text-sm">
+                        <div class="grid min-w-0 gap-2 text-sm sm:flex sm:items-center sm:gap-6">
                             <div class="text-gray-500">
                                 Кол-во:
                                 <span class="font-semibold text-gray-900">
@@ -323,7 +336,7 @@
                                 </span>
                             </div>
 
-                            <div class="text-right font-semibold text-gray-900">
+                            <div class="font-semibold text-gray-900 sm:text-right">
                                 {{ number_format($item->total, 2, ',', ' ') }} {{ $order->currency ?? '' }}
                             </div>
                         </div>
@@ -331,15 +344,17 @@
                 @endforeach
             </div>
 
-            <div class="px-5 py-4 border-t border-gray-100 flex items-center justify-end">
-                <div class="text-sm text-gray-500 mr-3">
+            <div class="px-5 py-4 border-t border-gray-100 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:flex sm:justify-end">
+                <div class="text-sm text-gray-500">
                     Итого:
                 </div>
-                <div class="text-lg font-semibold text-gray-900">
+                <div class="truncate text-right text-lg font-semibold text-gray-900">
                     {{ $order->formatted_total_price ?? (number_format($order->total_price, 2, ',', ' ') . ' ' . ($order->currency ?? '')) }}
                 </div>
             </div>
         </div>
 
     </div>
+
+    @include('layouts.mobile-bottom-seller-nav')
 </x-seller-layout>

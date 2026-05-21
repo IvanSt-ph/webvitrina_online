@@ -736,6 +736,8 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($buyer)
             ->get(route('chats.index', ['chat' => $conversation->id]))
             ->assertOk()
+            ->assertSee('flex h-dvh', false)
+            ->assertSee('overflow-y-auto rounded-2xl', false)
             ->assertSee(route('chats.index', ['chat' => $conversation->id]), false)
             ->assertSee(route('chats.show', $conversation), false)
             ->assertSee('Inline desktop chat body');
@@ -1748,6 +1750,84 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(580.0, $price['amount']);
         $this->assertSame('UAH', $price['code']);
         $this->assertSame('₴', $price['symbol']);
+    }
+
+    public function test_seller_products_index_normalizes_filters_and_uses_all_products_for_summary(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $this->createProduct($seller, [
+            'title' => 'Active seller product',
+            'price' => 100,
+            'status' => 'active',
+        ]);
+        $this->createProduct($seller, [
+            'title' => 'Draft seller product',
+            'price' => 300,
+            'status' => 'draft',
+            'stock' => 0,
+        ]);
+
+        $response = $this->actingAs($seller)
+            ->get(route('seller.products.index', [
+                'status' => 'published',
+                'sort' => 'unexpected',
+            ]))
+            ->assertOk()
+            ->assertViewHas('status', null)
+            ->assertViewHas('sort', 'new');
+
+        $this->assertSame(2, (int) $response->viewData('productTotals')->total);
+        $this->assertSame(200.0, (float) $response->viewData('productTotals')->avg_price);
+        $this->assertSame(1, (int) $response->viewData('productTotals')->out_of_stock);
+    }
+
+    public function test_seller_orders_index_searches_and_ignores_unknown_status(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Order Search Buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $otherSeller = User::factory()->create(['role' => 'seller']);
+
+        $matchingOrder = $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
+        $this->createOrder($buyer, $otherSeller, Order::STATUS_PENDING);
+
+        $response = $this->actingAs($seller)
+            ->get(route('seller.orders.index', [
+                'status' => 'new',
+                'q' => 'Order Search',
+            ]))
+            ->assertOk()
+            ->assertViewHas('status', null)
+            ->assertSee($matchingOrder->number);
+
+        $this->assertSame(1, $response->viewData('orders')->total());
+        $this->assertSame(1, (int) ($response->viewData('statusCounts')[Order::STATUS_PENDING] ?? 0));
+    }
+
+    public function test_buyer_orders_index_filters_tabs_and_uses_mobile_friendly_layout(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $activeOrder = $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
+        $completedOrder = $this->createOrder($buyer, $seller, Order::STATUS_COMPLETED);
+        $canceledOrder = $this->createOrder($buyer, $seller, Order::STATUS_CANCELED);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.index'))
+            ->assertOk()
+            ->assertViewHas('tab', 'active')
+            ->assertSee($activeOrder->number)
+            ->assertDontSee($completedOrder->number)
+            ->assertDontSee($canceledOrder->number)
+            ->assertDontSee('Статус заказа');
+
+        $this->actingAs($buyer)
+            ->get(route('orders.index', ['tab' => 'completed']))
+            ->assertOk()
+            ->assertViewHas('tab', 'completed')
+            ->assertSee($completedOrder->number)
+            ->assertDontSee($activeOrder->number);
     }
 
     private function createProduct(User $seller, array $overrides = []): Product
