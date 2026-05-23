@@ -13,13 +13,25 @@
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 
-<body class="bg-gray-50 text-gray-800 font-sans antialiased" x-data="{ sidebarOpen: false }">
+@php
+  $adminFullHeight = request()->routeIs('admin.chats.*');
+  $adminUnreadChats = auth()->check()
+      ? \App\Models\Conversation::query()
+          ->whereHas('messages', fn ($query) => $query
+              ->where('sender_id', '!=', auth()->id())
+              ->whereNull('read_at'))
+          ->count()
+      : 0;
+@endphp
+
+<body class="bg-gray-50 text-gray-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}" x-data="{ sidebarOpen: false }">
 
   <div class="flex min-h-screen overflow-hidden relative">
 
     <!-- 🔲 Затемнение при открытом меню -->
     <div 
       x-show="sidebarOpen"
+      x-cloak
       x-transition.opacity
       @click="sidebarOpen = false"
       class="fixed inset-0 bg-black/30 z-30 md:hidden">
@@ -27,10 +39,10 @@
 
     <!-- ===== Sidebar ===== -->
     <aside 
-      class="fixed left-0 top-0 bottom-0 z-40 w-64 bg-white border-r border-gray-200 shadow-lg flex flex-col 
-             transform transition-transform duration-300 ease-in-out 
+      class="fixed left-0 top-0 bottom-0 z-40 w-64 bg-white border-r border-gray-200 shadow-lg flex flex-col
+             -translate-x-full transform transition-transform duration-300 ease-in-out
              md:translate-x-0"
-      :class="{ '-translate-x-full': !sidebarOpen }">
+      :class="{ 'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen }">
 
       <!-- Header -->
       <div class="p-4 flex items-center justify-between border-b border-gray-100">
@@ -50,6 +62,7 @@
           ['route'=>'admin.products.index','icon'=>'ri-box-3-line','label'=>'Товары'],
           ['route'=>'admin.categories.index','icon'=>'ri-folder-3-line','label'=>'Категории'],
           ['route'=>'admin.orders.index','icon'=>'ri-shopping-bag-3-line','label'=>'Заказы'],
+          ['route'=>'admin.chats.index','active'=>'admin.chats.*','icon'=>'ri-message-3-line','label'=>'Чаты'],
           ['route'=>'admin.users.index','icon'=>'ri-user-3-line','label'=>'Пользователи'],
           ['route'=>'admin.reviews.index','icon'=>'ri-chat-3-line','label'=>'Отзывы'],
           ['route'=>'admin.banners.index','icon'=>'ri-image-line','label'=>'Баннеры'],
@@ -61,11 +74,16 @@
         @foreach ($menu as $item)
           <a href="{{ route($item['route']) }}"
              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
-                    {{ request()->routeIs($item['route'].'*')
+                    {{ request()->routeIs($item['active'] ?? $item['route'].'*')
                         ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm'
                         : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50' }}">
             <i class="{{ $item['icon'] }} text-lg"></i>
             <span>{{ $item['label'] }}</span>
+            @if($item['route'] === 'admin.chats.index' && $adminUnreadChats > 0)
+              <span data-admin-chat-unread="{{ $adminUnreadChats }}" class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
+                {{ $adminUnreadChats > 99 ? '99+' : $adminUnreadChats }}
+              </span>
+            @endif
           </a>
         @endforeach
       </nav>
@@ -76,10 +94,10 @@
     </aside>
 
     <!-- ===== Контент ===== -->
-    <div class="flex-1 flex flex-col w-full md:ml-[16rem] transition-all duration-300">
+    <div class="flex-1 flex flex-col w-full md:ml-[16rem] transition-all duration-300 {{ $adminFullHeight ? 'h-[100dvh] overflow-hidden' : '' }}">
 
       <!-- Topbar -->
-      <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200 h-14 flex items-center justify-between px-4 sm:px-6 shadow-sm">
+      <header class="sticky top-0 z-30 flex items-center justify-between border-b border-gray-200 bg-white/90 shadow-sm backdrop-blur-md {{ $adminFullHeight ? 'h-11 px-3 sm:h-14 sm:px-6' : 'h-14 px-4 sm:px-6' }}">
         <button @click="sidebarOpen = !sidebarOpen" class="text-gray-600 hover:text-indigo-600 text-2xl md:hidden">
           <i class="ri-menu-line"></i>
         </button>
@@ -102,13 +120,15 @@
       </header>
 
       <!-- Main content -->
-      <main class="flex-1 p-6 lg:p-10 w-full bg-gray-50">
+      <main class="flex-1 w-full bg-gray-50 {{ $adminFullHeight ? 'min-h-0 overflow-hidden p-2 sm:p-4 lg:p-5' : 'p-6 lg:p-10' }}">
         @yield('content')
       </main>
 
-      <footer class="text-center text-xs text-gray-400 py-6 border-t border-gray-100 bg-white/80">
-        WebVitrina © {{ date('Y') }} — Панель администратора
-      </footer>
+      @unless($adminFullHeight)
+        <footer class="text-center text-xs text-gray-400 py-6 border-t border-gray-100 bg-white/80">
+          WebVitrina © {{ date('Y') }} — Панель администратора
+        </footer>
+      @endunless
     </div>
 
   </div>

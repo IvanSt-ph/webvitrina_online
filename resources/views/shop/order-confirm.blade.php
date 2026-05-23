@@ -1,10 +1,10 @@
 <x-buyer-layout title="Подтверждение заказа">
 
-<div class="max-w-8xl mx-auto px-4 py-10 space-y-10">
+<div class="checkout-confirm-safe w-full max-w-none overflow-x-hidden px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8 space-y-5 sm:space-y-8">
 
     <!-- 🔙 Назад в корзину -->
     <a href="{{ route('cart.index') }}"
-       class="text-sm text-gray-600 hover:text-indigo-600 flex items-center gap-1">
+       class="inline-flex max-w-full items-center gap-1 text-sm text-gray-600 hover:text-indigo-600">
         <i class="ri-arrow-left-line"></i> Вернуться в корзину
     </a>
 
@@ -17,15 +17,21 @@
     </div>
 
     <!-- 📦 Состав заказа -->
-    <div class="bg-white border border-gray-200 shadow-sm rounded-2xl divide-y">
+    <div class="w-full max-w-full overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl sm:rounded-2xl divide-y">
         @foreach($cart as $item)
-            <div class="flex items-center gap-4 p-5">
+            @php
+                $itemTitle = $item['title'] ?? 'Товар';
+                $shortItemTitle = Str::limit($itemTitle, 18);
+            @endphp
+            <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-center sm:gap-4 sm:p-5">
                 <img src="{{ asset('storage/'.$item['image']) }}"
-                     class="w-20 h-20 rounded-xl border object-cover">
+                     class="h-16 w-16 rounded-xl border object-cover sm:h-20 sm:w-20"
+                     alt="{{ $itemTitle }}">
 
-                <div class="flex-1">
-                    <p class="text-gray-900 font-medium text-sm sm:text-base">
-                        {{ $item['title'] }}
+                <div class="min-w-0 sm:flex-1">
+                    <p class="text-gray-900 font-medium text-sm sm:text-base line-clamp-2" style="overflow-wrap: anywhere; word-break: break-word;">
+                        <span class="sm:hidden">{{ $shortItemTitle }}</span>
+                        <span class="hidden sm:inline">{{ $itemTitle }}</span>
                     </p>
                     <p class="text-gray-500 text-xs sm:text-sm mt-1">
                         Кол-во:
@@ -33,7 +39,7 @@
                     </p>
                 </div>
 
-                <div class="text-right min-w-[110px]">
+                <div class="col-span-2 min-w-0 rounded-xl bg-slate-50 px-3 py-2 text-left sm:col-span-1 sm:min-w-[110px] sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
                     <div class="text-gray-900 font-semibold text-base sm:text-lg">
                         {{ number_format($item['price'] * $item['qty'], 2, ',', ' ') }} ₽
                     </div>
@@ -50,38 +56,38 @@
         @csrf
 
 <!-- 📍 Доставка и оплата (теперь внутри формы!) -->
-<div class="grid sm:grid-cols-2 gap-6">
+<div class="grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-6">
     <!-- 🚚 Выбор способа доставки -->
-    <div class="bg-white border rounded-2xl shadow-sm p-6">
+    <div class="min-w-0 bg-white border rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-3">Способ доставки</h3>
         
         @if(isset($deliveryMethods) && count($deliveryMethods))
             <div class="space-y-2">
                 @foreach($deliveryMethods as $key => $label)
-                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                         <input type="radio" 
                                name="delivery_method" 
                                value="{{ $key }}"
-                               class="w-4 h-4 text-indigo-600 mr-3"
+                               class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600"
                                {{ $loop->first ? 'checked' : '' }}
                                required>
-                        <span class="text-gray-800 text-sm">{{ $label }}</span>
+                        <span class="min-w-0 text-sm text-gray-800 leading-snug" style="overflow-wrap: anywhere;">{{ $label }}</span>
                     </label>
                 @endforeach
             </div>
         @else
             <div class="space-y-2">
-                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="radio" name="delivery_method" value="courier" class="w-4 h-4 text-indigo-600 mr-3" checked required>
-                    <span class="text-gray-800 text-sm">🚚 Курьерская доставка</span>
+                <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="radio" name="delivery_method" value="courier" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" checked required>
+                    <span class="min-w-0 text-gray-800 text-sm">🚚 Курьерская доставка</span>
                 </label>
-                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="radio" name="delivery_method" value="pickup" class="w-4 h-4 text-indigo-600 mr-3">
-                    <span class="text-gray-800 text-sm">🏪 Самовывоз</span>
+                <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="radio" name="delivery_method" value="pickup" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
+                    <span class="min-w-0 text-gray-800 text-sm">🏪 Самовывоз</span>
                 </label>
-                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="radio" name="delivery_method" value="post" class="w-4 h-4 text-indigo-600 mr-3">
-                    <span class="text-gray-800 text-sm">📮 Почта России</span>
+                <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="radio" name="delivery_method" value="post" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
+                    <span class="min-w-0 text-gray-800 text-sm">📮 Почта России</span>
                 </label>
             </div>
         @endif
@@ -92,36 +98,36 @@
     </div>
 
     <!-- 💳 Выбор способа оплаты -->
-    <div class="bg-white border rounded-2xl shadow-sm p-6">
+    <div class="min-w-0 bg-white border rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-3">Способ оплаты</h3>
         
         @if(isset($paymentMethods) && count($paymentMethods))
             <div class="space-y-2">
                 @foreach($paymentMethods as $key => $label)
-                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                         <input type="radio" 
                                name="payment_method" 
                                value="{{ $key }}"
-                               class="w-4 h-4 text-indigo-600 mr-3"
+                               class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600"
                                {{ $loop->first ? 'checked' : '' }}
                                required>
-                        <span class="text-gray-800 text-sm">{{ $label }}</span>
+                        <span class="min-w-0 text-sm text-gray-800 leading-snug" style="overflow-wrap: anywhere;">{{ $label }}</span>
                     </label>
                 @endforeach
             </div>
         @else
             <div class="space-y-2">
-                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="radio" name="payment_method" value="cash" class="w-4 h-4 text-indigo-600 mr-3" checked required>
-                    <span class="text-gray-800 text-sm">💵 Наличными при получении</span>
+                <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="radio" name="payment_method" value="cash" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" checked required>
+                    <span class="min-w-0 text-gray-800 text-sm">💵 Наличными при получении</span>
                 </label>
-                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="radio" name="payment_method" value="card" class="w-4 h-4 text-indigo-600 mr-3">
-                    <span class="text-gray-800 text-sm">💳 Картой онлайн</span>
+                <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="radio" name="payment_method" value="card" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
+                    <span class="min-w-0 text-gray-800 text-sm">💳 Картой онлайн</span>
                 </label>
-                <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <input type="radio" name="payment_method" value="bank_transfer" class="w-4 h-4 text-indigo-600 mr-3">
-                    <span class="text-gray-800 text-sm">🏦 Банковский перевод</span>
+                <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="radio" name="payment_method" value="bank_transfer" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
+                    <span class="min-w-0 text-gray-800 text-sm">🏦 Банковский перевод</span>
                 </label>
             </div>
         @endif
@@ -133,19 +139,19 @@
 </div>
 
 <!-- 💰 Итоги -->
-<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-    <div class="flex justify-between text-gray-700 text-sm">
+<div class="min-w-0 bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+    <div class="flex min-w-0 justify-between gap-3 text-gray-700 text-sm">
 <span>
     Товаров:
     {{ collect($cart)->sum('qty') }}
 </span>
 
-        <span id="subtotal">{{ number_format($total, 2, ',', ' ') }} ₽</span>
+        <span id="subtotal" class="shrink-0">{{ number_format($total, 2, ',', ' ') }} ₽</span>
     </div>
 
-    <div class="flex justify-between text-gray-700 text-sm">
+    <div class="flex min-w-0 justify-between gap-3 text-gray-700 text-sm">
         <span>Доставка:</span>
-        <span id="delivery-cost" class="font-medium">
+        <span id="delivery-cost" class="shrink-0 font-medium">
             @if(isset($deliveryPrices['courier']) && $deliveryPrices['courier'] > 0)
                 {{ number_format($deliveryPrices['courier'], 2, ',', ' ') }} ₽
             @else
@@ -156,21 +162,21 @@
 
     <hr class="border-gray-200">
 
-    <div class="flex justify-between items-center">
-        <span class="text-lg font-semibold text-gray-900">Итого к оплате</span>
-        <span id="total-with-delivery" class="text-2xl font-bold text-gray-900">
+    <div class="flex min-w-0 items-start justify-between gap-3">
+        <span class="min-w-0 text-base sm:text-lg font-semibold text-gray-900">Итого к оплате</span>
+        <span id="total-with-delivery" class="shrink-0 text-xl sm:text-2xl font-bold text-gray-900">
             {{ number_format($totalWithDelivery, 2, ',', ' ') }} ₽
         </span>
     </div>
 </div>
 
 <!-- 📍 Выбор адреса -->
-        <div class="bg-white p-6 rounded-2xl border shadow-sm space-y-3">
+        <div class="min-w-0 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border shadow-sm space-y-3">
             <h2 class="font-semibold text-gray-900">Адрес доставки</h2>
 
             @if($addresses->count())
                 <select name="address_id"
-                        class="w-full border rounded-lg px-3 py-2 text-sm text-gray-700">
+                        class="w-full max-w-full min-w-0 border rounded-lg px-3 py-2 text-sm text-gray-700">
                     @foreach($addresses as $address)
                         <option value="{{ $address->id }}"
                             {{ ($defaultAddressId == $address->id) ? 'selected' : '' }}>
@@ -196,7 +202,7 @@
 <!-- Кнопка подтверждения -->
 <button
     type="submit"
-    class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold text-base py-4 rounded-xl shadow-sm transition">
+    class="w-full max-w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold text-base py-4 rounded-xl shadow-sm transition">
     Оформить заказ
 </button>
 
@@ -266,5 +272,23 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+
+<style>
+    .checkout-confirm-safe,
+    .checkout-confirm-safe * {
+        box-sizing: border-box;
+    }
+
+    .checkout-confirm-safe {
+        max-width: 100vw;
+    }
+
+    .checkout-confirm-safe .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
 
 </x-buyer-layout>

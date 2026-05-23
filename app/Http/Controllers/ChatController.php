@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\Message;
+use App\Models\User;
 use App\Services\ChatImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -97,6 +98,7 @@ class ChatController extends Controller
         $this->authorizeParticipant($request, $conversation);
 
         $conversation->load(['buyer', 'seller']);
+        $supportConversation = $this->supportConversationFor($request->user());
         $conversation->messages()
             ->where('sender_id', '!=', $request->user()->id)
             ->whereNull('read_at')
@@ -119,8 +121,66 @@ class ChatController extends Controller
             'oldestMessageId',
             'latestMessageId',
             'latestReadOutgoingMessageId',
-            'conversations'
+            'conversations',
+            'supportConversation'
         ));
+    }
+
+    public function support(Request $request)
+    {
+        $supportConversation = $this->supportConversationFor($request->user());
+        $chatLayout = $request->user()->isSeller() ? 'seller-layout' : 'buyer-layout';
+
+        return view('buyer.support.index', compact('supportConversation', 'chatLayout'));
+    }
+
+    public function startSupport(Request $request)
+    {
+        $conversation = $this->ensureSupportConversation($request->user());
+
+        return redirect()
+            ->route('chats.show', $conversation)
+            ->with('success', 'Support-чат открыт.');
+    }
+
+    public function openSupportFromConversation(Request $request, Conversation $conversation)
+    {
+        $this->authorizeParticipant($request, $conversation);
+        abort_if($conversation->isSupport(), 422, 'Вы уже в support-чате.');
+
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:80'],
+            'details' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $supportConversation = $this->ensureSupportConversation($request->user());
+        $reason = trim($data['reason']);
+        $details = trim((string) ($data['details'] ?? ''));
+        $other = $conversation->otherParticipant($request->user());
+        $initiatorRole = $request->user()->isSeller() ? 'Продавец' : 'Покупатель';
+        $otherRole = $other->isSeller() ? 'Продавец' : 'Покупатель';
+
+        $body = "Открыто обращение по диалогу #{$conversation->id}.\n"
+            . 'Инициатор: ' . $request->user()->name . ' - ' . $initiatorRole . ".\n"
+            . 'Вторая сторона: ' . $other->name . ' - ' . $otherRole . ".\n"
+            . 'Причина: ' . $reason;
+
+        if ($details !== '') {
+            $body .= "\nПодробности: " . $details;
+        }
+
+        $supportConversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'type' => Message::TYPE_SYSTEM,
+            'related_conversation_id' => $conversation->id,
+            'body' => $body,
+        ]);
+
+        $supportConversation->update(['last_message_at' => now()]);
+
+        return redirect()
+            ->route('chats.show', $supportConversation)
+            ->with('success', 'Обращение отправлено в поддержку.');
     }
 
     public function olderMessages(Request $request, Conversation $conversation)
@@ -171,6 +231,7 @@ class ChatController extends Controller
     public function store(Request $request, Conversation $conversation)
     {
         $this->authorizeParticipant($request, $conversation);
+        abort_if($conversation->isLocked(), 423, 'Диалог временно заблокирован поддержкой.');
 
         $data = $request->validate([
             'body' => ['nullable', 'string', 'max:2000'],
@@ -253,8 +314,54 @@ class ChatController extends Controller
                     ->where('sender_id', '!=', $user->id)
                     ->whereNull('read_at'),
             ])
+            ->orderByDesc('unread_count')
             ->orderByDesc('last_message_at')
             ->orderByDesc('updated_at');
+    }
+
+    private function supportConversationFor(User $user): ?Conversation
+    {
+        return Conversation::query()
+            ->where('conversation_type', Conversation::TYPE_SUPPORT)
+            ->where('buyer_id', $user->id)
+            ->with(['buyer', 'seller'])
+            ->first();
+    }
+
+    private function ensureSupportConversation(User $user): Conversation
+    {
+        $admin = User::query()
+            ->where('role', 'admin')
+            ->orderBy('id')
+            ->first();
+
+        if (! $admin) {
+            throw ValidationException::withMessages([
+                'support' => 'Служба поддержки пока недоступна. Попробуйте позже.',
+            ]);
+        }
+
+        $conversation = Conversation::firstOrCreate(
+            [
+                'buyer_id' => $user->id,
+                'seller_id' => $admin->id,
+                'context_key' => 'support:' . $user->id,
+            ],
+            [
+                'conversation_type' => Conversation::TYPE_SUPPORT,
+                'last_message_at' => now(),
+            ]
+        );
+
+        if ($conversation->wasRecentlyCreated) {
+            $conversation->messages()->create([
+                'sender_id' => $admin->id,
+                'type' => Message::TYPE_SYSTEM,
+                'body' => 'Support-чат открыт. Опишите вопрос, спор или проблему — поддержка ответит здесь.',
+            ]);
+        }
+
+        return $conversation;
     }
 
     private function authorizeParticipant(Request $request, Conversation $conversation): void

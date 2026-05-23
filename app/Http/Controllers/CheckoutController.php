@@ -105,7 +105,7 @@ return redirect()
         // ❗ ЗАЩИТА: проверяем, нет ли своих товаров в корзине
         $userId = auth()->id();
         foreach ($items as $item) {
-            if ($item->product->status !== 'active') {
+            if (! $item->product || $item->product->status !== 'active') {
                 return redirect()
                     ->route('cart.index')
                     ->with('error', 'В корзине есть товар, который больше недоступен для покупки.');

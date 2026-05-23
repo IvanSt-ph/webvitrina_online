@@ -16,7 +16,7 @@
       $currencySymbol = \App\Models\Product::currencySymbol(session('currency', 'PRB'));
   @endphp
 
-  <div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+  <div class="favorites-mobile-safe w-full max-w-none overflow-x-hidden px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8">
 
     {{-- Header --}}
     <div class="mb-6 sm:mb-10">
@@ -32,8 +32,8 @@
         </div>
 
         @if($items->isNotEmpty())
-        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form">
+        <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
+          <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form min-w-0">
             @csrf
             <x-action-button>
               <i class="ri-shopping-cart-2-line"></i>
@@ -74,44 +74,28 @@
 
     @else
 
-      <div class="grid sm:grid-cols-3 gap-3 mb-5">
-        <div class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
-          <div class="text-xs text-gray-500">В избранном</div>
-          <div class="mt-1 text-2xl font-bold text-gray-900">{{ $items->count() }}</div>
-          <div class="text-xs text-gray-400 mt-1">товара(ов)</div>
-        </div>
-
-        <div class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
-          <div class="text-xs text-gray-500">Общая сумма</div>
-          <div class="mt-1 text-2xl font-bold text-gray-900">{{ number_format($favoritesTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
-          <div class="text-xs text-gray-400 mt-1">если добавить по 1 шт.</div>
-        </div>
-
-        <div class="bg-indigo-50 border border-indigo-100 rounded-xl sm:rounded-2xl p-4 shadow-sm">
-          <div class="text-xs text-indigo-700">Экономия по скидкам</div>
-          <div class="mt-1 text-2xl font-bold text-indigo-700">{{ number_format($discountTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
-          <div class="text-xs text-indigo-500 mt-1">по товарам со старой ценой</div>
-        </div>
-      </div>
-
       {{-- Favorites list --}}
-      <div class="space-y-2 sm:space-y-3">
+      <div class="min-w-0 space-y-2 sm:space-y-3">
         @foreach($items as $f)
           @php
             $p = $f->product;
+          @endphp
+          @continue(! $p)
+          @php
+            $shortProductTitle = Str::limit($p->title, 18);
             $currentPrice = $p->price_for_current_currency;
             $price = $currentPrice['amount'] ?? $p->price;
             $itemCurrencySymbol = $currentPrice['symbol'] ?? $currencySymbol;
           @endphp
 
-          <div class="fav-card group bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
+          <div class="fav-card group min-w-0 overflow-hidden bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
                data-fav-card data-id="{{ $p->id }}">
 
             {{-- Мобильная версия: фото 50px, справа название+цена, внизу кнопки --}}
             <div class="block sm:hidden">
               <div class="p-3">
                 {{-- Верхняя строка: фото + информация --}}
-                <div class="flex gap-3">
+                <div class="grid min-w-0 grid-cols-[48px_minmax(0,1fr)_auto] gap-3">
                   {{-- Фото 50x50 --}}
                   <a href="{{ route('product.show', $p) }}"
                      class="relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
@@ -135,8 +119,9 @@
                   {{-- Название и цена --}}
                   <div class="flex-1 min-w-0">
                     <a href="{{ route('product.show', $p) }}"
-                       class="text-sm font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug">
-                      {{ $p->title }}
+                       class="text-sm font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug"
+                       style="overflow-wrap: anywhere;">
+                      {{ $shortProductTitle }}
                     </a>
                     <div class="mt-1">
                       @if(isset($p->old_price) && $p->old_price)
@@ -163,7 +148,7 @@
                 </div>
 
                 {{-- Кнопки под информацией на всю ширину --}}
-                <div class="flex items-center gap-2 mt-3">
+                <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-2 mt-3">
                   <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form flex-1">
                     @csrf
                     <x-action-button size="sm" :full="true">
@@ -225,7 +210,8 @@
               {{-- Product info --}}
               <div class="flex-1 min-w-0">
                 <a href="{{ route('product.show', $p) }}"
-                   class="text-base font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug">
+                   class="text-base font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug"
+                   style="overflow-wrap: anywhere;">
                   {{ $p->title }}
                 </a>
                 
@@ -282,6 +268,25 @@
           </div>
 
         @endforeach
+      </div>
+
+      <div class="mt-5 rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm sm:mt-6 sm:rounded-2xl sm:p-4">
+        <div class="grid min-w-0 gap-2 sm:grid-cols-3">
+          <div class="min-w-0 rounded-xl bg-slate-50 px-3 py-3">
+            <div class="text-xs text-gray-500">В избранном</div>
+            <div class="mt-1 text-lg font-bold text-gray-900 break-words">{{ $items->count() }}</div>
+          </div>
+
+          <div class="min-w-0 rounded-xl bg-slate-50 px-3 py-3">
+            <div class="text-xs text-gray-500">Если добавить по 1 шт.</div>
+            <div class="mt-1 text-lg font-bold text-gray-900 break-words">{{ number_format($favoritesTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
+          </div>
+
+          <div class="min-w-0 rounded-xl bg-indigo-50 px-3 py-3">
+            <div class="text-xs text-indigo-700">Экономия по скидкам</div>
+            <div class="mt-1 text-lg font-bold text-indigo-700 break-words">{{ number_format($discountTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
+          </div>
+        </div>
       </div>
 
     @endif
@@ -380,36 +385,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateCartCount();
 
+    async function responseMessage(response, fallback) {
+      try {
+        const data = await response.json();
+
+        if (data?.errors?.qty?.[0]) {
+          return data.errors.qty[0];
+        }
+
+        if (data?.message) {
+          return data.message;
+        }
+      } catch (error) {
+        return fallback;
+      }
+
+      return fallback;
+    }
+
     document.querySelectorAll('.js-add-to-cart-form').forEach(form => {
-      form.addEventListener('submit', function(e) {
+      form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
         const btn = this.querySelector('button');
         const card = this.closest('[data-fav-card]');
-        const img = card.querySelector('img');
+        const img = card?.querySelector('img');
         const cartIcon = document.querySelector('[data-cart-icon]');
 
         const originalContent = btn.innerHTML;
         btn.classList.add('loading');
         btn.disabled = true;
+        let added = false;
 
-        showPlusOne(btn);
-        card.classList.add('card-added');
-        setTimeout(() => card.classList.remove('card-added'), 1000);
-        if (img && cartIcon) flyToCart(img, cartIcon);
+        try {
+          const response = await fetch(this.action, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRF-TOKEN': this.querySelector('input[name="_token"]')?.value || '{{ csrf_token() }}',
+            },
+            body: new FormData(this),
+          });
 
-        btn.innerHTML = '<i class="ri-check-line text-sm"></i><span>Готово</span>';
+          if (!response.ok) {
+            showToast(await responseMessage(response, 'Не удалось добавить товар в корзину'), 'error');
+            return;
+          }
 
-        setTimeout(() => {
-          btn.innerHTML = originalContent;
-          btn.classList.remove('loading');
-          btn.disabled = false;
-        }, 1200);
+          const data = await response.json();
 
-        setTimeout(() => {
-          this.submit();
+          showPlusOne(btn);
+          showToast(data?.message || 'Товар добавлен в корзину');
+          card?.classList.add('card-added');
+          setTimeout(() => card?.classList.remove('card-added'), 1000);
+          if (img && cartIcon) flyToCart(img, cartIcon);
           updateCartCount();
-        }, 200);
+
+          btn.innerHTML = '<i class="ri-check-line text-sm"></i><span>Готово</span>';
+          added = true;
+        } catch (error) {
+          console.error('Add to cart error:', error);
+          showToast('Не удалось добавить товар в корзину', 'error');
+        } finally {
+          const restore = () => {
+            btn.innerHTML = originalContent;
+            btn.classList.remove('loading');
+            btn.disabled = false;
+          };
+
+          added ? setTimeout(restore, 900) : restore();
+        }
       });
     });
 
@@ -436,6 +482,15 @@ document.addEventListener('DOMContentLoaded', () => {
   </script>
 
   <style>
+    .favorites-mobile-safe,
+    .favorites-mobile-safe * {
+      box-sizing: border-box;
+    }
+
+    .favorites-mobile-safe {
+      max-width: 100vw;
+    }
+
     .fav-card {
       transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
     }
@@ -550,6 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
       -webkit-box-orient: vertical;
       overflow: hidden;
       word-break: break-word;
+      overflow-wrap: anywhere;
     }
   </style>
 

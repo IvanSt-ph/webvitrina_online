@@ -5,6 +5,11 @@
 <x-dynamic-component :component="$chatLayout" title="Чат" :chat-mode="true">
     @php
         $other = $conversation->otherParticipant(auth()->user());
+        $otherRoleLabel = match ($other->role) {
+            'admin' => 'Служба поддержки',
+            'seller' => $other->shop?->name ?? 'Продавец',
+            default => 'Покупатель',
+        };
     @endphp
     <div
         x-data="{
@@ -19,6 +24,7 @@
             poller: null,
             sendingMessage: false,
             sendError: '',
+            supportOpen: false,
             resize() {
                 const el = this.$refs.composer
                 if (!el) return
@@ -26,8 +32,13 @@
                 el.style.height = Math.min(el.scrollHeight, 160) + 'px'
                 el.style.overflowY = el.scrollHeight > 160 ? 'auto' : 'hidden'
             },
-            scrollToBottom() {
-                this.$refs.thread?.scrollTo({ top: this.$refs.thread.scrollHeight, behavior: 'smooth' })
+            scrollToBottom(behavior = 'smooth') {
+                this.$refs.thread?.scrollTo({ top: this.$refs.thread.scrollHeight, behavior })
+            },
+            settleAtBottom() {
+                this.scrollToBottom('auto')
+                setTimeout(() => this.scrollToBottom('auto'), 80)
+                setTimeout(() => this.scrollToBottom('auto'), 260)
             },
             isNearBottom() {
                 const thread = this.$refs.thread
@@ -152,7 +163,7 @@
                 this.sendingMessage = false
             }
         }"
-        x-init="$nextTick(() => { resize(); scrollToBottom(); poller = setInterval(() => loadNewerMessages(), 5000) })"
+        x-init="$nextTick(() => { resize(); settleAtBottom(); poller = setInterval(() => loadNewerMessages(), 5000) })"
         @beforeunload.window="if (poller) clearInterval(poller)"
         class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden sm:px-5 sm:py-5 lg:px-6 lg:py-6"
     >
@@ -162,7 +173,7 @@
             </aside>
 
             <section class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white sm:rounded-[2rem] sm:border sm:border-slate-200 sm:shadow-sm">
-                <header class="sticky top-0 z-10 flex shrink-0 items-center gap-3 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur">
+                <header class="sticky top-0 z-10 flex shrink-0 items-center gap-3 border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur sm:py-4">
                     <a href="{{ route('chats.index') }}" class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 lg:hidden">
                         <i class="ri-arrow-left-line text-lg"></i>
                     </a>
@@ -170,9 +181,23 @@
                     <div class="min-w-0 flex-1">
                         <div class="truncate font-semibold text-slate-900">{{ $other->name }}</div>
                         <div class="text-sm text-slate-500">
-                            {{ $other->isSeller() ? ($other->shop?->name ?? 'Продавец') : 'Покупатель' }}
+                            {{ $otherRoleLabel }}
                         </div>
                     </div>
+                    @if($conversation->isSupport())
+                        <a href="{{ route('support') }}"
+                           class="hidden h-10 items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 sm:inline-flex">
+                            <i class="ri-customer-service-2-line"></i>
+                            Поддержка
+                        </a>
+                    @else
+                        <button type="button"
+                                @click="supportOpen = true"
+                                class="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 text-sm font-semibold text-rose-700 transition hover:border-rose-200">
+                            <i class="ri-alarm-warning-line"></i>
+                            <span class="hidden sm:inline">Пожаловаться</span>
+                        </button>
+                    @endif
                 </header>
 
                 <div x-ref="thread" class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-4 py-5 sm:px-6">
@@ -280,6 +305,71 @@
                 </form>
             </section>
         </div>
+
+        @if(! $conversation->isSupport())
+            <div x-show="supportOpen"
+                 x-cloak
+                 x-transition.opacity.duration.150ms
+                 @keydown.escape.window="supportOpen = false"
+                 @click.self="supportOpen = false"
+                 class="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/45 p-2 sm:items-center sm:p-4">
+                <div class="w-full max-w-xl rounded-2xl bg-white shadow-2xl ring-1 ring-slate-950/10">
+                    <div class="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                        <div>
+                            <div class="text-base font-bold text-slate-950">Обращение в поддержку</div>
+                            <div class="mt-1 text-sm text-slate-500">Диалог #{{ $conversation->id }} будет приложен к обращению.</div>
+                        </div>
+                        <button type="button"
+                                @click="supportOpen = false"
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200">
+                            <i class="ri-close-line text-lg"></i>
+                        </button>
+                    </div>
+
+                    <form method="POST" action="{{ route('chats.support.dispute', $conversation) }}" class="space-y-3 p-4">
+                        @csrf
+                        <label class="block">
+                            <span class="text-sm font-semibold text-slate-700">Причина</span>
+                            <select name="reason"
+                                    required
+                                    class="mt-1 h-11 w-full rounded-xl border-slate-200 bg-slate-50 px-3 text-sm focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100">
+                                <option value="">Выберите причину</option>
+                                <option value="Нарушение правил общения">Нарушение правил общения</option>
+                                <option value="Подозрение на мошенничество">Подозрение на мошенничество</option>
+                                <option value="Спор по заказу или оплате">Спор по заказу или оплате</option>
+                                <option value="Проблема с товаром или доставкой">Проблема с товаром или доставкой</option>
+                                <option value="Нужна помощь поддержки">Нужна помощь поддержки</option>
+                            </select>
+                        </label>
+
+                        <label class="block">
+                            <span class="text-sm font-semibold text-slate-700">Подробности</span>
+                            <textarea name="details"
+                                      rows="4"
+                                      maxlength="1000"
+                                      placeholder="Опишите, что произошло. Не отправляйте пароли, коды из SMS и данные карт."
+                                      class="mt-1 w-full resize-none rounded-xl border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100"></textarea>
+                        </label>
+
+                        <div class="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                            Поддержка увидит причину, ваш комментарий и номер этого диалога. Переписка с поддержкой откроется отдельно.
+                        </div>
+
+                        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <button type="button"
+                                    @click="supportOpen = false"
+                                    class="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                Отмена
+                            </button>
+                            <button class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700">
+                                <i class="ri-customer-service-2-line"></i>
+                                Открыть спор
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
     </div>
 </x-dynamic-component>
 

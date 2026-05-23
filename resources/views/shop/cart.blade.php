@@ -2,11 +2,11 @@
 <x-buyer-layout title="Моя корзина">
 
 @php
-    $cartTotal = $items->sum(fn($i) => $i->product->price * $i->qty);
+    $cartTotal = $items->sum(fn($i) => $i->product ? $i->product->price * $i->qty : 0);
     $freeShippingThreshold = 5000;
 @endphp
 
-<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
+<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe w-full max-w-none overflow-x-hidden px-3 py-4 sm:px-6 sm:py-8 {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
 
     <!-- 🔝 Элегантный заголовок -->
     <div class="mb-6 sm:mb-10">
@@ -28,7 +28,7 @@
             </div>
 
             @if($items->isNotEmpty())
-            <div class="flex items-center gap-3 flex-wrap">
+            <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3 sm:flex-wrap">
                 <x-secondary-action type="button" @click="toggleSelectMode">
                     <span x-show="!selectMode" class="inline-flex items-center gap-2">
                         <i class="ri-checkbox-multiple-line"></i>
@@ -40,7 +40,7 @@
                     </span>
                 </x-secondary-action>
 
-                <form method="POST" action="{{ route('checkout.prepare') }}" class="inline">
+                <form method="POST" action="{{ route('checkout.prepare') }}" class="min-w-0">
                     @csrf
                     <x-action-button>
                         <i class="ri-bank-card-line"></i>
@@ -106,30 +106,36 @@
         </div>
     </div>
 
-    <div class="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+    <div class="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
 
     <!-- 📜 Список товаров -->
-    <div class="space-y-3" :class="selectMode && selected.length > 0 ? 'mb-36' : 'mb-0'">
+    <div class="min-w-0 space-y-3" :class="selectMode && selected.length > 0 ? 'mb-36' : 'mb-0'">
         @foreach($items as $i)
-        @php $p = $i->product; @endphp
+        @php
+            $p = $i->product;
+            $shortProductTitle = $p ? Str::limit($p->title, 18) : '';
+        @endphp
+        @continue(! $p)
 
         <div 
             x-data="{ qty: {{ $i->qty }}, savedQty: {{ $i->qty }}, updating: false }"
-            class="cart-item group relative bg-white rounded-xl sm:rounded-2xl border transition-all duration-200 hover:shadow-md"
+            class="cart-item group relative min-w-0 overflow-hidden bg-white rounded-xl sm:rounded-2xl border transition-all duration-200 hover:shadow-md"
             :class="{
                 'border-indigo-300 shadow-md bg-indigo-50/50': selectMode && selected.includes('{{ $i->id }}'),
                 'border-gray-100': !selectMode || !selected.includes('{{ $i->id }}')
             }"
             data-cart-id="{{ $i->id }}"
+            data-cart-qty="{{ $i->qty }}"
+            data-cart-price="{{ $p->price }}"
         >
             <div 
-                class="flex gap-3 sm:gap-4 p-4 sm:p-5"
+                class="grid min-w-0 grid-cols-[80px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:gap-4 sm:p-5"
                 :class="selectMode ? 'cursor-pointer' : ''"
                 @click="if(selectMode) toggleSelect('{{ $i->id }}', Number(qty) * {{ $p->price }})"
             >
 
                 <!-- Чекбокс -->
-                <div x-show="selectMode" class="flex-shrink-0 pt-1" @click.stop>
+                <div x-show="selectMode" class="col-span-2 flex-shrink-0 pt-1 sm:col-span-1" @click.stop>
                     <div class="relative">
                         <input 
                             type="checkbox" 
@@ -168,15 +174,16 @@
                 </div>
 
                 <!-- Информация -->
-                <div class="flex-1 min-w-0">
+                <div class="min-w-0 sm:flex-1">
                     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div class="flex-1 min-w-0">
                             <!-- Название -->
                             <a href="{{ route('product.show',$p) }}"
                                class="text-base sm:text-lg font-medium text-gray-900 hover:text-indigo-600 transition-colors duration-200 line-clamp-2 break-words"
                                :class="selectMode ? 'opacity-60 pointer-events-none' : ''"
-                               style="word-break: break-word; overflow-wrap: break-word;">
-                                {{ $p->title }}
+                               style="word-break: break-word; overflow-wrap: anywhere;">
+                                <span class="sm:hidden">{{ $shortProductTitle }}</span>
+                                <span class="hidden sm:inline">{{ $p->title }}</span>
                             </a>
                             
                             <!-- Краткое описание -->
@@ -194,20 +201,20 @@
                         </div>
 
                         <!-- Цена -->
-                        <div class="flex-shrink-0">
+                        <div class="min-w-0 flex-shrink-0 sm:text-right">
                             @if(isset($p->old_price) && $p->old_price)
-                                <div class="text-sm text-gray-400 line-through text-right">
+                                <div class="text-sm text-gray-400 line-through sm:text-right">
                                     {{ number_format($p->old_price, 0, ',', ' ') }} ₽
                                 </div>
                             @endif
                             <div class="text-xl sm:text-2xl font-semibold text-gray-900">
                                 <span x-text="formatPrice(Number(qty) * {{ $p->price }})"></span> <span class="text-sm font-normal">₽</span>
                             </div>
-                            <div class="text-xs text-gray-400 text-right mt-0.5">
+                            <div class="text-xs text-gray-400 sm:text-right mt-0.5">
                                 {{ number_format($p->price, 2, ',', ' ') }} ₽ за шт.
                             </div>
                             @if(isset($p->old_price) && $p->old_price)
-                                <div class="text-xs text-green-600 text-right">
+                                <div class="text-xs text-green-600 sm:text-right">
                                     Экономия: {{ number_format($p->old_price - $p->price, 0, ',', ' ') }} ₽
                                 </div>
                             @endif
@@ -219,7 +226,7 @@
                          :class="selectMode ? 'opacity-50 pointer-events-none' : ''">
 
                         <!-- Количество -->
-                        <div class="flex items-center gap-2">
+                        <div class="flex min-w-0 flex-wrap items-center gap-2">
                             <label class="text-sm text-gray-500">Кол-во:</label>
                             <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
                                 <button type="button" 
@@ -243,8 +250,8 @@
                         </div>
 
                         <!-- Действия -->
-                        <div class="flex items-center gap-2">
-                            <form method="POST" action="{{ route('checkout.quick',$p->id) }}" class="inline">
+                        <div class="grid w-full grid-cols-[minmax(0,1fr)_40px] items-center gap-2 sm:flex sm:w-auto">
+                            <form method="POST" action="{{ route('checkout.quick',$p->id) }}" class="min-w-0">
                                 @csrf
                                 <input type="hidden" name="qty" :value="qty">
                                 <x-action-button size="sm">
@@ -254,7 +261,7 @@
                             </form>
 
                             <!-- Удалить - форма с перехватом -->
-                            <form method="POST" action="{{ route('cart.remove', $i) }}" class="inline delete-cart-form" data-product-title="{{ addslashes($p->title) }}">
+                            <form method="POST" action="{{ route('cart.remove', $i) }}" class="delete-cart-form min-w-0" data-product-title="{{ addslashes($p->title) }}" @submit.prevent="removeItem($event, '{{ $i->id }}', {{ $i->qty }}, {{ $p->price }})">
                                 @csrf 
                                 @method('DELETE')
                                 <x-danger-action type="submit" size="icon" title="Удалить">
@@ -347,9 +354,9 @@
          x-transition
          class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200 shadow-2xl shadow-black/5"
          style="padding-bottom: env(safe-area-inset-bottom, 0px);">
-        <div class="max-w-8xl mx-auto px-4 py-3 sm:py-4 mb-12 sm:mb-0">
-            <div class="flex items-center justify-between gap-3">
-                <div>
+        <div class="w-full max-w-none px-3 py-3 sm:py-4 mb-12 sm:mb-0">
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                <div class="min-w-0">
                     <div class="text-xs text-gray-500">
                         <span x-text="totalQty"></span> товара(ов)
                     </div>
@@ -358,7 +365,7 @@
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('checkout.prepare') }}">
+                <form method="POST" action="{{ route('checkout.prepare') }}" class="min-w-0">
                     @csrf
                     <x-action-button>
                         <i class="ri-bank-card-line"></i>
@@ -377,8 +384,8 @@
          class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100 shadow-2xl shadow-black/5"
          style="padding-bottom: env(safe-area-inset-bottom, 0px);">
         
-        <div class="px-4 py-3 sm:py-4 mb-12 pb-10">
-            <div class="max-w-7xl mx-auto">
+        <div class="px-3 py-3 sm:py-4 mb-12 pb-10">
+            <div class="w-full max-w-none">
                 <!-- Мобильная версия -->
                 <div class="block sm:hidden">
                     <div class="flex items-center justify-between mb-3">
@@ -460,24 +467,24 @@
     @endphp
     
     @if($crossSellProducts->isNotEmpty())
-    <div class="mt-12">
-        <div class="flex items-center justify-between mb-4">
+    <div class="mt-12 min-w-0">
+        <div class="flex min-w-0 items-center justify-between gap-3 mb-4">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <i class="ri-shopping-bag-3-line text-indigo-500"></i>
                 С этим также покупают
             </h3>
-            <a href="{{ route('home') }}" class="text-sm text-indigo-600 hover:text-indigo-700 transition-colors">Смотреть все →</a>
+            <a href="{{ route('home') }}" class="shrink-0 text-sm text-indigo-600 hover:text-indigo-700 transition-colors">Смотреть все →</a>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             @foreach($crossSellProducts as $product)
-            <div class="bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
+            <div class="min-w-0 bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
                         <img src="{{ $product->image_thumb_url }}" 
                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                              alt="{{ $product->title }}">
                     </div>
-                    <h4 class="text-sm font-medium line-clamp-2 mb-1">{{ $product->title }}</h4>
+                    <h4 class="text-sm font-medium line-clamp-2 mb-1" style="overflow-wrap: anywhere;">{{ $product->title }}</h4>
                     <div class="text-indigo-600 font-bold">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
                 </a>
                 <form method="POST" action="{{ route('cart.add', $product->id) }}" class="mt-2">
@@ -502,24 +509,24 @@
     @endphp
     
     @if($recommendedProducts->isNotEmpty())
-    <div class="mt-8">
-        <div class="flex items-center justify-between mb-4">
+    <div class="mt-8 min-w-0">
+        <div class="flex min-w-0 items-center justify-between gap-3 mb-4">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <i class="ri-sparkling-line text-indigo-500"></i>
                 Рекомендуем для вас
             </h3>
-            <a href="{{ route('home') }}" class="text-sm text-indigo-600 hover:text-indigo-700 transition-colors">Все товары →</a>
+            <a href="{{ route('home') }}" class="shrink-0 text-sm text-indigo-600 hover:text-indigo-700 transition-colors">Все товары →</a>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             @foreach($recommendedProducts as $product)
-            <div class="bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
+            <div class="min-w-0 bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
                         <img src="{{ $product->image_thumb_url }}" 
                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                              alt="{{ $product->title }}">
                     </div>
-                    <h4 class="text-sm font-medium line-clamp-2 mb-1">{{ $product->title }}</h4>
+                    <h4 class="text-sm font-medium line-clamp-2 mb-1" style="overflow-wrap: anywhere;">{{ $product->title }}</h4>
                     <div class="text-indigo-600 font-bold">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
                 </a>
                 <form method="POST" action="{{ route('cart.add', $product->id) }}" class="mt-2">
@@ -636,7 +643,7 @@ function cartSelection(initialTotal = 0, initialQty = 0, freeShippingThreshold =
         },
 
         async errorMessageFromResponse(response) {
-            const fallback = 'Ошибка при обновлении количества';
+            const fallback = 'Не удалось выполнить действие';
 
             try {
                 const data = await response.json();
@@ -653,6 +660,76 @@ function cartSelection(initialTotal = 0, initialQty = 0, freeShippingThreshold =
             }
 
             return fallback;
+        },
+
+        async removeItem(event, itemId, qty, price) {
+            if (event) event.stopPropagation();
+
+            const form = event?.target;
+            const card = form?.closest('.cart-item');
+            const title = form?.dataset?.productTitle || 'Товар';
+            const submitButton = form?.querySelector('button');
+            const itemQty = Math.max(1, Number(qty) || 1);
+            const itemPrice = Math.max(0, Number(price) || 0);
+
+            if (!form || !card) return;
+
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-60', 'pointer-events-none');
+            }
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]')?.value || '{{ csrf_token() }}',
+                    },
+                });
+
+                if (!response.ok) {
+                    showToast(await this.errorMessageFromResponse(response), 'error');
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.classList.remove('opacity-60', 'pointer-events-none');
+                    }
+                    return;
+                }
+
+                card.style.transition = 'all 0.25s ease-out';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-16px)';
+                card.style.maxHeight = `${card.offsetHeight}px`;
+
+                this.cartTotal = Math.max(0, this.cartTotal - itemQty * itemPrice);
+                this.totalQty = Math.max(0, this.totalQty - itemQty);
+
+                if (this.selected.includes(String(itemId)) || this.selected.includes(itemId)) {
+                    this.selected = this.selected.filter(id => String(id) !== String(itemId));
+                    this.selectedTotal = Math.max(0, this.selectedTotal - itemQty * itemPrice);
+                    this.selectedCount = Math.max(0, this.selectedCount - 1);
+                }
+
+                showToast(`${title} удалён из корзины`, 'success');
+
+                setTimeout(() => {
+                    card.style.maxHeight = '0';
+                    card.style.marginTop = '0';
+                    card.style.marginBottom = '0';
+                    card.style.paddingTop = '0';
+                    card.style.paddingBottom = '0';
+                    setTimeout(() => card.remove(), 220);
+                }, 180);
+            } catch (error) {
+                console.error('Remove cart item error:', error);
+                showToast('Не удалось удалить товар из корзины', 'error');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-60', 'pointer-events-none');
+                }
+            }
         },
         
         init() {
@@ -690,38 +767,20 @@ function showToast(text, type = 'success') {
     }, 2500);
 }
 
-// Обработка удаления товаров
-document.addEventListener('DOMContentLoaded', function() {
-    // Перехват отправки форм удаления
-    document.querySelectorAll('.delete-cart-form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const productTitle = this.dataset.productTitle;
-            const card = this.closest('.cart-item');
-            
-            // Добавляем анимацию удаления
-            if (card) {
-                card.style.transition = 'all 0.3s ease-out';
-                card.style.opacity = '0';
-                card.style.transform = 'translateX(-20px)';
-            }
-            
-            // Показываем уведомление
-            showToast(`${productTitle} удалён из корзины`, 'success');
-            
-            // Отправляем форму через небольшую задержку (для анимации)
-            setTimeout(() => {
-                this.submit();
-            }, 300);
-        });
-    });
-});
 </script>
 
 <style>
 .cart-item {
     transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.cart-mobile-safe,
+.cart-mobile-safe * {
+    box-sizing: border-box;
+}
+
+.cart-mobile-safe {
+    max-width: 100vw;
 }
 
 .toast {
@@ -770,6 +829,7 @@ document.addEventListener('DOMContentLoaded', function() {
     -webkit-box-orient: vertical;
     overflow: hidden;
     word-break: break-word;
+    overflow-wrap: anywhere;
 }
 </style>
 

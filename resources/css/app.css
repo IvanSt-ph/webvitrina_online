@@ -81,6 +81,30 @@
     -moz-hyphens: auto;
 }
 
+.wv-read-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.wv-read-status span {
+    display: block;
+    width: 7px;
+    height: 4px;
+    border-left: 1.6px solid currentColor;
+    border-bottom: 1.6px solid currentColor;
+    opacity: .85;
+    transform: rotate(-45deg);
+}
+
+.wv-read-status span + span {
+    margin-left: -4px;
+}
+
+.wv-read-status.is-read {
+    color: rgb(14 165 233);
+}
+
 /* Для мобильных - уменьшаем размер шрифта на очень маленьких экранах */
 @media (max-width: 480px) {
     h1.text-2xl {

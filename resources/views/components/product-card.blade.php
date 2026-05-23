@@ -68,6 +68,7 @@ $gallery = array_map(function($img) {
 {{-- ===================== CARD ===================== --}}
 <div class="pc-card"
 x-data="{ 
+    productId: {{ $p->id }},
     open: false,
     cartCount: {{ $cartQuantity }}, // используем $cartQuantity вместо 0
     addToCart() {
@@ -88,6 +89,9 @@ x-data="{
         .then(data => {
             if (data.success) {
                 this.cartCount = data.quantity;
+                window.dispatchEvent(new CustomEvent('product-cart-quantity-updated', {
+                    detail: { productId: this.productId, quantity: data.quantity }
+                }));
             }
         })
         .catch(error => {
@@ -96,6 +100,8 @@ x-data="{
     }
 }"
      @keydown.escape.window="open = false"
+     @cart-quantities-refreshed.window="cartCount = Number($event.detail.quantities[productId] || 0)"
+     @product-cart-quantity-updated.window="if (Number($event.detail.productId) === productId) cartCount = Number($event.detail.quantity || 0)"
      @click="window.location.href = '{{ $url }}'">
 
     <a href="{{ $url }}" class="pc-card-link" aria-label="{{ $p->title }}"></a>
@@ -271,6 +277,7 @@ x-data="{
     <template x-teleport="body">
         <div x-show="open"
              x-data="{
+                 productId: {{ $p->id }},
                  gallery: {{ $galleryJson }},
                  current: 0,
                  modalCartCount: {{ $cartQuantity }},
@@ -287,7 +294,9 @@ x-data="{
                      .then(data => {
                          if (data.success) {
                              this.modalCartCount = data.quantity;
-                             $dispatch('cart-updated', { quantity: data.quantity });
+                             window.dispatchEvent(new CustomEvent('product-cart-quantity-updated', {
+                                 detail: { productId: this.productId, quantity: data.quantity }
+                             }));
                          }
                      })
                      .catch(error => console.error('Modal error:', error));
@@ -309,6 +318,8 @@ x-data="{
              x-transition:leave-end="pm-fade-from"
              class="pm-backdrop"
              @click.self="open = false"
+             @cart-quantities-refreshed.window="modalCartCount = Number($event.detail.quantities[productId] || 0)"
+             @product-cart-quantity-updated.window="if (Number($event.detail.productId) === productId) modalCartCount = Number($event.detail.quantity || 0)"
              style="display:none;">
 
             <div class="pm-sheet"

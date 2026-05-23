@@ -99,7 +99,7 @@
                 </a>
             </header>
 
-            <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section class="hidden gap-3 sm:grid sm:grid-cols-2 xl:grid-cols-4">
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                     <div class="flex items-center justify-between text-sm text-slate-500">
                         <span>Всего товаров</span>

@@ -15,12 +15,20 @@ class CartController extends Controller
 {
     public function index()
     {
+        CartItem::where('user_id', auth()->id())
+            ->where(function ($query) {
+                $query->whereDoesntHave('product')
+                    ->orWhereHas('product', fn ($productQuery) => $productQuery->where('status', '!=', 'active'));
+            })
+            ->delete();
+
         $items = CartItem::with([
             'product.category',
             'product.city.country',
             'product.seller',
         ])
         ->where('user_id', auth()->id())
+        ->whereHas('product', fn ($query) => $query->where('status', 'active'))
         ->get();
 
         // считаем общую сумму
@@ -55,6 +63,12 @@ class CartController extends Controller
         }
 
         $qty = (int)($request->input('qty', 1));
+
+        if ($product->stock < 1) {
+            throw ValidationException::withMessages([
+                'qty' => 'Товара нет в наличии.',
+            ]);
+        }
 
         $item = CartItem::firstOrNew([
             'user_id'    => auth()->id(),
@@ -176,6 +190,13 @@ class CartController extends Controller
         $this->authorize('delete', $item);
 
         $item->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Товар удалён из корзины',
+            ]);
+        }
 
         return back()->with('success', 'Товар удалён из корзины');
     }

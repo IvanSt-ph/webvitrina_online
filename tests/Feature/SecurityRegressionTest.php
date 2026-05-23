@@ -7,12 +7,14 @@ use App\Models\Banner;
 use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\Conversation;
+use App\Models\Favorite;
 use App\Models\Message;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Shop;
 use App\Models\User;
+use App\Models\UserAddress;
 use App\Repositories\ProductCrudRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -121,6 +123,32 @@ class SecurityRegressionTest extends TestCase
             'user_id' => $buyer->id,
             'seller_id' => $seller->id,
         ]);
+    }
+
+    public function test_checkout_confirm_uses_mobile_safe_layout_for_long_titles(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, [
+            'title' => 'КроссовкиTommyHilfigerEM0EM01527BDSбелыессинейподошвойдлинноеназваниебезпробелов',
+        ]);
+
+        $this->actingAs($buyer)
+            ->withSession([
+                'checkout_cart' => [[
+                    'cart_id' => null,
+                    'product_id' => $product->id,
+                    'title' => $product->title,
+                    'price' => 100,
+                    'qty' => 1,
+                    'image' => $product->image,
+                ]],
+            ])
+            ->get(route('checkout.confirm'))
+            ->assertOk()
+            ->assertSee('checkout-confirm-safe', false)
+            ->assertSee('min-w-0', false)
+            ->assertSee('КроссовкиTommyHilf...', false);
     }
 
     public function test_buyer_cannot_create_or_update_shop_profile(): void
@@ -351,6 +379,99 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('Начните разговор')
             ->assertSee('h-dvh', false)
             ->assertDontSee('data-mobile-bottom-nav', false);
+    }
+
+    public function test_chat_message_bodies_are_escaped_in_user_and_admin_views(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $payload = '<script>alert(1)</script>';
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'last_message_at' => now(),
+        ]);
+
+        $messageResponse = $this->actingAs($buyer)
+            ->postJson(route('chats.messages.store', $conversation), [
+                'body' => $payload,
+            ])
+            ->assertCreated();
+
+        $this->assertStringContainsString(e($payload), $messageResponse->json('html'));
+        $this->assertStringNotContainsString($payload, $messageResponse->json('html'));
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $buyer->id,
+            'body' => $payload,
+        ]);
+
+        $noteResponse = $this->actingAs($admin)
+            ->postJson(route('admin.chats.note', $conversation), [
+                'body' => $payload,
+            ])
+            ->assertCreated();
+
+        $this->assertStringContainsString(e($payload), $noteResponse->json('html'));
+        $this->assertStringNotContainsString($payload, $noteResponse->json('html'));
+
+        $systemResponse = $this->actingAs($admin)
+            ->postJson(route('admin.chats.system', $conversation), [
+                'body' => $payload,
+            ])
+            ->assertCreated();
+
+        $this->assertStringContainsString(e($payload), $systemResponse->json('html'));
+        $this->assertStringNotContainsString($payload, $systemResponse->json('html'));
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee(e($payload), false)
+            ->assertDontSee($payload, false);
+
+        $this->actingAs($seller)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee(e($payload), false)
+            ->assertDontSee($payload, false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee(e($payload), false)
+            ->assertDontSee($payload, false);
+
+        $supportConversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $admin->id,
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+            'context_key' => 'support:' . $buyer->id,
+            'last_message_at' => now(),
+        ]);
+
+        $supportResponse = $this->actingAs($admin)
+            ->postJson(route('admin.chats.messages.store', $supportConversation), [
+                'body' => $payload,
+            ])
+            ->assertCreated();
+
+        $this->assertStringContainsString(e($payload), $supportResponse->json('html'));
+        $this->assertStringNotContainsString($payload, $supportResponse->json('html'));
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $supportConversation))
+            ->assertOk()
+            ->assertSee(e($payload), false)
+            ->assertDontSee($payload, false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $supportConversation))
+            ->assertOk()
+            ->assertSee(e($payload), false)
+            ->assertDontSee($payload, false);
     }
 
     public function test_chat_page_loads_only_latest_fifty_messages(): void
@@ -716,6 +837,59 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('aria-label="Показать чат справа"', false);
     }
 
+    public function test_chat_lists_prioritize_unread_then_recent_dialogs(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $readRecent = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'sort:read',
+            'last_message_at' => now(),
+        ]);
+        $unreadOld = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'sort:old',
+            'last_message_at' => now()->subDays(2),
+        ]);
+        $unreadFresh = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'sort:fresh',
+            'last_message_at' => now()->subDay(),
+        ]);
+
+        $readRecent->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Read newest dialog',
+            'read_at' => now(),
+        ]);
+        $unreadOld->messages()->create([
+            'sender_id' => $seller->id,
+            'body' => 'Unread older dialog',
+        ]);
+        $unreadFresh->messages()->create([
+            'sender_id' => $seller->id,
+            'body' => 'Unread fresher dialog',
+        ]);
+
+        $content = $this->actingAs($buyer)
+            ->get(route('chats.index'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertLessThan(
+            strpos($content, 'Unread older dialog'),
+            strpos($content, 'Unread fresher dialog')
+        );
+        $this->assertLessThan(
+            strpos($content, 'Read newest dialog'),
+            strpos($content, 'Unread older dialog')
+        );
+    }
+
     public function test_chat_index_can_select_conversation_inline_on_desktop(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -741,6 +915,511 @@ class SecurityRegressionTest extends TestCase
             ->assertSee(route('chats.index', ['chat' => $conversation->id]), false)
             ->assertSee(route('chats.show', $conversation), false)
             ->assertSee('Inline desktop chat body');
+    }
+
+    public function test_admin_can_moderate_marketplace_chat_without_joining_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Admin Chat Buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Admin Chat Seller']);
+        $seller->shop()->create(['name' => 'Admin Chat Shop']);
+        $product = $this->createProduct($seller, ['title' => 'Admin chat product']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'product_id' => $product->id,
+            'context_key' => Conversation::productContextKey($product),
+            'last_message_at' => now(),
+        ]);
+
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Нужна помощь администратора',
+        ]);
+        $conversation->messages()->create([
+            'sender_id' => $admin->id,
+            'type' => Message::TYPE_INTERNAL_NOTE,
+            'body' => 'Внутренняя заметка для списка',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Marketplace: только модерация')
+            ->assertSee('Admin Chat Buyer')
+            ->assertSee('Admin Chat Shop')
+            ->assertSee('Admin chat product')
+            ->assertSee('Нужна помощь администратора')
+            ->assertSee('Покупатель')
+            ->assertSee('Это диалог покупателя и продавца')
+            ->assertSee('Модерация чата')
+            ->assertSee('fixed inset-0 z-[70]', false)
+            ->assertDontSee('window.innerWidth', false)
+            ->assertDontSee('Чат #' . $conversation->id)
+            ->assertSee('h-[100dvh]', false)
+            ->assertSee('mobileListOpen', false)
+            ->assertSee('adminChatListWidth', false)
+            ->assertSee('gridTemplateColumns', false)
+            ->assertSee('cursor-col-resize', false)
+            ->assertSee('lg:h-full', false)
+            ->assertSee('x-ref="messages" class="w-full', false)
+            ->assertSee('ID ' . $conversation->id)
+            ->assertSee('Заметки 1')
+            ->assertDontSee('>' . $conversation->messages()->count() . '</span>', false)
+            ->assertSee('max-lg:hidden', false)
+            ->assertSee(route('admin.users.show', $buyer), false)
+            ->assertSee(route('seller.show', $seller->shop->slug), false)
+            ->assertSee(e($buyer->avatar_url), false);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.chats.messages.store', $conversation), [
+                'body' => 'Поддержка подключилась к диалогу.',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->post(route('admin.chats.system', $conversation), [
+                'body' => 'Поддержка проверяет этот диалог.',
+            ])
+            ->assertRedirect(route('admin.chats.show', $conversation));
+
+        $this->actingAs($admin)
+            ->post(route('admin.chats.lock', $conversation), [
+                'reason' => 'Проверка спорной ситуации',
+            ])
+            ->assertRedirect(route('admin.chats.show', $conversation));
+
+        $this->assertTrue($conversation->fresh()->isLocked());
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $admin->id,
+            'type' => 'system',
+            'body' => 'Поддержка проверяет этот диалог.',
+        ]);
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $admin->id,
+            'type' => 'system',
+            'body' => 'Диалог временно заблокирован поддержкой. Причина: Проверка спорной ситуации',
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('chats.messages.store', $conversation), ['body' => 'Почему не отправляется?'])
+            ->assertStatus(423);
+    }
+
+    public function test_admin_support_chat_is_separate_from_marketplace_chat(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Support Buyer']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.chats.support.start', $buyer))
+            ->assertRedirect();
+
+        $conversation = Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)->firstOrFail();
+
+        $this->assertSame($buyer->id, $conversation->buyer_id);
+        $this->assertSame($admin->id, $conversation->seller_id);
+        $this->assertSame('support:' . $buyer->id, $conversation->context_key);
+
+        $response = $this->actingAs($admin)
+            ->postJson(route('admin.chats.messages.store', $conversation), [
+                'body' => 'Здравствуйте, это поддержка WebVitrina.',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('latest_message_id', fn ($id) => is_int($id) && $id > 0);
+
+        $this->assertStringContainsString('Здравствуйте, это поддержка WebVitrina.', $response->json('html'));
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $admin->id,
+            'body' => 'Здравствуйте, это поддержка WebVitrina.',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Здравствуйте! Уточните', false)
+            ->assertSee(route('admin.chats.note', $conversation), false);
+    }
+
+    public function test_users_can_open_support_chat_from_support_page(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Seller Needs Support']);
+        $seller->shop()->create(['name' => 'Seller Support Shop']);
+
+        $this->actingAs($seller)
+            ->get(route('support'))
+            ->assertOk()
+            ->assertSee('support-mobile-safe', false)
+            ->assertSee('Онлайн-чат')
+            ->assertSee(route('support.start'), false);
+
+        $this->actingAs($seller)
+            ->post(route('support.start'))
+            ->assertRedirect();
+
+        $conversation = Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)
+            ->where('buyer_id', $seller->id)
+            ->firstOrFail();
+
+        $this->assertSame($admin->id, $conversation->seller_id);
+        $this->assertSame('support:' . $seller->id, $conversation->context_key);
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $admin->id,
+            'type' => Message::TYPE_SYSTEM,
+            'body' => 'Support-чат открыт. Опишите вопрос, спор или проблему — поддержка ответит здесь.',
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('support'))
+            ->assertOk()
+            ->assertSee('Продолжить support-чат')
+            ->assertSee(route('chats.show', $conversation), false);
+    }
+
+    public function test_user_can_open_support_dispute_from_marketplace_chat(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Dispute Buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Dispute Seller']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'last_message_at' => now(),
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Пожаловаться')
+            ->assertSee('Обращение в поддержку')
+            ->assertSee(route('chats.support.dispute', $conversation), false);
+
+        $this->actingAs($buyer)
+            ->post(route('chats.support.dispute', $conversation), [
+                'reason' => 'Подозрение на мошенничество',
+                'details' => '<script>alert(1)</script>',
+            ])
+            ->assertRedirect();
+
+        $supportConversation = Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)
+            ->where('buyer_id', $buyer->id)
+            ->firstOrFail();
+
+        $this->assertSame($admin->id, $supportConversation->seller_id);
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $supportConversation->id,
+            'sender_id' => $buyer->id,
+            'type' => Message::TYPE_SYSTEM,
+            'related_conversation_id' => $conversation->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $supportConversation))
+            ->assertOk()
+            ->assertSee('Открыто обращение по диалогу #' . $conversation->id)
+            ->assertSee('Подозрение на мошенничество')
+            ->assertSee('Исходный диалог')
+            ->assertSee('Откройте участников или исходный диалог')
+            ->assertSee(route('chats.show', $conversation), false)
+            ->assertSee(e('<script>alert(1)</script>'), false)
+            ->assertDontSee('<script>alert(1)</script>', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $supportConversation))
+            ->assertOk()
+            ->assertSee('Открыто обращение по диалогу #' . $conversation->id)
+            ->assertSee('Обращение в поддержку')
+            ->assertSee('Исходный диалог')
+            ->assertSee('Покупатель')
+            ->assertSee('Продавец')
+            ->assertSee(route('admin.chats.show', $conversation), false)
+            ->assertSee('Dispute Seller');
+    }
+
+    public function test_admin_opening_support_chat_from_marketplace_adds_context_link(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Context Buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Context Seller']);
+        $seller->shop()->create(['name' => 'Context Shop']);
+        $product = $this->createProduct($seller, ['title' => 'Context Product']);
+
+        $marketplaceConversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'product_id' => $product->id,
+            'context_key' => Conversation::productContextKey($product),
+            'last_message_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.chats.support.start', $buyer), [
+                'source_conversation_id' => $marketplaceConversation->id,
+            ])
+            ->assertRedirect();
+
+        $supportConversation = Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)
+            ->where('buyer_id', $buyer->id)
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $supportConversation->id,
+            'sender_id' => $admin->id,
+            'type' => Message::TYPE_SYSTEM,
+            'related_conversation_id' => $marketplaceConversation->id,
+            'body' => "Поддержка открыла этот чат по обращению из диалога #{$marketplaceConversation->id}.\n"
+                . "Товар: Context Product\n"
+                . "Покупатель: Context Buyer\n"
+                . "Продавец: Context Shop\n"
+                . 'Опишите здесь детали обращения, решение или следующий шаг.',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $supportConversation))
+            ->assertOk()
+            ->assertSee('Обращение в поддержку')
+            ->assertSee('Диалог #' . $marketplaceConversation->id)
+            ->assertSee('Context Product')
+            ->assertSee('Исходный диалог')
+            ->assertSee(route('admin.chats.show', $marketplaceConversation), false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $marketplaceConversation))
+            ->assertOk()
+            ->assertSee('name="source_conversation_id"', false)
+            ->assertSee('value="' . $marketplaceConversation->id . '"', false);
+    }
+
+    public function test_admin_support_chat_has_quick_replies_enter_send_and_unread_badge(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Unread Support Buyer']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $admin->id,
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+            'context_key' => 'support:' . $buyer->id,
+            'last_message_at' => now(),
+        ]);
+
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Unread support message',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('admin.chats.index'), false)
+            ->assertSee('bg-rose-500', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Unread support message')
+            ->assertSee('Быстрые ответы')
+            ->assertSee('Мы видим обращение и проверим переписку')
+            ->assertSee('requestSubmit()', false)
+            ->assertSee('bg-rose-500', false);
+
+        $this->assertNotNull($conversation->messages()->first()->fresh()->read_at);
+    }
+
+    public function test_admin_support_chat_shows_read_status_for_own_messages(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $admin->id,
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+            'context_key' => 'support:read-status',
+            'last_message_at' => now(),
+        ]);
+
+        $conversation->messages()->create([
+            'sender_id' => $admin->id,
+            'body' => 'Unread by user support answer',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Unread by user support answer')
+            ->assertSee('title="Отправлено"', false)
+            ->assertSee('wv-read-status ', false);
+
+        $conversation->messages()->first()->update(['read_at' => now()]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('wv-read-status is-read', false)
+            ->assertSee('title="Прочитано"', false);
+    }
+
+    public function test_admin_chat_tabs_show_unread_counts_and_prioritize_unread_dialogs(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Admin Unread Buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Admin Unread Seller']);
+
+        $readRecent = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $admin->id,
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+            'context_key' => 'support:read',
+            'last_message_at' => now(),
+        ]);
+        $unreadOld = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $admin->id,
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+            'context_key' => 'support:old',
+            'last_message_at' => now()->subDays(2),
+        ]);
+        $unreadFresh = Conversation::create([
+            'buyer_id' => $seller->id,
+            'seller_id' => $admin->id,
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+            'context_key' => 'support:fresh',
+            'last_message_at' => now()->subDay(),
+        ]);
+        $marketplaceUnread = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'conversation_type' => Conversation::TYPE_MARKETPLACE,
+            'last_message_at' => now()->subHours(2),
+        ]);
+
+        $readRecent->messages()->create([
+            'sender_id' => $admin->id,
+            'body' => 'Admin read recent',
+            'read_at' => now(),
+        ]);
+        $unreadOld->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Admin unread old',
+        ]);
+        $unreadFresh->messages()->create([
+            'sender_id' => $seller->id,
+            'body' => 'Admin unread fresh',
+        ]);
+        $marketplaceUnread->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Marketplace unread for admin',
+        ]);
+
+        $content = $this->actingAs($admin)
+            ->get(route('admin.chats.index', ['mode' => Conversation::TYPE_SUPPORT]))
+            ->assertOk()
+            ->assertSee('Support-чаты')
+            ->assertSee('Marketplace')
+            ->assertSee('data-admin-chat-unread="3"', false)
+            ->assertSee('data-admin-support-unread="2"', false)
+            ->assertSee('data-admin-marketplace-unread="1"', false)
+            ->getContent();
+
+        $this->assertLessThan(
+            strpos($content, 'Admin unread old'),
+            strpos($content, 'Admin unread fresh')
+        );
+        $this->assertLessThan(
+            strpos($content, 'Admin read recent'),
+            strpos($content, 'Admin unread old')
+        );
+    }
+
+    public function test_admin_internal_chat_note_is_hidden_from_participants(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'last_message_at' => now(),
+        ]);
+
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Visible marketplace message',
+        ]);
+
+        $noteResponse = $this->actingAs($admin)
+            ->postJson(route('admin.chats.note', $conversation), [
+                'body' => 'Only admins should see this note',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('latest_message_id', fn ($id) => is_int($id) && $id > 0);
+
+        $this->assertStringContainsString('Only admins should see this note', $noteResponse->json('html'));
+
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $admin->id,
+            'type' => 'internal_note',
+            'body' => 'Only admins should see this note',
+        ]);
+        $this->assertSame('Visible marketplace message', $conversation->fresh()->lastMessage->body);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Внутренняя заметка')
+            ->assertSee('Only admins should see this note');
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Visible marketplace message')
+            ->assertDontSee('Only admins should see this note');
+    }
+
+    public function test_admin_chat_index_opens_mobile_list_before_selected_chat(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'last_message_at' => now(),
+        ]);
+
+        $indexResponse = $this->actingAs($admin)
+            ->get(route('admin.chats.index', ['mode' => Conversation::TYPE_MARKETPLACE]))
+            ->assertOk();
+
+        $this->assertStringContainsString('mobileListOpen: true', $indexResponse->getContent());
+        $this->assertStringContainsString('Выберите диалог', $indexResponse->getContent());
+        $this->assertStringNotContainsString('x-ref="messages"', $indexResponse->getContent());
+
+        $showResponse = $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk();
+
+        $this->assertStringContainsString('mobileListOpen: false', $showResponse->getContent());
+    }
+
+    public function test_non_admin_cannot_open_admin_chats(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+
+        $this->actingAs($buyer)
+            ->get(route('admin.chats.index'))
+            ->assertForbidden();
     }
 
     public function test_seller_navigation_contains_chats_link(): void
@@ -946,6 +1625,72 @@ class SecurityRegressionTest extends TestCase
             'user_id' => $buyer->id,
             'product_id' => $product->id,
         ]);
+    }
+
+    public function test_cart_add_json_reports_out_of_stock_product(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, [
+            'stock' => 0,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($buyer)
+            ->postJson(route('cart.add', $product), ['qty' => 1])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('qty')
+            ->assertJsonFragment(['qty' => ['Товара нет в наличии.']]);
+    }
+
+    public function test_cart_item_can_be_removed_as_json_without_page_reload(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $item = CartItem::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'qty' => 1,
+        ]);
+
+        $this->actingAs($buyer)
+            ->deleteJson(route('cart.remove', $item))
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Товар удалён из корзины',
+            ]);
+
+        $this->assertDatabaseMissing('cart_items', ['id' => $item->id]);
+    }
+
+    public function test_cart_quantities_endpoint_keeps_product_cards_in_sync(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, [
+            'title' => 'Quantity synced product',
+        ]);
+
+        CartItem::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'qty' => 3,
+        ]);
+
+        $response = $this->actingAs($buyer)
+            ->getJson(route('cart.quantities'))
+            ->assertOk()
+            ->assertJsonPath("quantities.{$product->id}", 3);
+
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+
+        $this->actingAs($buyer)
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSee('Quantity synced product')
+            ->assertSee('cart-quantities-refreshed', false);
     }
 
     public function test_checkout_rejects_cart_quantity_above_current_stock(): void
@@ -1828,6 +2573,132 @@ class SecurityRegressionTest extends TestCase
             ->assertViewHas('tab', 'completed')
             ->assertSee($completedOrder->number)
             ->assertDontSee($activeOrder->number);
+    }
+
+    public function test_cart_index_cleans_unavailable_products(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $activeProduct = $this->createProduct($seller, ['title' => 'Visible cart product']);
+        $draftProduct = $this->createProduct($seller, [
+            'title' => 'Hidden cart product',
+            'status' => 'draft',
+        ]);
+
+        CartItem::create([
+            'user_id' => $buyer->id,
+            'product_id' => $activeProduct->id,
+            'qty' => 1,
+        ]);
+        CartItem::create([
+            'user_id' => $buyer->id,
+            'product_id' => $draftProduct->id,
+            'qty' => 1,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('cart.index'))
+            ->assertOk()
+            ->assertSee('Visible cart product')
+            ->assertViewHas('items', fn ($items) => $items->contains('product_id', $activeProduct->id)
+                && ! $items->contains('product_id', $draftProduct->id));
+
+        $this->assertDatabaseHas('cart_items', [
+            'user_id' => $buyer->id,
+            'product_id' => $activeProduct->id,
+        ]);
+        $this->assertDatabaseMissing('cart_items', [
+            'user_id' => $buyer->id,
+            'product_id' => $draftProduct->id,
+        ]);
+    }
+
+    public function test_favorites_index_cleans_unavailable_products(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $activeProduct = $this->createProduct($seller, ['title' => 'Visible favorite product']);
+        $draftProduct = $this->createProduct($seller, [
+            'title' => 'Hidden favorite product',
+            'status' => 'draft',
+        ]);
+
+        Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $activeProduct->id,
+        ]);
+        Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $draftProduct->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('favorites.index'))
+            ->assertOk()
+            ->assertSee('Visible favorite product')
+            ->assertViewHas('items', fn ($items) => $items->contains('product_id', $activeProduct->id)
+                && ! $items->contains('product_id', $draftProduct->id));
+
+        $this->assertDatabaseHas('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $activeProduct->id,
+        ]);
+        $this->assertDatabaseMissing('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $draftProduct->id,
+        ]);
+    }
+
+    public function test_buyer_utility_pages_use_mobile_safe_layouts(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, [
+            'title' => 'КроссовкиTommyHilfigerEM0EM01527BDSбелыессинейподошвойдлинноеназваниебезпробелов',
+        ]);
+
+        CartItem::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'qty' => 1,
+        ]);
+        Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+        UserAddress::create([
+            'user_id' => $buyer->id,
+            'country' => 'Moldova',
+            'city' => 'Chisinau',
+            'street' => 'ОченьДлиннаяУлицаБезПробеловДляПроверкиМобильнойВерстки',
+            'house' => '123A',
+            'comment' => 'ОченьДлинныйКомментарийБезПробеловКоторыйНеДолженВыталкиватьКарточкуЗаЭкран',
+            'is_default' => true,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('cart.index'))
+            ->assertOk()
+            ->assertSee('cart-mobile-safe', false)
+            ->assertSee('КроссовкиTommyHilf...', false);
+
+        $this->actingAs($buyer)
+            ->get(route('favorites.index'))
+            ->assertOk()
+            ->assertSee('favorites-mobile-safe', false)
+            ->assertSee('КроссовкиTommyHilf...', false);
+
+        $this->actingAs($buyer)
+            ->get(route('addresses.index'))
+            ->assertOk()
+            ->assertSee('addresses-mobile-safe', false)
+            ->assertSee('ОченьДлиннаяУлицаБезПробеловДляПроверкиМобильнойВерстки');
+
+        $this->actingAs($buyer)
+            ->get(route('notifications.settings'))
+            ->assertOk()
+            ->assertSee('notifications-mobile-safe', false)
+            ->assertSee('Email уведомления');
     }
 
     private function createProduct(User $seller, array $overrides = []): Product

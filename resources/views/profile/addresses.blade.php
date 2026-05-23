@@ -1,5 +1,5 @@
 <x-buyer-layout title="Личный кабинет">
-  <div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-6 sm:space-y-8">
+  <div class="addresses-mobile-safe w-full max-w-none overflow-x-hidden px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8 space-y-5 sm:space-y-8">
 
     <!-- Заголовок -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -14,17 +14,19 @@
       </div>
 
       <!-- Кнопка добавления -->
-      <x-action-button type="button" x-data x-on:click="$dispatch('open-modal', 'addAddress')">
+      <div class="w-full sm:w-auto">
+      <x-action-button type="button" :full="true" x-data x-on:click="$dispatch('open-modal', 'addAddress')">
         <i class="ri-add-line text-lg"></i>
         Добавить адрес
       </x-action-button>
+      </div>
 
     </div>
 
     <!-- Список адресов -->
     <div class="space-y-4">
       @forelse ($addresses as $address)
-        <div class="bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 hover:shadow-md transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="min-w-0 overflow-hidden bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 hover:shadow-md transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
           <!-- Левая часть -->
           <div class="text-gray-700 flex items-start gap-4 min-w-0">
@@ -33,7 +35,7 @@
             </div>
             <div class="min-w-0">
               <div class="font-semibold text-lg text-gray-900 flex flex-wrap items-center gap-2">
-                <span>{{ $address->city ?? '—' }}, {{ $address->street ?? '' }} {{ $address->house ?? '' }}</span>
+                <span class="min-w-0 break-words" style="overflow-wrap: anywhere;">{{ $address->city ?? '—' }}, {{ $address->street ?? '' }} {{ $address->house ?? '' }}</span>
                 @if ($address->is_default)
                   <span class="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-1 rounded-full">
                     <i class="ri-star-smile-line"></i>
@@ -41,7 +43,7 @@
                   </span>
                 @endif
               </div>
-              <div class="text-sm text-gray-500 mt-1">
+              <div class="text-sm text-gray-500 mt-1 break-words" style="overflow-wrap: anywhere;">
                 {{ $address->country ?? '' }} • {{ $address->postal_code ?? 'Без индекса' }}
                 @if ($address->apartment)
                   • кв. {{ $address->apartment }}
@@ -51,20 +53,20 @@
                 @endif
               </div>
               @if ($address->comment)
-                <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                  <i class="ri-chat-1-line"></i>
-                  {{ $address->comment }}
+                <p class="text-xs text-gray-400 mt-1 flex items-start gap-1 break-words" style="overflow-wrap: anywhere;">
+                  <i class="ri-chat-1-line mt-0.5 shrink-0"></i>
+                  <span class="min-w-0">{{ $address->comment }}</span>
                 </p>
               @endif
             </div>
           </div>
 
           <!-- Кнопки -->
-          <div class="flex flex-wrap gap-2 sm:justify-end">
+          <div class="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
             @unless ($address->is_default)
-              <form method="POST" action="{{ route('addresses.default', $address) }}">
+              <form method="POST" action="{{ route('addresses.default', $address) }}" class="min-w-0">
                 @csrf
-                <button type="submit" class="h-10 px-4 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm font-semibold transition flex items-center gap-2">
+                <button type="submit" class="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 sm:w-auto">
                   <i class="ri-star-line"></i>
                   Сделать основным
                 </button>
@@ -143,7 +145,7 @@
               <label for="is_default_{{ $address->id }}" class="text-sm text-gray-700">Сделать основным</label>
             </div>
 
-            <div class="flex justify-end gap-2 pt-4 border-t border-gray-100">
+            <div class="grid grid-cols-2 gap-2 pt-4 border-t border-gray-100 sm:flex sm:justify-end">
               <x-secondary-action type="button" x-on:click="$dispatch('close-modal', 'editAddress{{ $address->id }}')">
                 Отмена
               </x-secondary-action>
@@ -228,5 +230,16 @@
     </x-modal>
 
   </div>
+
+  <style>
+    .addresses-mobile-safe,
+    .addresses-mobile-safe * {
+      box-sizing: border-box;
+    }
+
+    .addresses-mobile-safe {
+      max-width: 100vw;
+    }
+  </style>
   
 </x-buyer-layout>

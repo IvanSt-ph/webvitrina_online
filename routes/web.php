@@ -46,6 +46,7 @@ use App\Http\Controllers\Admin\{
     AdminProfileController,
     BannerController,
     ReviewController as AdminReviewController,
+    ChatController as AdminChatController,
     CategoryAttributeController,
     CategoryController as AdminCategoryController
 };
@@ -215,10 +216,16 @@ Route::middleware('role:buyer')->group(function () {
     Route::post('/my-chats/{conversation}/messages', [ChatController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('chats.messages.store');
+    Route::post('/my-chats/{conversation}/support', [ChatController::class, 'openSupportFromConversation'])
+        ->middleware('throttle:10,1')
+        ->name('chats.support.dispute');
     Route::view('/notifications/settings', 'buyer.notifications.settings')->name('notifications.settings');
     Route::view('/settings/language', 'buyer.settings.language')->name('settings.language');
     Route::view('/settings/currency', 'buyer.settings.currency')->name('settings.currency');
-    Route::view('/support', 'buyer.support.index')->name('support');
+    Route::get('/support', [ChatController::class, 'support'])->name('support');
+    Route::post('/support/start', [ChatController::class, 'startSupport'])
+        ->middleware('throttle:10,1')
+        ->name('support.start');
     Route::view('/help', 'buyer.help.index')->name('help');
     Route::view('/seller/register', 'buyer.seller.register')->name('seller.register');
     Route::view('/about', 'buyer.about.index')->name('about');
@@ -257,6 +264,20 @@ Route::middleware('role:buyer')->group(function () {
     Route::get('/cart-count', fn() => ['count' => \App\Models\CartItem::where('user_id', auth()->id())->sum('qty')])
     ->middleware('auth')
     ->name('cart.count');
+
+    Route::get('/cart-quantities', function () {
+        $response = response()->json([
+            'quantities' => \App\Models\CartItem::where('user_id', auth()->id())
+                ->pluck('qty', 'product_id')
+                ->map(fn ($qty) => (int) $qty),
+        ]);
+
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+
+        return $response;
+    })
+    ->middleware('auth')
+    ->name('cart.quantities');
     
 
 
@@ -453,6 +474,18 @@ Route::prefix('admin')
         [OrderStatusController::class, 'adminUpdate']
     )->name('orders.updateStatus');
 
+    Route::get('/chats', [AdminChatController::class, 'index'])->name('chats.index');
+    Route::get('/chats/{conversation}', [AdminChatController::class, 'show'])->name('chats.show');
+    Route::post('/chats/support/{user}', [AdminChatController::class, 'startSupport'])->name('chats.support.start');
+    Route::post('/chats/{conversation}/messages', [AdminChatController::class, 'store'])->name('chats.messages.store');
+    Route::post('/chats/{conversation}/system', [AdminChatController::class, 'system'])->name('chats.system');
+    Route::post('/chats/{conversation}/note', [AdminChatController::class, 'note'])->name('chats.note');
+    Route::post('/chats/{conversation}/lock', [AdminChatController::class, 'lock'])->name('chats.lock');
+    Route::post('/chats/{conversation}/unlock', [AdminChatController::class, 'unlock'])->name('chats.unlock');
+    Route::get('/chats/{conversation}/messages/{message}/image', [AdminChatController::class, 'image'])
+        ->scopeBindings()
+        ->name('chats.messages.image');
+
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
@@ -475,5 +508,3 @@ Route::prefix('admin')
 |--------------------------------------------------------------------------
 */
 require __DIR__.'/auth.php';
-
-

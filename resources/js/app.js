@@ -153,6 +153,46 @@ window.showAppToast = (text, type = 'success') => {
   }, 2500);
 };
 
+// 🧮 Актуализация счетчиков товаров на карточках после возврата назад
+// Браузер может восстановить главную из bfcache, поэтому Blade-значения становятся устаревшими.
+window.refreshProductCartQuantities = async () => {
+  const productCards = document.querySelectorAll('.pc-card')
+  if (!productCards.length) return
+
+  try {
+    const url = new URL('/cart-quantities', window.location.origin)
+    url.searchParams.set('_', Date.now().toString())
+
+    const response = await fetch(url.toString(), {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Cache-Control': 'no-cache',
+      },
+    })
+
+    if (!response.ok) return
+
+    const data = await response.json()
+    window.dispatchEvent(new CustomEvent('cart-quantities-refreshed', {
+      detail: { quantities: data.quantities || {} },
+    }))
+  } catch (error) {
+    console.debug('Cart quantities refresh skipped', error)
+  }
+}
+
+window.addEventListener('pageshow', () => {
+  window.refreshProductCartQuantities()
+})
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    window.refreshProductCartQuantities()
+  }
+})
+
 
 
 // 🧩 Подключаем твои доп. скрипты (пример: форма продавца)

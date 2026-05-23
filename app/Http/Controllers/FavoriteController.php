@@ -12,12 +12,20 @@ class FavoriteController extends Controller
 {
     public function index()
     {
+        Favorite::where('user_id', auth()->id())
+            ->where(function ($query) {
+                $query->whereDoesntHave('product')
+                    ->orWhereHas('product', fn ($productQuery) => $productQuery->where('status', '!=', 'active'));
+            })
+            ->delete();
+
         $items = Favorite::with([
                 'product.category',
                 'product.city.country',
                 'product.seller',
             ])
             ->where('user_id', auth()->id())
+            ->whereHas('product', fn ($query) => $query->where('status', 'active'))
             ->latest()
             ->get();
 
