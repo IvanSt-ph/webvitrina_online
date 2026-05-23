@@ -332,9 +332,10 @@
                                 </button>
 
                                 @if($selectedConversation->product)
-                                    <a href="{{ route('product.show', $selectedConversation->product->slug) }}"
-                                       target="_blank"
-                                       rel="noopener"
+                                    <a href="{{ route('product.show', [
+                                            'identifier' => $selectedConversation->product->slug,
+                                            'admin_chat' => $selectedConversation->id,
+                                        ]) }}"
                                        class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
                                         <i class="ri-arrow-right-up-line"></i>
                                         Товар

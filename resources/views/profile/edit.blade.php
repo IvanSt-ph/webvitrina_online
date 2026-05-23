@@ -8,7 +8,7 @@
       {{-- 🏪 Баннер магазина --}}
       <section id="banner-box"
                class="relative w-full rounded-2xl overflow-hidden mb-8
-                      border border-indigo-100 shadow-md bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+                      border border-indigo-100 shadow-md bg-gradient-to-br from-indigo-50 via-white to-slate-50">
         <div class="relative w-full" style="padding-top:21%;">
           <img id="banner-preview"
                src="{{ Auth::user()->shop?->banner_url }}"

@@ -3,7 +3,7 @@
     {{-- 🔐 Заголовок --}}
     <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+            <div class="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
                 <i class="ri-shield-keyhole-line text-white text-sm"></i>
             </div>
             Безопасность аккаунта
@@ -16,11 +16,11 @@
 
     {{-- ✅ Уведомление о смене пароля --}}
     @if (session('status') === 'password-updated')
-        <div class="overflow-hidden rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/70 shadow-sm">
+        <div class="overflow-hidden rounded-xl bg-emerald-50 border border-emerald-200/70 shadow-sm">
             <div class="relative p-4">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-400"></div>
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
                 <div class="flex items-center gap-3 pl-2">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
                         <i class="ri-lock-line text-white text-sm"></i>
                     </div>
                     <p class="text-sm font-medium text-emerald-800">Пароль успешно обновлён! ✨</p>
@@ -142,7 +142,7 @@
                 </div>
             </div>
             <div class="flex-1">
-                <h3 class="text-lg font-semibold bg-gradient-to-r from-rose-600 to-red-600 bg-clip-text text-transparent">
+                <h3 class="text-lg font-semibold text-rose-700">
                     Удаление аккаунта
                 </h3>
                 <p class="text-sm text-gray-500 mt-1 max-w-md">

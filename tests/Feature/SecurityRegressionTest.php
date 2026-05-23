@@ -964,6 +964,10 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('cursor-col-resize', false)
             ->assertSee('lg:h-full', false)
             ->assertSee('x-ref="messages" class="w-full', false)
+            ->assertSee(route('product.show', [
+                'identifier' => $product->slug,
+                'admin_chat' => $conversation->id,
+            ]), false)
             ->assertSee('ID ' . $conversation->id)
             ->assertSee('Заметки 1')
             ->assertDontSee('>' . $conversation->messages()->count() . '</span>', false)
@@ -1007,6 +1011,27 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($buyer)
             ->post(route('chats.messages.store', $conversation), ['body' => 'Почему не отправляется?'])
             ->assertStatus(423);
+    }
+
+    public function test_admin_public_product_page_does_not_show_buyer_mobile_nav(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Admin public product shop']);
+        $product = $this->createProduct($seller, ['title' => 'Admin public product']);
+
+        $this->actingAs($admin)
+            ->get(route('product.show', [
+                'identifier' => $product->slug,
+                'admin_chat' => 123,
+            ]))
+            ->assertOk()
+            ->assertSee('Админ-просмотр товара')
+            ->assertSee('Карточка открыта из диалога ID 123')
+            ->assertSee(route('admin.chats.show', 123), false)
+            ->assertSee(route('admin.products.edit', $product), false)
+            ->assertDontSee('data-mobile-bottom-nav', false)
+            ->assertDontSee('data-mobile-bottom-seller-nav', false);
     }
 
     public function test_admin_support_chat_is_separate_from_marketplace_chat(): void
@@ -1568,6 +1593,148 @@ class SecurityRegressionTest extends TestCase
 
         $this->get(route('seller.show', $seller->id))
             ->assertRedirect(route('seller.show', $shop->slug));
+    }
+
+    public function test_public_user_page_shows_safe_profile_without_private_contacts(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'name' => 'Public Safe Seller',
+            'email' => 'private-seller@example.test',
+            'phone' => '+37377777777',
+            'phone_verified_at' => now(),
+        ]);
+        $shop = $seller->shop()->create([
+            'name' => 'Safe Seller Shop',
+            'description' => 'Public shop description',
+        ]);
+
+        $this->get(route('users.public.show', $seller))
+            ->assertOk()
+            ->assertSee('Public Safe Seller')
+            ->assertSee('Продавец')
+            ->assertSee('Safe Seller Shop')
+            ->assertSee(route('seller.show', $shop->slug), false)
+            ->assertDontSee('private-seller@example.test')
+            ->assertDontSee('+37377777777');
+    }
+
+    public function test_user_can_follow_and_unfollow_shop(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Followable shop']);
+
+        $this->actingAs($buyer)
+            ->post(route('shops.follow', $shop))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('shop_followers', [
+            'shop_id' => $shop->id,
+            'user_id' => $buyer->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('seller.show', $shop->slug))
+            ->assertOk()
+            ->assertSee('Вы подписаны')
+            ->assertSee('Подписчики магазина');
+
+        $this->actingAs($buyer)
+            ->post(route('shops.follow', $shop))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('shop_followers', [
+            'shop_id' => $shop->id,
+            'user_id' => $buyer->id,
+        ]);
+    }
+
+    public function test_seller_cannot_follow_own_shop(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Own shop']);
+
+        $this->actingAs($seller)
+            ->post(route('shops.follow', $shop))
+            ->assertStatus(422);
+
+        $this->assertDatabaseMissing('shop_followers', [
+            'shop_id' => $shop->id,
+            'user_id' => $seller->id,
+        ]);
+    }
+
+    public function test_seller_can_view_shop_followers_from_panel(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Seller audience shop']);
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'name' => 'Follower Buyer',
+        ]);
+
+        $shop->followers()->attach($buyer->id);
+
+        $this->actingAs($seller)
+            ->get(route('seller.followers.index'))
+            ->assertOk()
+            ->assertSee('Подписчики')
+            ->assertSee('Follower Buyer')
+            ->assertSee(route('users.public.show', $buyer), false)
+            ->assertSee('1');
+    }
+
+    public function test_seller_menu_shows_followers_link_and_count(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Seller menu audience']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+
+        $shop->followers()->attach($buyer->id);
+
+        $this->actingAs($seller)
+            ->get(route('seller.cabinet'))
+            ->assertOk()
+            ->assertSee(route('seller.followers.index'), false)
+            ->assertSee('Подписчики');
+    }
+
+    public function test_buyer_cabinet_links_to_followed_shops_page(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Favorite subscription shop']);
+
+        $shop->followers()->attach($buyer->id);
+
+        $this->actingAs($buyer)
+            ->get(route('cabinet'))
+            ->assertOk()
+            ->assertSee('Мои подписки')
+            ->assertSee(route('subscriptions.index'), false)
+            ->assertSee('Favorite subscription shop')
+            ->assertDontSee('Стать продавцом');
+
+        $this->actingAs($buyer)
+            ->get(route('subscriptions.index'))
+            ->assertOk()
+            ->assertSee('Favorite subscription shop')
+            ->assertSee(route('seller.show', $shop->slug), false)
+            ->assertSee('Отписаться')
+            ->assertDontSee('Продавать');
+
+        $this->actingAs($buyer)
+            ->get(route('subscriptions.index', ['q' => 'Favorite']))
+            ->assertOk()
+            ->assertSee('Favorite subscription shop')
+            ->assertSee('Сбросить');
+
+        $this->actingAs($buyer)
+            ->get(route('subscriptions.index', ['q' => 'NoSuchShop']))
+            ->assertOk()
+            ->assertSee('Ничего не найдено')
+            ->assertDontSee('Favorite subscription shop');
     }
 
     public function test_seller_can_create_active_product(): void

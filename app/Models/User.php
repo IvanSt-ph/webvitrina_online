@@ -119,6 +119,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Favorite::class)->latest();
     }
 
+    public function followedShops()
+    {
+        return $this->belongsToMany(Shop::class, 'shop_followers')->withTimestamps();
+    }
+
     public function addresses()
     {
         return $this->hasMany(UserAddress::class);

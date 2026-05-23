@@ -1,7 +1,7 @@
 {{-- resources/views/seller/partials/main.blade.php --}}
 <section class="bg-transparent sm:bg-white border-0 sm:border sm:border-gray-100 rounded-none sm:rounded-2xl shadow-none sm:shadow-sm p-0 sm:p-8 space-y-6 sm:space-y-8">
 
-    {{-- 🔹 Заголовок с градиентом --}}
+    {{-- 🔹 Заголовок --}}
     @include('seller.partials.header')
 
     {{-- ✅ Анимированное уведомление об успехе --}}

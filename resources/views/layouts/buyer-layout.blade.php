@@ -106,9 +106,9 @@
                             <span>Поддержка</span>
                         </a>
 
-                        <a href="{{ route('seller.register') }}" class="{{ request()->routeIs('seller.register') ? $active : '' }} {{ $link }}">
-                            <i class="ri-store-2-line text-[22px]"></i>
-                            <span>Стать продавцом</span>
+                        <a href="{{ route('subscriptions.index') }}" class="{{ request()->routeIs('subscriptions.*') ? $active : '' }} {{ $link }}">
+                            <i class="ri-user-follow-line text-[22px]"></i>
+                            <span>Мои подписки</span>
                         </a>
 
                         <a href="{{ route('buyer.profile') }}" class="{{ request()->routeIs('buyer.profile') ? $active : '' }} {{ $link }}">

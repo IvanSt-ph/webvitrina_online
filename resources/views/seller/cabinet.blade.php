@@ -11,7 +11,7 @@
     {{-- 🏪 БАННЕР МАГАЗИНА --}}
     <section id="banner-box"
              class="relative w-full rounded-2xl overflow-hidden mb-6
-                    border border-indigo-100/50 shadow-md bg-gradient-to-br from-indigo-50/80 via-purple-50/80 to-pink-50/80">
+                    border border-indigo-100/50 shadow-md bg-gradient-to-br from-indigo-50/80 via-white to-slate-50">
       <div class="relative w-full pt-[33%] sm:pt-[21%]">
         
         @php
@@ -143,8 +143,8 @@
         </div>
 
         <div class="flex justify-between items-center pt-4 border-t border-gray-100/80 text-sm">
-          <span class="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-medium flex items-center gap-1 border border-emerald-200/50">
-            <i class="ri-check-line text-emerald-500"></i> Активен
+          <span class="px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 font-medium flex items-center gap-1 border border-indigo-200/50">
+            <i class="ri-check-line text-indigo-500"></i> Активен
           </span>
           @if($shop?->updated_at)
             <span class="text-gray-400 text-xs flex items-center gap-1">
@@ -242,19 +242,19 @@
         </a>
 
         <a href="{{ route('seller.products.create') }}"
-           class="group bg-white border border-gray-100/80 hover:border-emerald-300 rounded-xl p-6 shadow-sm hover:shadow transition-all hover:-translate-y-0.5">
+           class="group bg-white border border-gray-100/80 hover:border-indigo-300 rounded-xl p-6 shadow-sm hover:shadow transition-all hover:-translate-y-0.5">
           <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-emerald-600">Добавить товар</h3>
-            <i class="ri-add-circle-line text-gray-400 group-hover:text-emerald-600 text-xl"></i>
+            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-indigo-600">Добавить товар</h3>
+            <i class="ri-add-circle-line text-gray-400 group-hover:text-indigo-600 text-xl"></i>
           </div>
           <p class="text-sm text-gray-500">Создайте новую карточку товара</p>
         </a>
 
         <a href="{{ route('profile.edit') }}"
-           class="group bg-white border border-gray-100/80 hover:border-amber-300 rounded-xl p-6 shadow-sm hover:shadow transition-all hover:-translate-y-0.5">
+           class="group bg-white border border-gray-100/80 hover:border-indigo-300 rounded-xl p-6 shadow-sm hover:shadow transition-all hover:-translate-y-0.5">
           <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-amber-600">Информация о компании</h3>
-            <i class="ri-building-4-line text-gray-400 group-hover:text-amber-600 text-xl"></i>
+            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-indigo-600">Информация о компании</h3>
+            <i class="ri-building-4-line text-gray-400 group-hover:text-indigo-600 text-xl"></i>
           </div>
           <p class="text-sm text-gray-500">Редактировать контакты и описание</p>
         </a>

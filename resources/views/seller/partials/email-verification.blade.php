@@ -1,9 +1,9 @@
 {{-- resources/views/seller/partials/email-verification.blade.php --}}
 <section class="mt-6 sm:mt-8 overflow-hidden rounded-xl sm:rounded-2xl border border-gray-200/70 bg-white shadow-sm" x-data="{ editingEmail: false }">
-    <div class="border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/60 px-4 py-4 sm:px-6 sm:py-5">
+    <div class="border-b border-gray-100 bg-gradient-to-r from-indigo-50/70 via-white to-slate-50 px-4 py-4 sm:px-6 sm:py-5">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
                     <i class="ri-mail-check-line text-xl"></i>
                 </div>
                 <div>
@@ -34,17 +34,17 @@
                         <p class="text-sm font-semibold text-gray-900">Email и изменение</p>
                         <p class="text-xs text-gray-500 mt-0.5">Обновите email для входа и уведомлений</p>
                     </div>
-                    <i class="ri-edit-line text-blue-500 text-lg"></i>
+                    <i class="ri-edit-line text-indigo-500 text-lg"></i>
                 </div>
 
                 <div x-show="!editingEmail" class="h-full rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
                     <div class="h-full flex flex-col justify-between gap-4 sm:gap-5">
                         <div class="flex items-start gap-4 min-w-0">
-                            <div class="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                            <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
                                 <i class="ri-mail-line text-xl"></i>
                             </div>
                             <div class="min-w-0">
-                                <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide">Текущий email</p>
+                                <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Текущий email</p>
                                 <p class="text-base font-semibold text-gray-950 mt-1 break-all">{{ Auth::user()->email }}</p>
                                 <p class="text-sm text-gray-500 mt-1">Этот адрес используется для входа и системных уведомлений.</p>
                             </div>
@@ -105,7 +105,7 @@
                             </div>
                         @endif
 
-                        <div class="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2.5 text-xs text-blue-700 flex items-start gap-2">
+                        <div class="rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2.5 text-xs text-indigo-700 flex items-start gap-2">
                             <i class="ri-information-line text-base mt-0.5"></i>
                             <span>Старое подтверждение будет сброшено, письмо можно отправить справа.</span>
                         </div>

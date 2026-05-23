@@ -1,10 +1,10 @@
 {{-- resources/views/seller/partials/shop.blade.php --}}
 <section class="bg-transparent sm:bg-white border-0 sm:border sm:border-gray-100 rounded-none sm:rounded-2xl shadow-none sm:shadow-sm p-0 sm:p-8 space-y-6 sm:space-y-8">
 
-    {{-- 🔹 Заголовок с градиентом --}}
+    {{-- 🔹 Заголовок --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-sm">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
                 <i class="ri-store-2-line text-white text-lg"></i>
             </div>
             <div>
@@ -25,11 +25,11 @@
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform -translate-y-2"
              x-transition:enter-end="opacity-100 transform translate-y-0"
-             class="overflow-hidden rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/70 shadow-sm">
+             class="overflow-hidden rounded-xl bg-emerald-50 border border-emerald-200/70 shadow-sm">
             <div class="relative p-4">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-400"></div>
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
                 <div class="flex items-center gap-3 pl-2">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
                         <i class="ri-check-line text-white text-sm"></i>
                     </div>
                     <div class="flex-1">
@@ -52,7 +52,7 @@
         {{-- 🏪 Основные данные магазина --}}
         <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-5 sm:space-y-6">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                <div class="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
                     <i class="ri-information-line text-white text-xs"></i>
                 </div>
                 Основная информация
@@ -118,7 +118,7 @@
         {{-- 📝 Описание магазина --}}
         <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-4">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                <div class="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
                     <i class="ri-file-text-line text-white text-xs"></i>
                 </div>
                 Описание магазина
@@ -148,7 +148,7 @@
         {{-- 🔗 Социальные сети и мессенджеры --}}
         <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-5 sm:space-y-6">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
+                <div class="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm">
                     <i class="ri-share-line text-white text-xs"></i>
                 </div>
                 Социальные сети и мессенджеры
@@ -158,11 +158,11 @@
                 {{-- Facebook --}}
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <i class="ri-facebook-circle-fill text-blue-600"></i>
+                        <i class="ri-facebook-circle-fill text-indigo-500"></i>
                         Facebook
                     </label>
                     <div class="relative group">
-                        <div class="absolute -inset-0.5 bg-blue-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
+                        <div class="absolute -inset-0.5 bg-indigo-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
                         <div class="relative">
                             <input type="url" 
                                    name="facebook"
@@ -180,11 +180,11 @@
                 {{-- Instagram --}}
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <i class="ri-instagram-line text-pink-600"></i>
+                        <i class="ri-instagram-line text-indigo-500"></i>
                         Instagram
                     </label>
                     <div class="relative group">
-                        <div class="absolute -inset-0.5 bg-pink-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
+                        <div class="absolute -inset-0.5 bg-indigo-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
                         <div class="relative">
                             <input type="url" 
                                    name="instagram"
@@ -202,11 +202,11 @@
                 {{-- Telegram --}}
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <i class="ri-telegram-fill text-blue-500"></i>
+                        <i class="ri-telegram-fill text-indigo-500"></i>
                         Telegram
                     </label>
                     <div class="relative group">
-                        <div class="absolute -inset-0.5 bg-blue-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
+                        <div class="absolute -inset-0.5 bg-indigo-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
                         <div class="relative">
                             <input type="url" 
                                    name="telegram"
@@ -224,11 +224,11 @@
                 {{-- WhatsApp --}}
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700 flex items-center gap-1">
-                        <i class="ri-whatsapp-line text-green-600"></i>
+                        <i class="ri-whatsapp-line text-indigo-500"></i>
                         WhatsApp
                     </label>
                     <div class="relative group">
-                        <div class="absolute -inset-0.5 bg-green-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
+                        <div class="absolute -inset-0.5 bg-indigo-400/20 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-300"></div>
                         <div class="relative">
                             <input type="url" 
                                    name="whatsapp"

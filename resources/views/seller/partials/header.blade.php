@@ -2,7 +2,7 @@
 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
     {{-- Заголовок слева --}}
     <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
             <i class="ri-user-line text-white text-lg"></i>
         </div>
         <div>
@@ -24,11 +24,11 @@
         @if (Auth::user()->shop)
             <div class="flex items-center gap-1.5 w-full lg:w-auto">
                 <a href="{{ route('seller.show', Auth::user()->shop->slug) }}" 
-                   class="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 rounded-lg text-sm border border-purple-100 transition-all group flex-1 lg:flex-auto">
-                    <i class="ri-store-2-line text-purple-600"></i>
+                   class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm border border-indigo-100 transition-all group flex-1 lg:flex-auto">
+                    <i class="ri-store-2-line text-indigo-600"></i>
                     
-                    <span class="text-purple-700 font-medium max-w-[100px] lg:max-w-[150px] truncate ml-auto lg:ml-0">{{ Auth::user()->shop->name ?? 'Без названия' }}</span>
-                    <i class="ri-arrow-right-s-line text-purple-400 group-hover:translate-x-0.5 transition-transform ml-auto lg:ml-0"></i>
+                    <span class="text-indigo-700 font-medium max-w-[100px] lg:max-w-[150px] truncate ml-auto lg:ml-0">{{ Auth::user()->shop->name ?? 'Без названия' }}</span>
+                    <i class="ri-arrow-right-s-line text-indigo-400 group-hover:translate-x-0.5 transition-transform ml-auto lg:ml-0"></i>
                 </a>
                 
                 {{-- Иконка обновления магазина с тултипом --}}

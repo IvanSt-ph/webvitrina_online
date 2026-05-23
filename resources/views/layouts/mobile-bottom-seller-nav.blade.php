@@ -21,7 +21,7 @@
     <!-- Добавить (центральная) -->
     <a href="{{ route('seller.products.create') }}" 
        class="relative flex flex-col items-center justify-center -mt-3">
-        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg border-4 border-white">
+        <div class="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg border-4 border-white">
             <i class="ri-add-line text-2xl"></i>
         </div>
         <span class="text-[11px] text-gray-500 mt-1">Добавить</span>
@@ -106,6 +106,13 @@
     <ul class="space-y-3 text-sm text-gray-700">
       <!-- Кабинет (главная продавца) -->
       <li><a href="{{ route('cabinet') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-dashboard-line text-lg"></i> Кабинет</a></li>
+
+      <li>
+        <a href="{{ route('seller.followers.index') }}" class="flex items-center gap-2 hover:text-indigo-600">
+          <i class="ri-user-follow-line text-lg"></i>
+          Подписчики
+        </a>
+      </li>
       
       <!-- Финансы -->
       <li><a href="{{ route('seller.finance.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-wallet-3-line text-lg"></i> Финансы</a></li>

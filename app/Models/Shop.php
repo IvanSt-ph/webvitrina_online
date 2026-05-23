@@ -165,7 +165,21 @@ public function getReputationLabelAttribute(): string
 
     public function products()
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'user_id', 'user_id');
+    }
+
+    public function followers()
+    {
+        return $this->belongsToMany(User::class, 'shop_followers')->withTimestamps();
+    }
+
+    public function isFollowedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $this->followers()->whereKey($user->id)->exists();
     }
 
     public function city()

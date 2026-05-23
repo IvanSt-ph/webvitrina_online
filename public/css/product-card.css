@@ -267,7 +267,7 @@
         padding: 5px 2px 5px;     
     }
 }
-.pc-shop-name:hover { color: #74bdfd; }
+.pc-shop-name:hover { color: #4f46e5; }
 .pc-shop-name--empty { cursor: default; color: #d0d0da; }
 .pc-title {
     font-size: 15px; 
@@ -325,7 +325,7 @@
     border: 1.5px solid #e8e8ee; border-radius: 10px;
     position: relative;
 }
-.pc-btn--cart:hover { background: #eaf4ff; border-color: #74bdfd; color: #74bdfd; }
+.pc-btn--cart:hover { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
 .pc-cart-icon-wrapper {
     position: relative;
     display: flex;
@@ -352,21 +352,20 @@
     border: 2px solid white;
 }
 
-/* Buy — blue, dominant */
-/* Buy — blue, dominant */
+/* Buy — indigo, dominant */
 .pc-btn--buy {
-    background: #74bdfd; 
+    background: #6366f1;
     color: #fff;
-    box-shadow: 0 3px 12px rgba(116,189,253,0.4);
+    box-shadow: 0 3px 12px rgba(79,70,229,0.32);
     height: 36px;           /* Фиксированная высота как у корзины */
     padding: 0 10px;        /* Убираем вертикальный отступ */
     white-space: nowrap;    /* Текст в одну строку */
 }
 .pc-btn--buy:hover { 
-    background: #5aa8e5; 
-    box-shadow: 0 5px 16px rgba(116,189,253,0.55); 
+    background: #4f46e5;
+    box-shadow: 0 5px 16px rgba(79,70,229,0.45);
 }
-.pc-btn--buy:hover { background: #5aa8e5; box-shadow: 0 5px 16px rgba(116,189,253,0.55); }
+.pc-btn--buy:hover { background: #4f46e5; box-shadow: 0 5px 16px rgba(79,70,229,0.45); }
 
 /* Loading spinner */
 .pc-spin {
@@ -443,7 +442,7 @@
     font-size: 11px; font-weight: 600; color: #555;
     text-decoration: none; transition: background 0.18s, color 0.18s;
 }
-.pm-fullpage-btn:hover { background: #74bdfd; color: #fff; }
+.pm-fullpage-btn:hover { background: #4f46e5; color: #fff; }
 .pm-close {
     width: 30px; height: 30px;
     display: flex; align-items: center; justify-content: center;
@@ -544,7 +543,7 @@
 }
 .pm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pm-thumb:hover { transform: scale(1.05); }
-.pm-thumb--active { border-color: #74bdfd; }
+.pm-thumb--active { border-color: #6366f1; }
 
 /* Scroll buttons */
 .pm-thumb-scroll {
@@ -582,7 +581,7 @@
     font-size: 11px; font-weight: 500; color: #a0a0a8;
     text-decoration: none; transition: color 0.18s; margin-bottom: 5px; display: block;
 }
-.pm-shop:hover { color: #74bdfd; }
+.pm-shop:hover { color: #4f46e5; }
 .pm-title { 
     font-size: 18px; 
     font-weight: 800; 
@@ -668,7 +667,7 @@
     width: auto; padding: 11px 16px; white-space: nowrap;
     position: relative;
 }
-.pm-btn--cart:hover { background: #eaf4ff; border-color: #74bdfd; color: #74bdfd; }
+.pm-btn--cart:hover { background: #eef2ff; border-color: #6366f1; color: #4f46e5; }
 .pm-cart-icon-wrapper {
     position: relative;
     display: flex;
@@ -694,8 +693,8 @@
     border: 2px solid white;
 }
 
-.pm-btn--buy { background: #74bdfd; color: #fff; box-shadow: 0 4px 16px rgba(116,189,253,0.4); }
-.pm-btn--buy:hover { background: #5aa8e5; box-shadow: 0 6px 20px rgba(116,189,253,0.52); }
+.pm-btn--buy { background: #6366f1; color: #fff; box-shadow: 0 4px 16px rgba(79,70,229,0.32); }
+.pm-btn--buy:hover { background: #4f46e5; box-shadow: 0 6px 20px rgba(79,70,229,0.45); }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {

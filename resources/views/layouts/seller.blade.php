@@ -52,6 +52,12 @@
                 <span>Заказы</span>
             </a>
 
+            <a href="{{ route('seller.followers.index') }}"
+               class="{{ request()->routeIs('seller.followers.*') ? $active : '' }} {{ $link }}">
+                <i class="ri-user-follow-line text-[22px]"></i>
+                <span>Подписчики</span>
+            </a>
+
             <a href="{{ route('chats.index') }}"
                class="{{ request()->routeIs('chats.*') ? $active : '' }} {{ $link }}">
                 <span class="relative">

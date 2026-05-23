@@ -541,13 +541,46 @@ public function redirectToRoleProfile()
             ->limit(3)
             ->get();
 
+        $followedShopsCount = $user->followedShops()->count();
+        $latestFollowedShops = $user->followedShops()
+            ->with('user')
+            ->withCount('followers')
+            ->latest('shop_followers.created_at')
+            ->limit(3)
+            ->get();
+
         $recommendations = $this->getRecommendations($user);
 
         return view('profile.buyer-cabinet', compact(
             'user',
             'latestOrders',
+            'followedShopsCount',
+            'latestFollowedShops',
             'recommendations'
         ));
+    }
+
+    public function subscriptions()
+    {
+        $user = auth()->user();
+        $search = trim((string) request('q', ''));
+
+        $shops = $user->followedShops()
+            ->with('user')
+            ->withCount(['followers', 'products'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('shops.name', 'like', "%{$search}%")
+                        ->orWhere('shops.city', 'like', "%{$search}%");
+                });
+            })
+            ->latest('shop_followers.created_at')
+            ->paginate(12)
+            ->withQueryString();
+
+        $subscriptionsCount = $user->followedShops()->count();
+
+        return view('profile.subscriptions', compact('user', 'shops', 'search', 'subscriptionsCount'));
     }
 
     private function getRecommendations($user): array

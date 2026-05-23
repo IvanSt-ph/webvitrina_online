@@ -28,6 +28,10 @@ class SellerController extends Controller
 
         // Магазин продавца
         $shop = $user->shop;
+        $shop?->loadCount('followers');
+        $isFollowingShop = auth()->check() && $shop
+            ? $shop->isFollowedBy(auth()->user())
+            : false;
 
         // Товары продавца
         $productsQuery = $user->products()
@@ -99,7 +103,8 @@ class SellerController extends Controller
             'chatHasOlderMessages',
             'chatOldestMessageId',
             'chatLatestMessageId',
-            'chatLatestReadOutgoingMessageId'
+            'chatLatestReadOutgoingMessageId',
+            'isFollowingShop'
         ));
     }
 }

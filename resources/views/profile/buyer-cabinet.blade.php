@@ -4,6 +4,7 @@
     $cartCount = \App\Models\CartItem::where('user_id', $user->id)->sum('qty');
     $favCount = $user->favorites()->count();
     $ordersCount = \App\Models\Order::where('user_id', $user->id)->count();
+    $subscriptionsCount = $followedShopsCount ?? 0;
     $recs = is_array($recommendations ?? null) ? $recommendations : [];
 
     $quickLinks = [
@@ -19,21 +20,28 @@
             'subtitle' => 'Сохранённые товары',
             'icon' => 'ri-heart-3-line',
             'href' => route('favorites.index'),
-            'tone' => 'bg-rose-50 text-rose-500',
+            'tone' => 'bg-indigo-50 text-indigo-600',
         ],
         [
             'title' => 'Корзина',
             'subtitle' => 'Перейти к оплате',
             'icon' => 'ri-shopping-cart-2-line',
             'href' => route('cart.index'),
-            'tone' => 'bg-emerald-50 text-emerald-600',
+            'tone' => 'bg-indigo-50 text-indigo-600',
         ],
         [
             'title' => 'Адреса',
             'subtitle' => 'Доставка заказов',
             'icon' => 'ri-map-pin-line',
             'href' => route('addresses.index'),
-            'tone' => 'bg-sky-50 text-sky-600',
+            'tone' => 'bg-indigo-50 text-indigo-600',
+        ],
+        [
+            'title' => 'Подписки',
+            'subtitle' => 'Любимые магазины',
+            'icon' => 'ri-user-follow-line',
+            'href' => route('subscriptions.index'),
+            'tone' => 'bg-indigo-50 text-indigo-600',
         ],
     ];
 
@@ -43,7 +51,7 @@
         ['title' => 'Мои отзывы', 'icon' => 'ri-star-line', 'href' => route('reviews.index')],
         ['title' => 'Вопросы и ответы', 'icon' => 'ri-question-answer-line', 'href' => route('questions.index')],
         ['title' => 'Служба поддержки', 'icon' => 'ri-customer-service-2-line', 'href' => route('support')],
-        ['title' => 'Стать продавцом', 'icon' => 'ri-store-2-line', 'href' => route('seller.register')],
+        ['title' => 'Мои подписки', 'icon' => 'ri-user-follow-line', 'href' => route('subscriptions.index')],
     ];
 @endphp
 
@@ -61,7 +69,7 @@
                 </div>
 
                 <div class="min-w-0">
-                    <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mb-2">
+                    <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2">
                         <i class="ri-shield-check-line"></i>
                         Покупатель
                     </div>
@@ -85,7 +93,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-3 border-t border-gray-100 bg-gray-50/60">
+        <div class="grid grid-cols-2 border-t border-gray-100 bg-gray-50/60 sm:grid-cols-4">
             <a href="{{ route('orders.index') }}" class="p-4 sm:p-5 hover:bg-white transition">
                 <div class="text-xs text-gray-500">Заказы</div>
                 <div class="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{{ $ordersCount }}</div>
@@ -98,10 +106,14 @@
                 <div class="text-xs text-gray-500">В корзине</div>
                 <div class="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{{ $cartCount }}</div>
             </a>
+            <a href="{{ route('subscriptions.index') }}" class="p-4 sm:p-5 border-t border-gray-100 hover:bg-white transition sm:border-l sm:border-t-0">
+                <div class="text-xs text-gray-500">Подписки</div>
+                <div class="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{{ $subscriptionsCount }}</div>
+            </a>
         </div>
     </section>
 
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         @foreach($quickLinks as $link)
             <a href="{{ $link['href'] }}" class="group bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-indigo-100 transition">
                 <div class="flex items-start justify-between gap-3">
@@ -180,6 +192,43 @@
                         </x-empty-state>
                     @endforelse
                 </div>
+            </section>
+
+            <section class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Мои подписки</h2>
+                        <p class="text-xs text-gray-500 mt-1">Магазины, за которыми вы следите</p>
+                    </div>
+                    <a href="{{ route('subscriptions.index') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Все</a>
+                </div>
+
+                @if(($latestFollowedShops ?? collect())->isNotEmpty())
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        @foreach($latestFollowedShops as $shop)
+                            <a href="{{ route('seller.show', $shop->slug) }}" class="group rounded-xl border border-gray-100 p-3 transition hover:border-indigo-100 hover:shadow-md">
+                                <div class="aspect-[5/3] overflow-hidden rounded-lg bg-gray-50">
+                                    <img src="{{ $shop->banner_url }}" alt="{{ $shop->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                                </div>
+                                <div class="mt-3 min-w-0">
+                                    <div class="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700">{{ $shop->name }}</div>
+                                    <div class="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                                        <i class="ri-user-follow-line text-gray-400"></i>
+                                        {{ $shop->followers_count }} подписчиков
+                                    </div>
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="rounded-xl border border-dashed border-gray-200 p-6 text-center">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-3">
+                            <i class="ri-user-follow-line text-xl"></i>
+                        </div>
+                        <div class="text-sm font-semibold text-gray-900">Подписок пока нет</div>
+                        <div class="text-xs text-gray-500 mt-1">Подпишитесь на магазин, чтобы быстро вернуться к нему позже.</div>
+                    </div>
+                @endif
             </section>
 
             <section class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">

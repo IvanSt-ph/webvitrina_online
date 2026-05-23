@@ -25,8 +25,10 @@ use App\Http\Controllers\{
     UserAddressController,
     SellerController,
     CheckoutController,
-    OrderStatusController
-    ,ChatController
+    OrderStatusController,
+    ChatController,
+    PublicUserController,
+    ShopFollowController
 };
 
 use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
@@ -35,6 +37,7 @@ use App\Http\Controllers\Seller\{
     AnalyticsController,
     HelpController as SellerHelpController,
     CategoryController as SellerCategoryController,
+    FollowerController as SellerFollowerController,
     OrderController as SellerOrderController
 };
 
@@ -192,6 +195,9 @@ Route::middleware('role:buyer')->group(function () {
     // Обновление именно покупательского профиля
     Route::patch('/buyer/profile/update', [ProfileController::class, 'update'])
         ->name('buyer.profile.update');
+
+    Route::get('/my-subscriptions', [ProfileController::class, 'subscriptions'])
+        ->name('subscriptions.index');
 });
 
     // Прочие buyer-странички
@@ -200,6 +206,9 @@ Route::middleware('role:buyer')->group(function () {
     Route::post('/seller/{shop:slug}/chat', [ChatController::class, 'start'])
         ->middleware('throttle:20,1')
         ->name('chats.start');
+    Route::post('/shops/{shop:slug}/follow', [ShopFollowController::class, 'toggle'])
+        ->middleware('throttle:30,1')
+        ->name('shops.follow');
     Route::post('/p/{product:slug}/chat', [ChatController::class, 'startForProduct'])
         ->middleware('throttle:20,1')
         ->name('chats.product.start');
@@ -227,7 +236,6 @@ Route::middleware('role:buyer')->group(function () {
         ->middleware('throttle:10,1')
         ->name('support.start');
     Route::view('/help', 'buyer.help.index')->name('help');
-    Route::view('/seller/register', 'buyer.seller.register')->name('seller.register');
     Route::view('/about', 'buyer.about.index')->name('about');
 
     // Мои отзывы
@@ -368,6 +376,7 @@ Route::middleware('role:buyer')->group(function () {
 
         // Кабинет
         Route::get('/cabinet', [CabinetController::class, 'index'])->name('cabinet');
+        Route::get('/followers', [SellerFollowerController::class, 'index'])->name('followers.index');
 
         // Товары
         Route::resource('products', SellerProducts::class)->except(['show']);
@@ -399,6 +408,7 @@ Route::middleware('role:buyer')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::get('/seller/{identifier}', [SellerController::class, 'show'])->name('seller.show');
+Route::get('/u/{user}', [PublicUserController::class, 'show'])->name('users.public.show');
 
 
 /*

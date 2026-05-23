@@ -7,9 +7,35 @@
 
     @php
         $isFav = auth()->check() && $product->isFavoritedBy(auth()->user());
+        $adminChatId = request()->integer('admin_chat');
+        $isAdminProductPreview = auth()->check() && auth()->user()->role === 'admin' && $adminChatId;
     @endphp
     
     <div class="w-full max-w-[1440px] mx-auto pt-0 sm:pt-20 pb-10 px-3 sm:px-4 md:px-6 lg:px-8">
+        @if($isAdminProductPreview)
+            <div class="mb-3 rounded-2xl border border-indigo-100 bg-indigo-50/90 p-3 shadow-sm sm:mb-4 sm:p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                        <div class="text-xs font-bold uppercase tracking-wide text-indigo-600">Админ-просмотр товара</div>
+                        <div class="mt-1 truncate text-sm font-semibold text-slate-900">
+                            Карточка открыта из диалога ID {{ $adminChatId }}
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('admin.chats.show', $adminChatId) }}"
+                           class="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-700">
+                            <i class="ri-arrow-left-line"></i>
+                            Вернуться в чат
+                        </a>
+                        <a href="{{ route('admin.products.edit', $product) }}"
+                           class="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-3 text-xs font-bold text-indigo-700 transition hover:bg-indigo-50">
+                            <i class="ri-edit-2-line"></i>
+                            Редактировать
+                        </a>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- Хлебные крошки --}}
         <x-product.breadcrumbs :product="$product" />

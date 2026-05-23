@@ -1,18 +1,19 @@
 <x-guest-layout>
 
     <!-- Верхний баннер -->
-    <div class="w-full h-56 sm:h-64 overflow-hidden">
+    <div class="relative w-full h-44 sm:h-56 overflow-hidden">
         <img src="{{ asset('images/help/banner.jpg') }}" 
              class="w-full h-full object-cover" alt="Banner">
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-slate-950/20 to-transparent"></div>
+        <div class="absolute inset-x-0 bottom-0 px-5 sm:px-8 pb-5 sm:pb-7 text-white">
+            <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-indigo-100">WebVitrina</p>
+            <h1 class="mt-1 text-2xl sm:text-3xl font-bold">Вход в аккаунт</h1>
+            <p class="mt-1 text-sm text-white/85">Покупки, продажи и сообщения в одном профиле</p>
+        </div>
     </div>
 
     <!-- Контент -->
-    <div class="px-4 sm:px-6 lg:px-8 py-8 sm:py-10 w-11/12 lg:w-3/4 mx-auto">
-
-        <!-- Заголовок -->
-        <h1 class="text-center text-xl sm:text-2xl font-semibold text-gray-800 mb-6 sm:mb-8">
-            Вход в аккаунт
-        </h1>
+    <div class="px-4 sm:px-6 lg:px-8 py-7 sm:py-9 w-full max-w-2xl mx-auto">
 
         <!-- Статус -->
         <x-auth-session-status class="mb-4" :status="session('status')" />
@@ -29,7 +30,7 @@
                     return emailRegex.test(value);
                 }
             }" x-init="if(loginValue && !isEmail(loginValue)) loginType = 'phone'">
-                <label class="block text-sm mb-2 font-medium text-gray-700">
+                <label class="block text-sm mb-2 font-semibold text-gray-800">
                     Вход по Email или телефону
                 </label>
 
@@ -40,7 +41,7 @@
                             :class="loginType === 'email' 
                                 ? 'bg-indigo-600 text-white' 
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                            class="flex-1 py-3 px-4 rounded-l-xl border border-gray-300 transition flex items-center justify-center gap-2">
+                            class="flex-1 py-3 px-4 rounded-l-xl border border-gray-200 transition flex items-center justify-center gap-2 font-semibold">
                         <i class="ri-mail-line"></i>
                         Email
                     </button>
@@ -49,7 +50,7 @@
                             :class="loginType === 'phone' 
                                 ? 'bg-indigo-600 text-white' 
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                            class="flex-1 py-3 px-4 rounded-r-xl border border-gray-300 border-l-0 transition flex items-center justify-center gap-2">
+                            class="flex-1 py-3 px-4 rounded-r-xl border border-gray-200 border-l-0 transition flex items-center justify-center gap-2 font-semibold">
                         <i class="ri-smartphone-line"></i>
                         Телефон
                     </button>
@@ -69,8 +70,8 @@
                            required
                            x-model="loginValue"
                            :placeholder="loginType === 'email' ? 'example@email.com' : '+373 ___ __ __'"
-                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
-                                  focus:ring-indigo-500 focus:border-indigo-500 transition"
+                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-slate-50/70
+                                  focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
                            @input="if(loginType === 'phone') {
                                let val = $event.target.value.replace(/\D/g,'');
                                if(val && !val.startsWith('373')) val = '373' + val;
@@ -87,7 +88,7 @@
 
             <!-- Password -->
             <div x-data="{ show: false }">
-                <label class="block text-sm mb-2 font-medium text-gray-700">Пароль</label>
+                <label class="block text-sm mb-2 font-semibold text-gray-800">Пароль</label>
 
                 <div class="relative">
                     <i class="ri-lock-line absolute left-3 top-3.5 text-gray-400 text-lg"></i>
@@ -95,8 +96,8 @@
                     <input :type="show ? 'text' : 'password'" 
                            name="password" 
                            required
-                           class="w-full pl-10 pr-12 py-2.5 sm:py-3 rounded-xl border border-gray-300
-                                  focus:ring-indigo-500 focus:border-indigo-500 transition"
+                           class="w-full pl-10 pr-12 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-slate-50/70
+                                  focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
                            placeholder="Введите ваш пароль">
 
                     <button type="button" 
@@ -148,9 +149,9 @@
 
             <!-- Submit -->
             <button type="submit"
-                    class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700
-                           text-white font-semibold transition shadow-md hover:shadow-lg
-                           flex items-center justify-center gap-2">
+                    class="relative overflow-hidden group w-full py-3 rounded-xl bg-indigo-500/90 hover:bg-indigo-600
+                           text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5
+                           flex items-center justify-center gap-2 border border-indigo-400/30">
                 <i class="ri-login-box-line"></i>
                 Войти
             </button>
@@ -158,11 +159,11 @@
         </form>
 
         <!-- Разделитель -->
-        <div class="mt-8 pt-8 border-t border-gray-300">
+        <div class="mt-8 pt-8 border-t border-gray-200">
             <div class="flex items-center my-5 sm:my-6">
-                <div class="flex-1 border-t border-gray-300"></div>
+                <div class="flex-1 border-t border-gray-200"></div>
                 <span class="mx-2 sm:mx-4 text-sm text-gray-500">Или войдите с помощью:</span>
-                <div class="flex-1 border-t border-gray-300"></div>
+                <div class="flex-1 border-t border-gray-200"></div>
             </div>
 
             <!-- Social buttons -->
@@ -171,8 +172,8 @@
                 <!-- Google -->
                 <a href="{{ route('auth.google.redirect') }}"
                    class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition
-                          hover:shadow-sm">
+                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
+                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
                     <img src="{{ asset('images/icons/google.png') }}" class="w-4 h-4 sm:w-5 sm:h-5">
                     Google
                 </a>
@@ -180,8 +181,8 @@
                 <!-- Telegram -->
                 <a href="#"
                    class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition
-                          hover:shadow-sm">
+                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
+                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
                     <i class="ri-telegram-line text-base sm:text-lg"></i>
                     Telegram
                 </a>
@@ -189,8 +190,8 @@
                 <!-- Phone -->
                 <a href="#"
                    class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition
-                          hover:shadow-sm">
+                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
+                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
                     <i class="ri-smartphone-line text-base sm:text-lg"></i>
                     Телефон
                 </a>
@@ -198,8 +199,8 @@
                 <!-- Facebook -->
                 <a href="#"
                    class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition
-                          hover:shadow-sm">
+                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
+                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
                     <i class="ri-facebook-circle-line text-base sm:text-lg"></i>
                     Facebook
                 </a>

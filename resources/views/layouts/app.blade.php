@@ -2,10 +2,12 @@
 
 @php
     $hideMobileBottomNav = request()->routeIs('chats.show');
+    $isAdminUser = auth()->check() && auth()->user()->role === 'admin';
     $showSellerMobileBottomNav = auth()->check()
+        && ! $isAdminUser
         && auth()->user()->isSeller()
         && ! $hideMobileBottomNav;
-    $showBuyerMobileBottomNav = ! $showSellerMobileBottomNav && ! (
+    $showBuyerMobileBottomNav = ! $isAdminUser && ! $showSellerMobileBottomNav && ! (
         request()->routeIs('seller.*') ||
         request()->routeIs('cabinet') ||
         request()->routeIs('profile.*') ||

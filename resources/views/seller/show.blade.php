@@ -55,7 +55,7 @@
             
             <!-- Аватар с бейджем -->
             <div class="relative flex-shrink-0">
-                <div class="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-100 to-purple-100 ring-4 ring-white shadow-xl">
+                <div class="w-24 h-24 rounded-2xl overflow-hidden bg-indigo-50 ring-4 ring-white shadow-xl">
                     <img src="{{ $user->avatar_url }}" class="w-full h-full object-cover" alt="{{ $user->name }}">
                 </div>
 
@@ -63,8 +63,8 @@
                 @if($user->hasVerifiedEmail() && $shop->is_phone_verified)
                 <div class="absolute -top-2 -left-2">
                     <div class="relative">
-                        <div class="absolute w-7 h-7 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl opacity-30 animate-ping"></div>
-                        <div class="relative w-7 h-7 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center ring-2 ring-white shadow-lg cursor-help" title="Продавец верифицирован">
+                        <div class="absolute w-7 h-7 bg-indigo-500 rounded-xl opacity-30 animate-ping"></div>
+                        <div class="relative w-7 h-7 bg-indigo-600 rounded-xl flex items-center justify-center ring-2 ring-white shadow-lg cursor-help" title="Продавец верифицирован">
                             <i class="ri-shield-check-fill text-white text-sm"></i>
                         </div>
                     </div>
@@ -83,13 +83,13 @@
                         <h1 class="text-2xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2 flex-wrap">
                             {{ $user->name }}
                             @if($user->hasVerifiedEmail() && $shop->is_phone_verified)
-                                <span class="px-2 py-1 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
-                                    <i class="ri-shield-check-fill text-green-500 mr-0.5"></i>
+                                <span class="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
+                                    <i class="ri-shield-check-fill text-indigo-500 mr-0.5"></i>
                                     Проверенный
                                 </span>
                             @elseif($user->hasVerifiedEmail() || $shop->is_phone_verified)
-                                <span class="px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-                                    <i class="ri-shield-user-line text-blue-500 mr-0.5"></i>
+                                <span class="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
+                                    <i class="ri-shield-user-line text-indigo-500 mr-0.5"></i>
                                     Верифицирован
                                 </span>
                             @endif
@@ -227,13 +227,13 @@
                 <div class="flex flex-wrap items-center justify-between gap-3 pt-3 mt-3 border-t border-gray-100">
                     <div class="flex items-center gap-3">
                         <!-- Email статус -->
-                        <span class="flex items-center gap-1 text-xs {{ $user->hasVerifiedEmail() ? 'text-green-600' : 'text-gray-400' }}" title="{{ $user->hasVerifiedEmail() ? 'Email подтверждён' : 'Email не подтверждён' }}">
+                        <span class="flex items-center gap-1 text-xs {{ $user->hasVerifiedEmail() ? 'text-indigo-600' : 'text-gray-400' }}" title="{{ $user->hasVerifiedEmail() ? 'Email подтверждён' : 'Email не подтверждён' }}">
                             <i class="ri-mail-{{ $user->hasVerifiedEmail() ? 'check-fill' : 'line' }} text-base"></i>
                         </span>
 
                         <!-- Телефон статус -->
                         @if($shop->phone)
-                        <span class="flex items-center gap-1 text-xs {{ $shop->is_phone_verified ? 'text-green-600' : 'text-gray-400' }}" title="{{ $shop->is_phone_verified ? 'Телефон подтверждён' : 'Телефон не подтверждён' }}">
+                        <span class="flex items-center gap-1 text-xs {{ $shop->is_phone_verified ? 'text-indigo-600' : 'text-gray-400' }}" title="{{ $shop->is_phone_verified ? 'Телефон подтверждён' : 'Телефон не подтверждён' }}">
                             <i class="ri-smartphone-{{ $shop->is_phone_verified ? 'fill' : 'line' }} text-base"></i>
                         </span>
                         @endif
@@ -248,17 +248,17 @@
                                 </a>
                             @endif
                             @if($shop->instagram)
-                                <a href="{{ Str::startsWith($shop->instagram, 'http') ? $shop->instagram : 'https://' . $shop->instagram }}" target="_blank" class="text-gray-400 hover:text-pink-600 transition-colors" title="Instagram">
+                                <a href="{{ Str::startsWith($shop->instagram, 'http') ? $shop->instagram : 'https://' . $shop->instagram }}" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Instagram">
                                     <i class="ri-instagram-fill text-lg"></i>
                                 </a>
                             @endif
                             @if($shop->telegram)
-                                <a href="{{ Str::startsWith($shop->telegram, 'http') ? $shop->telegram : 'https://' . $shop->telegram }}" target="_blank" class="text-gray-400 hover:text-sky-600 transition-colors" title="Telegram">
+                                <a href="{{ Str::startsWith($shop->telegram, 'http') ? $shop->telegram : 'https://' . $shop->telegram }}" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Telegram">
                                     <i class="ri-telegram-fill text-lg"></i>
                                 </a>
                             @endif
                             @if($shop->whatsapp)
-                                <a href="{{ Str::startsWith($shop->whatsapp, 'http') ? $shop->whatsapp : 'https://' . $shop->whatsapp }}" target="_blank" class="text-gray-400 hover:text-green-600 transition-colors" title="WhatsApp">
+                                <a href="{{ Str::startsWith($shop->whatsapp, 'http') ? $shop->whatsapp : 'https://' . $shop->whatsapp }}" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors" title="WhatsApp">
                                     <i class="ri-whatsapp-fill text-lg"></i>
                                 </a>
                             @endif
@@ -268,10 +268,26 @@
 
                     <!-- Кнопки -->
                     <div class="flex items-center gap-2">
-                        <button class="px-4 py-2 bg-white text-indigo-700 rounded-xl hover:bg-indigo-50 transition-all duration-200 text-sm font-semibold flex items-center gap-1 border border-indigo-200 shadow-sm">
-                            <i class="ri-heart-3-line"></i>
-                            <span class="hidden sm:inline">Подписаться</span>
-                        </button>
+                        @auth
+                            @if(!auth()->user()->is($user))
+                                <form method="POST" action="{{ route('shops.follow', $shop) }}">
+                                    @csrf
+                                    <button class="px-4 py-2 {{ $isFollowingShop ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-50' }} rounded-xl transition-all duration-200 text-sm font-semibold flex items-center gap-1 border shadow-sm">
+                                        <i class="{{ $isFollowingShop ? 'ri-heart-3-fill' : 'ri-heart-3-line' }}"></i>
+                                        <span class="hidden sm:inline">{{ $isFollowingShop ? 'Вы подписаны' : 'Подписаться' }}</span>
+                                    </button>
+                                </form>
+                            @endif
+                        @else
+                            <a href="{{ route('login') }}"
+                               class="px-4 py-2 bg-white text-indigo-700 rounded-xl hover:bg-indigo-50 transition-all duration-200 text-sm font-semibold flex items-center gap-1 border border-indigo-200 shadow-sm">
+                                <i class="ri-heart-3-line"></i>
+                                <span class="hidden sm:inline">Подписаться</span>
+                            </a>
+                        @endauth
+                        <span class="rounded-xl bg-slate-50 px-2.5 py-2 text-xs font-semibold text-slate-500" title="Подписчики магазина">
+                            {{ $shop->followers_count ?? 0 }}
+                        </span>
                         @auth
                             @if(!auth()->user()->is($user))
                                 <form method="POST" action="{{ route('chats.start', $shop) }}">
@@ -357,8 +373,8 @@
         <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4 mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-gray-700 text-sm md:text-base flex flex-col md:flex-row md:gap-6 gap-2">
                 <span class="flex items-center gap-1"><i class="ri-truck-line text-indigo-600"></i> Быстрая доставка</span>
-                <span class="flex items-center gap-1"><i class="ri-shield-check-line text-green-600"></i> Гарантия качества</span>
-                <span class="flex items-center gap-1"><i class="ri-star-line text-yellow-400"></i> Топ продавцов</span>
+                <span class="flex items-center gap-1"><i class="ri-shield-check-line text-indigo-600"></i> Гарантия качества</span>
+                <span class="flex items-center gap-1"><i class="ri-star-line text-indigo-500"></i> Топ продавцов</span>
             </div>
             <a href="#" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
                 Смотреть все акции

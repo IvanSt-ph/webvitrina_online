@@ -39,6 +39,8 @@ class CabinetController extends Controller
             ->where('status', Review::STATUS_APPROVED)
             ->count();
 
+        $followersCount = $user->shop?->followers()->count() ?? 0;
+
 // 🔹 5. Средний рейтинг продавца
 $reviews = Review::whereIn('product_id', $productIds)
     ->where('status', Review::STATUS_APPROVED)
@@ -56,7 +58,7 @@ $avgRating = $avgRatingRaw ? round($avgRatingRaw, 2) : 0.00;
             [
                 'label' => 'Всего товаров',
                 'value' => number_format($totalAllProducts, 0, '.', ' '),
-                'color' => 'text-gray-600',
+                'color' => 'text-slate-900',
             ],
             [
                 'label' => 'Опубликовано товаров',
@@ -66,18 +68,23 @@ $avgRating = $avgRatingRaw ? round($avgRatingRaw, 2) : 0.00;
             [
                 'label' => 'Просмотров за 7 дней',
                 'value' => number_format($views7days, 0, '.', ' '),
-                'color' => 'text-blue-600',
+                'color' => 'text-indigo-600',
             ],
             [
                 'label' => 'Комментариев (отзывов)',
                 'value' => number_format($commentsCount, 0, '.', ' '),
-                'color' => 'text-green-600',
+                'color' => 'text-slate-900',
+            ],
+            [
+                'label' => 'Подписчиков',
+                'value' => number_format($followersCount, 0, '.', ' '),
+                'color' => 'text-indigo-600',
             ],
 [
     'label' => 'Рейтинг продавца',
     'value' => $avgRating > 0 ? number_format($avgRating, 2, '.', '') . ' / 5' : '—',
     'raw'   => (float) $avgRating,
-    'color' => 'text-yellow-600',
+    'color' => 'text-indigo-600',
 ],
 
         ];

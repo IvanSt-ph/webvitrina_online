@@ -136,7 +136,7 @@ $firstImage = $bannerImageUrl($firstBanner);
         </div>
       </div>
       @else
-        <div class="absolute inset-0 rounded-b-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+        <div class="absolute inset-0 rounded-b-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-slate-900"></div>
       @endif
     </div>
   </div>

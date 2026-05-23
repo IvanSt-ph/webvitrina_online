@@ -19,7 +19,7 @@
             $active = $currentId === $item->id;
             $otherProfileUrl = $other->isSeller() && $other->shop?->slug
                 ? route('seller.show', $other->shop->slug)
-                : null;
+                : route('users.public.show', $other);
         @endphp
         <div class="group relative rounded-2xl border p-3 transition-all duration-200 sm:rounded-3xl
                     {{ $active ? 'border-indigo-200 bg-indigo-50 shadow-sm' : 'border-white bg-white hover:border-slate-200 hover:shadow-md hover:shadow-slate-900/5' }}">
