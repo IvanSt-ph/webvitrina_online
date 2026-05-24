@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
@@ -46,12 +47,16 @@ class NewPasswordController extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
-                /*
-                |--------------------------------------------------------
-                | 📩 Отправляем уведомление пользователю
-                |--------------------------------------------------------
-                */
-                $user->notify(new PasswordChangedNotification());
+                try {
+                    $user->notify(new PasswordChangedNotification());
+                } catch (\Throwable $exception) {
+                    Log::warning('Password changed notification failed', [
+                        'user_id' => $user->id,
+                        'email_hash' => hash('sha256', (string) $user->email),
+                        'exception' => get_class($exception),
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
 
                 event(new PasswordReset($user));
             }

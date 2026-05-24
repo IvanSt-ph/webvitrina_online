@@ -9,24 +9,24 @@
     <title>Восстановление пароля — WebVitrina</title>
 </head>
 
-<body style="margin:0;padding:0;background:#f2f3fb;
+<body style="margin:0;padding:0;background:#f1f5f9;
              font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
 
 <!-- Внешний фон -->
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f2f3fb;">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f1f5f9;">
 <tr>
 <td align="center" style="padding:26px 6px;">
 
 <!-- КОНТЕЙНЕР -->
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-       style="max-width:880px;background:#ffffff;border-radius:28px;overflow:hidden;
-              box-shadow:0 26px 70px rgba(15,23,42,0.16);">
+       style="max-width:720px;background:#ffffff;border-radius:26px;overflow:hidden;
+              box-shadow:0 24px 60px rgba(15,23,42,0.14);border:1px solid #e2e8f0;">
 
     <!-- ГРАДИЕНТНЫЙ ХЕДЕР -->
     <tr>
         <td>
             <table width="100%" cellpadding="0" cellspacing="0"
-                   style="background:linear-gradient(120deg,#4f46e5,#6366f1,#8b5cf6,#ec4899);color:#ffffff;">
+                   style="background:linear-gradient(135deg,#0f172a,#312e81 48%,#4f46e5);color:#ffffff;">
 
                 <tr>
                     <td style="padding:20px 30px 18px;">
@@ -37,9 +37,7 @@
                                     <table>
                                         <tr>
                                             <td style="padding-right:12px;">
-                                                <img src="{{ asset('images/icon.png') }}"
-                                                     style="height:40px;width:40px;border-radius:12px;
-                                                            box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+                                                @include('emails.partials.brand-mark')
                                             </td>
                                             <td>
                                                 <div style="font-size:18px;font-weight:700;">
@@ -70,8 +68,8 @@
                 <!-- ТЕКСТ -->
                 <tr>
                     <td style="padding:10px 40px 30px;">
-                        <div style="font-size:24px;font-weight:700;line-height:1.4;">
-                            Запрос на смену пароля 🔐
+                        <div style="font-size:24px;font-weight:800;line-height:1.35;">
+                            Запрос на смену пароля
                         </div>
                         <div style="margin-top:6px;font-size:13px;opacity:0.9;max-width:420px;">
                             Кто-то (возможно, вы) запросил восстановление пароля для вашего аккаунта.
@@ -87,9 +85,9 @@
 
     <!-- ПРИВЕТСТВИЕ -->
     <tr>
-        <td style="padding:22px 36px 6px;">
-            <div style="color:#111827;font-size:18px;line-height:1.7;">
-                Привет, <strong>{{ $userName }}</strong> 👋<br><br>
+        <td style="padding:24px 34px 8px;">
+            <div style="color:#0f172a;font-size:16px;line-height:1.7;">
+                Привет, <strong>{{ $userName }}</strong>.<br><br>
                 Чтобы установить новый пароль, просто перейдите по ссылке ниже.
                 Эта ссылка будет действительна ограниченное время.
             </div>
@@ -101,13 +99,13 @@
     <tr>
         <td style="padding:18px 40px 10px;">
             <table width="100%" style="border-radius:22px;
-                                      background:linear-gradient(135deg,#4f46e5,#6366f1,#8b5cf6);
+                                      background:linear-gradient(135deg,#3730a3,#4f46e5,#6366f1);
                                       color:#ffffff;">
 
                 <tr>
                     <td style="padding:20px 28px 16px;text-align:center;">
 
-                        <div style="font-size:22px;font-weight:700;margin-bottom:10px;">
+                        <div style="font-size:21px;font-weight:800;margin-bottom:10px;">
                             Установите новый пароль
                         </div>
 
@@ -140,7 +138,7 @@
             <div style="font-size:13px;color:#6b7280;line-height:1.6;">
                 Если кнопка не работает, используйте ссылку ниже:
                 <br><br>
-                <span style="display:block;background:#f3f4f6;border:1px solid #e5e7eb;
+                <span style="display:block;background:#f8fafc;border:1px solid #e2e8f0;
                              border-radius:10px;padding:10px 12px;font-size:12px;
                              color:#4b5563;word-break:break-all;">
                     {{ $url }}
@@ -152,7 +150,7 @@
 
     <!-- ФУТЕР -->
     <tr>
-        <td style="padding:14px 34px 18px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+        <td style="padding:16px 34px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;">
             <table width="100%">
                 <tr>
                     <td style="font-size:11px;color:#9ca3af;line-height:1.6;">

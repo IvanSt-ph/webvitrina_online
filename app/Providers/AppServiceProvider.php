@@ -5,6 +5,9 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 use App\Models\Category;
 use App\Models\Message;
@@ -56,6 +59,15 @@ class AppServiceProvider extends ServiceProvider
             $str = preg_replace('/[^a-z0-9]+/u', '-', $str);
 
             return trim($str, '-');
+        });
+
+        RateLimiter::for('password-reset-email', function (Request $request) {
+            $email = Str::lower((string) $request->input('email'));
+            $key = $email !== ''
+                ? sha1($email.'|'.$request->ip())
+                : $request->ip();
+
+            return Limit::perMinute(5)->by($key);
         });
 
         /*

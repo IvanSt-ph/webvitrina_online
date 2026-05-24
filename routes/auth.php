@@ -29,9 +29,8 @@ Route::post('register', [RegisteredUserController::class, 'store'])
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
-    // ДОБАВЬТЕ throttling
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->middleware('throttle:5,1')
+        ->middleware('throttle:password-reset-email')
         ->name('password.email');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])

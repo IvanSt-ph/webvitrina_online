@@ -1,288 +1,282 @@
 <x-guest-layout>
 
-    <!-- Верхний баннер -->
-    <div class="relative w-full h-44 sm:h-56 overflow-hidden">
-        <img src="{{ asset('images/help/banner.jpg') }}" 
-             class="w-full h-full object-cover" alt="Banner">
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-slate-950/20 to-transparent"></div>
-        <div class="absolute inset-x-0 bottom-0 px-5 sm:px-8 pb-5 sm:pb-7 text-white">
-            <p class="text-xs sm:text-sm font-semibold uppercase tracking-wide text-indigo-100">WebVitrina</p>
-            <h1 class="mt-1 text-2xl sm:text-3xl font-bold">Вход в аккаунт</h1>
-            <p class="mt-1 text-sm text-white/85">Покупки, продажи и сообщения в одном профиле</p>
-        </div>
+    {{-- Видео фон --}}
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-slate-950">
+        <video
+            autoplay
+            muted
+            loop
+            playsinline
+            class="h-full w-full scale-[1.03] object-cover opacity-90 blur-[1.5px] saturate-125"
+        >
+            <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
+        </video>
+
+        {{-- Затемнение и стеклянная пленка поверх видео --}}
+        <div class="absolute inset-0 bg-slate-950/60"></div>
+        <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
     </div>
 
-    <!-- Контент -->
-    <div class="px-4 sm:px-6 lg:px-8 py-7 sm:py-9 w-full max-w-2xl mx-auto">
+    <div class="grid min-h-[680px] lg:grid-cols-[1.05fr_0.95fr]">
+        <section class="relative hidden overflow-hidden bg-slate-950 lg:block">
+            <img src="{{ asset('images/help/banner.jpg') }}"
+                 class="absolute inset-0 h-full w-full object-cover opacity-80"
+                 alt="WebVitrina">
+            <div class="absolute inset-0 bg-gradient-to-br from-slate-950/90 via-slate-950/45 to-indigo-950/55"></div>
 
-        <!-- Статус -->
-        <x-auth-session-status class="mb-4" :status="session('status')" />
+            <div class="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 text-white">
+                <a href="{{ route('home') }}" class="inline-flex w-fit items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-lg backdrop-blur">
+                    <img src="{{ asset('images/logo.png') }}" class="h-9 w-9 rounded-xl bg-white object-contain p-1" alt="WebVitrina">
+                    <span class="text-lg font-extrabold tracking-tight">WebVitrina</span>
+                </a>
 
-        <form method="POST" action="{{ route('login') }}" id="login-form" class="space-y-5 sm:space-y-6">
-            @csrf
-
-            <!-- Login - С полем выбора -->
-            <div x-data="{ 
-                loginType: 'email', 
-                loginValue: '{{ old('login') }}',
-                isEmail(value) {
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    return emailRegex.test(value);
-                }
-            }" x-init="if(loginValue && !isEmail(loginValue)) loginType = 'phone'">
-                <label class="block text-sm mb-2 font-semibold text-gray-800">
-                    Вход по Email или телефону
-                </label>
-
-                <!-- Переключатель Email/Телефон -->
-                <div class="flex mb-4">
-                    <button type="button"
-                            @click="loginType = 'email'"
-                            :class="loginType === 'email' 
-                                ? 'bg-indigo-600 text-white' 
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                            class="flex-1 py-3 px-4 rounded-l-xl border border-gray-200 transition flex items-center justify-center gap-2 font-semibold">
-                        <i class="ri-mail-line"></i>
-                        Email
-                    </button>
-                    <button type="button"
-                            @click="loginType = 'phone'"
-                            :class="loginType === 'phone' 
-                                ? 'bg-indigo-600 text-white' 
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                            class="flex-1 py-3 px-4 rounded-r-xl border border-gray-200 border-l-0 transition flex items-center justify-center gap-2 font-semibold">
-                        <i class="ri-smartphone-line"></i>
-                        Телефон
-                    </button>
+                <div class="max-w-md">
+                    <p class="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-200/30 bg-indigo-100/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-100">
+                        <i class="ri-shield-check-line text-base"></i>
+                        Безопасный вход
+                    </p>
+                    <h1 class="text-4xl font-extrabold leading-tight tracking-tight xl:text-5xl">
+                        Вернитесь к покупкам, продажам и диалогам.
+                    </h1>
+                    <p class="mt-5 text-base leading-7 text-white/80">
+                        Один аккаунт для заказов, подписок, магазина, поддержки и marketplace-чатов.
+                    </p>
                 </div>
 
-                <!-- Поле ввода -->
-                <div class="relative">
-                    <template x-if="loginType === 'email'">
-                        <i class="ri-mail-line absolute left-3 top-3.5 text-gray-400 text-lg"></i>
-                    </template>
-                    <template x-if="loginType === 'phone'">
-                        <i class="ri-smartphone-line absolute left-3 top-3.5 text-gray-400 text-lg"></i>
-                    </template>
-
-                    <input type="text" 
-                           name="login" 
-                           required
-                           x-model="loginValue"
-                           :placeholder="loginType === 'email' ? 'example@email.com' : '+373 ___ __ __'"
-                           class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-slate-50/70
-                                  focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
-                           @input="if(loginType === 'phone') {
-                               let val = $event.target.value.replace(/\D/g,'');
-                               if(val && !val.startsWith('373')) val = '373' + val;
-                               $event.target.value = '+' + val;
-                               loginValue = '+' + val;
-                           }">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                        <i class="ri-message-3-line text-2xl text-indigo-100"></i>
+                        <p class="mt-3 text-sm font-semibold">Чаты</p>
+                        <p class="mt-1 text-xs text-white/70">Покупатель, продавец, поддержка</p>
+                    </div>
+                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                        <i class="ri-store-2-line text-2xl text-indigo-100"></i>
+                        <p class="mt-3 text-sm font-semibold">Магазин</p>
+                        <p class="mt-1 text-xs text-white/70">Товары и подписчики</p>
+                    </div>
+                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                        <i class="ri-lock-password-line text-2xl text-indigo-100"></i>
+                        <p class="mt-3 text-sm font-semibold">Защита</p>
+                        <p class="mt-1 text-xs text-white/70">Контроль входа</p>
+                    </div>
                 </div>
+            </div>
+        </section>
 
-                <!-- Скрытое поле для типа логина -->
-                <input type="hidden" name="login_type" x-model="loginType">
-
-                <x-input-error :messages="$errors->get('login')" class="mt-1 text-sm" />
+        <section class="flex min-h-[680px] flex-col bg-white/85 backdrop-blur-xl">
+            <div class="relative h-40 overflow-hidden lg:hidden">
+                <video
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    class="absolute inset-0 h-full w-full scale-[1.03] object-cover blur-[1.5px] saturate-125"
+                >
+                    <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
+                </video>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/30 to-transparent"></div>
+                <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
+                <a href="{{ route('home') }}" class="absolute left-4 top-4 inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-sm font-extrabold text-slate-900 shadow-sm backdrop-blur">
+                    <img src="{{ asset('images/logo.png') }}" class="h-7 w-7 rounded-lg object-contain" alt="WebVitrina">
+                    WebVitrina
+                </a>
             </div>
 
-            <!-- Password -->
-            <div x-data="{ show: false }">
-                <label class="block text-sm mb-2 font-semibold text-gray-800">Пароль</label>
+            <div class="flex flex-1 items-center px-5 py-7 sm:px-8 lg:px-10 xl:px-12">
+                <div class="mx-auto w-full max-w-md">
+                    <div class="mb-7">
+                        <p class="text-sm font-semibold text-indigo-600">С возвращением</p>
+                        <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Войти в аккаунт</h2>
+                        <p class="mt-2 text-sm leading-6 text-slate-500">
+                            Используйте email или номер телефона, привязанный к профилю.
+                        </p>
+                    </div>
 
-                <div class="relative">
-                    <i class="ri-lock-line absolute left-3 top-3.5 text-gray-400 text-lg"></i>
+                    <x-auth-session-status class="mb-4" :status="session('status')" />
 
-                    <input :type="show ? 'text' : 'password'" 
-                           name="password" 
-                           required
-                           class="w-full pl-10 pr-12 py-2.5 sm:py-3 rounded-xl border border-gray-200 bg-slate-50/70
-                                  focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
-                           placeholder="Введите ваш пароль">
+                    @if($errors->any())
+                        <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                            <div class="mb-2 flex items-center gap-2 text-rose-700">
+                                <i class="ri-error-warning-line"></i>
+                                <span class="font-semibold">Не удалось войти</span>
+                            </div>
+                            <ul class="space-y-1 text-sm text-rose-600">
+                                @foreach($errors->all() as $error)
+                                    <li class="flex items-center gap-2">
+                                        <i class="ri-close-circle-fill text-xs"></i>
+                                        {{ $error }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
 
-                    <button type="button" 
-                            @click="show = !show"
-                            class="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
-                            :title="show ? 'Скрыть пароль' : 'Показать пароль'">
-                        <i x-show="!show" class="ri-eye-line text-lg"></i>
-                        <i x-show="show" class="ri-eye-off-line text-lg"></i>
-                    </button>
+                    <form method="POST" action="{{ route('login') }}" id="login-form" class="space-y-5">
+                        @csrf
+
+                        <div x-data="{
+                            loginType: 'email',
+                            loginValue: @js(old('login')),
+                            isEmail(value) {
+                                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                return emailRegex.test(value);
+                            }
+                        }" x-init="if(loginValue && !isEmail(loginValue)) loginType = 'phone'">
+                            <div class="mb-3 flex rounded-2xl border border-slate-200 bg-slate-100 p-1">
+                                <button type="button"
+                                        @click="loginType = 'email'"
+                                        :class="loginType === 'email'
+                                            ? 'bg-white text-indigo-700 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-800'"
+                                        class="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-bold transition">
+                                    <i class="ri-mail-line text-base"></i>
+                                    Email
+                                </button>
+                                <button type="button"
+                                        @click="loginType = 'phone'"
+                                        :class="loginType === 'phone'
+                                            ? 'bg-white text-indigo-700 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-800'"
+                                        class="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-bold transition">
+                                    <i class="ri-smartphone-line text-base"></i>
+                                    Телефон
+                                </button>
+                            </div>
+
+                            <label class="mb-2 block text-sm font-bold text-slate-800">Email или телефон</label>
+                            <div class="relative">
+                                <template x-if="loginType === 'email'">
+                                    <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                </template>
+                                <template x-if="loginType === 'phone'">
+                                    <i class="ri-smartphone-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                </template>
+                                <input type="text"
+                                       name="login"
+                                       required
+                                       x-model="loginValue"
+                                       :placeholder="loginType === 'email' ? 'example@email.com' : '+373 ___ __ __'"
+                                       class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                       @input="if(loginType === 'phone') {
+                                           let val = $event.target.value.replace(/\D/g,'');
+                                           if(val && !val.startsWith('373')) val = '373' + val;
+                                           $event.target.value = '+' + val;
+                                           loginValue = '+' + val;
+                                       }">
+                            </div>
+
+                            <input type="hidden" name="login_type" x-model="loginType">
+                            <x-input-error :messages="$errors->get('login')" class="mt-2 text-sm" />
+                        </div>
+
+                        <div x-data="{ show: false }">
+                            <div class="mb-2 flex items-center justify-between gap-3">
+                                <label class="block text-sm font-bold text-slate-800">Пароль</label>
+                                @if (Route::has('password.request'))
+                                    <a href="{{ route('password.request') }}"
+                                       class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">
+                                        Забыли пароль?
+                                    </a>
+                                @endif
+                            </div>
+
+                            <div class="relative">
+                                <i class="ri-lock-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                <input :type="show ? 'text' : 'password'"
+                                       name="password"
+                                       required
+                                       class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                       placeholder="Введите пароль">
+                                <button type="button"
+                                        @click="show = !show"
+                                        class="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                        :title="show ? 'Скрыть пароль' : 'Показать пароль'">
+                                    <i x-show="!show" class="ri-eye-line text-lg"></i>
+                                    <i x-show="show" class="ri-eye-off-line text-lg"></i>
+                                </button>
+                            </div>
+
+                            <x-input-error :messages="$errors->get('password')" class="mt-2 text-sm" />
+                        </div>
+
+                        <label class="flex w-fit cursor-pointer items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900">
+                            <input type="checkbox"
+                                   name="remember"
+                                   class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            Запомнить меня
+                        </label>
+
+                        <button type="submit"
+                                class="group relative flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 py-3.5 font-bold text-white shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-xl hover:shadow-indigo-500/30">
+                            <span class="relative z-10 flex items-center gap-2">
+                                <i class="ri-login-box-line text-lg"></i>
+                                Войти
+                            </span>
+                        </button>
+                    </form>
+
+                    <div class="mt-7">
+                        <div class="flex items-center gap-3">
+                            <div class="h-px flex-1 bg-slate-200"></div>
+                            <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Быстрый вход</span>
+                            <div class="h-px flex-1 bg-slate-200"></div>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <a href="{{ route('auth.google.redirect') }}"
+                               class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                                <img src="{{ asset('images/icons/google.png') }}" class="h-5 w-5" alt="">
+                                Google
+                            </a>
+                            <a href="#"
+                               class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                                <i class="ri-telegram-line text-lg"></i>
+                                Telegram
+                            </a>
+                        </div>
+                    </div>
+
+                    <p class="mt-7 text-center text-sm text-slate-600">
+                        Нет аккаунта?
+                        <a href="{{ route('register') }}" class="font-bold text-indigo-600 hover:text-indigo-800">
+                            Создать профиль
+                        </a>
+                    </p>
                 </div>
-
-                <x-input-error :messages="$errors->get('password')" class="mt-1 text-sm" />
             </div>
-
-            <!-- Remember & Forgot Password -->
-            <div class="flex items-center justify-between text-sm text-gray-600">
-                <label class="flex items-center gap-2 cursor-pointer hover:text-gray-800">
-                    <input type="checkbox" 
-                           name="remember"
-                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                    Запомнить меня
-                </label>
-
-                @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" 
-                       class="text-indigo-600 hover:text-indigo-800 hover:underline whitespace-nowrap">
-                        Забыли пароль?
-                    </a>
-                @endif
-            </div>
-
-            <!-- Ошибки формы -->
-            @if($errors->any())
-            <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
-                <div class="flex items-center gap-2 text-red-700 mb-2">
-                    <i class="ri-error-warning-line"></i>
-                    <span class="font-medium">Ошибки:</span>
-                </div>
-                <ul class="text-sm text-red-600 space-y-1">
-                    @foreach($errors->all() as $error)
-                        <li class="flex items-center gap-2">
-                            <i class="ri-close-circle-fill text-xs"></i>
-                            {{ $error }}
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-            @endif
-
-            <!-- Submit -->
-            <button type="submit"
-                    class="relative overflow-hidden group w-full py-3 rounded-xl bg-indigo-500/90 hover:bg-indigo-600
-                           text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5
-                           flex items-center justify-center gap-2 border border-indigo-400/30">
-                <i class="ri-login-box-line"></i>
-                Войти
-            </button>
-
-        </form>
-
-        <!-- Разделитель -->
-        <div class="mt-8 pt-8 border-t border-gray-200">
-            <div class="flex items-center my-5 sm:my-6">
-                <div class="flex-1 border-t border-gray-200"></div>
-                <span class="mx-2 sm:mx-4 text-sm text-gray-500">Или войдите с помощью:</span>
-                <div class="flex-1 border-t border-gray-200"></div>
-            </div>
-
-            <!-- Social buttons -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
-
-                <!-- Google -->
-                <a href="{{ route('auth.google.redirect') }}"
-                   class="flex items-center justify-center gap-2 
-                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
-                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
-                    <img src="{{ asset('images/icons/google.png') }}" class="w-4 h-4 sm:w-5 sm:h-5">
-                    Google
-                </a>
-
-                <!-- Telegram -->
-                <a href="#"
-                   class="flex items-center justify-center gap-2 
-                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
-                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
-                    <i class="ri-telegram-line text-base sm:text-lg"></i>
-                    Telegram
-                </a>
-
-                <!-- Phone -->
-                <a href="#"
-                   class="flex items-center justify-center gap-2 
-                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
-                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
-                    <i class="ri-smartphone-line text-base sm:text-lg"></i>
-                    Телефон
-                </a>
-
-                <!-- Facebook -->
-                <a href="#"
-                   class="flex items-center justify-center gap-2 
-                          bg-white hover:bg-indigo-50 py-2 sm:py-2.5 rounded-xl transition border border-gray-200
-                          hover:shadow-sm hover:border-indigo-200 text-gray-700">
-                    <i class="ri-facebook-circle-line text-base sm:text-lg"></i>
-                    Facebook
-                </a>
-            </div>
-
-            <p class="text-center mt-5 sm:mt-6 text-gray-600 text-sm">
-                Нет аккаунта?
-                <a href="{{ route('register') }}" class="text-indigo-600 font-semibold hover:underline">
-                    Создать
-                </a>
-            </p>
-        </div>
-
+        </section>
     </div>
-
-    <style>
-        /* Анимации */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        form > * {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-        
-        /* Плавные переходы */
-        button, input, a {
-            transition: all 0.2s ease;
-        }
-        
-        input:focus {
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-    </style>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Обработка отправки формы
         const form = document.getElementById('login-form');
-        form.addEventListener('submit', function(e) {
-            // Автоматическое форматирование телефона если выбрано
+        if (!form) return;
+
+        form.addEventListener('submit', function() {
             const loginInput = form.querySelector('input[name="login"]');
             const loginTypeInput = form.querySelector('input[name="login_type"]');
             const loginType = loginTypeInput ? loginTypeInput.value : 'email';
-            
-            if (loginType === 'phone') {
+
+            if (loginType === 'phone' && loginInput) {
                 let phone = loginInput.value.replace(/\D/g, '');
                 if (!phone.startsWith('373')) {
                     phone = '373' + phone;
                 }
                 loginInput.value = '+' + phone;
             }
-            
-            // Показываем загрузку
+
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> Вход...';
             submitBtn.disabled = true;
-            
-            // Восстановление кнопки через 5 секунд (на случай ошибки)
+
             setTimeout(() => {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }, 5000);
-            
+
             return true;
         });
-        
-        // Автоматическое определение типа логина при загрузке
-        const loginInput = document.querySelector('input[name="login"]');
-        if (loginInput && loginInput.value) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const loginType = emailRegex.test(loginInput.value) ? 'email' : 'phone';
-            
-            // Находим компонент Alpine.js
-            const alpineElement = document.querySelector('[x-data]');
-            if (alpineElement && alpineElement.__x) {
-                alpineElement.__x.$data.loginType = loginType;
-            }
-        }
     });
     </script>
-
 </x-guest-layout>

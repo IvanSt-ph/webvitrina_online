@@ -1,397 +1,391 @@
 <x-guest-layout>
+    {{-- Видео фон --}}
+    <div class="fixed inset-0 -z-10 overflow-hidden bg-slate-950">
+        <video
+            autoplay
+            muted
+            loop
+            playsinline
+            class="h-full w-full scale-[1.03] object-cover opacity-90 blur-[1.5px] saturate-125"
+        >
+            <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
+        </video>
 
-    <!-- Верхний баннер -->
-    <div class="w-full h-56 sm:h-64 overflow-hidden">
-        <img src="{{ asset('images/help/banner.jpg') }}" 
-             class="w-full h-full object-cover" alt="Banner">
+        {{-- Затемнение и стеклянная пленка поверх видео --}}
+        <div class="absolute inset-0 bg-slate-950/60"></div>
+        <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
     </div>
 
-    <!-- Контент -->
-    <div class="px-4 sm:px-6 lg:px-8 py-8 sm:py-10 w-11/12 lg:w-3/4 mx-auto">
+    <div class="grid min-h-[720px] lg:h-full lg:min-h-0 lg:grid-cols-[0.88fr_1.12fr]">
+        <section class="relative hidden overflow-hidden bg-slate-950 lg:block lg:h-full">
+            <img src="{{ asset('images/help/banner.jpg') }}"
+                 class="absolute inset-0 h-full w-full object-cover opacity-80"
+                 alt="WebVitrina">
+            <div class="absolute inset-0 bg-gradient-to-br from-slate-950/90 via-slate-950/45 to-indigo-950/55"></div>
 
-        <!-- Заголовок -->
-        <h1 class="text-center text-xl sm:text-2xl font-semibold text-gray-800 mb-6 sm:mb-8">
-            Создать аккаунт
-        </h1>
+            <div class="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 text-white">
+                <a href="{{ route('home') }}" class="inline-flex w-fit items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-lg backdrop-blur">
+                    <img src="{{ asset('images/logo.png') }}" class="h-9 w-9 rounded-xl bg-white object-contain p-1" alt="WebVitrina">
+                    <span class="text-lg font-extrabold tracking-tight">WebVitrina</span>
+                </a>
 
-        <!-- Полоса прогресса -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center mb-3">
-                <span class="text-sm font-medium text-gray-700">
-                    Шаг <span id="current-step">1</span> из 4
-                </span>
-                <span id="step-title" class="text-sm font-semibold text-indigo-600">
-                    Выбор роли
-                </span>
-            </div>
-            
-            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div id="progress-bar" 
-                     class="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                     style="width: 25%">
-                </div>
-            </div>
-        </div>
-
-        <form method="POST" action="{{ route('register') }}" id="registration-form" class="space-y-5 sm:space-y-6">
-            @csrf
-
-            <!-- Шаг 1: Выбор роли -->
-            <div id="step-1" class="step-content">
-                <div class="text-center mb-6">
-                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
-                        Кто вы?
-                    </h2>
-                    <p class="text-gray-600 text-sm">
-                        Выберите как вы планируете использовать платформу
+                <div class="max-w-md">
+                    <p class="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-200/30 bg-indigo-100/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-100">
+                        <i class="ri-user-add-line text-base"></i>
+                        Новый аккаунт
+                    </p>
+                    <h1 class="text-4xl font-extrabold leading-tight tracking-tight xl:text-5xl">
+                        Создайте профиль для покупок или магазина.
+                    </h1>
+                    <p class="mt-5 text-base leading-7 text-white/80">
+                        Выберите роль, укажите контакты и получите доступ к заказам, чатам, подпискам и продаже товаров.
                     </p>
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Покупатель -->
-                    <label class="relative cursor-pointer">
-                        <input type="radio" 
-                               name="role" 
-                               value="buyer" 
-                               @checked(old('role', 'buyer') === 'buyer')
-                               class="peer sr-only" required>
-                        <div class="p-4 rounded-xl border border-gray-300 bg-white
-                                    peer-checked:border-indigo-500 peer-checked:bg-indigo-50
-                                    hover:border-indigo-300 transition-all duration-200">
-                            <div class="flex flex-col items-center text-center">
-                                <div class="w-12 h-12 rounded-full bg-indigo-100 
-                                            flex items-center justify-center mb-3">
-                                    <i class="ri-shopping-bag-3-line text-xl text-indigo-600"></i>
-                                </div>
-                                <h3 class="font-semibold text-gray-900 mb-1">Покупатель</h3>
-                                <p class="text-sm text-gray-600">
-                                    Хочу покупать товары и услуги
-                                </p>
+
+                <div class="space-y-3">
+                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                        <div class="flex items-start gap-3">
+                            <i class="ri-shopping-bag-3-line mt-0.5 text-2xl text-indigo-100"></i>
+                            <div>
+                                <p class="text-sm font-semibold">Покупатель</p>
+                                <p class="mt-1 text-xs leading-5 text-white/70">Заказы, избранное, подписки на магазины и поддержка.</p>
                             </div>
                         </div>
-                    </label>
-                    
-                    <!-- Продавец -->
-                    <label class="relative cursor-pointer">
-                        <input type="radio" 
-                               name="role" 
-                               value="seller" 
-                               @checked(old('role') === 'seller')
-                               class="peer sr-only">
-                        <div class="p-4 rounded-xl border border-gray-300 bg-white
-                                    peer-checked:border-indigo-500 peer-checked:bg-indigo-50
-                                    hover:border-indigo-300 transition-all duration-200">
-                            <div class="flex flex-col items-center text-center">
-                                <div class="w-12 h-12 rounded-full bg-indigo-100 
-                                            flex items-center justify-center mb-3">
-                                    <i class="ri-store-3-line text-xl text-indigo-600"></i>
-                                </div>
-                                <h3 class="font-semibold text-gray-900 mb-1">Продавец</h3>
-                                <p class="text-sm text-gray-600">
-                                    Хочу продавать товары и услуги
-                                </p>
+                    </div>
+                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                        <div class="flex items-start gap-3">
+                            <i class="ri-store-2-line mt-0.5 text-2xl text-indigo-100"></i>
+                            <div>
+                                <p class="text-sm font-semibold">Продавец</p>
+                                <p class="mt-1 text-xs leading-5 text-white/70">Магазин создаётся автоматически, детали можно заполнить позже.</p>
                             </div>
                         </div>
-                    </label>
-                </div>
-                
-                <div class="flex justify-end pt-6">
-                    <button type="button" 
-                            onclick="goToStep(2)"
-                            class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium 
-                                   rounded-xl transition flex items-center gap-2">
-                        Далее
-                        <i class="ri-arrow-right-line"></i>
-                    </button>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Шаг 2: Личные данные -->
-            <div id="step-2" class="step-content hidden">
-                <div class="text-center mb-6">
-                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
-                        Личные данные
-                    </h2>
-                    <p class="text-gray-600 text-sm">
-                        Расскажите немного о себе
+        <section class="flex min-h-[720px] flex-col bg-white/85 backdrop-blur-xl lg:h-full lg:min-h-0">
+            <div class="relative h-40 overflow-hidden lg:hidden">
+                <video
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    class="absolute inset-0 h-full w-full scale-[1.03] object-cover blur-[1.5px] saturate-125"
+                >
+                    <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
+                </video>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/30 to-transparent"></div>
+                <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
+                <a href="{{ route('home') }}" class="absolute left-4 top-4 inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-sm font-extrabold text-slate-900 shadow-sm backdrop-blur">
+                    <img src="{{ asset('images/logo.png') }}" class="h-7 w-7 rounded-lg object-contain" alt="WebVitrina">
+                    WebVitrina
+                </a>
+            </div>
+
+            <div class="flex flex-1 items-center px-5 py-7 sm:px-8 lg:px-8 lg:py-6 xl:px-10">
+                <div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
+                    <div class="mb-5">
+                        <p class="text-sm font-semibold text-indigo-600">Регистрация</p>
+                        <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Создать аккаунт</h2>
+                        <p class="mt-2 text-sm leading-6 text-slate-500">
+                            Четыре коротких шага. Ничего лишнего, только данные для входа и роли.
+                        </p>
+                    </div>
+
+                    <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="mb-3 flex items-center justify-between gap-3">
+                            <span class="text-sm font-bold text-slate-800">
+                                Шаг <span id="current-step">1</span> из 4
+                            </span>
+                            <span id="step-title" class="text-sm font-bold text-indigo-600">Выбор роли</span>
+                        </div>
+                        <div class="h-2 overflow-hidden rounded-full bg-slate-200">
+                            <div id="progress-bar" class="h-full rounded-full bg-indigo-500 transition-all duration-300" style="width: 25%"></div>
+                        </div>
+                    </div>
+
+                    @if($errors->any())
+                        <div class="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                            <div class="mb-2 flex items-center gap-2 text-rose-700">
+                                <i class="ri-error-warning-line"></i>
+                                <span class="font-semibold">Проверьте данные</span>
+                            </div>
+                            <ul class="space-y-1 text-sm text-rose-600">
+                                @foreach($errors->all() as $error)
+                                    <li class="flex items-center gap-2">
+                                        <i class="ri-close-circle-fill text-xs"></i>
+                                        {{ $error }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('register') }}" id="registration-form">
+                        @csrf
+
+                        <div id="step-1" class="step-content space-y-5">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-950">Как будете использовать WebVitrina?</h3>
+                                <p class="mt-1 text-sm text-slate-500">Роль можно выбрать сразу, а данные магазина продавец заполнит в кабинете.</p>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio"
+                                           name="role"
+                                           value="buyer"
+                                           @checked(old('role', 'buyer') === 'buyer')
+                                           class="peer sr-only"
+                                           required>
+                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
+                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+                                            <i class="ri-shopping-bag-3-line text-2xl"></i>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="font-extrabold text-slate-950">Покупатель</p>
+                                            <p class="mt-1 text-sm leading-6 text-slate-500">Покупать товары, писать продавцам, сохранять избранное.</p>
+                                            <span class="mt-2 inline-flex items-center gap-1 text-sm font-bold text-indigo-600">
+                                                Выбрать
+                                                <i class="ri-arrow-right-line"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="relative cursor-pointer">
+                                    <input type="radio"
+                                           name="role"
+                                           value="seller"
+                                           @checked(old('role') === 'seller')
+                                           class="peer sr-only">
+                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
+                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+                                            <i class="ri-store-3-line text-2xl"></i>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="font-extrabold text-slate-950">Продавец</p>
+                                            <p class="mt-1 text-sm leading-6 text-slate-500">Размещать товары, принимать заказы и вести магазин.</p>
+                                            <span class="mt-2 inline-flex items-center gap-1 text-sm font-bold text-indigo-600">
+                                                Выбрать
+                                                <i class="ri-arrow-right-line"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="flex justify-end pt-2">
+                                <button type="button"
+                                        onclick="goToStep(2)"
+                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                    Далее
+                                    <i class="ri-arrow-right-line"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="step-2" class="step-content hidden space-y-5">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-950">Личные данные</h3>
+                                <p class="mt-1 text-sm text-slate-500">Имя будет видно в профиле, чатах и заказах.</p>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-bold text-slate-800">Имя *</label>
+                                <div class="relative">
+                                    <i class="ri-user-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                    <input type="text"
+                                           name="name"
+                                           required
+                                           value="{{ old('name') }}"
+                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           placeholder="Например, Иван">
+                                </div>
+                                <x-input-error :messages="$errors->get('name')" class="mt-2 text-sm" />
+                            </div>
+
+                            <div class="flex justify-between gap-3 pt-2">
+                                <button type="button" onclick="goToStep(1)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-bold text-slate-700 transition hover:bg-slate-50">
+                                    <i class="ri-arrow-left-line"></i>
+                                    Назад
+                                </button>
+                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                    Далее
+                                    <i class="ri-arrow-right-line"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="step-3" class="step-content hidden space-y-5">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-950">Контакты</h3>
+                                <p class="mt-1 text-sm text-slate-500">Email нужен для входа и восстановления доступа. Телефон можно добавить сразу.</p>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-bold text-slate-800">Email *</label>
+                                <div class="relative">
+                                    <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                    <input type="email"
+                                           name="email"
+                                           required
+                                           value="{{ old('email') }}"
+                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           placeholder="example@email.com">
+                                </div>
+                                <x-input-error :messages="$errors->get('email')" class="mt-2 text-sm" />
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-sm font-bold text-slate-800">Телефон</label>
+                                <div class="relative">
+                                    <i class="ri-smartphone-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                    <input type="tel"
+                                           name="phone"
+                                           value="{{ old('phone') }}"
+                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           placeholder="+373 ___ __ __">
+                                </div>
+                                <x-input-error :messages="$errors->get('phone')" class="mt-2 text-sm" />
+                            </div>
+
+                            <div class="flex justify-between gap-3 pt-2">
+                                <button type="button" onclick="goToStep(2)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-bold text-slate-700 transition hover:bg-slate-50">
+                                    <i class="ri-arrow-left-line"></i>
+                                    Назад
+                                </button>
+                                <button type="button" onclick="goToStep(4)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                    Далее
+                                    <i class="ri-arrow-right-line"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="step-4" class="step-content hidden space-y-5">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-950">Безопасность</h3>
+                                <p class="mt-1 text-sm text-slate-500">Создайте пароль и подтвердите согласие с условиями.</p>
+                            </div>
+
+                            <div x-data="{ show: false }">
+                                <label class="mb-2 block text-sm font-bold text-slate-800">Пароль *</label>
+                                <div class="relative">
+                                    <i class="ri-lock-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                    <input :type="show ? 'text' : 'password'"
+                                           name="password"
+                                           required
+                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           placeholder="Минимум 8 символов">
+                                    <button type="button"
+                                            @click="show = !show"
+                                            class="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                                        <i x-show="!show" class="ri-eye-line text-lg"></i>
+                                        <i x-show="show" class="ri-eye-off-line text-lg"></i>
+                                    </button>
+                                </div>
+                                <x-input-error :messages="$errors->get('password')" class="mt-2 text-sm" />
+                            </div>
+
+                            <div x-data="{ show: false }">
+                                <label class="mb-2 block text-sm font-bold text-slate-800">Повторите пароль *</label>
+                                <div class="relative">
+                                    <i class="ri-lock-password-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                    <input :type="show ? 'text' : 'password'"
+                                           name="password_confirmation"
+                                           required
+                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           placeholder="Повторите пароль">
+                                    <button type="button"
+                                            @click="show = !show"
+                                            class="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                                        <i x-show="!show" class="ri-eye-line text-lg"></i>
+                                        <i x-show="show" class="ri-eye-off-line text-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50/40">
+                                <input type="checkbox"
+                                       id="terms"
+                                       name="terms"
+                                       required
+                                       class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                <span>Я соглашаюсь с условиями использования и политикой конфиденциальности.</span>
+                            </label>
+
+                            <div class="flex justify-between gap-3 pt-2">
+                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-bold text-slate-700 transition hover:bg-slate-50">
+                                    <i class="ri-arrow-left-line"></i>
+                                    Назад
+                                </button>
+                                <button type="submit"
+                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                    <i class="ri-user-add-line"></i>
+                                    Зарегистрироваться
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="mt-5">
+                        <div class="flex items-center gap-3">
+                            <div class="h-px flex-1 bg-slate-200"></div>
+                            <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">Быстрая регистрация</span>
+                            <div class="h-px flex-1 bg-slate-200"></div>
+                        </div>
+
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <a href="{{ route('auth.google.redirect') }}"
+                               class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                                <img src="{{ asset('images/icons/google.png') }}" class="h-5 w-5" alt="">
+                                Google
+                            </a>
+                            <a href="#"
+                               class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                                <i class="ri-telegram-line text-lg"></i>
+                                Telegram
+                            </a>
+                        </div>
+                    </div>
+
+                    <p class="mt-5 text-center text-sm text-slate-600">
+                        Уже есть аккаунт?
+                        <a href="{{ route('login') }}" class="font-bold text-indigo-600 hover:text-indigo-800">
+                            Войти
+                        </a>
                     </p>
                 </div>
-
-                <!-- Name -->
-                <div>
-                    <label class="block text-sm mb-1 font-medium text-gray-700">Имя *</label>
-                    <div class="relative">
-                        <i class="ri-user-line absolute left-3 top-3 text-gray-400 text-lg"></i>
-                        <input type="text" name="name" required
-                               value="{{ old('name') }}"
-                               class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
-                                      focus:ring-indigo-500 focus:border-indigo-500 transition"
-                               placeholder="Например, Иван"
-                               title="Введите ваше имя">
-                    </div>
-                    @if($errors->has('name'))
-                        <div class="mt-1 text-sm text-red-600">{{ $errors->first('name') }}</div>
-                    @endif
-                </div>
-
-
-                <div class="flex justify-between pt-6">
-                    <button type="button" 
-                            onclick="goToStep(1)"
-                            class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium 
-                                   rounded-xl transition flex items-center gap-2">
-                        <i class="ri-arrow-left-line"></i>
-                        Назад
-                    </button>
-                    <button type="button" 
-                            onclick="goToStep(3)"
-                            class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium 
-                                   rounded-xl transition flex items-center gap-2">
-                        Далее
-                        <i class="ri-arrow-right-line"></i>
-                    </button>
-                </div>
             </div>
-
-            <!-- Шаг 3: Контакты -->
-            <div id="step-3" class="step-content hidden">
-                <div class="text-center mb-6">
-                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
-                        Контакты
-                    </h2>
-                    <p class="text-gray-600 text-sm">
-                        Как мы можем с вами связаться?
-                    </p>
-                </div>
-
-                <!-- Email -->
-                <div>
-                    <label class="block text-sm mb-1 font-medium text-gray-700">Email *</label>
-                    <div class="relative">
-                        <i class="ri-mail-line absolute left-3 top-3 text-gray-400 text-lg"></i>
-                        <input type="email" name="email" required
-                               value="{{ old('email') }}"
-                               class="w-full pl-10 pr-4 py-2.5 sm:py-3 rounded-xl border border-gray-300
-                                      focus:ring-indigo-500 focus:border-indigo-500 transition"
-                               placeholder="Введите email"
-                               title="Введите ваш email">
-                    </div>
-                    @if($errors->has('email'))
-                        <div class="mt-1 text-sm text-red-600">{{ $errors->first('email') }}</div>
-                    @endif
-                </div>
-
-                <!-- Phone -->
-                <div>
-                    <label class="block text-sm mb-1 font-medium text-gray-700">Телефон</label>
-                    <input type="tel" name="phone"
-                           value="{{ old('phone') }}"
-                           class="w-full py-2.5 sm:py-3 px-4 rounded-xl border border-gray-300
-                                  focus:ring-indigo-500 focus:border-indigo-500 transition"
-                           placeholder="Введите телефон +373..."
-                           title="Введите номер телефона">
-                    @if($errors->has('phone'))
-                        <div class="mt-1 text-sm text-red-600">{{ $errors->first('phone') }}</div>
-                    @endif
-                </div>
-
-                <div class="flex justify-between pt-6">
-                    <button type="button" 
-                            onclick="goToStep(2)"
-                            class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium 
-                                   rounded-xl transition flex items-center gap-2">
-                        <i class="ri-arrow-left-line"></i>
-                        Назад
-                    </button>
-                    <button type="button" 
-                            onclick="goToStep(4)"
-                            class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium 
-                                   rounded-xl transition flex items-center gap-2">
-                        Далее
-                        <i class="ri-arrow-right-line"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Шаг 4: Пароль -->
-            <div id="step-4" class="step-content hidden">
-                <div class="text-center mb-6">
-                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
-                        Безопасность
-                    </h2>
-                    <p class="text-gray-600 text-sm">
-                        Создайте надежный пароль
-                    </p>
-                </div>
-
-                <!-- Password -->
-                <div x-data="{ show: false }">
-                    <label class="block text-sm mb-1 font-medium text-gray-700">Пароль *</label>
-                    <div class="relative">
-                        <i class="ri-lock-line absolute left-3 top-3 text-gray-400 text-lg"></i>
-                        <input :type="show ? 'text' : 'password'" name="password" required
-                               class="w-full pl-10 pr-12 py-2.5 sm:py-3 rounded-xl border border-gray-300
-                                      focus:ring-indigo-500 focus:border-indigo-500 transition"
-                               placeholder="Придумайте пароль (мин. 8 символов)"
-                               title="Придумайте пароль (не менее 8 символов)">
-                        <button type="button" @click="show = !show"
-                                class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
-                            <i x-show="!show" class="ri-eye-line text-lg"></i>
-                            <i x-show="show" class="ri-eye-off-line text-lg"></i>
-                        </button>
-                    </div>
-                    @if($errors->has('password'))
-                        <div class="mt-1 text-sm text-red-600">{{ $errors->first('password') }}</div>
-                    @endif
-                </div>
-
-                <!-- Confirm Password -->
-                <div x-data="{ show: false }">
-                    <label class="block text-sm mb-1 font-medium text-gray-700">Повторите пароль *</label>
-                    <div class="relative">
-                        <i class="ri-lock-password-line absolute left-3 top-3 text-gray-400 text-lg"></i>
-                        <input :type="show ? 'text' : 'password'" name="password_confirmation" required
-                               class="w-full pl-10 pr-12 py-2.5 sm:py-3 rounded-xl border border-gray-300
-                                      focus:ring-indigo-500 focus:border-indigo-500 transition"
-                               placeholder="Повторите пароль"
-                               title="Введите пароль ещё раз">
-                        <button type="button" @click="show = !show"
-                                class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
-                            <i x-show="!show" class="ri-eye-line text-lg"></i>
-                            <i x-show="show" class="ri-eye-off-line text-lg"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Соглашение -->
-                <div class="pt-4">
-                    <div class="flex items-start gap-2">
-                       <input type="checkbox"
-       id="terms"
-       name="terms"
-       required
-       class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-
-                        <label for="terms" class="text-sm text-gray-700">
-                            Я соглашаюсь с условиями использования и политикой конфиденциальности
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Показ всех ошибок -->
-                @if($errors->any())
-                <div class="p-4 bg-red-50 border border-red-200 rounded-xl mt-4">
-                    <div class="flex items-center gap-2 text-red-700 mb-2">
-                        <i class="ri-error-warning-line"></i>
-                        <span class="font-medium">Ошибки:</span>
-                    </div>
-                    <ul class="text-sm text-red-600 space-y-1">
-                        @foreach($errors->all() as $error)
-                            <li class="flex items-center gap-2">
-                                <i class="ri-close-circle-fill text-xs"></i>
-                                {{ $error }}
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
-
-                <div class="flex justify-between pt-6">
-                    <button type="button" 
-                            onclick="goToStep(3)"
-                            class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium 
-                                   rounded-xl transition flex items-center gap-2">
-                        <i class="ri-arrow-left-line"></i>
-                        Назад
-                    </button>
-                    <button type="submit"
-                            class="px-6 py-2.5 bg-indigo-500/90 hover:bg-indigo-600 text-white font-semibold 
-                                   rounded-xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 flex items-center gap-2">
-                        <i class="ri-user-add-line"></i>
-                        Зарегистрироваться
-                    </button>
-                </div>
-            </div>
-
-        </form>
-
-        <!-- Социальные кнопки -->
-        <div class="mt-8 pt-8 border-t border-gray-300">
-            <div class="flex items-center my-5 sm:my-6">
-                <div class="flex-1 border-t border-gray-300"></div>
-                <span class="mx-2 sm:mx-4 text-sm text-gray-500">Или войдите с помощью:</span>
-                <div class="flex-1 border-t border-gray-300"></div>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <a href="{{ route('auth.google.redirect') }}"
-                   class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
-                    <img src="{{ asset('images/icons/google.png') }}" class="w-4 h-4 sm:w-5 sm:h-5">
-                    Google
-                </a>
-
-                <a href="#"
-                   class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
-                    <i class="ri-telegram-line text-base sm:text-lg"></i>
-                    Telegram
-                </a>
-
-                <a href="#"
-                   class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
-                    <i class="ri-smartphone-line text-base sm:text-lg"></i>
-                    Телефон
-                </a>
-
-                <a href="#"
-                   class="flex items-center justify-center gap-2 
-                          bg-gray-100 hover:bg-gray-200 py-2 sm:py-2.5 rounded-xl transition">
-                    <i class="ri-facebook-circle-line text-base sm:text-lg"></i>
-                    Facebook
-                </a>
-            </div>
-
-            <p class="text-center mt-5 sm:mt-6 text-gray-600 text-sm">
-                Уже есть аккаунт?
-                <a href="{{ route('login') }}" class="text-indigo-600 font-semibold hover:underline">
-                    Войти
-                </a>
-            </p>
-        </div>
-
+        </section>
     </div>
 
     <style>
-        /* Анимация шагов */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .step-content {
-            animation: fadeIn 0.3s ease-out forwards;
+            animation: fadeIn 0.22s ease-out forwards;
         }
     </style>
 
     <script>
-    // ПРОСТАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ШАГОВ
     let currentStep = 1;
-    
+
     function goToStep(step) {
-        // Проверка перед переходом
         if (step === 2) {
-            // Проверяем выбрана ли роль на шаге 1
             const roleSelected = document.querySelector('input[name="role"]:checked');
             if (!roleSelected) {
                 alert('Пожалуйста, выберите вашу роль');
                 return;
             }
         }
-        
+
         if (step === 3) {
-            // Проверяем имя на шаге 2
             const nameInput = document.querySelector('input[name="name"]');
             if (!nameInput.value.trim()) {
                 alert('Пожалуйста, введите ваше имя');
@@ -399,9 +393,8 @@
                 return;
             }
         }
-        
+
         if (step === 4) {
-            // Проверяем email на шаге 3
             const emailInput = document.querySelector('input[name="email"]');
             if (!emailInput.value.trim() || !emailInput.checkValidity()) {
                 alert('Пожалуйста, введите корректный email');
@@ -409,76 +402,66 @@
                 return;
             }
         }
-        
-        // Скрываем все шаги
+
         document.querySelectorAll('.step-content').forEach(el => {
             el.classList.add('hidden');
         });
-        
-        // Показываем нужный шаг
+
         document.getElementById('step-' + step).classList.remove('hidden');
-        
-        // Обновляем прогресс-бар
+
         const progressPercent = ((step - 1) / 3) * 100;
         document.getElementById('progress-bar').style.width = progressPercent + '%';
         document.getElementById('current-step').textContent = step;
-        
-        // Обновляем заголовок шага
+
         const titles = ['Выбор роли', 'Личные данные', 'Контакты', 'Пароль'];
         document.getElementById('step-title').textContent = titles[step - 1];
-        
+
         currentStep = step;
-        
-        // Прокручиваем к верху
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
-    // Автопереход при выборе роли
-    document.querySelectorAll('input[name="role"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            setTimeout(() => {
-                if (currentStep === 1) {
-                    goToStep(2);
-                }
-            }, 300);
-        });
-    });
-    
-    // При загрузке страницы показываем нужный шаг при ошибках
+
     document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('input[name="role"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                setTimeout(() => {
+                    if (currentStep === 1) {
+                        goToStep(2);
+                    }
+                }, 220);
+            });
+        });
+
         @if($errors->any())
-            // Если есть ошибки, показываем соответствующий шаг
             @if($errors->has('name'))
                 goToStep(2);
             @elseif($errors->has('email') || $errors->has('phone'))
                 goToStep(3);
-            @elseif($errors->has('password') || $errors->has('password_confirmation'))
+            @elseif($errors->has('password') || $errors->has('password_confirmation') || $errors->has('terms'))
                 goToStep(4);
             @endif
         @endif
-        
-        // Добавляем обработчик для кнопки отправки
+
         const form = document.getElementById('registration-form');
+        if (!form) return;
+
         form.addEventListener('submit', function(e) {
             const password = form.querySelector('input[name="password"]');
             const confirmPassword = form.querySelector('input[name="password_confirmation"]');
-            
-            // Проверка пароля
+
             if (password.value.length < 8) {
                 e.preventDefault();
                 alert('Пароль должен содержать минимум 8 символов');
                 password.focus();
                 return false;
             }
-            
+
             if (password.value !== confirmPassword.value) {
                 e.preventDefault();
                 alert('Пароли не совпадают');
                 confirmPassword.focus();
                 return false;
             }
-            
-            // Проверка согласия с условиями
+
             const terms = document.getElementById('terms');
             if (!terms.checked) {
                 e.preventDefault();
@@ -486,15 +469,19 @@
                 terms.focus();
                 return false;
             }
-            
-            // Показываем загрузку
+
             const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> Регистрация...';
             submitBtn.disabled = true;
-            
+
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 5000);
+
             return true;
         });
     });
     </script>
-
 </x-guest-layout>

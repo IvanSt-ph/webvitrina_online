@@ -13,24 +13,24 @@
     <title>Пароль успешно изменён — WebVitrina</title>
 </head>
 
-<body style="margin:0;padding:0;background:#f2f3fb;
+<body style="margin:0;padding:0;background:#f1f5f9;
              font-family:'Manrope', -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
 
 <!-- Внешний фон -->
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f2f3fb;">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f1f5f9;">
 <tr>
 <td align="center" style="padding:26px 6px;">
 
 <!-- ОСНОВНОЙ КОНТЕЙНЕР -->
 <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-       style="max-width:880px;background:#ffffff;border-radius:28px;overflow:hidden;
-              box-shadow:0 26px 70px rgba(15,23,42,0.16);">
+       style="max-width:720px;background:#ffffff;border-radius:26px;overflow:hidden;
+              box-shadow:0 24px 60px rgba(15,23,42,0.14);border:1px solid #e2e8f0;">
 
     <!-- ВЕРХНИЙ БАННЕР -->
     <tr>
         <td>
             <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                   style="background:linear-gradient(120deg,#4f46e5,#6366f1,#8b5cf6,#ec4899);color:#ffffff;">
+                   style="background:linear-gradient(135deg,#0f172a,#312e81 48%,#4f46e5);color:#ffffff;">
 
                 <!-- ЛОГО И ЗАГОЛОВОК -->
                 <tr>
@@ -43,11 +43,7 @@
                                     <table cellpadding="0" cellspacing="0" role="presentation">
                                         <tr>
                                             <td valign="middle" style="padding-right:12px;">
-                                                <img src="{{ asset('images/icon.png') }}"
-                                                     alt="WebVitrina"
-                                                     style="display:block;height:40px;width:40px;
-                                                            border-radius:12px;
-                                                            box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+                                                @include('emails.partials.brand-mark')
                                             </td>
                                             <td valign="middle">
                                                 <div style="font-size:18px;font-weight:700;letter-spacing:0.4px;">
@@ -83,7 +79,7 @@
                             <tr>
                                 <td valign="middle">
                                     <div style="font-size:24px;font-weight:700;line-height:1.4;">
-                                        Пароль был успешно изменён 🔐
+                                        Пароль был успешно изменён
                                     </div>
                                     <div style="margin-top:6px;font-size:13px;opacity:0.9;max-width:420px;">
                                         Мы отправили это письмо, чтобы убедиться, что именно вы изменили пароль.
@@ -126,12 +122,12 @@
 
     <!-- ПРИВЕТСТВИЕ -->
     <tr>
-        <td style="padding:22px 36px 6px;">
+        <td style="padding:24px 34px 8px;">
             <table width="100%" role="presentation">
                 <tr>
-                    <td style="color:#111827;font-size:18px;line-height:1.7;">
+                    <td style="color:#0f172a;font-size:16px;line-height:1.7;">
                         <p style="margin:0 0 14px;">
-                            Привет, <strong>{{ $userName }}</strong> 👋
+                            Привет, <strong>{{ $userName }}</strong>.
                         </p>
 
                         <p style="margin:0 0 10px;">
@@ -197,7 +193,7 @@
                             <tr>
                                 <td style="padding:14px 16px;font-size:13px;color:#4b5563;line-height:1.6;">
                                     <div style="font-weight:600;margin-bottom:6px;">
-                                        Что мы уже сделали ✅
+                                        Что мы уже сделали
                                     </div>
                                     <ul style="margin:0;padding-left:18px;">
                                         <li style="margin-bottom:4px;">
@@ -221,7 +217,7 @@
                             <tr>
                                 <td style="padding:14px 16px;font-size:13px;color:#78350f;line-height:1.6;">
                                     <div style="font-weight:600;margin-bottom:6px;">
-                                        Что мы рекомендуем ⚠️
+                                        Что мы рекомендуем
                                     </div>
                                     <ul style="margin:0;padding-left:18px;">
                                         <li style="margin-bottom:4px;">
@@ -305,7 +301,7 @@
 
     <!-- ФУТЕР -->
     <tr>
-        <td style="padding:14px 34px 18px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+        <td style="padding:16px 34px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;">
             <table width="100%" role="presentation">
                 <tr>
 
