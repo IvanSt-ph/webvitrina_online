@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Services\ProductService;
 use App\Services\AttributeService;
 use App\Services\CurrencyService;
+use App\Services\SellerPlanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -25,6 +26,7 @@ class ProductManageController extends Controller
         protected ProductService   $products,
         protected AttributeService $attributes,
         protected CurrencyService  $currency,
+        protected SellerPlanService $sellerPlans,
     ) {}
 
     /** 📋 Список товаров продавца */
@@ -102,6 +104,7 @@ class ProductManageController extends Controller
                 SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out_of_stock
             ')
             ->first();
+        $sellerPlanProfile = $this->sellerPlans->profileFor($request->user());
 
         /* 🔍 ПОИСК */
         if ($search) {
@@ -168,7 +171,8 @@ class ProductManageController extends Controller
             'search',
             'sort',
             'status',
-            'statusCounts'
+            'statusCounts',
+            'sellerPlanProfile'
         ));
     }
 
@@ -184,6 +188,12 @@ class ProductManageController extends Controller
     /** ➕ Создать товар */
     public function create()
     {
+        if (! $this->sellerPlans->canCreateProduct(Auth::user())) {
+            return redirect()
+                ->route('seller.products.index')
+                ->withErrors(['product_limit' => $this->sellerPlans->limitMessage(Auth::user())]);
+        }
+
         return $this->formView(new Product());
     }
 
@@ -217,6 +227,7 @@ class ProductManageController extends Controller
         $attributes = $product->exists
             ? $this->attributes->getForProduct($product)
             : collect();
+        $sellerPlanProfile = $this->sellerPlans->profileFor(Auth::user());
 
         $categoryMissing = !$product->category_id;
 
@@ -231,7 +242,8 @@ class ProductManageController extends Controller
             'countries',
             'categoriesTree',
             'attributes',
-            'categoryMissing'
+            'categoryMissing',
+            'sellerPlanProfile'
         ));
     }
 
@@ -253,6 +265,12 @@ class ProductManageController extends Controller
     /** 💾 Создание товара */
     public function store(ProductStoreRequest $request)
     {
+        if (! $this->sellerPlans->canCreateProduct($request->user())) {
+            return back()
+                ->withInput()
+                ->withErrors(['product_limit' => $this->sellerPlans->limitMessage($request->user())]);
+        }
+
         $data = $request->validated();
         $data['user_id'] = Auth::id();
         $data['status'] = $data['status'] ?? 'draft';

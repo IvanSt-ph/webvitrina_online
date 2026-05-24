@@ -58,6 +58,54 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(Order::STATUS_PENDING, $order->fresh()->status);
     }
 
+    public function test_admin_orders_index_has_operational_filters_and_product_search(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Admin Order Buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Admin Order Seller']);
+        $seller->shop()->create(['name' => 'Admin order shop']);
+        $product = $this->createProduct($seller, [
+            'title' => 'Rare admin searchable product',
+            'sku' => 'ADMIN-ORDER-SKU',
+        ]);
+
+        $matchingOrder = Order::create([
+            'user_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'number' => 'ORD-ADMIN-FILTER',
+            'status' => Order::STATUS_PENDING,
+            'total_price' => 450,
+            'currency' => 'MDL',
+            'payment_method' => 'card',
+            'delivery_method' => 'courier',
+        ]);
+
+        OrderItem::create([
+            'order_id' => $matchingOrder->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'price' => 225,
+            'total' => 450,
+        ]);
+
+        $hiddenOrder = $this->createOrder($buyer, $seller, Order::STATUS_CANCELED);
+
+        $this->actingAs($admin)
+            ->get(route('admin.orders.index', [
+                'q' => 'ADMIN-ORDER-SKU',
+                'status' => Order::STATUS_PENDING,
+                'sort' => 'amount_desc',
+            ]))
+            ->assertOk()
+            ->assertSee('Требуют внимания')
+            ->assertSee('Сумма по фильтру')
+            ->assertSee('Rare admin searchable product')
+            ->assertSee('ORD-ADMIN-FILTER')
+            ->assertSee('date_from', false)
+            ->assertSee('amount_desc', false)
+            ->assertDontSee($hiddenOrder->number);
+    }
+
     public function test_quick_checkout_rejects_invalid_quantity(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -1080,7 +1128,8 @@ class SecurityRegressionTest extends TestCase
             ->get(route('support'))
             ->assertOk()
             ->assertSee('support-mobile-safe', false)
-            ->assertSee('Онлайн-чат')
+            ->assertSee('Открыть обращение')
+            ->assertSee('Безопасность')
             ->assertSee(route('support.start'), false);
 
         $this->actingAs($seller)
@@ -1105,6 +1154,30 @@ class SecurityRegressionTest extends TestCase
             ->assertOk()
             ->assertSee('Продолжить support-чат')
             ->assertSee(route('chats.show', $conversation), false);
+    }
+
+    public function test_support_page_can_send_topic_context_to_admin(): void
+    {
+        User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $this->actingAs($seller)
+            ->post(route('support.start'), [
+                'topic' => 'Проблема с товаром',
+                'details' => 'Нужна помощь с карточкой товара.',
+            ])
+            ->assertRedirect();
+
+        $conversation = Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)
+            ->where('buyer_id', $seller->id)
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $seller->id,
+            'type' => Message::TYPE_SYSTEM,
+            'body' => "Новое обращение в поддержку.\nТема: Проблема с товаром\nПодробности: Нужна помощь с карточкой товара.",
+        ]);
     }
 
     public function test_user_can_open_support_dispute_from_marketplace_chat(): void
@@ -1352,6 +1425,7 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('data-admin-chat-unread="3"', false)
             ->assertSee('data-admin-support-unread="2"', false)
             ->assertSee('data-admin-marketplace-unread="1"', false)
+            ->assertSee('Покупатель Бронза')
             ->getContent();
 
         $this->assertLessThan(
@@ -1362,6 +1436,129 @@ class SecurityRegressionTest extends TestCase
             strpos($content, 'Admin read recent'),
             strpos($content, 'Admin unread old')
         );
+    }
+
+    public function test_admin_reading_marketplace_chat_clears_only_admin_unread_badge(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'conversation_type' => Conversation::TYPE_MARKETPLACE,
+            'last_message_at' => now(),
+        ]);
+
+        $message = $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Unread marketplace message for admin',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.index', ['mode' => Conversation::TYPE_MARKETPLACE]))
+            ->assertOk()
+            ->assertSee('data-admin-marketplace-unread="1"', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk();
+
+        $message->refresh();
+
+        $this->assertNull($message->read_at);
+        $this->assertNotNull($message->admin_read_at);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.index', ['mode' => Conversation::TYPE_MARKETPLACE]))
+            ->assertOk()
+            ->assertDontSee('data-admin-marketplace-unread=', false)
+            ->assertDontSee('data-admin-chat-unread=', false);
+    }
+
+    public function test_user_can_hide_own_chat_without_removing_it_for_admin_or_other_participant(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'conversation_type' => Conversation::TYPE_MARKETPLACE,
+            'last_message_at' => now(),
+        ]);
+
+        $conversation->messages()->create([
+            'sender_id' => $seller->id,
+            'body' => 'Chat that buyer will hide',
+        ]);
+
+        $this->actingAs($buyer)
+            ->delete(route('chats.destroy', $conversation))
+            ->assertRedirect(route('chats.index'));
+
+        $conversation->refresh();
+
+        $this->assertNotNull($conversation->buyer_deleted_at);
+        $this->assertNull($conversation->seller_deleted_at);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertNotFound();
+
+        $this->actingAs($seller)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Chat that buyer will hide');
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Chat that buyer will hide');
+
+        $this->actingAs($seller)
+            ->post(route('chats.messages.store', $conversation), [
+                'body' => 'New message restores hidden chat',
+            ])
+            ->assertRedirect(route('chats.show', $conversation));
+
+        $this->assertNull($conversation->fresh()->buyer_deleted_at);
+    }
+
+    public function test_admin_can_hide_chat_without_removing_it_for_participants(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'conversation_type' => Conversation::TYPE_MARKETPLACE,
+            'last_message_at' => now(),
+        ]);
+
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Chat hidden by admin only',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.chats.destroy', $conversation))
+            ->assertRedirect(route('admin.chats.index', ['mode' => Conversation::TYPE_MARKETPLACE]));
+
+        $this->assertNotNull($conversation->fresh()->admin_deleted_at);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.show', $conversation))
+            ->assertNotFound();
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Chat hidden by admin only');
     }
 
     public function test_admin_internal_chat_note_is_hidden_from_participants(): void
@@ -1697,7 +1894,9 @@ class SecurityRegressionTest extends TestCase
             ->get(route('seller.cabinet'))
             ->assertOk()
             ->assertSee(route('seller.followers.index'), false)
-            ->assertSee('Подписчики');
+            ->assertSee('Подписчики')
+            ->assertSee(route('support'), false)
+            ->assertSee('Поддержка');
     }
 
     public function test_buyer_cabinet_links_to_followed_shops_page(): void
@@ -1753,6 +1952,56 @@ class SecurityRegressionTest extends TestCase
             'user_id' => $seller->id,
             'title' => $payload['title'],
             'status' => 'active',
+        ]);
+    }
+
+    public function test_seller_product_creation_respects_seller_plan_limit(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'starter',
+        ]);
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->createProduct($seller, ['title' => 'Limit product ' . $i]);
+        }
+
+        $payload = $this->validSellerProductPayload([
+            'title' => 'Blocked starter product',
+        ]);
+
+        $this->actingAs($seller)
+            ->post(route('seller.products.store'), $payload)
+            ->assertSessionHasErrors('product_limit');
+
+        $this->assertDatabaseMissing('products', [
+            'user_id' => $seller->id,
+            'title' => 'Blocked starter product',
+        ]);
+    }
+
+    public function test_basic_seller_can_create_more_than_starter_limit(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'basic',
+        ]);
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->createProduct($seller, ['title' => 'Basic limit product ' . $i]);
+        }
+
+        $payload = $this->validSellerProductPayload([
+            'title' => 'Allowed basic product',
+        ]);
+
+        $this->actingAs($seller)
+            ->post(route('seller.products.store'), $payload)
+            ->assertRedirect(route('seller.products.index'));
+
+        $this->assertDatabaseHas('products', [
+            'user_id' => $seller->id,
+            'title' => 'Allowed basic product',
         ]);
     }
 
@@ -1942,8 +2191,19 @@ class SecurityRegressionTest extends TestCase
             ->assertHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()')
             ->assertHeader(
                 'content-security-policy',
-                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: https://ui-avatars.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://*.tile.openstreetmap.org; font-src 'self' data: https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' https://nominatim.openstreetmap.org; frame-src 'self' https://www.youtube.com"
+                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: blob: https://ui-avatars.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://*.tile.openstreetmap.org; font-src 'self' data: https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' https://nominatim.openstreetmap.org; frame-src 'self' https://www.youtube.com"
             );
+    }
+
+    public function test_large_post_size_shows_friendly_upload_error(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->withServerVariables(['CONTENT_LENGTH' => 999999999])
+            ->post(route('admin.banners.store'), [])
+            ->assertRedirect()
+            ->assertSessionHasErrors('image_source');
     }
 
     public function test_currency_proxy_returns_json_not_external_html(): void
@@ -2386,6 +2646,143 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_admin_users_index_has_operational_filters_and_real_profile_signals(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'name' => 'Filtered Seller User',
+            'email' => 'filtered-seller@example.com',
+            'phone' => '+37377111222',
+            'phone_verified_at' => now(),
+        ]);
+        $seller->shop()->create(['name' => 'Filtered Admin Shop']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Hidden Buyer User']);
+        $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
+        $this->createProduct($seller, ['title' => 'Seller admin user product']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index', [
+                'q' => 'Filtered Admin Shop',
+                'role' => 'seller',
+                'state' => 'phone_verified',
+                'sort' => 'products_desc',
+            ]))
+            ->assertOk()
+            ->assertSee('Телефон подтверждён')
+            ->assertSee('Продавцы без магазина')
+            ->assertSee('Filtered Seller User')
+            ->assertSee('Filtered Admin Shop')
+            ->assertSee('Серебро')
+            ->assertSee(route('admin.chats.support.start', $seller), false)
+            ->assertSee('products_desc', false)
+            ->assertDontSee('Hidden Buyer User')
+            ->assertDontSee('Онлайн')
+            ->assertDontSee('Оффлайн');
+    }
+
+    public function test_admin_user_show_displays_profile_signals_and_actions(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'name' => 'Show Seller User',
+            'email' => 'show-seller@example.com',
+            'email_verified_at' => null,
+            'phone' => '+37377999000',
+            'phone_verified_at' => now(),
+        ]);
+        $seller->shop()->create([
+            'name' => 'Show Seller Shop',
+            'description' => 'Admin profile shop description',
+        ]);
+        $product = $this->createProduct($seller, [
+            'title' => 'Show user product',
+        ]);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.show', $seller))
+            ->assertOk()
+            ->assertSee('Show Seller User')
+            ->assertSee('Show Seller Shop')
+            ->assertSee('Контакты и безопасность')
+            ->assertSee('Уровень доверия')
+            ->assertSee('Бронзовый уровень')
+            ->assertSee('Последние заказы')
+            ->assertSee('Show user product')
+            ->assertSee(route('admin.chats.support.start', $seller), false)
+            ->assertSee(route('admin.users.edit', $seller), false);
+    }
+
+    public function test_admin_user_edit_updates_profile_phone_and_password(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'name' => 'Editable Buyer',
+            'email' => 'editable-buyer@example.com',
+            'phone' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.edit', $buyer))
+            ->assertOk()
+            ->assertSee('Основные данные')
+            ->assertSee('Смена роли влияет на доступы')
+            ->assertSee('name="phone"', false)
+            ->assertSee('name="password_confirmation"', false);
+
+        $this->actingAs($admin)
+            ->put(route('admin.users.update', $buyer), [
+                'name' => 'Edited Buyer',
+                'email' => 'edited-buyer@example.com',
+                'phone' => '+373 77 111 222',
+                'role' => 'buyer',
+                'password' => 'newpassword123',
+                'password_confirmation' => 'newpassword123',
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $buyer->refresh();
+
+        $this->assertSame('Edited Buyer', $buyer->name);
+        $this->assertSame('edited-buyer@example.com', $buyer->email);
+        $this->assertSame('+37377111222', $buyer->phone);
+        $this->assertNotNull($buyer->password_set_at);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword123', $buyer->password));
+    }
+
+    public function test_admin_can_change_seller_plan(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'starter',
+            'phone' => '+37377111000',
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.users.update', $seller), [
+                'name' => $seller->name,
+                'email' => $seller->email,
+                'phone' => $seller->phone,
+                'role' => 'seller',
+                'seller_plan' => 'basic',
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $this->assertSame('basic', $seller->fresh()->seller_plan);
+    }
+
     public function test_admin_banner_rejects_javascript_link(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2411,7 +2808,67 @@ class SecurityRegressionTest extends TestCase
             ->get(route('admin.banners.create'))
             ->assertOk()
             ->assertSee('Новый баннер')
-            ->assertSee('Создать баннер');
+            ->assertSee('Создать баннер')
+            ->assertSee('2400 x 720')
+            ->assertSee('aspect-[30/9]', false);
+    }
+
+    public function test_admin_banner_edit_page_previews_legacy_image_and_exposes_cropper_controls(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $banner = Banner::create([
+            'title' => 'Legacy image banner',
+            'image' => 'banners/legacy/old.webp',
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.banners.edit', $banner))
+            ->assertOk()
+            ->assertSee('storage/banners/legacy/old.webp', false)
+            ->assertSee('id="banner-open-crop"', false)
+            ->assertSee('id="banner-recrop-existing"', false);
+    }
+
+    public function test_admin_banners_index_has_operational_filters_and_device_signals(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $activeBanner = Banner::create([
+            'title' => 'Homepage spring campaign',
+            'image' => 'banners/legacy/spring.webp',
+            'image_desktop' => 'banners/desktop/spring.webp',
+            'image_tablet' => 'banners/tablet/spring.webp',
+            'image_mobile' => 'banners/mobile/spring.webp',
+            'link' => '/catalog?spring=1',
+            'sort_order' => 2,
+            'active' => true,
+        ]);
+
+        Banner::create([
+            'title' => 'Hidden winter campaign',
+            'image' => 'banners/legacy/winter.webp',
+            'image_desktop' => 'banners/desktop/winter.webp',
+            'sort_order' => 1,
+            'active' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.banners.index', [
+                'q' => 'spring',
+                'status' => 'active',
+                'sort' => 'order_desc',
+            ]))
+            ->assertOk()
+            ->assertSee('Mobile-ready')
+            ->assertSee('Homepage spring campaign')
+            ->assertSee('Desktop')
+            ->assertSee('Tablet')
+            ->assertSee('Mobile')
+            ->assertSee(route('admin.banners.edit', $activeBanner), false)
+            ->assertSee('order_desc', false)
+            ->assertDontSee('Hidden winter campaign');
     }
 
     public function test_admin_banner_rejects_svg_upload(): void
@@ -2454,7 +2911,7 @@ class SecurityRegressionTest extends TestCase
         $image = (new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver()))
             ->read(Storage::disk('public')->path($banner->image_desktop));
 
-        $this->assertSame(1920, $image->width());
+        $this->assertSame(2400, $image->width());
         $this->assertSame(720, $image->height());
     }
 
@@ -2547,6 +3004,47 @@ class SecurityRegressionTest extends TestCase
         $this->assertStringStartsWith('banners/desktop/', $banner->image_desktop);
         $this->assertStringEndsWith('.webp', $banner->image_desktop);
         Storage::disk('public')->assertExists($banner->image_desktop);
+    }
+
+    public function test_admin_banner_can_recrop_existing_legacy_image_without_reupload(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $legacyPath = UploadedFile::fake()
+            ->image('legacy.jpg', 2400, 1200)
+            ->storeAs('banners/legacy', 'old.jpg', 'public');
+
+        $banner = Banner::create([
+            'title' => 'Legacy recrop banner',
+            'image' => $legacyPath,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.banners.update', $banner), [
+                'title' => 'Legacy recrop banner',
+                'active' => '1',
+                'recrop_existing' => '1',
+                'crop_x' => '10',
+                'crop_y' => '10',
+                'crop_w' => '80',
+                'crop_h' => '70',
+            ])
+            ->assertRedirect(route('admin.banners.index'));
+
+        $banner->refresh();
+
+        $this->assertNull($banner->image);
+
+        foreach (['desktop', 'tablet', 'mobile'] as $device) {
+            $path = $banner->{"image_{$device}"};
+            $this->assertStringStartsWith("banners/{$device}/", $path);
+            $this->assertStringEndsWith('.webp', $path);
+            Storage::disk('public')->assertExists($path);
+        }
+
+        Storage::disk('public')->assertMissing($legacyPath);
     }
 
     public function test_seller_shop_rejects_javascript_social_link(): void

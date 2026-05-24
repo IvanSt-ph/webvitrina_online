@@ -7,6 +7,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\ChatImageService;
+use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -15,8 +16,10 @@ class ChatController extends Controller
 {
     private const RECENT_MESSAGES_LIMIT = 80;
 
-    public function __construct(private readonly ChatImageService $chatImages)
-    {
+    public function __construct(
+        private readonly ChatImageService $chatImages,
+        private readonly UserTrustService $trustService
+    ) {
     }
 
     public function index(Request $request)
@@ -29,6 +32,8 @@ class ChatController extends Controller
 
     public function show(Request $request, Conversation $conversation)
     {
+        abort_if($conversation->admin_deleted_at, 404);
+
         $mode = $conversation->isSupport() ? Conversation::TYPE_SUPPORT : Conversation::TYPE_MARKETPLACE;
         $conversations = $this->conversationQuery($request, $mode)->paginate(20)->withQueryString();
 
@@ -54,6 +59,9 @@ class ChatController extends Controller
                 'last_message_at' => now(),
             ]
         );
+        if ($conversation->admin_deleted_at) {
+            $conversation->forceFill(['admin_deleted_at' => null])->save();
+        }
 
         if ($conversation->wasRecentlyCreated) {
             $this->addSystemMessage(
@@ -84,6 +92,7 @@ class ChatController extends Controller
                 );
             }
         }
+        $this->restoreUserSideAfterAdminMessage($conversation);
 
         return redirect()->route('admin.chats.show', $conversation);
     }
@@ -121,6 +130,7 @@ class ChatController extends Controller
         ]);
 
         $conversation->update(['last_message_at' => now()]);
+        $this->restoreUserSideAfterAdminMessage($conversation);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -132,6 +142,15 @@ class ChatController extends Controller
         return redirect()
             ->route('admin.chats.show', $conversation)
             ->with('success', 'Сообщение отправлено.');
+    }
+
+    public function destroy(Request $request, Conversation $conversation)
+    {
+        $conversation->update(['admin_deleted_at' => now()]);
+
+        return redirect()
+            ->route('admin.chats.index', ['mode' => $conversation->isSupport() ? Conversation::TYPE_SUPPORT : Conversation::TYPE_MARKETPLACE])
+            ->with('success', 'Диалог скрыт из админского списка.');
     }
 
     public function system(Request $request, Conversation $conversation)
@@ -242,6 +261,11 @@ class ChatController extends Controller
         $messages = collect();
 
         if ($selectedConversation) {
+            $selectedConversation->messages()
+                ->where('sender_id', '!=', $request->user()->id)
+                ->whereNull('admin_read_at')
+                ->update(['admin_read_at' => now()]);
+
             if ($selectedConversation->isSupport()) {
                 $selectedConversation->messages()
                     ->where('sender_id', '!=', $request->user()->id)
@@ -254,15 +278,24 @@ class ChatController extends Controller
         }
 
         $totals = [
-            'support' => Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)->count(),
-            'marketplace' => Conversation::where('conversation_type', Conversation::TYPE_MARKETPLACE)->count(),
+            'support' => Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)->whereNull('admin_deleted_at')->count(),
+            'marketplace' => Conversation::where('conversation_type', Conversation::TYPE_MARKETPLACE)->whereNull('admin_deleted_at')->count(),
             'support_unread' => $this->unreadConversationCount($request, Conversation::TYPE_SUPPORT),
             'marketplace_unread' => $this->unreadConversationCount($request, Conversation::TYPE_MARKETPLACE),
-            'locked' => Conversation::whereNotNull('locked_at')->count(),
-            'today' => Conversation::whereDate('last_message_at', today())->count(),
+            'locked' => Conversation::whereNotNull('locked_at')->whereNull('admin_deleted_at')->count(),
+            'today' => Conversation::whereDate('last_message_at', today())->whereNull('admin_deleted_at')->count(),
         ];
 
-        return view('admin.chats.index', compact('conversations', 'selectedConversation', 'messages', 'totals', 'mode'));
+        $trustUsers = collect($conversations->items())
+            ->flatMap(fn (Conversation $conversation) => [$conversation->buyer, $conversation->seller]);
+
+        if ($selectedConversation) {
+            $trustUsers = $trustUsers->push($selectedConversation->buyer, $selectedConversation->seller);
+        }
+
+        $trustProfiles = $this->trustService->profilesFor($trustUsers);
+
+        return view('admin.chats.index', compact('conversations', 'selectedConversation', 'messages', 'totals', 'mode', 'trustProfiles'));
     }
 
     private function conversationQuery(Request $request, string $mode)
@@ -276,11 +309,12 @@ class ChatController extends Controller
                 'messages',
                 'messages as unread_count' => fn ($query) => $query
                     ->where('sender_id', '!=', $request->user()->id)
-                    ->whereNull('read_at'),
+                    ->whereNull('admin_read_at'),
                 'messages as internal_notes_count' => fn ($query) => $query->where('type', Message::TYPE_INTERNAL_NOTE),
                 'messages as system_events_count' => fn ($query) => $query->where('type', Message::TYPE_SYSTEM),
             ])
             ->where('conversation_type', $mode)
+            ->whereNull('admin_deleted_at')
             ->when($mode === Conversation::TYPE_MARKETPLACE && $type === 'product', fn ($query) => $query->whereNotNull('product_id'))
             ->when($mode === Conversation::TYPE_MARKETPLACE && $type === 'general', fn ($query) => $query->whereNull('product_id'))
             ->when($type === 'locked', fn ($query) => $query->whereNotNull('locked_at'))
@@ -307,9 +341,10 @@ class ChatController extends Controller
     {
         return Conversation::query()
             ->where('conversation_type', $mode)
+            ->whereNull('admin_deleted_at')
             ->whereHas('messages', fn ($query) => $query
                 ->where('sender_id', '!=', $request->user()->id)
-                ->whereNull('read_at'))
+                ->whereNull('admin_read_at'))
             ->count();
     }
 
@@ -325,6 +360,13 @@ class ChatController extends Controller
         $conversation->update(['last_message_at' => now()]);
 
         return $message;
+    }
+
+    private function restoreUserSideAfterAdminMessage(Conversation $conversation): void
+    {
+        if ($conversation->isSupport()) {
+            $conversation->forceFill(['buyer_deleted_at' => null])->save();
+        }
     }
 
     private function renderMessages(Conversation $conversation, $messages): string

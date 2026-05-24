@@ -63,6 +63,7 @@ class ChatController extends Controller
             'product_id' => null,
             'context_key' => Conversation::generalContextKey(),
         ]);
+        $this->restoreForUser($conversation, $user);
 
         return redirect()->route('seller.show', [
             'identifier' => $shop->slug,
@@ -86,6 +87,7 @@ class ChatController extends Controller
             'product_id' => $product->id,
             'context_key' => Conversation::productContextKey($product),
         ]);
+        $this->restoreForUser($conversation, $user);
 
         return redirect()->route('product.show', [
             'identifier' => $product->slug,
@@ -136,7 +138,35 @@ class ChatController extends Controller
 
     public function startSupport(Request $request)
     {
+        $data = $request->validate([
+            'topic' => ['nullable', 'string', 'max:80'],
+            'details' => ['nullable', 'string', 'max:1000'],
+        ]);
+
         $conversation = $this->ensureSupportConversation($request->user());
+        $topic = trim((string) ($data['topic'] ?? ''));
+        $details = trim((string) ($data['details'] ?? ''));
+
+        if ($topic !== '' || $details !== '') {
+            $body = 'Новое обращение в поддержку.';
+
+            if ($topic !== '') {
+                $body .= "\nТема: ".$topic;
+            }
+
+            if ($details !== '') {
+                $body .= "\nПодробности: ".$details;
+            }
+
+            $conversation->messages()->create([
+                'sender_id' => $request->user()->id,
+                'type' => Message::TYPE_SYSTEM,
+                'body' => $body,
+            ]);
+
+            $conversation->update(['last_message_at' => now()]);
+            $this->restoreForOtherParticipant($conversation, $request->user());
+        }
 
         return redirect()
             ->route('chats.show', $conversation)
@@ -177,6 +207,7 @@ class ChatController extends Controller
         ]);
 
         $supportConversation->update(['last_message_at' => now()]);
+        $this->restoreForOtherParticipant($supportConversation, $request->user());
 
         return redirect()
             ->route('chats.show', $supportConversation)
@@ -261,6 +292,7 @@ class ChatController extends Controller
         ]);
 
         $conversation->update(['last_message_at' => now()]);
+        $this->restoreForOtherParticipant($conversation, $request->user());
 
         if ($request->expectsJson()) {
             $messages = collect([$message->load('sender')]);
@@ -281,6 +313,20 @@ class ChatController extends Controller
         return redirect()
             ->route('chats.show', $conversation)
             ->with('success', 'Сообщение отправлено.');
+    }
+
+    public function destroy(Request $request, Conversation $conversation)
+    {
+        $this->authorizeParticipant($request, $conversation);
+
+        $column = $conversation->deletedColumnFor($request->user());
+        abort_unless($column, 403);
+
+        $conversation->update([$column => now()]);
+
+        return redirect()
+            ->route('chats.index')
+            ->with('success', 'Диалог скрыт из вашего списка.');
     }
 
     public function image(Request $request, Conversation $conversation, Message $message)
@@ -308,6 +354,15 @@ class ChatController extends Controller
             ->where(fn ($query) => $query
                 ->where('buyer_id', $user->id)
                 ->orWhere('seller_id', $user->id))
+            ->where(function ($query) use ($user) {
+                $query
+                    ->where(fn ($subQuery) => $subQuery
+                        ->where('buyer_id', $user->id)
+                        ->whereNull('buyer_deleted_at'))
+                    ->orWhere(fn ($subQuery) => $subQuery
+                        ->where('seller_id', $user->id)
+                        ->whereNull('seller_deleted_at'));
+            })
             ->with(['buyer', 'seller', 'product', 'lastMessage'])
             ->withCount([
                 'messages as unread_count' => fn ($query) => $query
@@ -352,6 +407,7 @@ class ChatController extends Controller
                 'last_message_at' => now(),
             ]
         );
+        $this->restoreForUser($conversation, $user);
 
         if ($conversation->wasRecentlyCreated) {
             $conversation->messages()->create([
@@ -367,6 +423,28 @@ class ChatController extends Controller
     private function authorizeParticipant(Request $request, Conversation $conversation): void
     {
         abort_unless($conversation->includes($request->user()), 404);
+        abort_if($conversation->isDeletedFor($request->user()), 404);
+    }
+
+    private function restoreForUser(Conversation $conversation, User $user): void
+    {
+        $column = $conversation->deletedColumnFor($user);
+
+        if ($column && $conversation->{$column}) {
+            $conversation->forceFill([$column => null])->save();
+        }
+    }
+
+    private function restoreForOtherParticipant(Conversation $conversation, User $sender): void
+    {
+        $other = $conversation->otherParticipant($sender);
+
+        if ($other->role === 'admin' && $conversation->admin_deleted_at) {
+            $conversation->forceFill(['admin_deleted_at' => null])->save();
+            return;
+        }
+
+        $this->restoreForUser($conversation, $other);
     }
 
     private function isSafeRedirectTarget(string $redirectTo): bool

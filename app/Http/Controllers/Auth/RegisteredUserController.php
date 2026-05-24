@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Shop;
+use App\Services\SellerPlanService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -133,6 +134,7 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($data['password']),
             'password_set_at' => now(),
             'role' => $data['role'],
+            'seller_plan' => SellerPlanService::STARTER,
             'phone' => $phone,
         ]);
     }

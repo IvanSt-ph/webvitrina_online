@@ -22,11 +22,17 @@ class Conversation extends Model
         'locked_at',
         'locked_by',
         'locked_reason',
+        'buyer_deleted_at',
+        'seller_deleted_at',
+        'admin_deleted_at',
     ];
 
     protected $casts = [
         'last_message_at' => 'datetime',
         'locked_at' => 'datetime',
+        'buyer_deleted_at' => 'datetime',
+        'seller_deleted_at' => 'datetime',
+        'admin_deleted_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -116,6 +122,30 @@ class Conversation extends Model
     public function otherParticipant(User $user): User
     {
         return $this->buyer_id === $user->id ? $this->seller : $this->buyer;
+    }
+
+    public function deletedColumnFor(User $user): ?string
+    {
+        if ($this->buyer_id === $user->id) {
+            return 'buyer_deleted_at';
+        }
+
+        if ($this->seller_id === $user->id) {
+            return 'seller_deleted_at';
+        }
+
+        if ($user->role === 'admin') {
+            return 'admin_deleted_at';
+        }
+
+        return null;
+    }
+
+    public function isDeletedFor(User $user): bool
+    {
+        $column = $this->deletedColumnFor($user);
+
+        return $column !== null && $this->{$column} !== null;
     }
 
     public function recentMessages(int $limit = 50, bool $includeInternalNotes = false)

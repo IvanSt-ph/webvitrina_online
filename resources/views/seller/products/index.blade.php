@@ -92,12 +92,34 @@
                     </p>
                 </div>
 
-                <a href="{{ route('seller.products.create') }}"
-                   class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700">
-                    <i class="ri-add-line text-lg"></i>
-                    Добавить товар
-                </a>
+                <div class="flex flex-col gap-2 sm:items-end">
+                    @if($sellerPlanProfile['can_create'])
+                        <a href="{{ route('seller.products.create') }}"
+                           class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                            <i class="ri-add-line text-lg"></i>
+                            Добавить товар
+                        </a>
+                    @else
+                        <button type="button"
+                                disabled
+                                title="Лимит товаров исчерпан"
+                                class="inline-flex h-11 cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-200 px-5 text-sm font-semibold text-slate-500">
+                            <i class="ri-lock-line text-lg"></i>
+                            Лимит исчерпан
+                        </button>
+                    @endif
+                    <span class="text-xs font-semibold text-slate-400">
+                        {{ $sellerPlanProfile['label'] }}: {{ $sellerPlanProfile['used'] }} / {{ $sellerPlanProfile['limit_label'] }} товаров
+                    </span>
+                </div>
             </header>
+
+            @if($errors->has('product_limit'))
+                <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                    <i class="ri-error-warning-line mr-1"></i>
+                    {{ $errors->first('product_limit') }}
+                </div>
+            @endif
 
             <section class="hidden gap-3 sm:grid sm:grid-cols-2 xl:grid-cols-4">
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
@@ -120,13 +142,16 @@
                     <div class="mt-1 text-xs {{ str_starts_with($viewsDelta, '+') ? 'text-emerald-700' : 'text-rose-700' }}">{{ $viewsDelta }} к прошлому периоду</div>
                 </div>
 
-                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                <div class="rounded-xl border {{ $sellerPlanProfile['class'] }} p-4">
                     <div class="flex items-center justify-between text-sm text-slate-500">
-                        <span>Средняя цена</span>
-                        <i class="ri-price-tag-3-line text-indigo-500"></i>
+                        <span>Статус продавца</span>
+                        <i class="ri-vip-crown-line"></i>
                     </div>
-                    <div class="mt-2 text-2xl font-bold">{{ number_format($productTotals->avg_price ?? 0, 0, ',', ' ') }} ₽</div>
-                    <div class="mt-1 text-xs text-slate-400">По всем товарам продавца</div>
+                    <div class="mt-2 text-2xl font-bold">{{ $sellerPlanProfile['label'] }}</div>
+                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/70">
+                        <div class="h-full rounded-full bg-indigo-500" style="width: {{ $sellerPlanProfile['percent'] }}%"></div>
+                    </div>
+                    <div class="mt-1 text-xs opacity-80">{{ $sellerPlanProfile['used'] }} из {{ $sellerPlanProfile['limit_label'] }} товаров</div>
                 </div>
 
                 <div class="rounded-xl border {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50' }} p-4">

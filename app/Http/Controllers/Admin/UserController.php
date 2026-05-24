@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Shop;
+use App\Services\SellerPlanService;
+use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -15,39 +17,118 @@ use Throwable;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private readonly UserTrustService $trustService,
+        private readonly SellerPlanService $sellerPlans
+    ) {
+    }
+
     // 📋 Список пользователей
     public function index(Request $request)
     {
-        $query = User::query();
+        $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'role' => ['nullable', 'in:admin,seller,buyer'],
+            'state' => ['nullable', 'in:email_verified,phone_verified,no_password,social,sellers_without_shop'],
+            'sort' => ['nullable', 'in:latest,oldest,name,orders_desc,products_desc'],
+        ]);
+
+        $roleCounts = User::query()
+            ->select('role', DB::raw('count(*) as total'))
+            ->groupBy('role')
+            ->pluck('total', 'role');
+
+        $summary = [
+            'total' => User::count(),
+            'verified_email' => User::whereNotNull('email_verified_at')->count(),
+            'verified_phone' => User::whereNotNull('phone_verified_at')->count(),
+            'sellers_without_shop' => User::where('role', 'seller')->doesntHave('shop')->count(),
+        ];
+
+        $query = User::query()
+            ->with('shop')
+            ->withCount(['orders', 'products', 'followedShops']);
 
         if ($request->filled('q')) {
-            $q = $request->q;
-            $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%$q%")
-                    ->orWhere('email', 'like', "%$q%")
-                    ->orWhere('phone', 'like', "%$q%");
+            $search = trim((string) $request->input('q'));
+            $query->where(function ($sub) use ($search) {
+                $sub->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhereHas('shop', fn ($shopQuery) => $shopQuery->where('name', 'like', "%{$search}%"));
+
+                if (ctype_digit($search)) {
+                    $sub->orWhere('id', (int) $search);
+                }
             });
         }
 
         if ($request->filled('role')) {
-            $query->where('role', $request->role);
+            $query->where('role', $request->string('role')->toString());
         }
 
-        $users = $query->paginate(10)->withQueryString();
+        match ($request->input('state')) {
+            'email_verified' => $query->whereNotNull('email_verified_at'),
+            'phone_verified' => $query->whereNotNull('phone_verified_at'),
+            'no_password' => $query->whereNull('password_set_at'),
+            'social' => $query->whereNotNull('provider'),
+            'sellers_without_shop' => $query->where('role', 'seller')->doesntHave('shop'),
+            default => null,
+        };
 
-        return view('admin.users.index', compact('users'));
+        $sort = $request->input('sort', 'latest');
+        match ($sort) {
+            'oldest' => $query->oldest(),
+            'name' => $query->orderBy('name'),
+            'orders_desc' => $query->orderByDesc('orders_count'),
+            'products_desc' => $query->orderByDesc('products_count'),
+            default => $query->latest(),
+        };
+
+        $users = $query->paginate(12)->withQueryString();
+        $trustProfiles = $this->trustService->profilesFor($users->getCollection());
+
+        return view('admin.users.index', compact('users', 'roleCounts', 'summary', 'sort', 'trustProfiles'));
     }
 
     // 👁️ Показать одного пользователя
     public function show(User $user)
     {
-        return view('admin.users.show', compact('user'));
+        $user->load(['shop'])
+            ->loadCount([
+                'orders',
+                'products',
+                'followedShops',
+                'favorites',
+                'buyerConversations',
+                'sellerConversations',
+                'addresses',
+            ]);
+
+        $recentOrders = $user->orders()
+            ->with(['seller', 'items.product'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $recentProducts = $user->products()
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $trustProfile = $this->trustService->profileFor($user);
+        $sellerPlanProfile = $user->isSeller() ? $this->sellerPlans->profileFor($user) : null;
+
+        return view('admin.users.show', compact('user', 'recentOrders', 'recentProducts', 'trustProfile', 'sellerPlanProfile'));
     }
 
     // ✏️ Форма редактирования
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $sellerPlans = $this->sellerPlans->plans();
+        $sellerPlanProfile = $user->isSeller() ? $this->sellerPlans->profileFor($user) : null;
+
+        return view('admin.users.edit', compact('user', 'sellerPlans', 'sellerPlanProfile'));
     }
 
     // 💾 Обновить пользователя
@@ -58,6 +139,7 @@ class UserController extends Controller
             'email'    => 'required|email|unique:users,email,' . $user->id,
             'phone'    => 'nullable|string|max:20',
             'role'     => 'required|in:admin,seller,buyer',
+            'seller_plan' => ['nullable', 'in:' . implode(',', $this->sellerPlans->allowedKeys())],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
@@ -81,6 +163,9 @@ class UserController extends Controller
             'email' => $request->email,
             'phone' => $phone,
             'role'  => $request->role,
+            'seller_plan' => $request->role === 'seller'
+                ? ($validated['seller_plan'] ?? SellerPlanService::STARTER)
+                : SellerPlanService::STARTER,
         ];
 
         if ($request->filled('password')) {
@@ -157,6 +242,7 @@ class UserController extends Controller
                 'password' => Hash::make($request->password),
                 'password_set_at' => now(),
                 'role'     => $request->role,
+                'seller_plan' => SellerPlanService::STARTER,
             ];
 
             if ($request->hasFile('avatar')) {

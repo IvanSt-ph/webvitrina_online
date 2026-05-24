@@ -113,6 +113,13 @@
           Подписчики
         </a>
       </li>
+
+      <li>
+        <a href="{{ route('support') }}" class="flex items-center gap-2 hover:text-indigo-600">
+          <i class="ri-customer-service-2-line text-lg"></i>
+          Поддержка
+        </a>
+      </li>
       
       <!-- Финансы -->
       <li><a href="{{ route('seller.finance.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-wallet-3-line text-lg"></i> Финансы</a></li>

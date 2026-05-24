@@ -21,6 +21,7 @@ class Message extends Model
         'body',
         'image_path',
         'read_at',
+        'admin_read_at',
     ];
 
     public function isSystem(): bool
@@ -35,6 +36,7 @@ class Message extends Model
 
     protected $casts = [
         'read_at' => 'datetime',
+        'admin_read_at' => 'datetime',
     ];
 
     public function conversation()

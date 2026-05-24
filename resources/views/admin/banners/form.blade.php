@@ -11,12 +11,14 @@
       ? asset('storage/'.$banner->image_desktop)
       : ($banner->image_tablet
           ? asset('storage/'.$banner->image_tablet)
-          : ($banner->image_mobile ? asset('storage/'.$banner->image_mobile) : ''));
+          : ($banner->image_mobile
+              ? asset('storage/'.$banner->image_mobile)
+              : ($banner->image ? asset('storage/'.$banner->image) : '')));
   $initialMobilePreview = $banner->image_mobile ? asset('storage/'.$banner->image_mobile) : $initialPreview;
 
   $previewSlots = [
-      ['key' => 'desktop', 'label' => 'Десктоп', 'icon' => 'ri-computer-line', 'size' => '1920 x 720', 'aspect' => 'aspect-[24/9]'],
-      ['key' => 'tablet', 'label' => 'Планшет', 'icon' => 'ri-tablet-line', 'size' => '1400 x 600', 'aspect' => 'aspect-[21/9]'],
+      ['key' => 'desktop', 'label' => 'Десктоп', 'icon' => 'ri-computer-line', 'size' => '2400 x 720', 'aspect' => 'aspect-[30/9]'],
+      ['key' => 'tablet', 'label' => 'Планшет', 'icon' => 'ri-tablet-line', 'size' => '1600 x 600', 'aspect' => 'aspect-[24/9]'],
       ['key' => 'mobile', 'label' => 'Мобильный', 'icon' => 'ri-smartphone-line', 'size' => '960 x 480', 'aspect' => 'aspect-[18/9]'],
   ];
 @endphp
@@ -65,6 +67,7 @@
   @endif
 
   <form
+    id="admin-banner-form"
     method="POST"
     enctype="multipart/form-data"
     action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}"
@@ -82,6 +85,8 @@
     <input type="hidden" name="mobile_crop_y" id="banner-mobile-crop-y" value="0">
     <input type="hidden" name="mobile_crop_w" id="banner-mobile-crop-w" value="100">
     <input type="hidden" name="mobile_crop_h" id="banner-mobile-crop-h" value="100">
+    <input type="hidden" name="recrop_existing" id="banner-recrop-existing" value="0">
+    <input type="hidden" name="mobile_recrop_existing" id="banner-mobile-recrop-existing" value="0">
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -208,6 +213,11 @@
                 <i class="ri-computer-line text-lg text-indigo-500"></i>
               </div>
 
+              <div class="mb-3 rounded-xl border border-indigo-100 bg-white/80 px-3 py-2 text-xs leading-5 text-slate-600">
+                <div class="font-bold text-slate-800">Лучше загружать: 2400 x 720 px, JPG/PNG/WebP, до 8 МБ.</div>
+                <div>Главное держите по центру кадра: на desktop видна широкая область 30:9, на планшете кадр становится чуть уже.</div>
+              </div>
+
               <label class="flex min-h-[126px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-indigo-200 bg-white px-5 py-6 text-center transition hover:border-indigo-400 hover:bg-white">
                 <input id="banner-image-source" type="file" name="image_source" class="sr-only" accept="image/jpeg,image/png,image/webp">
                 <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
@@ -217,12 +227,12 @@
                 <span class="text-xs text-gray-500">Рекомендуемо: широкий кадр без мелкого текста по краям.</span>
               </label>
 
-              <div id="banner-main-preview" class="{{ $initialPreview ? '' : 'hidden' }} mt-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 aspect-[24/9]">
+              <div id="banner-main-preview" class="{{ $initialPreview ? '' : 'hidden' }} mt-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 aspect-[30/9]">
                 <img src="{{ $initialPreview }}" alt="Предпросмотр баннера" class="h-full w-full object-cover" data-banner-preview>
               </div>
 
               <button type="button" id="banner-open-crop"
-                      class="mt-3 hidden rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50">
+                      class="{{ $initialPreview ? '' : 'hidden' }} mt-3 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50">
                 <i class="ri-crop-line mr-1"></i>
                 Настроить кадр
               </button>
@@ -252,8 +262,12 @@
                 <input id="banner-mobile-source" type="file" name="image_mobile" accept="image/jpeg,image/png,image/webp" class="sr-only">
               </label>
 
+              <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-500">
+                Оптимально для телефона: 960 x 480 px. Загружайте отдельный мобильный баннер, если на узком экране текст или товар обрезаются.
+              </div>
+
               <button type="button" id="banner-mobile-open-crop"
-                      class="mt-3 hidden rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                      class="{{ $initialMobilePreview ? '' : 'hidden' }} mt-3 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
                 <i class="ri-crop-line mr-1"></i>
                 Настроить мобильный кадр
               </button>
@@ -305,7 +319,7 @@
     </div>
 
     <div class="mx-auto w-full max-w-[720px]">
-      <canvas id="banner-crop-canvas" width="720" height="270" class="aspect-[24/9] w-full cursor-move rounded-xl border border-gray-200 bg-gray-100"></canvas>
+      <canvas id="banner-crop-canvas" width="900" height="270" class="aspect-[30/9] w-full cursor-move rounded-xl border border-gray-200 bg-gray-100"></canvas>
     </div>
 
     <label class="mt-4 block text-sm font-medium text-gray-700">
@@ -347,13 +361,19 @@ document.addEventListener('DOMContentLoaded', () => {
       fileName: document.getElementById('banner-file-name'),
       fieldPrefix: 'banner-crop',
       title: 'Обрезать обычный баннер',
-      help: 'Этот кадр используется для десктопа и планшета.',
-      canvasWidth: 720,
+      help: 'Этот кадр совпадает с desktop-баннером главной страницы.',
+      canvasWidth: 900,
       canvasHeight: 270,
-      previewWidth: 960,
-      previewHeight: 360,
+      previewWidth: 1000,
+      previewHeight: 300,
+      uploadWidth: 2400,
+      uploadHeight: 720,
+      existingUrl: @js($initialPreview),
+      recropInput: document.getElementById('banner-recrop-existing'),
       image: null,
       file: null,
+      objectUrl: null,
+      processed: false,
       offset: { x: 0, y: 0 },
       zoom: 1,
       ready: false,
@@ -369,8 +389,14 @@ document.addEventListener('DOMContentLoaded', () => {
       canvasHeight: 360,
       previewWidth: 960,
       previewHeight: 480,
+      uploadWidth: 960,
+      uploadHeight: 480,
+      existingUrl: @js($initialMobilePreview),
+      recropInput: document.getElementById('banner-mobile-recrop-existing'),
       image: null,
       file: null,
+      objectUrl: null,
+      processed: false,
       offset: { x: 0, y: 0 },
       zoom: 1,
       ready: false,
@@ -381,6 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let hasMobileOverride = {{ $banner->image_mobile ? 'true' : 'false' }};
   let dragging = false;
   let dragStart = { x: 0, y: 0 };
+  let preparingSubmit = false;
 
   if (!cropper || !canvas || !ctx || !zoom) return;
 
@@ -472,9 +499,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(`${state.fieldPrefix}-y`).value = '0';
     document.getElementById(`${state.fieldPrefix}-w`).value = '100';
     document.getElementById(`${state.fieldPrefix}-h`).value = '100';
+    if (state.recropInput) state.recropInput.value = '0';
+  }
+
+  function fileSizeLabel(bytes) {
+    if (!Number.isFinite(bytes)) return '';
+    if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} МБ`;
+    return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
   }
 
   function updateMainPreviews(url) {
+    if (states.main.objectUrl && states.main.objectUrl !== url) {
+      URL.revokeObjectURL(states.main.objectUrl);
+    }
+    states.main.objectUrl = url.startsWith('blob:') ? url : null;
+    states.main.existingUrl = url;
+
     document.querySelectorAll('[data-banner-preview], [data-banner-device-preview]:not([data-banner-device-preview="mobile"])').forEach(img => {
       img.src = url;
       img.classList.remove('hidden');
@@ -490,6 +530,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateMobilePreview(url) {
+    if (states.mobile.objectUrl && states.mobile.objectUrl !== url) {
+      URL.revokeObjectURL(states.mobile.objectUrl);
+    }
+    states.mobile.objectUrl = url.startsWith('blob:') ? url : null;
+    states.mobile.existingUrl = url;
+
     document.querySelectorAll('[data-banner-device-preview="mobile"]').forEach(img => {
       img.src = url;
       img.classList.remove('hidden');
@@ -535,9 +581,31 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.style.aspectRatio = `${state.canvasWidth} / ${state.canvasHeight}`;
   }
 
+  function showCropper() {
+    cropper.classList.remove('hidden');
+    cropper.classList.add('flex');
+  }
+
+  function loadImageForCrop(state, url, revokeAfterLoad = false) {
+    state.image = new Image();
+    state.image.onload = () => {
+      if (revokeAfterLoad) URL.revokeObjectURL(url);
+      resetCropPosition(state);
+      setFields(state);
+      showCropper();
+      drawCrop();
+    };
+    state.image.onerror = () => {
+      if (revokeAfterLoad) URL.revokeObjectURL(url);
+      alert('Не удалось открыть изображение для обрезки. Попробуйте выбрать файл заново.');
+    };
+    state.image.src = url;
+  }
+
   function openCropper(state) {
     const file = state.input?.files?.[0] || state.file;
-    if (!file || !file.type.startsWith('image/')) return;
+    const existingUrl = state.existingUrl;
+    if ((!file || !file.type.startsWith('image/')) && !existingUrl) return;
 
     activeState = state;
     configureCanvas(state);
@@ -546,23 +614,19 @@ document.addEventListener('DOMContentLoaded', () => {
     zoom.value = String(state.zoom);
 
     if (state.image && state.ready) {
-      cropper.classList.remove('hidden');
-      cropper.classList.add('flex');
+      showCropper();
       drawCrop();
       return;
     }
 
-    state.file = file;
-    state.image = new Image();
-    state.image.onload = () => {
-      URL.revokeObjectURL(state.image.src);
-      resetCropPosition(state);
-      setFields(state);
-      cropper.classList.remove('hidden');
-      cropper.classList.add('flex');
-      drawCrop();
-    };
-    state.image.src = URL.createObjectURL(file);
+    if (file && file.type.startsWith('image/')) {
+      state.file = file;
+      loadImageForCrop(state, URL.createObjectURL(file), true);
+      return;
+    }
+
+    state.file = null;
+    loadImageForCrop(state, existingUrl);
   }
 
   function bindInput(state, previewCallback) {
@@ -577,7 +641,9 @@ document.addEventListener('DOMContentLoaded', () => {
       state.image = null;
       state.ready = false;
       state.zoom = 1;
+      state.processed = false;
       resetFields(state);
+      if (state.recropInput) state.recropInput.value = '0';
       state.fileName.textContent = file.name;
       previewCallback(URL.createObjectURL(file));
       state.button?.classList.remove('hidden');
@@ -626,17 +692,146 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   fitButton?.addEventListener('click', () => {
-    if (!activeState.image || !activeState.file) return;
+    if (!activeState.image) return;
     resetCropPosition(activeState);
     setFields(activeState);
     drawCrop();
   });
 
   applyButton?.addEventListener('click', () => {
-    if (!activeState.image || !activeState.file) return;
+    if (!activeState.image) return;
     setFields(activeState);
+    if (!activeState.file && activeState.recropInput) {
+      activeState.recropInput.value = '1';
+    }
+    if (activeState.file) {
+      activeState.processed = false;
+    }
     updateCroppedPreview(activeState);
     closeCropper();
+  });
+
+  function canvasToBlob(targetCanvas, quality = 0.86) {
+    return new Promise(resolve => {
+      targetCanvas.toBlob(blob => {
+        if (blob) {
+          resolve({ blob, extension: 'webp' });
+          return;
+        }
+
+        targetCanvas.toBlob(fallbackBlob => {
+          resolve(fallbackBlob ? { blob: fallbackBlob, extension: 'jpg' } : null);
+        }, 'image/jpeg', quality);
+      }, 'image/webp', quality);
+    });
+  }
+
+  function loadStateImageFromFile(state) {
+    const file = state.input?.files?.[0];
+
+    if (!file || !file.type.startsWith('image/')) {
+      return Promise.resolve(false);
+    }
+
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+
+      image.onload = () => {
+        URL.revokeObjectURL(url);
+        state.file = file;
+        state.image = image;
+        resetCropPosition(state);
+        resolve(true);
+      };
+
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(false);
+      };
+
+      image.src = url;
+    });
+  }
+
+  async function prepareStateUpload(state) {
+    const file = state.input?.files?.[0];
+
+    if (!file || !file.type.startsWith('image/') || state.processed) {
+      return;
+    }
+
+    activeState = state;
+    configureCanvas(state);
+
+    if (!state.image || !state.ready) {
+      const loaded = await loadStateImageFromFile(state);
+      if (!loaded) return;
+      configureCanvas(state);
+    }
+
+    clampOffset(state);
+
+    const output = document.createElement('canvas');
+    output.width = state.uploadWidth;
+    output.height = state.uploadHeight;
+
+    const outputCtx = output.getContext('2d');
+    const ratio = output.width / canvas.width;
+    const scale = currentScale(state) * ratio;
+
+    outputCtx.fillStyle = '#fff';
+    outputCtx.fillRect(0, 0, output.width, output.height);
+    outputCtx.drawImage(
+      state.image,
+      state.offset.x * ratio,
+      state.offset.y * ratio,
+      state.image.width * scale,
+      state.image.height * scale
+    );
+
+    const encoded = await canvasToBlob(output);
+    if (!encoded) return;
+
+    const baseName = (file.name || 'banner').replace(/\.[^.]+$/, '').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '') || 'banner';
+    const compressedFile = new File([encoded.blob], `${baseName}.${encoded.extension}`, {
+      type: encoded.blob.type || `image/${encoded.extension}`,
+      lastModified: Date.now(),
+    });
+
+    const transfer = new DataTransfer();
+    transfer.items.add(compressedFile);
+    state.input.files = transfer.files;
+    state.file = compressedFile;
+    state.processed = true;
+    resetFields(state);
+    state.fileName.textContent = `${compressedFile.name} - ${fileSizeLabel(compressedFile.size)}`;
+  }
+
+  document.getElementById('admin-banner-form')?.addEventListener('submit', async event => {
+    if (preparingSubmit) return;
+
+    const selectedStates = [states.main, states.mobile].filter(state => {
+      const file = state.input?.files?.[0];
+      return file && file.type.startsWith('image/') && !state.processed;
+    });
+
+    if (selectedStates.length === 0) return;
+
+    event.preventDefault();
+    preparingSubmit = true;
+
+    const submitButton = event.submitter || document.querySelector('#admin-banner-form button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.classList.add('opacity-70', 'cursor-wait');
+    }
+
+    for (const state of selectedStates) {
+      await prepareStateUpload(state);
+    }
+
+    event.target.submit();
   });
 });
 </script>

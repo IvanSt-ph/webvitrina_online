@@ -39,6 +39,31 @@
       </div>
     </div>
 
+    <div class="mb-5 rounded-2xl border p-4 shadow-sm {{ $sellerPlanProfile['class'] }}">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wide opacity-70">Статус продавца</div>
+          <div class="mt-1 text-lg font-extrabold">{{ $sellerPlanProfile['label'] }}</div>
+          <p class="mt-1 text-sm opacity-80">{{ $sellerPlanProfile['description'] }}</p>
+        </div>
+        <div class="min-w-44">
+          <div class="text-right text-sm font-bold">
+            {{ $sellerPlanProfile['used'] }} / {{ $sellerPlanProfile['limit_label'] }} товаров
+          </div>
+          <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/70">
+            <div class="h-full rounded-full bg-indigo-500" style="width: {{ $sellerPlanProfile['percent'] }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if($errors->has('product_limit'))
+      <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+        <i class="ri-error-warning-line mr-1"></i>
+        {{ $errors->first('product_limit') }}
+      </div>
+    @endif
+
     <form method="POST" enctype="multipart/form-data"
           action="{{ $product->exists ? route('seller.products.update',$product) : route('seller.products.store') }}"
           class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">

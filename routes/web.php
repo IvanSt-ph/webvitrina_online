@@ -213,6 +213,7 @@ Route::middleware('role:buyer')->group(function () {
         ->middleware('throttle:20,1')
         ->name('chats.product.start');
     Route::get('/my-chats/{conversation}', [ChatController::class, 'show'])->name('chats.show');
+    Route::delete('/my-chats/{conversation}', [ChatController::class, 'destroy'])->name('chats.destroy');
     Route::get('/my-chats/{conversation}/messages/older', [ChatController::class, 'olderMessages'])
         ->middleware('throttle:60,1')
         ->name('chats.messages.older');
@@ -486,6 +487,7 @@ Route::prefix('admin')
 
     Route::get('/chats', [AdminChatController::class, 'index'])->name('chats.index');
     Route::get('/chats/{conversation}', [AdminChatController::class, 'show'])->name('chats.show');
+    Route::delete('/chats/{conversation}', [AdminChatController::class, 'destroy'])->name('chats.destroy');
     Route::post('/chats/support/{user}', [AdminChatController::class, 'startSupport'])->name('chats.support.start');
     Route::post('/chats/{conversation}/messages', [AdminChatController::class, 'store'])->name('chats.messages.store');
     Route::post('/chats/{conversation}/system', [AdminChatController::class, 'system'])->name('chats.system');

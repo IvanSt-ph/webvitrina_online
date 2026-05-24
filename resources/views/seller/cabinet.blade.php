@@ -258,6 +258,15 @@
           </div>
           <p class="text-sm text-gray-500">Редактировать контакты и описание</p>
         </a>
+
+        <a href="{{ route('support') }}"
+           class="group bg-white border border-gray-100/80 hover:border-indigo-300 rounded-xl p-6 shadow-sm hover:shadow transition-all hover:-translate-y-0.5">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-indigo-600">Связаться с поддержкой</h3>
+            <i class="ri-customer-service-2-line text-gray-400 group-hover:text-indigo-600 text-xl"></i>
+          </div>
+          <p class="text-sm text-gray-500">Откройте отдельный чат с администратором по заказу, товару или спору</p>
+        </a>
       </div>
     </section>
 

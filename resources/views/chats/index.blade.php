@@ -55,6 +55,17 @@
                             <i class="ri-expand-right-line"></i>
                             Открыть
                         </a>
+                        <form method="POST"
+                              action="{{ route('chats.destroy', $conversation) }}"
+                              onsubmit="return confirm('Скрыть этот диалог из вашего списка?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                    class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                                    title="Скрыть диалог">
+                                <i class="ri-delete-bin-6-line"></i>
+                            </button>
+                        </form>
                     </header>
 
                     <div class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-6 py-5">

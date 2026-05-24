@@ -17,9 +17,10 @@
   $adminFullHeight = request()->routeIs('admin.chats.*');
   $adminUnreadChats = auth()->check()
       ? \App\Models\Conversation::query()
+          ->whereNull('admin_deleted_at')
           ->whereHas('messages', fn ($query) => $query
               ->where('sender_id', '!=', auth()->id())
-              ->whereNull('read_at'))
+              ->whereNull('admin_read_at'))
           ->count()
       : 0;
 @endphp

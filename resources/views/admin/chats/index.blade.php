@@ -130,6 +130,8 @@
                         $sellerUrl = $conversation->seller?->shop?->slug
                             ? route('seller.show', $conversation->seller->shop->slug)
                             : ($conversation->seller ? route('admin.users.show', $conversation->seller) : null);
+                        $buyerTrust = $conversation->buyer ? ($trustProfiles[$conversation->buyer->id] ?? null) : null;
+                        $sellerTrust = $conversation->seller ? ($trustProfiles[$conversation->seller->id] ?? null) : null;
                         $preview = $conversation->lastMessage?->body !== ''
                             ? ($conversation->lastMessage?->body ?? 'Сообщений пока нет')
                             : ($conversation->lastMessage?->image_path ? 'Фото' : 'Сообщений пока нет');
@@ -189,6 +191,21 @@
                                     <div class="mt-1 text-xs font-semibold text-slate-400">{{ $conversation->isSupport() ? 'Support' : 'Общий диалог' }}</div>
                                 @endif
 
+                                <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                                    @if($buyerTrust)
+                                        <span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-bold {{ $buyerTrust['class'] }}" title="Покупатель: {{ $buyerTrust['label'] }} · {{ $buyerTrust['score'] }}%">
+                                            <span>{{ $buyerTrust['icon'] }}</span>
+                                            Покупатель {{ $buyerTrust['short_label'] }}
+                                        </span>
+                                    @endif
+                                    @if(! $conversation->isSupport() && $sellerTrust)
+                                        <span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-bold {{ $sellerTrust['class'] }}" title="Продавец: {{ $sellerTrust['label'] }} · {{ $sellerTrust['score'] }}%">
+                                            <span>{{ $sellerTrust['icon'] }}</span>
+                                            Продавец {{ $sellerTrust['short_label'] }}
+                                        </span>
+                                    @endif
+                                </div>
+
                                 <div class="mt-1 truncate text-sm text-slate-500">{{ $preview }}</div>
 
                                 <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -244,6 +261,8 @@
                     $selectedSellerUrl = $selectedConversation->seller?->shop?->slug
                         ? route('seller.show', $selectedConversation->seller->shop->slug)
                         : ($selectedConversation->seller ? route('admin.users.show', $selectedConversation->seller) : null);
+                    $selectedBuyerTrust = $selectedConversation->buyer ? ($trustProfiles[$selectedConversation->buyer->id] ?? null) : null;
+                    $selectedSellerTrust = $selectedConversation->seller ? ($trustProfiles[$selectedConversation->seller->id] ?? null) : null;
                 @endphp
                 <div class="flex h-full min-h-0 min-w-0 w-full flex-col">
                     <header class="shrink-0 border-b border-slate-100 bg-white px-3 py-2 sm:px-4">
@@ -289,6 +308,25 @@
                                             <span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700">Блок</span>
                                         @endif
                                     </div>
+                                </div>
+
+                                <div class="mt-2 flex min-w-0 flex-wrap gap-1.5">
+                                    @if($selectedBuyerTrust)
+                                        <a href="{{ $selectedBuyerUrl ?? '#' }}"
+                                           class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold {{ $selectedBuyerTrust['class'] }} {{ $selectedBuyerUrl ? 'hover:shadow-sm' : 'pointer-events-none' }}"
+                                           title="Покупатель: {{ $selectedBuyerTrust['label'] }} · {{ $selectedBuyerTrust['score'] }}%">
+                                            <span>{{ $selectedBuyerTrust['icon'] }}</span>
+                                            Покупатель: {{ $selectedBuyerTrust['short_label'] }} {{ $selectedBuyerTrust['score'] }}%
+                                        </a>
+                                    @endif
+                                    @if(! $selectedSupport && $selectedSellerTrust)
+                                        <a href="{{ $selectedConversation->seller ? route('admin.users.show', $selectedConversation->seller) : '#' }}"
+                                           class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold {{ $selectedSellerTrust['class'] }} {{ $selectedConversation->seller ? 'hover:shadow-sm' : 'pointer-events-none' }}"
+                                           title="Продавец: {{ $selectedSellerTrust['label'] }} · {{ $selectedSellerTrust['score'] }}%">
+                                            <span>{{ $selectedSellerTrust['icon'] }}</span>
+                                            Продавец: {{ $selectedSellerTrust['short_label'] }} {{ $selectedSellerTrust['score'] }}%
+                                        </a>
+                                    @endif
                                 </div>
 
                                 <div class="mt-2 flex min-w-0 gap-1.5 overflow-x-auto pb-1 sm:mt-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
@@ -341,6 +379,16 @@
                                         Товар
                                     </a>
                                 @endif
+                                    <form method="POST"
+                                          action="{{ route('admin.chats.destroy', $selectedConversation) }}"
+                                          onsubmit="return confirm('Скрыть этот диалог из админского списка? Сообщения останутся в базе.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 text-xs font-bold text-rose-700 transition hover:border-rose-200">
+                                            <i class="ri-delete-bin-6-line"></i>
+                                            Удалить
+                                        </button>
+                                    </form>
                                     <span class="inline-flex h-9 shrink-0 items-center rounded-full bg-slate-100 px-2.5 text-xs font-bold text-slate-500 sm:hidden">ID {{ $selectedConversation->id }}</span>
                                     @if($locked)
                                         <span class="inline-flex h-9 shrink-0 items-center rounded-full bg-rose-50 px-2.5 text-xs font-bold text-rose-700 sm:hidden">Блок</span>

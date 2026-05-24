@@ -71,6 +71,12 @@
                 <span>Чаты</span>
             </a>
 
+            <a href="{{ route('support') }}"
+               class="{{ request()->routeIs('support') ? $active : '' }} {{ $link }}">
+                <i class="ri-customer-service-2-line text-[22px]"></i>
+                <span>Поддержка</span>
+            </a>
+
             <a href="{{ route('seller.finance.index') }}"
                class="{{ request()->routeIs('seller.finance.*') ? $active : '' }} {{ $link }}">
                 <i class="ri-cash-line text-[22px]"></i>
@@ -115,12 +121,14 @@
 </aside>
 
             <!-- 🌤 Контент -->
-        <main class="flex-1 bg-neutral-50 overflow-hidden lg:ml-64 {{ $chatMode ? 'h-dvh p-0' : (($flushContent ? 'min-h-screen p-0' : 'min-h-screen px-3 sm:px-6 py-6')) }}">
+        <main class="flex flex-1 flex-col bg-neutral-50 overflow-hidden lg:ml-64 {{ $chatMode ? 'h-dvh p-0' : (($flushContent ? 'min-h-screen p-0' : 'min-h-screen px-3 sm:px-6 py-6')) }}">
 
+            <div class="{{ $chatMode ? 'min-h-0 flex-1' : 'flex-1' }}">
                 {{ $slot }}
+            </div>
 
                 @unless($chatMode)
-                <footer class="text-center text-xs text-gray-400 pt-6 border-t mt-10">
+                <footer class="mt-auto border-t pt-6 text-center text-xs text-gray-400">
                     © {{ date('Y') }} WebVitrina — Панель продавца
                 </footer>
                 @endunless

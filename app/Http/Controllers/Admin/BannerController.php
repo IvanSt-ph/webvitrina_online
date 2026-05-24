@@ -14,8 +14,51 @@ class BannerController extends Controller
 {
     public function index()
     {
-        $banners = Banner::orderBy('sort_order')->get();
-        return view('admin.banners.index', compact('banners'));
+        request()->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'in:active,hidden,missing_mobile'],
+            'sort' => ['nullable', 'in:latest,oldest,title,order_asc,order_desc'],
+        ]);
+
+        $summary = [
+            'total' => Banner::count(),
+            'active' => Banner::where('active', true)->count(),
+            'hidden' => Banner::where('active', false)->count(),
+            'mobile_ready' => Banner::whereNotNull('image_mobile')->count(),
+        ];
+
+        $query = Banner::query();
+
+        if (request()->filled('q')) {
+            $search = trim((string) request('q'));
+            $query->where(function ($subQuery) use ($search) {
+                $subQuery->where('title', 'like', "%{$search}%")
+                    ->orWhere('link', 'like', "%{$search}%");
+
+                if (ctype_digit($search)) {
+                    $subQuery->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        match (request('status')) {
+            'active' => $query->where('active', true),
+            'hidden' => $query->where('active', false),
+            'missing_mobile' => $query->whereNull('image_mobile'),
+            default => null,
+        };
+
+        match (request('sort', 'order_asc')) {
+            'latest' => $query->latest(),
+            'oldest' => $query->oldest(),
+            'title' => $query->orderBy('title'),
+            'order_desc' => $query->orderByDesc('sort_order')->latest(),
+            default => $query->orderBy('sort_order')->latest(),
+        };
+
+        $banners = $query->paginate(12)->withQueryString();
+
+        return view('admin.banners.index', compact('banners', 'summary'));
     }
 
     public function create()
@@ -39,6 +82,8 @@ class BannerController extends Controller
             'mobile_crop_y'  => 'nullable|numeric|min:0|max:100',
             'mobile_crop_w'  => 'nullable|numeric|min:10|max:100',
             'mobile_crop_h'  => 'nullable|numeric|min:10|max:100',
+            'recrop_existing' => 'nullable|boolean',
+            'mobile_recrop_existing' => 'nullable|boolean',
             'image_desktop'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
             'image_tablet'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
             'image_mobile'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
@@ -76,6 +121,8 @@ class BannerController extends Controller
             $data['mobile_crop_y'],
             $data['mobile_crop_w'],
             $data['mobile_crop_h'],
+            $data['recrop_existing'],
+            $data['mobile_recrop_existing'],
         );
 
         // 🔹 Флаг активности
@@ -113,6 +160,8 @@ class BannerController extends Controller
             'mobile_crop_y'  => 'nullable|numeric|min:0|max:100',
             'mobile_crop_w'  => 'nullable|numeric|min:10|max:100',
             'mobile_crop_h'  => 'nullable|numeric|min:10|max:100',
+            'recrop_existing' => 'nullable|boolean',
+            'mobile_recrop_existing' => 'nullable|boolean',
             'image_desktop'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
             'image_tablet'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
             'image_mobile'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
@@ -129,6 +178,26 @@ class BannerController extends Controller
                     $crop,
                 );
             }
+            $this->deleteBannerImage($banner->image);
+            $data['image'] = null;
+        } elseif ($request->boolean('recrop_existing')) {
+            $sourcePath = $this->bannerSourcePath($banner);
+
+            if ($sourcePath) {
+                $crop = $this->cropData($request);
+                $newImages = [];
+
+                foreach (['desktop', 'tablet', 'mobile'] as $device) {
+                    $newImages["image_{$device}"] = $this->uploadBannerImageFromDisk($sourcePath, $device, $crop);
+                }
+
+                foreach (['image', 'image_desktop', 'image_tablet', 'image_mobile'] as $key) {
+                    $this->deleteBannerImage($banner->$key);
+                }
+
+                $data = array_merge($data, $newImages);
+                $data['image'] = null;
+            }
         }
 
         foreach (['desktop', 'tablet', 'mobile'] as $device) {
@@ -143,6 +212,21 @@ class BannerController extends Controller
             }
         }
 
+        if (! $request->hasFile('image_source') && ! $request->hasFile('image_mobile') && $request->boolean('mobile_recrop_existing')) {
+            $sourcePath = $this->mobileBannerSourcePath($banner);
+
+            if ($sourcePath) {
+                $newMobileImage = $this->uploadBannerImageFromDisk(
+                    $sourcePath,
+                    'mobile',
+                    $this->cropData($request, 'mobile_crop_'),
+                );
+
+                $this->deleteBannerImage($banner->image_mobile);
+                $data['image_mobile'] = $newMobileImage;
+            }
+        }
+
         unset(
             $data['image_source'],
             $data['crop_x'],
@@ -153,6 +237,8 @@ class BannerController extends Controller
             $data['mobile_crop_y'],
             $data['mobile_crop_w'],
             $data['mobile_crop_h'],
+            $data['recrop_existing'],
+            $data['mobile_recrop_existing'],
         );
 
         // 🔹 Активность
@@ -212,16 +298,35 @@ class BannerController extends Controller
         ?array $crop = null
     ): string
     {
+        $manager = new ImageManager(new Driver());
+
+        return $this->storeProcessedBannerImage(
+            $manager->read($file->getRealPath()),
+            $device,
+            $crop,
+        );
+    }
+
+    private function uploadBannerImageFromDisk(string $sourcePath, string $device, ?array $crop = null): string
+    {
+        $manager = new ImageManager(new Driver());
+
+        return $this->storeProcessedBannerImage(
+            $manager->read(Storage::disk('public')->path($sourcePath)),
+            $device,
+            $crop,
+        );
+    }
+
+    private function storeProcessedBannerImage($image, string $device, ?array $crop = null): string
+    {
         $sizes = [
-            'desktop' => [1920, 720],
-            'tablet' => [1400, 600],
+            'desktop' => [2400, 720],
+            'tablet' => [1600, 600],
             'mobile' => [960, 480],
         ];
 
         [$width, $height] = $sizes[$device] ?? $sizes['desktop'];
-
-        $manager = new ImageManager(new Driver());
-        $image = $manager->read($file->getRealPath());
 
         if ($crop) {
             $sourceWidth = $image->width();
@@ -243,6 +348,31 @@ class BannerController extends Controller
         Storage::disk('public')->put($path, $image->toString());
 
         return $path;
+    }
+
+    private function bannerSourcePath(Banner $banner): ?string
+    {
+        return collect([
+            $banner->image_desktop,
+            $banner->image_tablet,
+            $banner->image_mobile,
+            $banner->image,
+        ])->first(fn (?string $path): bool => $this->bannerImageExists($path));
+    }
+
+    private function mobileBannerSourcePath(Banner $banner): ?string
+    {
+        return collect([
+            $banner->image_mobile,
+            $banner->image_desktop,
+            $banner->image_tablet,
+            $banner->image,
+        ])->first(fn (?string $path): bool => $this->bannerImageExists($path));
+    }
+
+    private function bannerImageExists(?string $path): bool
+    {
+        return $path !== null && Storage::disk('public')->exists($path);
     }
 
     private function cropData(Request $request, string $prefix = 'crop_'): array

@@ -45,6 +45,7 @@ class SecurityHeaders
         $imageSources = [
             "'self'",
             'data:',
+            'blob:',
             'https://ui-avatars.com',
             'https://cdn.jsdelivr.net',
             'https://cdnjs.cloudflare.com',
