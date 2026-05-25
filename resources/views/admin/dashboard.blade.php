@@ -216,14 +216,14 @@
   };
 
   // ✅ Реальные данные или fallback при пустых массивах
-  const ordersData = {!! json_encode(array_values($ordersActivity ?? [])) !!} || [0,0,0,0,0,0,0];
-  const ordersLabels = {!! json_encode(array_keys($ordersActivity ?? [])) !!} || ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const ordersData = @js(array_values($ordersActivity ?? [])) || [0,0,0,0,0,0,0];
+  const ordersLabels = @js(array_keys($ordersActivity ?? [])) || ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 
-  const categoryLabels = {!! json_encode($categoryData->pluck('name') ?? []) !!} || ['Категория 1','Категория 2'];
-  const categoryValues = {!! json_encode($categoryData->pluck('products_count') ?? []) !!} || [10,20];
+  const categoryLabels = @js($categoryData->pluck('name') ?? []) || ['Категория 1','Категория 2'];
+  const categoryValues = @js($categoryData->pluck('products_count') ?? []) || [10,20];
 
-  const userLabels = {!! json_encode(array_keys($userGrowth ?? [])) !!} || ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-  const userValues = {!! json_encode(array_values($userGrowth ?? [])) !!} || [1,3,2,4,3,5,2];
+  const userLabels = @js(array_keys($userGrowth ?? [])) || ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const userValues = @js(array_values($userGrowth ?? [])) || [1,3,2,4,3,5,2];
 
   // === 📈 Графики ===
   new Chart(document.getElementById('ordersChart'), {

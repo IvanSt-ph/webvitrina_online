@@ -179,7 +179,7 @@ window.refreshProductCartQuantities = async () => {
       detail: { quantities: data.quantities || {} },
     }))
   } catch (error) {
-    console.debug('Cart quantities refresh skipped', error)
+    void error
   }
 }
 

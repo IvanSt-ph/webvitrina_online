@@ -298,7 +298,7 @@
                             @csrf
                             @method('DELETE')
                             <button type="submit"
-                                    onclick="return confirm('Удалить пользователя {{ $user->name }}?')"
+                                    onclick="return confirm('Удалить этого пользователя?')"
                                     class="flex w-full items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
                                 <span class="flex items-center gap-2"><i class="ri-delete-bin-line text-lg"></i> Удалить пользователя</span>
                                 <i class="ri-arrow-right-s-line"></i>

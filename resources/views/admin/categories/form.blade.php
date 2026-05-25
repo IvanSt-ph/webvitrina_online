@@ -172,9 +172,9 @@ function categorySelect() {
             const select = document.createElement('select');
             select.name = `categories[${level}]`;
             select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 transition';
-            select.innerHTML = `<option value="">— Выберите подкатегорию —</option>`;
+            select.add(new Option('— Выберите подкатегорию —', ''));
             data.forEach(cat => {
-                select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+                select.add(new Option(cat.name, cat.id));
             });
             select.addEventListener('change', (e) => this.loadChildren(e, level));
             return select;

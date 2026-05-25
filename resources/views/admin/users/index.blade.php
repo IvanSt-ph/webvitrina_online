@@ -320,7 +320,7 @@
                                             @method('DELETE')
                                             <button type="submit"
                                                     class="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-700 transition hover:bg-rose-100"
-                                                    onclick="return confirm('Удалить пользователя {{ $user->name }}?')"
+                                                    onclick="return confirm('Удалить этого пользователя?')"
                                                     title="Удалить">
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>

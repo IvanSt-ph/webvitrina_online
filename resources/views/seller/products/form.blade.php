@@ -367,15 +367,18 @@
             <input type="file" name="image" class="sr-only" data-main-crop="true" data-preview-target="main-image-preview" accept="image/jpeg,image/png,image/webp">
             <span class="seller-upload-icon"><i class="ri-image-add-line"></i></span>
             <span class="font-semibold text-gray-900">Выбрать главное фото</span>
-            <span class="text-xs text-gray-500">Кроп можно сделать после выбора, если нужно.</span>
+            <span class="text-xs text-gray-500">После выбора можно настроить кадр для карточки товара.</span>
           </label>
           <div id="main-image-preview" class="seller-preview-grid mt-3 hidden"></div>
           <button type="button" id="main-image-open-crop" class="mt-3 hidden rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
             <i class="ri-crop-line mr-1"></i>
-            Обрезать фото
+            Настроить кадр карточки
           </button>
           @if($product->image)
-            <img src="{{ $product->image_thumb_url }}" class="mt-3 aspect-square w-40 rounded-lg border border-gray-200 object-cover" alt="Текущее главное фото">
+            <div class="mt-3 max-w-72">
+              <img src="{{ $product->image_thumb_url }}" class="w-full rounded-xl border border-gray-200 object-cover" style="aspect-ratio: 4 / 3.2" alt="Текущее главное фото">
+              <p class="mt-2 text-xs text-gray-500">Текущее главное фото. Новый кадр можно выбрать после загрузки нового файла.</p>
+            </div>
           @endif
         </div>
 
@@ -448,19 +451,20 @@
   </div>
 
   <div id="main-image-cropper" class="seller-cropper fixed inset-0 z-[80] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-    <div class="w-full max-w-lg rounded-2xl border border-gray-200/70 bg-white p-5 shadow-2xl">
+    <div class="w-full max-w-2xl rounded-2xl border border-gray-200/70 bg-white p-5 shadow-2xl">
       <div class="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900">Обрезать главное фото</h2>
-          <p class="mt-1 text-sm text-gray-500">Это необязательно: можно оставить исходное фото без обрезки.</p>
+          <h2 class="text-lg font-semibold text-gray-900">Кадр карточки товара</h2>
+          <p class="mt-1 text-sm text-gray-500">Перетащи фото и выбери, как оно будет выглядеть в карточке и списках.</p>
         </div>
         <button type="button" data-crop-cancel class="h-9 w-9 rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800">
           <i class="ri-close-line text-xl"></i>
         </button>
       </div>
 
-      <div class="mx-auto w-full max-w-[360px]">
-        <canvas id="main-image-crop-canvas" width="360" height="360" class="aspect-square w-full cursor-move rounded-xl border border-gray-200 bg-gray-100"></canvas>
+      <div class="mx-auto w-full max-w-[560px]">
+        <canvas id="main-image-crop-canvas" width="500" height="400" class="w-full cursor-move rounded-xl border border-gray-200 bg-gray-100" style="aspect-ratio: 4 / 3.2"></canvas>
+        <p class="mt-2 text-center text-xs text-gray-500">Оптимально загружать фото от 1200 x 960 px: товар крупно, без важного текста у краёв.</p>
       </div>
 
       <label class="mt-4 block text-sm font-medium text-gray-700">
@@ -476,7 +480,7 @@
           Вписать целиком
         </button>
         <button type="button" id="main-image-crop-apply" class="seller-primary-button px-5 py-2.5">
-          Обрезать квадратом
+          Применить кадр
         </button>
       </div>
     </div>
@@ -649,6 +653,12 @@
       border-radius: 12px;
       border: 1px solid #e2e8f0;
       object-fit: cover;
+    }
+    #main-image-preview {
+      grid-template-columns: minmax(180px, 280px);
+    }
+    #main-image-preview img {
+      aspect-ratio: 4 / 3.2;
     }
     #map .leaflet-control-attribution {
       font-size: 11px;

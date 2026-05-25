@@ -58,6 +58,12 @@
                 <span>Подписчики</span>
             </a>
 
+            <a href="{{ route('seller.plans.index') }}"
+               class="{{ request()->routeIs('seller.plans.*') ? $active : '' }} {{ $link }}">
+                <i class="ri-vip-crown-line text-[22px]"></i>
+                <span>Тарифы</span>
+            </a>
+
             <a href="{{ route('chats.index') }}"
                class="{{ request()->routeIs('chats.*') ? $active : '' }} {{ $link }}">
                 <span class="relative">

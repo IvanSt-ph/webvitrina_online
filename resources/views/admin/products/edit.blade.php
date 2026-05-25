@@ -3,234 +3,321 @@
 @section('title', 'Редактировать товар')
 
 @section('content')
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">✏️ Редактировать товар</h1>
-        <a href="{{ route('admin.products.index') }}"
-           class="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300">
-            ⬅ Назад к товарам
-        </a>
-    </div>
+@php
+    $gallery = is_array($product->gallery) ? $product->gallery : (json_decode($product->gallery, true) ?? []);
+    $currentSellerProfile = $sellerPlanProfiles[$product->user_id] ?? null;
+@endphp
 
-    <div class="bg-white shadow rounded-lg p-6">
-        {{-- Ошибки --}}
-        @if ($errors->any())
-            <div class="mb-4 p-4 rounded bg-red-100 text-red-700">
-                <strong>Ошибки при сохранении:</strong>
-                <ul class="list-disc ml-5 mt-2">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
+<div class="space-y-5">
+    <header class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0">
+            <a href="{{ route('admin.products.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-indigo-700">
+                <i class="ri-arrow-left-line"></i>
+                Назад к товарам
+            </a>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+                <h1 class="truncate text-2xl font-bold text-slate-950">{{ $product->title }}</h1>
+                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">ID {{ $product->id }}</span>
+                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $product->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                    {{ $product->status === 'active' ? 'Опубликован' : 'Черновик' }}
+                </span>
             </div>
-        @endif
+            <p class="mt-1 text-sm text-slate-500">Проверьте карточку, медиа, продавца, категорию и координаты товара.</p>
+        </div>
 
-        <form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
-            @csrf
-            @method('PUT')
+        <div class="grid grid-cols-3 gap-2 text-center text-xs sm:min-w-[360px]">
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div class="font-bold text-slate-950">{{ number_format((float) $product->price, 0, ',', ' ') }}</div>
+                <div class="mt-1 text-slate-500">цена</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div class="font-bold text-slate-950">{{ $product->stock }}</div>
+                <div class="mt-1 text-slate-500">остаток</div>
+            </div>
+            <div class="rounded-lg border {{ $currentSellerProfile['class'] ?? 'border-slate-200 bg-slate-50 text-slate-700' }} p-3">
+                <div class="font-bold">{{ $currentSellerProfile['label'] ?? 'Тариф' }}</div>
+                <div class="mt-1 opacity-75">{{ $currentSellerProfile ? $currentSellerProfile['used'].'/'.$currentSellerProfile['limit_label'] : 'продавец' }}</div>
+            </div>
+        </div>
+    </header>
 
-            {{-- Название + slug --}}
-       <div class="grid md:grid-cols-2 gap-4" x-data="slugHelper()">
-  <div>
-    <label class="block text-sm font-medium text-gray-700">Название</label>
-    <input type="text" name="title" x-model="title"
-           value="{{ old('title', $product->title) }}"
-           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-           required>
-  </div>
+    @if ($errors->any())
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
+            <div class="mb-2 flex items-center gap-2 font-bold">
+                <i class="ri-error-warning-line"></i>
+                Ошибки при сохранении
+            </div>
+            <ul class="list-disc space-y-1 pl-5 text-sm">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-  <div>
-    <label class="block text-sm font-medium text-gray-700">Slug</label>
-    <div class="flex gap-2">
-      <input type="text" name="slug" x-model="slug"
-             value="{{ old('slug', $product->slug) }}"
-             class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-      <button type="button" @click="makeSlug()"
-              class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
-        Сгенерировать
-      </button>
-    </div>
-  </div>
-</div>
+    <form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data" class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        @csrf
+        @method('PUT')
 
-
-            {{-- Артикул (SKU) --}}
-<div x-data="{
-      sku: '{{ old('sku', $product->sku) }}',
-      generate() {
-        const num = Math.floor(Math.random() * 90000) + 10000;
-        this.sku = 'PRD-' + num;
-      }
-    }">
-  <label for="sku" class="block text-sm font-medium text-gray-700 mb-1">
-    Артикул (SKU)
-  </label>
-  <div class="flex gap-2">
-    <input type="text" name="sku" id="sku" x-model="sku"
-           placeholder="Напр. TV-43-SMART-2024"
-           value="{{ old('sku', $product->sku) }}"
-           class="w-full border-gray-300 rounded-lg text-sm px-3 py-2 focus:ring-indigo-200 focus:border-indigo-400">
-    <button type="button" @click="generate()"
-            class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
-       Сгенерировать
-    </button>
-  </div>
-  <p class="text-xs text-gray-400 mt-1">
-    Можно изменить вручную. Если оставить пустым — при сохранении система создаст новый код.
-  </p>
-</div>
-
-
-            {{-- Цена + Количество + Продавец --}}
-            <div class="grid md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Цена</label>
-                    <input type="number" step="0.01" name="price"
-                           value="{{ old('price', $product->price) }}"
-                           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                           required>
+        <div class="space-y-5">
+            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex items-center gap-2">
+                    <i class="ri-file-text-line text-indigo-600"></i>
+                    <h2 class="font-bold text-slate-950">Основная информация</h2>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Количество</label>
-                    <input type="number" name="stock"
-                           value="{{ old('stock', $product->stock) }}"
-                           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                           required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Продавец</label>
-                    <select name="user_id"
-                            class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            required>
-                        @foreach($sellers as $seller)
-                        <option value="{{ $seller->id }}"
-                            {{ old('user_id', $product->user_id) == $seller->id ? 'selected' : '' }}>
-                            {{ $seller->name }} (ID: {{ $seller->id }})
-                        </option>
 
-                        @endforeach
+                <div class="grid gap-4 md:grid-cols-2" x-data="slugHelper()">
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Название</span>
+                        <input type="text" name="title" x-model="title" value="{{ old('title', $product->title) }}" required
+                               class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                    </label>
+
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Slug</span>
+                        <div class="flex gap-2">
+                            <input type="text" name="slug" x-model="slug" value="{{ old('slug', $product->slug) }}"
+                                   class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <button type="button" @click="makeSlug()" class="inline-flex h-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                <i class="ri-magic-line"></i>
+                            </button>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="mt-4 grid gap-4 md:grid-cols-3" x-data="{ sku: @js(old('sku', $product->sku)), generate() { this.sku = 'PRD-' + (Math.floor(Math.random() * 90000) + 10000); } }">
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Артикул</span>
+                        <div class="flex gap-2">
+                            <input type="text" name="sku" x-model="sku" value="{{ old('sku', $product->sku) }}" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <button type="button" @click="generate()" class="h-11 rounded-lg border border-slate-200 px-3 text-slate-700 hover:bg-slate-50" title="Сгенерировать"><i class="ri-refresh-line"></i></button>
+                        </div>
+                    </label>
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Цена</span>
+                        <input type="number" step="0.01" name="price" value="{{ old('price', $product->price) }}" required class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                    </label>
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Количество</span>
+                        <input type="number" name="stock" value="{{ old('stock', $product->stock) }}" required class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                    </label>
+                </div>
+
+                <label class="mt-4 block">
+                    <span class="mb-2 block text-sm font-bold text-slate-800">Описание</span>
+                    <textarea name="description" rows="5" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">{{ old('description', $product->description) }}</textarea>
+                </label>
+            </section>
+
+            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex items-center gap-2">
+                    <i class="ri-folder-3-line text-indigo-600"></i>
+                    <h2 class="font-bold text-slate-950">Категория и локация</h2>
+                </div>
+
+                <div x-data="categorySelect()" x-init="init()" class="space-y-2">
+                    <label class="block text-sm font-bold text-slate-800">Категория</label>
+                    <div id="category-selects" class="space-y-2">
+                        <select @change="loadChildren($event, 0)" name="categories[0]" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <option value="">Выберите категорию</option>
+                            @foreach($categories as $parent)
+                                <option value="{{ $parent->id }}" {{ old('category_id', $product->category_id) == $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <input type="hidden" name="category_id" x-model="finalCategory" value="{{ old('category_id', $product->category_id) }}">
+                </div>
+
+                <div class="mt-4 grid gap-4 md:grid-cols-2" x-data="cityPicker()" x-init="init(@js(old('country_id', optional($product->city)->country_id)), @js(old('city_id', $product->city_id)))">
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Страна</span>
+                        <select name="country_id" x-model="country" @change="loadCities()" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <option value="">Выберите страну</option>
+                            @foreach($countries as $country)
+                                <option value="{{ $country->id }}">{{ $country->name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Город</span>
+                        <select name="city_id" x-model="city" :disabled="!country" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50">
+                            <option value="">Выберите город</option>
+                            <template x-for="c in cities" :key="c.id">
+                                <option :value="c.id" x-text="c.name"></option>
+                            </template>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="mt-4">
+                    <label class="mb-2 block text-sm font-bold text-slate-800">Адрес</label>
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                        <input id="address" name="address" type="text" placeholder="Например: ул. Ленина, 2" value="{{ old('address', $product->address) }}" class="h-11 flex-1 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <button type="button" id="searchAddress" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700">
+                            <i class="ri-map-pin-line"></i>
+                            Найти
+                        </button>
+                    </div>
+                    <p id="addressError" class="mt-2 hidden text-sm text-rose-600"></p>
+                </div>
+
+                <div class="mt-4">
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <label class="block text-sm font-bold text-slate-800">Местоположение на карте</label>
+                        <span class="text-xs text-slate-400">Метка перетаскивается</span>
+                    </div>
+                    <div id="map" class="h-72 w-full rounded-xl border border-slate-200"></div>
+                    <input type="hidden" id="latitude" name="latitude" value="{{ old('latitude', $product->latitude) }}">
+                    <input type="hidden" id="longitude" name="longitude" value="{{ old('longitude', $product->longitude) }}">
+                </div>
+            </section>
+        </div>
+
+        <aside class="space-y-5">
+            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex items-center gap-2">
+                    <i class="ri-settings-3-line text-indigo-600"></i>
+                    <h2 class="font-bold text-slate-950">Публикация</h2>
+                </div>
+
+                <label class="block">
+                    <span class="mb-2 block text-sm font-bold text-slate-800">Статус</span>
+                    <select name="status" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <option value="active" {{ old('status', $product->status) === 'active' ? 'selected' : '' }}>Опубликован</option>
+                        <option value="draft" {{ old('status', $product->status) === 'draft' ? 'selected' : '' }}>Черновик</option>
                     </select>
-                </div>
-            </div>
+                </label>
 
-            {{-- Каскадные категории --}}
-            <div x-data="categorySelect()" x-init="init()" class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Категория</label>
-                <div id="category-selects" class="space-y-2">
-                    <select @change="loadChildren($event, 0)"
-                            name="categories[0]"
-                            class="w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">— Выберите категорию —</option>
-                        @foreach($categories as $parent)
-                            <option value="{{ $parent->id }}"
-                                {{ old('category_id', $product->category_id) == $parent->id ? 'selected' : '' }}>
-                                {{ $parent->name }}
+                <label class="mt-4 block">
+                    <span class="mb-2 block text-sm font-bold text-slate-800">Продавец</span>
+                    <select name="user_id" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" required>
+                        @foreach($sellers as $seller)
+                            @php $profile = $sellerPlanProfiles[$seller->id] ?? null; @endphp
+                            <option value="{{ $seller->id }}" {{ old('user_id', $product->user_id) == $seller->id ? 'selected' : '' }}>
+                                {{ $seller->name }} · {{ $profile['label'] ?? 'Starter' }} · {{ $profile ? $profile['used'].'/'.$profile['limit_label'] : '0/10' }}
                             </option>
                         @endforeach
                     </select>
+                </label>
+            </section>
+
+            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex items-center gap-2">
+                    <i class="ri-image-line text-indigo-600"></i>
+                    <h2 class="font-bold text-slate-950">Изображения</h2>
                 </div>
-                <input type="hidden" name="category_id" x-model="finalCategory"
-                       value="{{ old('category_id', $product->category_id) }}">
+
+                <label class="block">
+                    <span class="mb-2 block text-sm font-bold text-slate-800">Главное изображение</span>
+                    <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                        @if($product->image)
+                            <img src="{{ asset('storage/' . $product->image) }}" class="aspect-[4/3] w-full object-cover" alt="{{ $product->title }}">
+                        @else
+                            <div class="flex aspect-[4/3] items-center justify-center text-sm text-slate-400">Нет изображения</div>
+                        @endif
+                    </div>
+                    <input type="file" name="image" accept="image/*" class="mt-3 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                </label>
+
+                <div class="mt-5">
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <span class="block text-sm font-bold text-slate-800">Галерея</span>
+                        <span class="text-xs text-slate-400">{{ count($gallery) }} фото</span>
+                    </div>
+                    @if(!empty($gallery))
+                        <div id="admin-gallery-container" class="grid grid-cols-3 gap-2">
+                            @foreach($gallery as $img)
+                                <div class="group relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                                    <img src="{{ asset('storage/' . $img) }}" alt="Фото" class="aspect-square w-full object-cover">
+                                    <button type="button" data-path="{{ $img }}" class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600 text-white opacity-0 transition group-hover:opacity-100" title="Удалить">
+                                        <i class="ri-close-line"></i>
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">Галерея пустая</div>
+                    @endif
+                    <input type="file" name="gallery[]" multiple accept="image/*" class="mt-3 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                </div>
+            </section>
+
+            <div class="sticky bottom-4 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="{{ route('admin.products.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-bold text-slate-700 transition hover:bg-slate-50">Отмена</a>
+                    <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-bold text-white transition hover:bg-indigo-700">
+                        <i class="ri-save-3-line"></i>
+                        Сохранить
+                    </button>
+                </div>
             </div>
-
-            {{-- Страна и город --}}
-            <div 
-                x-data="cityPicker()" 
-                x-init="init('{{ old('country_id', optional($product->city)->country_id) }}','{{ old('city_id', $product->city_id) }}')">
-                <label class="block text-sm font-medium text-gray-700">Страна</label>
-                <select name="country_id" x-model="country" @change="loadCities()"
-                        class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">— Выберите страну —</option>
-                    @foreach($countries as $country)
-                        <option value="{{ $country->id }}">{{ $country->name }}</option>
-                    @endforeach
-                </select>
-
-                <label class="block text-sm font-medium text-gray-700 mt-4">Город</label>
-                <select name="city_id" x-model="city" :disabled="!country"
-                        class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">
-                        <span x-text="country ? '— Выберите город —' : '— Сначала выберите страну —'"></span>
-                    </option>
-                    <template x-for="c in cities" :key="c.id">
-                        <option :value="c.id" x-text="c.name"></option>
-                    </template>
-                </select>
-            </div>
-
-
-            {{-- === Адрес + карта === --}}
-<div>
-  <label class="block text-sm font-medium text-gray-700">Адрес (улица, дом)</label>
-<input id="address" name="address" type="text"
-       class="w-full border rounded-lg px-3 py-2"
-       placeholder="Например: ул. Ленина, 2"
-       value="{{ old('address', $product->address) }}">
-
-
-  <button type="button" id="searchAddress"
-          class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-    Найти на карте
-  </button>
-
-  <p id="addressError" class="text-red-600 text-sm mt-2 hidden"></p>
+        </aside>
+    </form>
 </div>
 
-<div class="mt-4">
-  <label class="block text-sm font-medium text-gray-700 mb-1">Местоположение на карте</label>
-  <div id="map" class="w-full h-64 rounded border"></div>
-
-<input type="hidden" id="latitude" name="latitude"
-       value="{{ old('latitude', $product->latitude) }}">
-<input type="hidden" id="longitude" name="longitude"
-       value="{{ old('longitude', $product->longitude) }}">
-
-
-  <p class="text-xs text-gray-500 mt-2">
-    📍 Перетащите метку или кликните по карте, чтобы указать координаты.
-  </p>
-</div>
-
-{{-- Подключение leaflet --}}
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Координаты из БД (PHP вставит реальные числа)
+document.addEventListener('DOMContentLoaded', () => {
+    const gallery = document.getElementById('admin-gallery-container');
+    if (gallery && gallery.dataset.deleteBound !== '1') {
+        gallery.dataset.deleteBound = '1';
+        gallery.addEventListener('click', async (e) => {
+            const button = e.target.closest('button[data-path]');
+            if (!button || !gallery.contains(button)) return;
+            e.preventDefault();
+            if (button.dataset.deleting === '1') return;
+            if (!confirm('Удалить это фото из галереи?')) return;
+            button.dataset.deleting = '1';
+            button.disabled = true;
+
+            try {
+                const res = await fetch(@json(route('admin.products.gallery.delete', $product)), {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': @json(csrf_token()),
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ path: button.dataset.path })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) throw new Error(data.error || 'Не удалось удалить');
+                button.closest('.group')?.remove();
+            } catch (error) {
+                button.dataset.deleting = '0';
+                button.disabled = false;
+                alert('Ошибка при удалении изображения: ' + error.message);
+            }
+        });
+    }
+
     const productLat = {{ $product->latitude ?? 'null' }};
     const productLng = {{ $product->longitude ?? 'null' }};
-
-    // Приоритет: old() → координаты из БД → дефолт
     let lat = {{ old('latitude', 'null') }} ?? productLat ?? 47.0105;
     let lng = {{ old('longitude', 'null') }} ?? productLng ?? 28.8638;
-
-    // Если данные NaN или null — fallback
     if (!lat || isNaN(lat)) lat = productLat ?? 47.0105;
     if (!lng || isNaN(lng)) lng = productLng ?? 28.8638;
 
-    let zoom = (lat && lng) ? 13 : 7;
+    const mapEl = document.getElementById('map');
+    if (!mapEl || typeof L === 'undefined') return;
+    if (L.DomUtil.get('map') !== null) L.DomUtil.get('map')._leaflet_id = null;
 
-
-    if (L.DomUtil.get('map') !== null) {
-    L.DomUtil.get('map')._leaflet_id = null;
-}
-
-
-    let map = L.map('map').setView([lat, lng], zoom);
+    const map = L.map('map').setView([lat, lng], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    let marker = L.marker([lat, lng], {draggable:true}).addTo(map);
-
-    function updateCoords(latlng) {
+    const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+    const updateCoords = (latlng) => {
         document.getElementById('latitude').value = latlng.lat.toFixed(6);
         document.getElementById('longitude').value = latlng.lng.toFixed(6);
-    }
+    };
     updateCoords(marker.getLatLng());
 
-    function shortAddress(addr) {
-        let parts = [];
+    const shortAddress = (addr) => {
+        const parts = [];
         if (addr.road) parts.push(addr.road);
         if (addr.house_number) parts.push(addr.house_number);
         if (addr.city) parts.push(addr.city);
@@ -238,311 +325,111 @@ document.addEventListener("DOMContentLoaded", function() {
         else if (addr.village) parts.push(addr.village);
         if (addr.country) parts.push(addr.country);
         return parts.join(', ');
-    }
+    };
 
-    marker.on('dragend', async function(e) {
-        let latlng = e.target.getLatLng();
+    const reverse = async (latlng) => {
         updateCoords(latlng);
-        let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`;
-        let res = await fetch(url);
-        let data = await res.json();
-        if (data && data.address) {
-            document.getElementById('address').value = shortAddress(data.address);
-        }
-    });
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`);
+            const data = await res.json();
+            if (data?.address) document.getElementById('address').value = shortAddress(data.address);
+        } catch (_) {}
+    };
 
-    map.on('click', async function(e) {
+    marker.on('dragend', (e) => reverse(e.target.getLatLng()));
+    map.on('click', (e) => {
         marker.setLatLng(e.latlng);
-        updateCoords(e.latlng);
-        let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`;
-        let res = await fetch(url);
-        let data = await res.json();
-        if (data && data.address) {
-            document.getElementById('address').value = shortAddress(data.address);
-        }
+        reverse(e.latlng);
     });
 
-    document.getElementById('searchAddress').addEventListener('click', async function() {
+    document.getElementById('searchAddress')?.addEventListener('click', async () => {
         let query = document.getElementById('address').value.trim();
-        let errorBox = document.getElementById('addressError');
+        const errorBox = document.getElementById('addressError');
         errorBox.classList.add('hidden');
-        errorBox.textContent = "";
+        errorBox.textContent = '';
 
-        let country = document.querySelector('[name="country_id"]');
-        let city    = document.querySelector('[name="city_id"]');
-        let countryText = country?.options[country.selectedIndex]?.text || '';
-        let cityText    = city?.options[city.selectedIndex]?.text || '';
+        const country = document.querySelector('[name="country_id"]');
+        const city = document.querySelector('[name="city_id"]');
+        const countryText = country?.options[country.selectedIndex]?.text || '';
+        const cityText = city?.options[city.selectedIndex]?.text || '';
+        if (!query && cityText) query = `${cityText}, ${countryText}`;
 
-        if (!query && cityText) {
-            query = `${cityText}, ${countryText}`;
-        }
         if (!query) {
-            errorBox.textContent = "Введите адрес или выберите город";
+            errorBox.textContent = 'Введите адрес или выберите город';
             errorBox.classList.remove('hidden');
             return;
         }
 
-        let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-        let res = await fetch(url);
-        let data = await res.json();
-
-        if (data.length === 0) {
-            errorBox.textContent = "❌ Такой адрес не найден.";
-            errorBox.classList.remove('hidden');
-            return;
-        }
-
-        let found = data[0];
-        let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
-        map.setView(latlng, 14);
-        marker.setLatLng(latlng);
-        updateCoords({lat: latlng[0], lng: latlng[1]});
-        if (found.address) {
-            document.getElementById('address').value = shortAddress(found.address);
-        }
-    });
-
-    document.querySelector('[name="city_id"]').addEventListener('change', async function() {
-        let country = document.querySelector('[name="country_id"]');
-        let city    = document.querySelector('[name="city_id"]');
-        let countryText = country?.options[country.selectedIndex]?.text || '';
-        let cityText    = city?.options[city.selectedIndex]?.text || '';
-        if (!cityText) return;
-
-        let query = `${cityText}, ${countryText}`;
-        let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-        let res = await fetch(url);
-        let data = await res.json();
-        if (data.length > 0) {
-            let found = data[0];
-            let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
-            map.setView(latlng, 13);
-            marker.setLatLng(latlng);
-            updateCoords({lat: latlng[0], lng: latlng[1]});
-            document.getElementById('address').value = `${cityText}, ${countryText}`;
-        }
-    });
-});
-</script>
-
-
-
-
-
-
-
-            {{-- Статус --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Статус</label>
-                <select name="status"
-                        class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="active" {{ old('status', $product->status) === 'active' ? 'selected' : '' }}>Опубликован</option>
-                    <option value="draft" {{ old('status', $product->status) === 'draft' ? 'selected' : '' }}>Черновик</option>
-                </select>
-            </div>
-
-            {{-- Изображения --}}
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Главное изображение</label>
-                    @if($product->image)
-                        <img src="{{ asset('storage/' . $product->image) }}" class="h-24 rounded border mb-2">
-                    @endif
-                    <input type="file" name="image" accept="image/*" class="mt-1 block w-full">
-                </div>
-              
-
-
-                {{-- Галерея (несколько) --}}
-<div>
-  <label class="block text-sm font-medium text-gray-700">Галерея изображений</label>
-
-  {{-- Отображаем существующие изображения --}}
-  @php
-      $gallery = is_array($product->gallery)
-          ? $product->gallery
-          : (json_decode($product->gallery, true) ?? []);
-  @endphp
-
-  @if(!empty($gallery))
-    <div id="admin-gallery-container" class="flex flex-wrap gap-3 mt-2">
-      @foreach($gallery as $img)
-        <div class="relative group">
-          <img src="{{ asset('storage/' . $img) }}"
-               alt="Фото"
-               class="w-20 h-20 object-cover rounded border">
-          <button type="button"
-                  data-path="{{ $img }}"
-                  class="absolute top-0 right-0 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
-            ✕
-          </button>
-        </div>
-      @endforeach
-    </div>
-  @else
-    <p class="text-gray-400 text-sm mt-1">Нет загруженных фото</p>
-  @endif
-
-  {{-- Загрузка новых фото --}}
-  <input type="file" name="gallery[]" multiple accept="image/*" class="mt-2 block w-full border rounded px-3 py-2">
-</div>
-
-
-
-{{-- JS для AJAX удаления --}}
-<script>
-    
-document.addEventListener('DOMContentLoaded', () => {
-  const gallery = document.getElementById('admin-gallery-container');
-  if (!gallery || gallery.dataset.deleteBound === '1') return;
-
-  gallery.dataset.deleteBound = '1';
-
-  gallery.addEventListener('click', async (e) => {
-    const button = e.target.closest('button[data-path]');
-    if (!button || !gallery.contains(button)) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (button.dataset.deleting === '1') return;
-    if (!confirm('Удалить это фото из галереи?')) return;
-
-    button.dataset.deleting = '1';
-    button.disabled = true;
-
-    const path = button.dataset.path;
-    const url = "{{ route('admin.products.gallery.delete', $product) }}";
-
-    try {
-      const res = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'X-CSRF-TOKEN': '{{ csrf_token() }}',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ path })
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Не удалось удалить');
-      }
-
-      button.closest('.relative')?.remove();
-    } catch (err) {
-      button.dataset.deleting = '0';
-      button.disabled = false;
-      alert('Ошибка при удалении изображения: ' + err.message);
-    }
-  });
-});
-
-</script>
-
-
-            {{-- Описание --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Описание</label>
-                <textarea name="description" rows="4"
-                          class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">{{ old('description', $product->description) }}</textarea>
-            </div>
-
-            {{-- Кнопки --}}
-            <div class="flex justify-end gap-3">
-                <a href="{{ route('admin.products.index') }}"
-                   class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                    Отмена
-                </a>
-                <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-                    💾 Обновить
-                </button>
-            </div>
-        </form>
-    </div>
-
-    {{-- Скрипты --}}
-    <script>
-        function slugHelper() {
-            return {
-                title: @json(old('title', $product->title)),
-                slug: @json(old('slug', $product->slug)),
-                makeSlug() {
-                    const map = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',
-                        к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',
-                        х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
-                    let s = (this.slug || this.title || '').toString().trim().toLowerCase();
-                    s = s.replace(/[\u0400-\u04FF]/g, ch => map[ch] ?? ch);
-                    s = s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 80);
-                    this.slug = s;
-                }
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            if (!data.length) {
+                errorBox.textContent = 'Такой адрес не найден.';
+                errorBox.classList.remove('hidden');
+                return;
             }
+            const found = data[0];
+            const latlng = [parseFloat(found.lat), parseFloat(found.lon)];
+            map.setView(latlng, 14);
+            marker.setLatLng(latlng);
+            updateCoords({ lat: latlng[0], lng: latlng[1] });
+        } catch (_) {
+            errorBox.textContent = 'Не удалось проверить адрес.';
+            errorBox.classList.remove('hidden');
         }
+    });
+});
 
-
-
-
+function slugHelper() {
+    return {
+        title: @json(old('title', $product->title)),
+        slug: @json(old('slug', $product->slug)),
+        makeSlug() {
+            const map = {а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'};
+            let s = (this.slug || this.title || '').toString().trim().toLowerCase();
+            s = s.replace(/[\u0400-\u04FF]/g, ch => map[ch] ?? ch);
+            this.slug = s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 80);
+        }
+    };
+}
 
 function categorySelect() {
     return {
-        finalCategory: '{{ old('category_id', $product->category_id) }}',
-        selectedChain: [],
-
+        finalCategory: {{ (int) old('category_id', $product->category_id) ?: 'null' }},
         async init() {
-            if (this.finalCategory) {
-                await this.loadChain(this.finalCategory);
-            }
+            if (this.finalCategory) await this.loadChain(this.finalCategory);
         },
-
         async loadChildren(event, level) {
             const parentId = event.target.value;
-            this.selectedChain = this.selectedChain.slice(0, level);
-            this.selectedChain[level] = parentId;
             this.finalCategory = parentId;
-
-            // удаляем селекты, которые ниже текущего уровня
-            document.querySelectorAll('#category-selects select').forEach((el, i) => {
-                if (i > level) el.remove();
-            });
-
+            document.querySelectorAll('#category-selects select').forEach((el, i) => { if (i > level) el.remove(); });
             if (!parentId) return;
 
-            // ⚙️ Берём подкатегории
             const res = await fetch(`/admin/categories/${parentId}/children`);
             const data = await res.json();
-
             if (data.length > 0) {
                 const select = document.createElement('select');
                 select.name = `categories[${level + 1}]`;
-                select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
-                select.innerHTML = `<option value="">— Выберите подкатегорию —</option>`;
-                data.forEach(cat => {
-                    select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
-                });
+                select.className = 'h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100';
+                select.add(new Option('Выберите подкатегорию', ''));
+                data.forEach(cat => select.add(new Option(cat.name, cat.id)));
                 select.addEventListener('change', (e) => this.loadChildren(e, level + 1));
                 document.getElementById('category-selects').appendChild(select);
             }
         },
-
         async loadChain(categoryId) {
-            // ⚙️ Получаем всю цепочку родителей (для открытия edit)
             const chain = [];
             let currentId = categoryId;
             while (currentId) {
                 const res = await fetch(`/admin/categories/${currentId}/parent`);
                 const data = await res.json();
-                if (data && data.parent_id) {
+                if (data?.parent_id) {
                     chain.unshift(data.parent_id);
                     currentId = data.parent_id;
                 } else {
                     break;
                 }
             }
-
-            // строим селекты от родителя к потомку
             let level = 0;
             for (const id of chain) {
                 const select = document.querySelector(`#category-selects select[name="categories[${level}]"]`);
@@ -552,8 +439,6 @@ function categorySelect() {
                 }
                 level++;
             }
-
-            // выбираем саму конечную категорию
             const lastSelect = document.querySelector(`#category-selects select[name="categories[${level}]"]`);
             if (lastSelect) {
                 lastSelect.value = categoryId;
@@ -563,12 +448,6 @@ function categorySelect() {
     };
 }
 
-
-        
-
-
-
-
 function cityPicker() {
     return {
         country: '',
@@ -577,23 +456,14 @@ function cityPicker() {
         async init(initCountry = '', initCity = '') {
             this.country = String(initCountry || '');
             this.city = String(initCity || '');
-
-            // если страна указана, загружаем города
             if (this.country) {
                 await this.loadCities(true);
-
-                // после загрузки городов проставляем выбранный
                 this.$nextTick(() => {
-                    if (this.city && this.cities.length > 0) {
-                        const citySelect = document.querySelector('[name="city_id"]');
-                        if (citySelect) citySelect.value = this.city;
-                    }
+                    const citySelect = document.querySelector('[name="city_id"]');
+                    if (citySelect && this.city) citySelect.value = this.city;
                 });
             }
-
-
         },
-
         async loadCities(preserveSelected = false) {
             if (!this.country) {
                 this.cities = [];
@@ -603,30 +473,19 @@ function cityPicker() {
             try {
                 const res = await fetch(`/countries/${this.country}/cities`);
                 this.cities = await res.json();
-
-                if (preserveSelected) {
-                    const exists = this.cities.some(c => String(c.id) === String(this.city));
-                    if (!exists) this.city = '';
-                } else {
-                    this.city = '';
-                }
-            } catch (e) {
-                console.error('Ошибка загрузки городов', e);
+                if (!preserveSelected) this.city = '';
+                if (preserveSelected && !this.cities.some(c => String(c.id) === String(this.city))) this.city = '';
+            } catch (_) {
                 this.cities = [];
                 this.city = '';
             }
         }
-    }
+    };
 }
+</script>
 
-    </script>
-
-    <style>
-  #map { border-radius: 0.75rem; box-shadow: 0 0 0 1px #e5e7eb; }
-  .leaflet-control-attribution { font-size: 10px; }
+<style>
+    #map { box-shadow: 0 0 0 1px #e2e8f0; }
+    .leaflet-control-attribution { font-size: 10px; }
 </style>
-
 @endsection
-
-
-

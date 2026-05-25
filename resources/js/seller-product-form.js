@@ -595,6 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cropFit = document.getElementById('main-image-crop-fit');
   const cropApply = document.getElementById('main-image-crop-apply');
   const cropCtx = cropCanvas?.getContext('2d');
+  const cropOutput = { width: 1200, height: 960 };
 
   let cropImage = null;
   let cropSourceFile = null;
@@ -603,10 +604,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let cropDragStart = { x: 0, y: 0 };
   let cropAppliedProgrammatically = false;
 
-  function cropCanvasSize() {
-    return cropCanvas?.width || 360;
-  }
-
   function cropBaseScale() {
     if (!cropImage || !cropCanvas) return 1;
     return Math.max(cropCanvas.width / cropImage.width, cropCanvas.height / cropImage.height);
@@ -614,6 +611,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function cropCurrentScale() {
     return cropBaseScale() * (parseFloat(cropZoom?.value) || 1);
+  }
+
+  function cropPointerPosition(event) {
+    const rect = cropCanvas.getBoundingClientRect();
+
+    return {
+      x: (event.clientX - rect.left) * (cropCanvas.width / rect.width),
+      y: (event.clientY - rect.top) * (cropCanvas.height / rect.height),
+    };
   }
 
   function clampCropOffset() {
@@ -652,16 +658,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cropCtx.strokeStyle = 'rgba(79,70,229,.45)';
     cropCtx.lineWidth = 1;
-    const third = cropCanvas.width / 3;
+    const thirdX = cropCanvas.width / 3;
+    const thirdY = cropCanvas.height / 3;
     cropCtx.beginPath();
-    cropCtx.moveTo(third, 0);
-    cropCtx.lineTo(third, cropCanvas.height);
-    cropCtx.moveTo(third * 2, 0);
-    cropCtx.lineTo(third * 2, cropCanvas.height);
-    cropCtx.moveTo(0, third);
-    cropCtx.lineTo(cropCanvas.width, third);
-    cropCtx.moveTo(0, third * 2);
-    cropCtx.lineTo(cropCanvas.width, third * 2);
+    cropCtx.moveTo(thirdX, 0);
+    cropCtx.lineTo(thirdX, cropCanvas.height);
+    cropCtx.moveTo(thirdX * 2, 0);
+    cropCtx.lineTo(thirdX * 2, cropCanvas.height);
+    cropCtx.moveTo(0, thirdY);
+    cropCtx.lineTo(cropCanvas.width, thirdY);
+    cropCtx.moveTo(0, thirdY * 2);
+    cropCtx.lineTo(cropCanvas.width, thirdY * 2);
     cropCtx.stroke();
   }
 
@@ -748,19 +755,21 @@ document.addEventListener('DOMContentLoaded', () => {
     cropZoom?.addEventListener('input', drawCrop);
 
     cropCanvas.addEventListener('pointerdown', e => {
+      const point = cropPointerPosition(e);
       cropDragging = true;
       cropCanvas.setPointerCapture(e.pointerId);
       cropDragStart = {
-        x: e.clientX - cropOffset.x,
-        y: e.clientY - cropOffset.y,
+        x: point.x - cropOffset.x,
+        y: point.y - cropOffset.y,
       };
     });
 
     cropCanvas.addEventListener('pointermove', e => {
       if (!cropDragging) return;
+      const point = cropPointerPosition(e);
       cropOffset = {
-        x: e.clientX - cropDragStart.x,
-        y: e.clientY - cropDragStart.y,
+        x: point.x - cropDragStart.x,
+        y: point.y - cropDragStart.y,
       };
       drawCrop();
     });
@@ -799,18 +808,17 @@ document.addEventListener('DOMContentLoaded', () => {
     cropFit?.addEventListener('click', () => {
       if (!cropImage || !cropSourceFile) return;
 
-      const outputSize = 1200;
       const output = document.createElement('canvas');
-      output.width = outputSize;
-      output.height = outputSize;
+      output.width = cropOutput.width;
+      output.height = cropOutput.height;
       const outputCtx = output.getContext('2d');
-      const scale = Math.min(outputSize / cropImage.width, outputSize / cropImage.height);
+      const scale = Math.min(cropOutput.width / cropImage.width, cropOutput.height / cropImage.height);
       const width = cropImage.width * scale;
       const height = cropImage.height * scale;
 
       outputCtx.fillStyle = '#fff';
-      outputCtx.fillRect(0, 0, outputSize, outputSize);
-      outputCtx.drawImage(cropImage, (outputSize - width) / 2, (outputSize - height) / 2, width, height);
+      outputCtx.fillRect(0, 0, cropOutput.width, cropOutput.height);
+      outputCtx.drawImage(cropImage, (cropOutput.width - width) / 2, (cropOutput.height - height) / 2, width, height);
 
       replaceMainImageWithCanvas(output, 'image/jpeg', '-fit');
     });
@@ -818,20 +826,20 @@ document.addEventListener('DOMContentLoaded', () => {
     cropApply?.addEventListener('click', () => {
       if (!cropImage || !cropSourceFile) return;
 
-      const outputSize = 1200;
       const output = document.createElement('canvas');
-      output.width = outputSize;
-      output.height = outputSize;
+      output.width = cropOutput.width;
+      output.height = cropOutput.height;
       const outputCtx = output.getContext('2d');
-      const ratio = outputSize / cropCanvasSize();
-      const scale = cropCurrentScale() * ratio;
+      const ratioX = cropOutput.width / cropCanvas.width;
+      const ratioY = cropOutput.height / cropCanvas.height;
+      const scale = cropCurrentScale() * ratioX;
 
       outputCtx.fillStyle = '#fff';
-      outputCtx.fillRect(0, 0, outputSize, outputSize);
+      outputCtx.fillRect(0, 0, cropOutput.width, cropOutput.height);
       outputCtx.drawImage(
         cropImage,
-        cropOffset.x * ratio,
-        cropOffset.y * ratio,
+        cropOffset.x * ratioX,
+        cropOffset.y * ratioY,
         cropImage.width * scale,
         cropImage.height * scale
       );

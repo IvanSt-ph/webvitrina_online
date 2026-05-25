@@ -11,6 +11,7 @@ use App\Models\Country;
 use App\Models\City;
 use App\Models\Product;
 use App\Services\ProductService;
+use App\Services\SellerPlanService;
 use App\Repositories\ProductRepository;
 use Illuminate\Http\Request;
 
@@ -19,7 +20,7 @@ class ProductController extends Controller
     private ProductService $productService;
     private ProductRepository $productRepository;
 
-    public function __construct(ProductService $productService, ProductRepository $productRepository)
+    public function __construct(ProductService $productService, ProductRepository $productRepository, private readonly SellerPlanService $sellerPlans)
     {
         $this->productService = $productService;
         $this->productRepository = $productRepository;
@@ -74,8 +75,12 @@ class ProductController extends Controller
             ? City::where('country_id', $countryId)->get()
             : collect();
 
+        $sellerPlanProfiles = $sellers->mapWithKeys(fn (User $seller) => [
+            $seller->id => $this->sellerPlans->profileFor($seller),
+        ]);
+
         return view('admin.products.edit', compact(
-            'product', 'categories', 'sellers', 'countries', 'cities'
+            'product', 'categories', 'sellers', 'countries', 'cities', 'sellerPlanProfiles'
         ));
     }
 

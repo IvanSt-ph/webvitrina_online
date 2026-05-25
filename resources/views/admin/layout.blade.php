@@ -23,6 +23,9 @@
               ->whereNull('admin_read_at'))
           ->count()
       : 0;
+  $pendingSellerPlanRequests = auth()->check()
+      ? \App\Models\SellerPlanRequest::where('status', \App\Models\SellerPlanRequest::STATUS_PENDING)->count()
+      : 0;
 @endphp
 
 <body class="bg-gray-50 text-gray-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}" x-data="{ sidebarOpen: false }">
@@ -65,6 +68,8 @@
           ['route'=>'admin.orders.index','icon'=>'ri-shopping-bag-3-line','label'=>'Заказы'],
           ['route'=>'admin.chats.index','active'=>'admin.chats.*','icon'=>'ri-message-3-line','label'=>'Чаты'],
           ['route'=>'admin.users.index','icon'=>'ri-user-3-line','label'=>'Пользователи'],
+          ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Тарифы'],
+          ['route'=>'admin.activity.index','active'=>'admin.activity.*','icon'=>'ri-history-line','label'=>'Журнал'],
           ['route'=>'admin.reviews.index','icon'=>'ri-chat-3-line','label'=>'Отзывы'],
           ['route'=>'admin.banners.index','icon'=>'ri-image-line','label'=>'Баннеры'],
           ['route'=>'admin.profile','icon'=>'ri-settings-3-line','label'=>'Настройки'],
@@ -83,6 +88,11 @@
             @if($item['route'] === 'admin.chats.index' && $adminUnreadChats > 0)
               <span data-admin-chat-unread="{{ $adminUnreadChats }}" class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
                 {{ $adminUnreadChats > 99 ? '99+' : $adminUnreadChats }}
+              </span>
+            @endif
+            @if($item['route'] === 'admin.seller-plan-requests.index' && $pendingSellerPlanRequests > 0)
+              <span class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
+                {{ $pendingSellerPlanRequests > 99 ? '99+' : $pendingSellerPlanRequests }}
               </span>
             @endif
           </a>

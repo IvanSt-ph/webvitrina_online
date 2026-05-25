@@ -13,6 +13,8 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Shop;
+use App\Models\AdminActivityLog;
+use App\Models\SellerPlanRequest;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Repositories\ProductCrudRepository;
@@ -1955,6 +1957,65 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_admin_product_edit_page_renders_modern_operational_form(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'pro',
+        ]);
+        $product = $this->createProduct($seller, [
+            'title' => 'Admin edit render product',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.edit', $product))
+            ->assertOk()
+            ->assertSee('Основная информация')
+            ->assertSee('Категория и локация')
+            ->assertSee('Публикация')
+            ->assertSee('Pro');
+    }
+
+    public function test_admin_product_live_search_escapes_highlighted_product_text(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.index'))
+            ->assertOk()
+            ->assertSee('escapeHtml(text)', false)
+            ->assertSee('String.fromCharCode(38)', false);
+    }
+
+    public function test_product_quick_view_keeps_flexible_image_preview(): void
+    {
+        $css = file_get_contents(public_path('css/product-card.css'));
+
+        $this->assertMatchesRegularExpression('/\\.pm-sheet\\s*\\{[^}]*height:\\s*60vh/s', $css);
+        $this->assertMatchesRegularExpression('/\\.pm-main-image-wrap\\s*\\{[^}]*flex:\\s*1;/s', $css);
+        $this->assertMatchesRegularExpression('/@media \\(max-width:\\s*640px\\)[\\s\\S]*?\\.pm-main-image-wrap\\s*\\{[^}]*height:\\s*280px/s', $css);
+    }
+
+    public function test_seller_product_form_exposes_card_crop_controls(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'starter',
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('seller.products.create'))
+            ->assertOk()
+            ->assertSee('data-main-crop="true"', false)
+            ->assertSee('id="main-image-crop-canvas"', false)
+            ->assertSee('width="500"', false)
+            ->assertSee('height="400"', false)
+            ->assertSee('aspect-ratio: 4 / 3.2', false)
+            ->assertSee('Настроить кадр карточки')
+            ->assertSee('Оптимально загружать фото от 1200 x 960 px');
+    }
+
     public function test_seller_product_creation_respects_seller_plan_limit(): void
     {
         $seller = User::factory()->create([
@@ -2507,6 +2568,22 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(2, $response->viewData('products')->currentPage());
     }
 
+    public function test_admin_dashboard_escapes_category_names_inside_chart_script(): void
+    {
+        Cache::flush();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        Category::factory()->create([
+            'name' => '</script><script>alert("dashboard-xss")</script>',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('</script><script>alert("dashboard-xss")</script>', false)
+            ->assertSee('\\\\u003C', false);
+    }
+
     public function test_review_images_are_converted_to_webp_with_thumbnails(): void
     {
         Storage::fake('public');
@@ -2761,6 +2838,113 @@ class SecurityRegressionTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword123', $buyer->password));
     }
 
+    public function test_admin_user_delete_confirmation_does_not_interpolate_user_name_into_javascript(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'name' => "');alert('admin-xss');//",
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.show', $buyer))
+            ->assertOk()
+            ->assertSee("confirm('Удалить этого пользователя?')", false)
+            ->assertDontSee("confirm('Удалить пользователя ", false);
+    }
+
+    public function test_admin_profile_displays_account_security_and_recent_activity(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'name' => 'Profile Admin',
+            'password_set_at' => now(),
+        ]);
+
+        AdminActivityLog::create([
+            'admin_id' => $admin->id,
+            'action' => 'user.updated',
+            'description' => 'Администратор изменил пользователя.',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.profile'))
+            ->assertOk()
+            ->assertSee('Profile Admin')
+            ->assertSee('Личные данные')
+            ->assertSee('Безопасность')
+            ->assertSee('Текущий пароль')
+            ->assertSee('Последние действия')
+            ->assertSee('Профиль пользователя изменён');
+    }
+
+    public function test_admin_must_confirm_current_password_to_change_own_email(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email' => 'admin-original@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('original-password'),
+            'password_set_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.profile.update'), [
+                'name' => $admin->name,
+                'email' => 'admin-new@example.com',
+            ])
+            ->assertSessionHasErrors('current_password');
+
+        $this->assertSame('admin-original@example.com', $admin->fresh()->email);
+    }
+
+    public function test_admin_email_change_clears_previous_email_verification(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email' => 'verified-admin@example.com',
+            'email_verified_at' => now(),
+            'password' => \Illuminate\Support\Facades\Hash::make('original-password'),
+            'password_set_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.profile.update'), [
+                'name' => $admin->name,
+                'email' => 'unverified-new-admin@example.com',
+                'current_password' => 'original-password',
+            ])
+            ->assertRedirect(route('admin.profile'));
+
+        $admin->refresh();
+        $this->assertSame('unverified-new-admin@example.com', $admin->email);
+        $this->assertNull($admin->email_verified_at);
+    }
+
+    public function test_admin_profile_update_is_recorded_in_activity_log(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email' => 'admin-profile@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('original-password'),
+            'password_set_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.profile.update'), [
+                'name' => 'Updated Admin Name',
+                'email' => $admin->email,
+            ])
+            ->assertRedirect(route('admin.profile'));
+
+        $this->assertSame('Updated Admin Name', $admin->fresh()->name);
+        $this->assertDatabaseHas('admin_activity_logs', [
+            'admin_id' => $admin->id,
+            'action' => 'profile.updated',
+            'subject_type' => User::class,
+            'subject_id' => $admin->id,
+        ]);
+    }
+
     public function test_admin_can_change_seller_plan(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2781,6 +2965,107 @@ class SecurityRegressionTest extends TestCase
             ->assertRedirect(route('admin.users.index'));
 
         $this->assertSame('basic', $seller->fresh()->seller_plan);
+        $this->assertDatabaseHas('admin_activity_logs', [
+            'admin_id' => $admin->id,
+            'action' => 'user.updated',
+            'subject_type' => User::class,
+            'subject_id' => $seller->id,
+        ]);
+    }
+
+    public function test_seller_can_request_plan_upgrade_and_admin_can_approve_it(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'starter',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($seller)
+            ->get(route('seller.plans.index'))
+            ->assertOk()
+            ->assertSee('Starter')
+            ->assertSee('Enterprise');
+
+        $this->actingAs($seller)
+            ->post(route('seller.plans.request'), [
+                'requested_plan' => 'pro',
+                'message' => 'Хочу больше товаров и аналитику.',
+            ])
+            ->assertRedirect();
+
+        $planRequest = SellerPlanRequest::firstOrFail();
+
+        $this->assertSame(SellerPlanRequest::STATUS_PENDING, $planRequest->status);
+        $this->assertSame('starter', $planRequest->current_plan);
+        $this->assertSame('pro', $planRequest->requested_plan);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seller-plan-requests.approve', $planRequest), [
+                'admin_note' => 'Оплата подтверждена вручную.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('pro', $seller->fresh()->seller_plan);
+        $this->assertSame(SellerPlanRequest::STATUS_APPROVED, $planRequest->fresh()->status);
+        $this->assertDatabaseHas('admin_activity_logs', [
+            'admin_id' => $admin->id,
+            'action' => 'seller_plan_request.approved',
+            'subject_type' => SellerPlanRequest::class,
+            'subject_id' => $planRequest->id,
+        ]);
+    }
+
+    public function test_seller_cannot_create_duplicate_pending_plan_request(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'starter',
+        ]);
+
+        SellerPlanRequest::create([
+            'user_id' => $seller->id,
+            'current_plan' => 'starter',
+            'requested_plan' => 'basic',
+            'status' => SellerPlanRequest::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($seller)
+            ->post(route('seller.plans.request'), [
+                'requested_plan' => 'pro',
+            ])
+            ->assertSessionHasErrors('requested_plan');
+
+        $this->assertSame(1, SellerPlanRequest::count());
+    }
+
+    public function test_seller_can_request_plan_downgrade_and_admin_menu_shows_pending_badge(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'pro',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($seller)
+            ->post(route('seller.plans.request'), [
+                'requested_plan' => 'basic',
+                'message' => 'Хочу перейти на тариф ниже.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('seller_plan_requests', [
+            'user_id' => $seller->id,
+            'current_plan' => 'pro',
+            'requested_plan' => 'basic',
+            'status' => SellerPlanRequest::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('Тарифы')
+            ->assertSee('1', false);
     }
 
     public function test_admin_banner_rejects_javascript_link(): void

@@ -27,7 +27,6 @@ export async function getCurrencyRates() {
 
 
     localStorage.setItem(CACHE_KEY, JSON.stringify({ rates, timestamp: Date.now() }));
-    console.log('💱 Курсы обновлены:', rates);
 
     return rates;
   } catch (err) {

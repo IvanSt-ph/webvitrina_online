@@ -35,6 +35,7 @@ use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
 use App\Http\Controllers\Seller\{
     CabinetController,
     AnalyticsController,
+    PlanController as SellerPlanController,
     HelpController as SellerHelpController,
     CategoryController as SellerCategoryController,
     FollowerController as SellerFollowerController,
@@ -47,11 +48,13 @@ use App\Http\Controllers\Admin\{
     ProductController as AdminProductController,
     OrderController as AdminOrderController,
     AdminProfileController,
+    ActivityLogController,
     BannerController,
     ReviewController as AdminReviewController,
     ChatController as AdminChatController,
     CategoryAttributeController,
-    CategoryController as AdminCategoryController
+    CategoryController as AdminCategoryController,
+    SellerPlanRequestController
 };
 
 use App\Http\Controllers\CurrencyProxyController;
@@ -378,6 +381,10 @@ Route::middleware('role:buyer')->group(function () {
         // Кабинет
         Route::get('/cabinet', [CabinetController::class, 'index'])->name('cabinet');
         Route::get('/followers', [SellerFollowerController::class, 'index'])->name('followers.index');
+        Route::get('/plans', [SellerPlanController::class, 'index'])->name('plans.index');
+        Route::post('/plans/request', [SellerPlanController::class, 'requestUpgrade'])
+            ->middleware('throttle:5,10')
+            ->name('plans.request');
 
         // Товары
         Route::resource('products', SellerProducts::class)->except(['show']);
@@ -450,6 +457,10 @@ Route::prefix('admin')
     
 
     Route::resource('users', AdminUserController::class);
+    Route::get('/seller-plan-requests', [SellerPlanRequestController::class, 'index'])->name('seller-plan-requests.index');
+    Route::post('/seller-plan-requests/{planRequest}/approve', [SellerPlanRequestController::class, 'approve'])->name('seller-plan-requests.approve');
+    Route::post('/seller-plan-requests/{planRequest}/reject', [SellerPlanRequestController::class, 'reject'])->name('seller-plan-requests.reject');
+    Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
     Route::resource('categories', AdminCategoryController::class)->except(['show']);
     Route::get('/categories/{id}/children', [AdminCategoryController::class, 'children'])->name('categories.children');

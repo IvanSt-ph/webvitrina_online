@@ -11,14 +11,11 @@ function avatarCropper() {
             const avatarMeta = document.querySelector('meta[name="user-avatar"]');
             this.currentAvatar = avatarMeta?.content || '/default-avatar.png';
             
-            console.log('AvatarCropper initialized with:', this.currentAvatar); // Для отладки
         },
         
         openCropper(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
-            console.log('File selected:', file); // Для отладки
             
             if (!file.type.match('image.*')) {
                 alert('Пожалуйста, выберите изображение');
@@ -29,8 +26,6 @@ function avatarCropper() {
             reader.onload = (e) => {
                 this.imageToCrop = e.target.result;
                 this.showCropper = true;
-                
-                console.log('Image loaded, showing cropper'); // Для отладки
                 
                 this.$nextTick(() => {
                     if (this.cropper) {
@@ -46,7 +41,6 @@ function avatarCropper() {
                             responsive: true,
                             background: false,
                         });
-                        console.log('Cropper initialized'); // Для отладки
                     }
                 });
             };
@@ -65,11 +59,8 @@ function avatarCropper() {
         
         cropAndSave() {
             if (!this.cropper) {
-                console.log('No cropper instance');
                 return;
             }
-            
-            console.log('Cropping and saving...'); // Для отладки
             
             const canvas = this.cropper.getCroppedCanvas({
                 width: 400,
@@ -102,7 +93,6 @@ function avatarCropper() {
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Upload successful:', data); // Для отладки
                     this.showNotification('Аватар успешно обновлён', 'success');
                     
                     // Обновляем изображение

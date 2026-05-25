@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Shop;
 use App\Services\SellerPlanService;
+use App\Services\AdminActivityLogger;
 use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,8 @@ class UserController extends Controller
 {
     public function __construct(
         private readonly UserTrustService $trustService,
-        private readonly SellerPlanService $sellerPlans
+        private readonly SellerPlanService $sellerPlans,
+        private readonly AdminActivityLogger $activity
     ) {
     }
 
@@ -177,7 +179,14 @@ class UserController extends Controller
             $userData['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
 
+        $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
         $user->update($userData);
+        $after = $user->fresh()->only(['name', 'email', 'phone', 'role', 'seller_plan']);
+
+        $this->activity->log('user.updated', $user, 'Администратор изменил пользователя.', [
+            'before' => $before,
+            'after' => $after,
+        ]);
 
         return redirect()
             ->route('admin.users.index')
@@ -196,6 +205,11 @@ class UserController extends Controller
         }
 
         $user->delete();
+
+        $this->activity->log('user.deleted', $user, 'Администратор удалил пользователя.', [
+            'deleted_user_email_hash' => hash('sha256', (string) $user->email),
+            'deleted_user_role' => $user->role,
+        ]);
 
         return redirect()
             ->route('admin.users.index')
@@ -256,6 +270,10 @@ class UserController extends Controller
             if ($user->role === 'seller') {
                 $this->createShopForSeller($user, $phone);
             }
+
+            $this->activity->log('user.created', $user, 'Администратор создал пользователя.', [
+                'role' => $user->role,
+            ]);
 
             DB::commit();
 

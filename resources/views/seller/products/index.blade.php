@@ -121,6 +121,19 @@
                 </div>
             @endif
 
+            @if($sellerPlanProfile['near_limit'] && $sellerPlanProfile['can_create'])
+                <div class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <div class="font-bold">Вы близко к лимиту тарифа {{ $sellerPlanProfile['label'] }}</div>
+                        <p class="mt-1 text-amber-800">Осталось {{ $sellerPlanProfile['remaining'] }} мест для товаров. Лучше заранее оставить заявку на повышение.</p>
+                    </div>
+                    <a href="{{ route('seller.plans.index') }}" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white hover:bg-indigo-700">
+                        <i class="ri-vip-crown-line"></i>
+                        Тарифы
+                    </a>
+                </div>
+            @endif
+
             <section class="hidden gap-3 sm:grid sm:grid-cols-2 xl:grid-cols-4">
                 <div class="rounded-xl border border-slate-200 bg-white p-4">
                     <div class="flex items-center justify-between text-sm text-slate-500">

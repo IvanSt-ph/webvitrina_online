@@ -17,6 +17,10 @@
         <p class="text-sm text-gray-500 mt-1">
             Период: {{ $from }} — {{ $to }}
         </p>
+        <div class="mt-2 inline-flex items-center gap-2 rounded-full border {{ $sellerPlanProfile['class'] }} px-3 py-1 text-xs font-semibold">
+            <i class="ri-vip-crown-line"></i>
+            {{ $sellerPlanProfile['label'] }}
+        </div>
     </div>
 
     {{-- Фильтры --}}
@@ -107,6 +111,40 @@
         </p>
     </div>
 </section>
+
+@if($sellerPlanProfile['analytics_enabled'] && $advanced)
+    <section class="grid grid-cols-1 gap-4 mb-10 md:grid-cols-3">
+        <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4 shadow-sm">
+            <p class="text-xs font-semibold text-cyan-700">Конверсия в избранное</p>
+            <h2 class="mt-1 text-2xl font-bold text-cyan-950">{{ $advanced['favorite_rate'] }}%</h2>
+            <p class="mt-1 text-xs text-cyan-700">Доля добавлений в избранное от просмотров</p>
+        </div>
+
+        <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+            <p class="text-xs font-semibold text-indigo-700">Конверсия в корзину</p>
+            <h2 class="mt-1 text-2xl font-bold text-indigo-950">{{ $advanced['cart_rate'] }}%</h2>
+            <p class="mt-1 text-xs text-indigo-700">Показывает товары с реальным покупательским интересом</p>
+        </div>
+
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+            <p class="text-xs font-semibold text-amber-700">Без просмотров</p>
+            <h2 class="mt-1 text-2xl font-bold text-amber-950">{{ $advanced['inactive_products'] }}</h2>
+            <p class="mt-1 text-xs text-amber-700">{{ $advanced['products_with_cart_interest'] }} товаров попадали в корзину</p>
+        </div>
+    </section>
+@else
+    <section class="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="font-semibold text-slate-900">Расширенная аналитика доступна с Pro</h2>
+                <p class="mt-1 text-sm text-slate-500">Конверсия в корзину, товары без просмотров и дополнительные сигналы помогают быстрее понимать, что улучшать.</p>
+            </div>
+            <a href="{{ route('seller.plans.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+                Посмотреть тарифы
+            </a>
+        </div>
+    </section>
+@endif
 
 
 {{-- Пончики и ТОП --}}

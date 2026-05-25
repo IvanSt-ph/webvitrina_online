@@ -7,6 +7,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\ChatImageService;
+use App\Services\AdminActivityLogger;
 use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,8 @@ class ChatController extends Controller
 
     public function __construct(
         private readonly ChatImageService $chatImages,
-        private readonly UserTrustService $trustService
+        private readonly UserTrustService $trustService,
+        private readonly AdminActivityLogger $activity
     ) {
     }
 
@@ -147,6 +149,9 @@ class ChatController extends Controller
     public function destroy(Request $request, Conversation $conversation)
     {
         $conversation->update(['admin_deleted_at' => now()]);
+        $this->activity->log('chat.hidden', $conversation, 'Администратор скрыл диалог из списка.', [
+            'conversation_type' => $conversation->conversation_type,
+        ]);
 
         return redirect()
             ->route('admin.chats.index', ['mode' => $conversation->isSupport() ? Conversation::TYPE_SUPPORT : Conversation::TYPE_MARKETPLACE])
@@ -211,6 +216,9 @@ class ChatController extends Controller
             'locked_reason' => $reason !== '' ? $reason : null,
             'last_message_at' => now(),
         ]);
+        $this->activity->log('chat.locked', $conversation, 'Администратор заблокировал диалог.', [
+            'reason' => $reason !== '' ? $reason : null,
+        ]);
 
         $this->addSystemMessage(
             $conversation,
@@ -233,6 +241,7 @@ class ChatController extends Controller
             'locked_reason' => null,
             'last_message_at' => now(),
         ]);
+        $this->activity->log('chat.unlocked', $conversation, 'Администратор разблокировал диалог.');
 
         $this->addSystemMessage($conversation, $request->user(), 'Поддержка разблокировала диалог.');
 

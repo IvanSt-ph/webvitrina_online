@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Services\SellerPlanService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class AnalyticsController extends Controller
 {
+    public function __construct(private readonly SellerPlanService $sellerPlans)
+    {
+    }
+
     public function index(Request $request)
     {
-        $sellerId = auth()->id();
+        $seller = $request->user();
+        $sellerId = $seller->id;
+        $sellerPlanProfile = $this->sellerPlans->profileFor($seller);
 
         $period = (int) $request->input('period', 30);
 
@@ -89,6 +96,33 @@ class AnalyticsController extends Controller
                 return $row;
             });
 
+        $advanced = null;
+
+        if ($sellerPlanProfile['analytics_enabled']) {
+            $inactiveProductsSubquery = DB::table('products as p')
+                ->leftJoin('product_stats as ps', function ($join) use ($from, $to) {
+                    $join->on('p.id', '=', 'ps.product_id')
+                        ->whereBetween('ps.date', [$from, $to]);
+                })
+                ->where('p.user_id', $sellerId)
+                ->groupBy('p.id')
+                ->havingRaw('COALESCE(SUM(ps.views), 0) = 0')
+                ->select('p.id');
+
+            $advanced = [
+                'favorite_rate' => $summary->views ? round($summary->favorites * 100 / $summary->views, 1) : 0,
+                'cart_rate' => $summary->views ? round($summary->carts * 100 / $summary->views, 1) : 0,
+                'inactive_products' => DB::query()->fromSub($inactiveProductsSubquery, 'inactive_products')->count(),
+                'products_with_cart_interest' => DB::table('product_stats as ps')
+                    ->join('products as p', 'p.id', '=', 'ps.product_id')
+                    ->where('p.user_id', $sellerId)
+                    ->whereBetween('ps.date', [$from, $to])
+                    ->where('ps.carts', '>', 0)
+                    ->distinct('p.id')
+                    ->count('p.id'),
+            ];
+        }
+
         return view('seller.analytics.index', [
             'period'       => $period,
             'from'         => $from,
@@ -98,6 +132,8 @@ class AnalyticsController extends Controller
             'distribution' => $distribution,
             'timeline'     => $timeline,
             'topProducts'  => $topProducts,
+            'sellerPlanProfile' => $sellerPlanProfile,
+            'advanced' => $advanced,
         ]);
     }
 

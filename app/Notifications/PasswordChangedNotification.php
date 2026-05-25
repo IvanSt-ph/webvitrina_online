@@ -3,11 +3,17 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class PasswordChangedNotification extends Notification
+class PasswordChangedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public function __construct()
+    {
+        $this->afterCommit();
+    }
 
     public function via($notifiable)
     {

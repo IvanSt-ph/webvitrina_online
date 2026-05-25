@@ -140,6 +140,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Conversation::class, 'seller_id');
     }
 
+    public function sellerPlanRequests()
+    {
+        return $this->hasMany(SellerPlanRequest::class);
+    }
+
     public function defaultAddress()
     {
         return $this->hasOne(UserAddress::class)->where('is_default', 1);

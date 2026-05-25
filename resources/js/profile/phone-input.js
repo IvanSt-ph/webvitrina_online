@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if(verifyForm){
         verifyForm.addEventListener('submit', function(e){
             // Для формы верификации можно добавить логику если нужно
-            console.log('Verification form submitted');
         });
     }
 });

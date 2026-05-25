@@ -33,7 +33,7 @@ $firstImage = $bannerImageUrl($firstBanner);
 
   {{-- 🚀 Адаптивный баннер с плавной сменой изображений --}}
   {{-- ⚠️ ВНИМАНИЕ: .banner-container не должен иметь padding, иначе absolute блок "поплывёт" --}}
-  <div class="relative w-full flex justify-center bg-transparent">
+  <div class="relative -mt-[15px] w-full flex justify-center bg-transparent">
     <div 
       class="w-[92%] max-w-[1440px] overflow-hidden rounded-b-2xl relative banner-container
              opacity-0 translate-y-3 animate-[fadeBannerIn_0.9s_ease-out_forwards]"

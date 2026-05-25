@@ -88,7 +88,6 @@ function avatarCropper() {
         cropper: null,
         
         init() {
-            console.log('✅ Avatar cropper initialized');
             this.currentAvatar = this.$refs.avatarImage.src;
         },
         
@@ -96,7 +95,6 @@ function avatarCropper() {
             const file = event.target.files[0];
             if (!file) return;
             
-            console.log('File selected:', file.name);
             
             if (!file.type.startsWith('image/')) {
                 alert('Пожалуйста, выберите изображение');
@@ -121,9 +119,6 @@ function avatarCropper() {
                             autoCropArea: 1,
                             background: false,
                         });
-                        console.log('✅ Cropper ready');
-                    } else {
-                        console.error('Cropper not available');
                     }
                 });
             };
@@ -179,7 +174,6 @@ function avatarCropper() {
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Server response:', data);
                     
                     if (data.success) {
                         this.showNotification('Аватар успешно обновлён!', 'success');

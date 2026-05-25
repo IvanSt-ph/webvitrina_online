@@ -7,7 +7,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class ResetPasswordNotification extends Notification
+class ResetPasswordNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -19,6 +19,7 @@ class ResetPasswordNotification extends Notification
     public function __construct($token)
     {
         $this->token = $token;
+        $this->afterCommit();
     }
 
     /**

@@ -29,11 +29,22 @@
     },
 
     // === Методы ===
+    escapeHtml(text) {
+      const ampersand = String.fromCharCode(38);
+      return String(text ?? '').replace(/[&<>']/g, character => ({
+        '&': ampersand + 'amp;',
+        '<': ampersand + 'lt;',
+        '>': ampersand + 'gt;',
+        '\'': ampersand + '#039;'
+      }[character])).replaceAll(String.fromCharCode(34), ampersand + '#034;');
+    },
+
     highlight(text) {
-      if (!this.query) return text;
+      const escapedText = this.escapeHtml(text);
+      if (!this.query) return escapedText;
       const safeQuery = this.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp('(' + safeQuery + ')', 'gi');
-      return text.replace(regex, '<mark class=\'bg-yellow-200 text-gray-900 rounded px-0.5\'>$1</mark>');
+      return escapedText.replace(regex, '<mark class=\'bg-yellow-200 text-gray-900 rounded px-0.5\'>$1</mark>');
     },
 
     async search() {

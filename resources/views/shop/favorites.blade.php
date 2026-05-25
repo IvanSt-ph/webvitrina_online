@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             badge.classList.remove("inline-flex");
           }
         })
-        .catch(e => console.log('Cart count error:', e));
+        .catch(() => {});
     }
 
     updateCartCount();
