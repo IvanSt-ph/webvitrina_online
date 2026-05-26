@@ -117,6 +117,23 @@ class SellerPlanService
         return $this->profileFor($seller)['can_create'];
     }
 
+    public function canAssignPlan(User $seller, string $planKey): bool
+    {
+        $plan = $this->plans()[$planKey] ?? $this->plans()[self::STARTER];
+
+        return $plan['limit'] === null
+            || Product::where('user_id', $seller->id)->count() <= $plan['limit'];
+    }
+
+    public function assignmentLimitMessage(User $seller, string $planKey): string
+    {
+        $plan = $this->plans()[$planKey] ?? $this->plans()[self::STARTER];
+        $used = Product::where('user_id', $seller->id)->count();
+        $limit = $plan['limit'] === null ? 'unlimited' : (string) $plan['limit'];
+
+        return "Нельзя назначить тариф {$plan['label']}: у продавца {$used} товаров при лимите {$limit}. Сначала сократите каталог или выберите более высокий тариф.";
+    }
+
     public function limitMessage(User $seller): string
     {
         $profile = $this->profileFor($seller);

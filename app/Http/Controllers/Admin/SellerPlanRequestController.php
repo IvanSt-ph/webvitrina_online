@@ -7,6 +7,7 @@ use App\Models\SellerPlanRequest;
 use App\Services\AdminActivityLogger;
 use App\Services\SellerPlanService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class SellerPlanRequestController extends Controller
 {
@@ -48,24 +49,34 @@ class SellerPlanRequestController extends Controller
     {
         abort_unless($planRequest->isPending(), 422, 'Эта заявка уже обработана.');
 
+        $data = $request->validate([
+            'admin_note' => ['nullable', 'string', 'max:700'],
+        ]);
+
         $user = $planRequest->user;
         $oldPlan = $user->seller_plan;
+
+        if (! $this->sellerPlans->canAssignPlan($user, $planRequest->requested_plan)) {
+            throw ValidationException::withMessages([
+                'requested_plan' => $this->sellerPlans->assignmentLimitMessage($user, $planRequest->requested_plan),
+            ]);
+        }
 
         $user->forceFill(['seller_plan' => $planRequest->requested_plan])->save();
         $planRequest->update([
             'status' => SellerPlanRequest::STATUS_APPROVED,
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
-            'admin_note' => $request->input('admin_note'),
+            'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
         ]);
 
-        $this->activity->log('seller_plan_request.approved', $planRequest, 'Одобрено повышение тарифа продавца.', [
+        $this->activity->log('seller_plan_request.approved', $planRequest, 'Одобрено изменение тарифа продавца.', [
             'user_id' => $user->id,
             'from' => $oldPlan,
             'to' => $planRequest->requested_plan,
         ]);
 
-        return back()->with('success', 'Тариф продавца повышен.');
+        return back()->with('success', 'Тариф продавца изменён.');
     }
 
     public function reject(Request $request, SellerPlanRequest $planRequest)
@@ -83,7 +94,7 @@ class SellerPlanRequestController extends Controller
             'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
         ]);
 
-        $this->activity->log('seller_plan_request.rejected', $planRequest, 'Отклонена заявка на повышение тарифа.', [
+        $this->activity->log('seller_plan_request.rejected', $planRequest, 'Отклонена заявка на изменение тарифа.', [
             'user_id' => $planRequest->user_id,
             'requested_plan' => $planRequest->requested_plan,
         ]);

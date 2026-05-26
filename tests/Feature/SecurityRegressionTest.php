@@ -1297,6 +1297,32 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('value="' . $marketplaceConversation->id . '"', false);
     }
 
+    public function test_admin_cannot_attach_unrelated_marketplace_dialogue_to_support_chat(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $target = User::factory()->create(['role' => 'buyer', 'name' => 'Target Buyer']);
+        $otherBuyer = User::factory()->create(['role' => 'buyer', 'name' => 'Other Buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Private Seller']);
+        $seller->shop()->create(['name' => 'Private Shop']);
+
+        $marketplaceConversation = Conversation::create([
+            'buyer_id' => $otherBuyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => Conversation::generalContextKey(),
+            'last_message_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.chats.support.start', $target), [
+                'source_conversation_id' => $marketplaceConversation->id,
+            ])
+            ->assertStatus(422);
+
+        $this->assertDatabaseMissing('conversations', [
+            'context_key' => 'support:' . $target->id,
+        ]);
+    }
+
     public function test_admin_support_chat_has_quick_replies_enter_send_and_unread_badge(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -1818,6 +1844,26 @@ class SecurityRegressionTest extends TestCase
             ->assertDontSee('+37377777777');
     }
 
+    public function test_admin_views_public_user_profile_inside_admin_panel(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Preview Seller']);
+        $seller->shop()->create(['name' => 'Preview Seller Shop']);
+
+        $this->actingAs($admin)
+            ->get(route('users.public.show', $seller))
+            ->assertOk()
+            ->assertSee('Режим администратора')
+            ->assertSee('Публичная карточка: Preview Seller')
+            ->assertSee('Admin Panel')
+            ->assertSee(route('admin.users.show', $seller), false)
+            ->assertSee(route('admin.users.edit', $seller), false)
+            ->assertSee(route('admin.chats.support.start', $seller), false)
+            ->assertDontSee('-Категории')
+            ->assertDontSee('data-mobile-bottom-nav', false)
+            ->assertDontSee('data-mobile-bottom-seller-nav', false);
+    }
+
     public function test_user_can_follow_and_unfollow_shop(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -1988,6 +2034,88 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('String.fromCharCode(38)', false);
     }
 
+    public function test_admin_products_index_includes_drafts_and_operational_filters(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $active = $this->createProduct($seller, [
+            'title' => 'Out of stock published product',
+            'stock' => 0,
+        ]);
+        $draft = $this->createProduct($seller, [
+            'title' => 'Private draft product',
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.index'))
+            ->assertOk()
+            ->assertSee($active->title)
+            ->assertSee($draft->title)
+            ->assertSee('Опубликованы без остатка')
+            ->assertSee('summaryOpen: false', false)
+            ->assertSee('filterOpen: false', false)
+            ->assertSee("localStorage.setItem('adminProductsView', mode)", false)
+            ->assertSee("setViewMode('list')", false)
+            ->assertSee("setViewMode('grid')", false)
+            ->assertViewHas('summary', fn (array $summary) => $summary['active'] === 1
+                && $summary['draft'] === 1
+                && $summary['out_of_stock'] === 1);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.index', ['status' => 'draft']))
+            ->assertOk()
+            ->assertSee($draft->title)
+            ->assertDontSee($active->title);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.index', ['stock' => 'out']))
+            ->assertOk()
+            ->assertSee('filterOpen: true', false)
+            ->assertSee($active->title)
+            ->assertDontSee($draft->title);
+    }
+
+    public function test_admin_product_delete_confirmation_does_not_interpolate_product_title(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $this->createProduct($seller, ['title' => "Risky '); alert(1); // product"]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.index'))
+            ->assertOk()
+            ->assertSee("onsubmit=\"return confirm('Удалить этот товар?')\"", false)
+            ->assertDontSee("confirm('Удалить товар Risky", false);
+    }
+
+    public function test_admin_cannot_create_product_past_seller_plan_limit(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'starter',
+        ]);
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->createProduct($seller, ['title' => 'Admin limit product ' . $i]);
+        }
+
+        $payload = $this->validSellerProductPayload([
+            'title' => 'Blocked admin-created product',
+            'user_id' => $seller->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.products.store'), $payload)
+            ->assertSessionHasErrors('user_id');
+
+        $this->assertDatabaseMissing('products', [
+            'title' => 'Blocked admin-created product',
+            'user_id' => $seller->id,
+        ]);
+    }
+
     public function test_product_quick_view_keeps_flexible_image_preview(): void
     {
         $css = file_get_contents(public_path('css/product-card.css'));
@@ -2140,6 +2268,39 @@ class SecurityRegressionTest extends TestCase
             ]);
 
         $this->assertDatabaseMissing('cart_items', ['id' => $item->id]);
+    }
+
+    public function test_frontend_toasts_do_not_interpolate_messages_as_html(): void
+    {
+        $globalToast = file_get_contents(resource_path('js/app.js'));
+        $cartToast = file_get_contents(resource_path('views/shop/cart.blade.php'));
+        $favoritesToast = file_get_contents(resource_path('views/shop/favorites.blade.php'));
+        $profileAvatarToast = file_get_contents(resource_path('js/profile/avatar-cropper.js'));
+        $sellerAvatarToast = file_get_contents(resource_path('views/seller/partials/avatar.blade.php'));
+
+        foreach ([$globalToast, $cartToast, $favoritesToast] as $source) {
+            $this->assertStringContainsString("textContent = String(text ?? '')", $source);
+            $this->assertStringNotContainsString('<span>${text}</span>', $source);
+        }
+
+        foreach ([$profileAvatarToast, $sellerAvatarToast] as $source) {
+            $this->assertStringContainsString("textContent = String(message ?? '')", $source);
+            $this->assertStringNotContainsString('<span>${message}</span>', $source);
+        }
+
+        $this->assertStringContainsString('showToast(@js(session(\'success\')));', $favoritesToast);
+    }
+
+    public function test_dynamic_seller_product_attributes_escape_admin_configured_text(): void
+    {
+        $formScript = file_get_contents(resource_path('js/seller-product-form.js'));
+
+        $this->assertStringContainsString('const escapeHtml = value =>', $formScript);
+        $this->assertStringContainsString('${escapeHtml(attr.name)}', $formScript);
+        $this->assertStringContainsString('${escapeHtml(o)}</option>', $formScript);
+        $this->assertStringContainsString('${escapeHtml(selected.name)}</p>', $formScript);
+        $this->assertStringContainsString('safeCssColor(color.hex)', $formScript);
+        $this->assertStringNotContainsString('>${attr.name}</label>', $formScript);
     }
 
     public function test_cart_quantities_endpoint_keeps_product_cards_in_sync(): void
@@ -2769,12 +2930,15 @@ class SecurityRegressionTest extends TestCase
             'phone' => '+37377999000',
             'phone_verified_at' => now(),
         ]);
-        $seller->shop()->create([
+        $shop = $seller->shop()->create([
             'name' => 'Show Seller Shop',
             'description' => 'Admin profile shop description',
         ]);
+        $follower = User::factory()->create(['role' => 'buyer']);
+        $shop->followers()->attach($follower->id);
         $product = $this->createProduct($seller, [
             'title' => 'Show user product',
+            'stock' => 0,
         ]);
         $buyer = User::factory()->create(['role' => 'buyer']);
         $order = $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
@@ -2785,19 +2949,47 @@ class SecurityRegressionTest extends TestCase
             'price' => 100,
             'total' => 100,
         ]);
+        $planRequest = SellerPlanRequest::create([
+            'user_id' => $seller->id,
+            'current_plan' => 'starter',
+            'requested_plan' => 'basic',
+            'status' => SellerPlanRequest::STATUS_PENDING,
+            'message' => 'Нужно больше товаров.',
+        ]);
+        AdminActivityLog::create([
+            'admin_id' => $admin->id,
+            'action' => 'seller_plan_request.approved',
+            'subject_type' => SellerPlanRequest::class,
+            'subject_id' => $planRequest->id,
+            'description' => 'Проверено администратором.',
+        ]);
 
         $this->actingAs($admin)
             ->get(route('admin.users.show', $seller))
             ->assertOk()
             ->assertSee('Show Seller User')
             ->assertSee('Show Seller Shop')
+            ->assertSee('1 подписчик')
             ->assertSee('Контакты и безопасность')
             ->assertSee('Уровень доверия')
             ->assertSee('Бронзовый уровень')
-            ->assertSee('Последние заказы')
+            ->assertSee('Заказы магазина')
+            ->assertSee('Последние заказы магазина')
+            ->assertSee('Нужно проверить')
+            ->assertSee('Товары без остатка: 1')
+            ->assertSee('товаров на витрине')
+            ->assertSee('ожидают решения')
+            ->assertSee('Запрос:')
+            ->assertSee('Starter')
+            ->assertSee('Basic')
+            ->assertSee('Журнал действий по пользователю')
+            ->assertSee('Проверено администратором.')
             ->assertSee('Show user product')
             ->assertSee(route('admin.chats.support.start', $seller), false)
-            ->assertSee(route('admin.users.edit', $seller), false);
+            ->assertSee(route('admin.users.edit', $seller), false)
+            ->assertSee(route('admin.chats.index', ['q' => $seller->email]), false)
+            ->assertSee(route('admin.products.index', ['seller_id' => $seller->id, 'status' => 'active', 'stock' => 'out']))
+            ->assertSee(route('admin.products.edit', $product), false);
     }
 
     public function test_admin_user_edit_updates_profile_phone_and_password(): void
@@ -2973,6 +3165,32 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_assign_seller_plan_below_existing_product_count(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'pro',
+            'phone' => '+37377111001',
+        ]);
+
+        for ($i = 0; $i < 26; $i++) {
+            $this->createProduct($seller, ['title' => 'Downgrade product ' . $i]);
+        }
+
+        $this->actingAs($admin)
+            ->put(route('admin.users.update', $seller), [
+                'name' => $seller->name,
+                'email' => $seller->email,
+                'phone' => $seller->phone,
+                'role' => 'seller',
+                'seller_plan' => 'basic',
+            ])
+            ->assertSessionHasErrors('seller_plan');
+
+        $this->assertSame('pro', $seller->fresh()->seller_plan);
+    }
+
     public function test_seller_can_request_plan_upgrade_and_admin_can_approve_it(): void
     {
         $seller = User::factory()->create([
@@ -3066,6 +3284,57 @@ class SecurityRegressionTest extends TestCase
             ->assertOk()
             ->assertSee('Тарифы')
             ->assertSee('1', false);
+    }
+
+    public function test_admin_cannot_approve_plan_downgrade_below_catalog_size(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'pro',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        for ($i = 0; $i < 26; $i++) {
+            $this->createProduct($seller, ['title' => 'Plan request product ' . $i]);
+        }
+
+        $request = SellerPlanRequest::create([
+            'user_id' => $seller->id,
+            'current_plan' => 'pro',
+            'requested_plan' => 'basic',
+            'status' => SellerPlanRequest::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seller-plan-requests.approve', $request))
+            ->assertSessionHasErrors('requested_plan');
+
+        $this->assertSame('pro', $seller->fresh()->seller_plan);
+        $this->assertSame(SellerPlanRequest::STATUS_PENDING, $request->fresh()->status);
+    }
+
+    public function test_admin_plan_approval_rejects_oversized_note(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'seller_plan' => 'starter',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $request = SellerPlanRequest::create([
+            'user_id' => $seller->id,
+            'current_plan' => 'starter',
+            'requested_plan' => 'basic',
+            'status' => SellerPlanRequest::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.seller-plan-requests.approve', $request), [
+                'admin_note' => str_repeat('a', 701),
+            ])
+            ->assertSessionHasErrors('admin_note');
+
+        $this->assertSame('starter', $seller->fresh()->seller_plan);
+        $this->assertSame(SellerPlanRequest::STATUS_PENDING, $request->fresh()->status);
     }
 
     public function test_admin_banner_rejects_javascript_link(): void

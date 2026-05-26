@@ -14,6 +14,8 @@ use App\Services\ProductService;
 use App\Services\SellerPlanService;
 use App\Repositories\ProductRepository;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -29,10 +31,26 @@ class ProductController extends Controller
     /** 🧾 Список товаров */
     public function index(Request $request)
     {
-        $products = $this->productRepository->getFilteredProducts($request);
-        $categories = Category::orderBy('name')->get();
+        $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', Rule::in(['active', 'draft'])],
+            'stock' => ['nullable', Rule::in(['out', 'low', 'available'])],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'seller_id' => ['nullable', 'integer', 'exists:users,id'],
+            'sort' => ['nullable', Rule::in(['latest', 'oldest', 'price_asc', 'price_desc', 'stock_asc', 'views_desc'])],
+        ]);
 
-        return view('admin.products.index', compact('products', 'categories'));
+        $products = $this->productRepository->getFilteredAdminProducts($request);
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        $sellers = User::where('role', 'seller')->orderBy('name')->get(['id', 'name']);
+        $summary = [
+            'total' => Product::count(),
+            'active' => Product::where('status', 'active')->count(),
+            'draft' => Product::where('status', 'draft')->count(),
+            'out_of_stock' => Product::where('status', 'active')->where('stock', 0)->count(),
+        ];
+
+        return view('admin.products.index', compact('products', 'categories', 'sellers', 'summary'));
     }
 
     /** ➕ Создание */
@@ -51,6 +69,13 @@ class ProductController extends Controller
     public function store(ProductStoreRequest $request)
     {
         $data = $request->validated();
+        $seller = User::findOrFail($data['user_id']);
+
+        if (! $this->sellerPlans->canCreateProduct($seller)) {
+            throw ValidationException::withMessages([
+                'user_id' => $this->sellerPlans->limitMessage($seller),
+            ]);
+        }
 
         $this->productService->create(
             data: $data,
@@ -88,6 +113,17 @@ class ProductController extends Controller
     public function update(ProductUpdateRequest $request, Product $product)
     {
         $data = $request->validated();
+
+        $sellerId = (int) ($data['user_id'] ?? $product->user_id);
+        if ($sellerId !== (int) $product->user_id) {
+            $seller = User::findOrFail($sellerId);
+
+            if (! $this->sellerPlans->canCreateProduct($seller)) {
+                throw ValidationException::withMessages([
+                    'user_id' => $this->sellerPlans->limitMessage($seller),
+                ]);
+            }
+        }
         
         $galleryToDelete = $request->input('gallery_to_delete', []);
         
@@ -117,16 +153,22 @@ class ProductController extends Controller
     /** 🔍 Live-поиск по названию и артикулу (SKU) */
     public function search(Request $request)
     {
-        $q = trim($request->get('q', ''));
+        $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
 
-        if (strlen($q) < 2) {
+        $q = trim((string) $request->get('q', ''));
+
+        if (mb_strlen($q) < 2) {
             return response()->json([]);
         }
 
+        $like = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q);
+
         $products = Product::select('id', 'title', 'price', 'image', 'sku')
-            ->where(function ($query) use ($q) {
-                $query->where('title', 'like', "%{$q}%")
-                      ->orWhere('sku', 'like', "%{$q}%");
+            ->where(function ($query) use ($like) {
+                $query->where('title', 'like', "%{$like}%")
+                      ->orWhere('sku', 'like', "%{$like}%");
             })
             ->orderByDesc('created_at')
             ->limit(10)

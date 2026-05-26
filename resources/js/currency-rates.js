@@ -29,8 +29,7 @@ export async function getCurrencyRates() {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ rates, timestamp: Date.now() }));
 
     return rates;
-  } catch (err) {
-    console.warn('Ошибка загрузки курса Агропромбанка:', err);
+  } catch {
     // fallback
     return {
       PRB: { PRB: 1, MDL: 1.06, UAH: 2.6 },

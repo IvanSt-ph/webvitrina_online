@@ -110,7 +110,6 @@ function avatarCropper() {
                     setTimeout(() => location.reload(), 1500);
                 })
                 .catch(error => {
-                    console.error('Error:', error);
                     this.showNotification(error.message || 'Ошибка при сохранении аватара', 'error');
                 });
             }, 'image/jpeg', 0.95);
@@ -123,8 +122,9 @@ function avatarCropper() {
             } text-white animate__animated animate__fadeIn`;
             toast.innerHTML = `
                 <i class="ri-${type === 'success' ? 'check-line' : 'error-warning-line'}"></i>
-                <span>${message}</span>
+                <span></span>
             `;
+            toast.querySelector('span').textContent = String(message ?? '');
             document.body.appendChild(toast);
             setTimeout(() => {
                 toast.classList.add('animate__fadeOut');

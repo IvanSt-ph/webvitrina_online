@@ -194,7 +194,6 @@ function avatarCropper() {
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
                     this.showNotification(error.message || 'Ошибка при загрузке', 'error');
                     this.closeCropper();
                 });
@@ -213,8 +212,9 @@ function avatarCropper() {
                 ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
             notification.innerHTML = `
                 <i class="ri-${type === 'success' ? 'check-line' : type === 'error' ? 'error-warning-line' : 'information-line'}"></i>
-                <span>${message}</span>
+                <span></span>
             `;
+            notification.querySelector('span').textContent = String(message ?? '');
             
             document.body.appendChild(notification);
             

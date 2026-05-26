@@ -360,9 +360,7 @@ document.addEventListener('alpine:init', () => {
                 // Закрываем панель фильтров
                 this.$dispatch('close-filters');
             })
-            .catch(error => {
-                console.error('Ошибка при фильтрации:', error);
-            });
+            .catch(() => {});
         }
     }));
 });

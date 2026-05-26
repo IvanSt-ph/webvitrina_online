@@ -80,7 +80,6 @@ document.addEventListener('alpine:init', () => {
                 this.$dispatch('close-filters-panel');
                 
             } catch (error) {
-                console.error('❌ Ошибка фильтрации:', error);
             } finally {
                 this.isLoading = false;
                 if (submitBtn) {

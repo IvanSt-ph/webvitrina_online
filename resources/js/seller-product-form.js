@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===============================================================
   const categoryChildrenCache = new Map();  // кеш подкатегорий
   const attributesCache = new Map();        // кеш характеристик
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  }[char]));
+  const safeCssColor = value => /^#[0-9a-fA-F]{3,8}$/.test(String(value ?? ''))
+    ? String(value)
+    : '#e2e8f0';
 
   // ===============================================================
   // === 🏷️ КАТЕГОРИИ: каскадная подгрузка + hidden category_id ====
@@ -67,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
       afterSelect.insertAdjacentElement('afterend', select);
 
     } catch (err) {
-      console.error('Ошибка загрузки категорий:', err);
     }
   }
 
@@ -111,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderCities(uniqueCities, selectedCityId);
 
     } catch (error) {
-      console.error('Ошибка загрузки городов:', error);
     }
   }
 
@@ -174,8 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ].filter(Boolean).join(', ');
         addressEl.value = addr;
       }
-    } catch (e) {
-      console.warn('Ошибка обратного геокодирования', e);
+    } catch {
     }
   }
 
@@ -202,8 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (addressEl) addressEl.value = `${cityName}${countryName ? `, ${countryName}` : ''}`;
         }
       }
-    } catch (e) {
-      console.warn('Ошибка позиционирования карты по городу', e);
+    } catch {
     }
   }
 
@@ -346,17 +352,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class='grid grid-cols-1 gap-4 sm:grid-cols-2'>`;
 
       data.forEach(attr => {
-        const name = `attributes[${attr.id}]`;
-        const value = attr.value ?? '';
+        const name = `attributes[${escapeHtml(attr.id)}]`;
+        const rawValue = attr.value ?? '';
+        const value = escapeHtml(rawValue);
 
         html += `<div>
-          <label class='block text-sm font-medium text-gray-700 mb-2'>${attr.name}</label>`;
+          <label class='block text-sm font-medium text-gray-700 mb-2'>${escapeHtml(attr.name)}</label>`;
 
         if (attr.type === 'select' && attr.options?.length) {
           html += `<select name="${name}"
                            class="seller-input">
                      <option value="">— не выбрано —</option>
-                     ${attr.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+                     ${attr.options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}
                    </select>`;
         }
 
@@ -383,19 +390,19 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<div class="flex flex-wrap gap-3">`;
 
             attr.colors.forEach(color => {
-              const checked = String(value) === String(color.id);
+              const checked = String(rawValue) === String(color.id);
 
               html += `
     <label class="cursor-pointer color-option flex flex-col items-center">
 
       <div class="w-8 h-8 rounded-full border-2 transition transform color-circle ${checked ? 'border-indigo-600 scale-110' : 'border-gray-300'}"
-          style="background:${color.hex}">
+          style="background:${safeCssColor(color.hex)}">
           ${checked ? '<div class="w-3 h-3 bg-white rounded-full shadow"></div>' : ''}
       </div>
 
       <input type="radio"
             name="${name}"
-            value="${color.id}"
+            value="${escapeHtml(color.id)}"
             class="hidden"
             ${checked ? 'checked' : ''}>
 
@@ -404,9 +411,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             html += `</div>`;
 
-            const selected = attr.colors.find(c => String(c.id) === String(value));
+            const selected = attr.colors.find(c => String(c.id) === String(rawValue));
             if (selected) {
-              html += `<p class="text-xs mt-1 text-gray-500">Выбран: ${selected.name}</p>`;
+              html += `<p class="text-xs mt-1 text-gray-500">Выбран: ${escapeHtml(selected.name)}</p>`;
             }
           }
         }
@@ -428,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
       attrWrapper.innerHTML = html;
 
     } catch (e) {
-      console.error('Ошибка атрибутов:', e);
       attrWrapper.innerHTML = `<div class="seller-empty-state text-red-500 text-sm">
         Ошибка при загрузке характеристик
       </div>`;

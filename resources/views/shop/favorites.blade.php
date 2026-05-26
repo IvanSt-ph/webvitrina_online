@@ -309,9 +309,10 @@ document.addEventListener('DOMContentLoaded', () => {
       el.innerHTML = `
         <div class="flex items-center gap-2">
           <i class="${type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'} text-base"></i>
-          <span>${text}</span>
+          <span></span>
         </div>
       `;
+      el.querySelector('span').textContent = String(text ?? '');
       document.body.appendChild(el);
       
       setTimeout(() => {
@@ -322,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     @if(session('success'))
-      showToast("{{ session('success') }}");
+      showToast(@js(session('success')));
     @endif
 
     function showPlusOne(btn) {
@@ -445,7 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.innerHTML = '<i class="ri-check-line text-sm"></i><span>Готово</span>';
           added = true;
         } catch (error) {
-          console.error('Add to cart error:', error);
           showToast('Не удалось добавить товар в корзину', 'error');
         } finally {
           const restore = () => {

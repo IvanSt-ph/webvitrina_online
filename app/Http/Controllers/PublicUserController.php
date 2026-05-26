@@ -34,6 +34,10 @@ class PublicUserController extends Controller
             ->limit(4)
             ->get();
 
-        return view('users.show', compact('user', 'publicStats', 'publicReviews'));
+        $view = auth()->check() && auth()->user()->role === 'admin'
+            ? 'admin.users.public-preview'
+            : 'users.show';
+
+        return view($view, compact('user', 'publicStats', 'publicReviews'));
     }
 }

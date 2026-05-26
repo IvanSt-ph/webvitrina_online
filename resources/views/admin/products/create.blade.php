@@ -430,7 +430,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             this.city = '';
                         }
                     } catch (e) {
-                        console.error('Ошибка загрузки городов', e);
                         this.cities = [];
                         this.city = '';
                     }

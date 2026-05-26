@@ -635,7 +635,6 @@ function cartSelection(initialTotal = 0, initialQty = 0, freeShippingThreshold =
                 }
             } catch(error) {
                 if(itemState) itemState.qty = oldQty;
-                console.error('Error:', error);
                 showToast('Ошибка при обновлении количества', 'error');
             } finally {
                 if(itemState) itemState.updating = false;
@@ -723,7 +722,6 @@ function cartSelection(initialTotal = 0, initialQty = 0, freeShippingThreshold =
                     setTimeout(() => card.remove(), 220);
                 }, 180);
             } catch (error) {
-                console.error('Remove cart item error:', error);
                 showToast('Не удалось удалить товар из корзины', 'error');
                 if (submitButton) {
                     submitButton.disabled = false;
@@ -755,9 +753,10 @@ function showToast(text, type = 'success') {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${type === 'error' ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' : 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'}"></path>
             </svg>
-            <span>${text}</span>
+            <span></span>
         </div>
     `;
+    el.querySelector('span').textContent = String(text ?? '');
     document.body.appendChild(el);
     
     setTimeout(() => {

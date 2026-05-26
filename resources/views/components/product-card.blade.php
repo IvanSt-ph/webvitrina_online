@@ -94,9 +94,7 @@ x-data="{
                 }));
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+        .catch(() => {});
     }
 }"
      @keydown.escape.window="open = false"
@@ -299,7 +297,7 @@ x-data="{
                              }));
                          }
                      })
-                     .catch(error => console.error('Modal error:', error));
+                     .catch(() => {});
                  },
                  prev() { this.current = (this.current - 1 + this.gallery.length) % this.gallery.length },
                  next() { this.current = (this.current + 1) % this.gallery.length },

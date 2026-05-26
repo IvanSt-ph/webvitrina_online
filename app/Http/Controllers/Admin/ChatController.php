@@ -50,6 +50,18 @@ class ChatController extends Controller
             'source_conversation_id' => ['nullable', 'integer', 'exists:conversations,id'],
         ]);
 
+        $sourceConversation = null;
+        if (! empty($data['source_conversation_id'])) {
+            $sourceConversation = Conversation::with(['buyer', 'seller.shop', 'product'])
+                ->find($data['source_conversation_id']);
+
+            abort_unless(
+                $sourceConversation?->isMarketplace() && $sourceConversation->includes($user),
+                422,
+                'Исходный диалог не относится к выбранному пользователю.'
+            );
+        }
+
         $conversation = Conversation::firstOrCreate(
             [
                 'buyer_id' => $user->id,
@@ -73,26 +85,21 @@ class ChatController extends Controller
             );
         }
 
-        if (! empty($data['source_conversation_id'])) {
-            $sourceConversation = Conversation::with(['buyer', 'seller.shop', 'product'])
-                ->find($data['source_conversation_id']);
+        if ($sourceConversation) {
+            $subject = $sourceConversation->product
+                ? 'Товар: ' . $sourceConversation->product->title
+                : 'Общий marketplace-диалог';
 
-            if ($sourceConversation?->isMarketplace()) {
-                $subject = $sourceConversation->product
-                    ? 'Товар: ' . $sourceConversation->product->title
-                    : 'Общий marketplace-диалог';
-
-                $this->addSystemMessage(
-                    $conversation,
-                    $request->user(),
-                    "Поддержка открыла этот чат по обращению из диалога #{$sourceConversation->id}.\n"
-                        . $subject . "\n"
-                        . 'Покупатель: ' . ($sourceConversation->buyer?->name ?? 'Пользователь удалён') . "\n"
-                        . 'Продавец: ' . ($sourceConversation->seller?->shop?->name ?? $sourceConversation->seller?->name ?? 'Продавец удалён') . "\n"
-                        . 'Опишите здесь детали обращения, решение или следующий шаг.',
-                    $sourceConversation
-                );
-            }
+            $this->addSystemMessage(
+                $conversation,
+                $request->user(),
+                "Поддержка открыла этот чат по обращению из диалога #{$sourceConversation->id}.\n"
+                    . $subject . "\n"
+                    . 'Покупатель: ' . ($sourceConversation->buyer?->name ?? 'Пользователь удалён') . "\n"
+                    . 'Продавец: ' . ($sourceConversation->seller?->shop?->name ?? $sourceConversation->seller?->name ?? 'Продавец удалён') . "\n"
+                    . 'Опишите здесь детали обращения, решение или следующий шаг.',
+                $sourceConversation
+            );
         }
         $this->restoreUserSideAfterAdminMessage($conversation);
 

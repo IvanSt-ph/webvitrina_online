@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(res => res.text())
       .then(html => wrapper.innerHTML = html)
-      .catch(err => console.error('Ошибка пагинации:', err));
+      .catch(() => {});
   });
 });
 </script>

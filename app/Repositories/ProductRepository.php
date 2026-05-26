@@ -9,6 +9,53 @@ use Illuminate\Support\Facades\DB;
 class ProductRepository
 {
     /* ============================================================
+     |  КАТАЛОГ ТОВАРОВ ДЛЯ АДМИНИСТРАТОРА
+     ============================================================ */
+    public function getFilteredAdminProducts($request)
+    {
+        $query = Product::query()
+            ->with([
+                'category',
+                'seller.shop',
+                'city.country',
+            ]);
+
+        if ($request->filled('q')) {
+            $this->applySearchFilter($query, $request->q);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', (int) $request->category_id);
+        }
+
+        if ($request->filled('seller_id')) {
+            $query->where('user_id', (int) $request->seller_id);
+        }
+
+        match ($request->get('stock')) {
+            'out' => $query->where('stock', 0),
+            'low' => $query->whereBetween('stock', [1, 5]),
+            'available' => $query->where('stock', '>', 5),
+            default => null,
+        };
+
+        match ($request->get('sort', 'latest')) {
+            'oldest' => $query->oldest('id'),
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            'stock_asc' => $query->orderBy('stock')->orderByDesc('id'),
+            'views_desc' => $query->orderByDesc('views_count')->orderByDesc('id'),
+            default => $query->latest('id'),
+        };
+
+        return $query->paginate(20)->withQueryString();
+    }
+
+    /* ============================================================
      |  ФИЛЬТРАЦИЯ ТОВАРОВ ДЛЯ ВИТРИНЫ
      ============================================================ */
     public function getFilteredProducts($request)

@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Shop;
+use App\Models\AdminActivityLog;
+use App\Models\Order;
+use App\Models\SellerPlanRequest;
 use App\Services\SellerPlanService;
 use App\Services\AdminActivityLogger;
 use App\Services\UserTrustService;
@@ -96,9 +99,12 @@ class UserController extends Controller
     // 👁️ Показать одного пользователя
     public function show(User $user)
     {
-        $user->load(['shop'])
+        $user->load([
+            'shop' => fn ($query) => $query->withCount('followers'),
+        ])
             ->loadCount([
                 'orders',
+                'salesOrders',
                 'products',
                 'followedShops',
                 'favorites',
@@ -107,8 +113,8 @@ class UserController extends Controller
                 'addresses',
             ]);
 
-        $recentOrders = $user->orders()
-            ->with(['seller', 'items.product'])
+        $recentOrders = ($user->isSeller() ? $user->salesOrders() : $user->orders())
+            ->with(['user', 'seller', 'items.product'])
             ->latest()
             ->limit(5)
             ->get();
@@ -120,8 +126,67 @@ class UserController extends Controller
 
         $trustProfile = $this->trustService->profileFor($user);
         $sellerPlanProfile = $user->isSeller() ? $this->sellerPlans->profileFor($user) : null;
+        $sellerPlanOptions = $user->isSeller() ? $this->sellerPlans->plans() : [];
+        $pendingPlanRequest = $user->isSeller()
+            ? $user->sellerPlanRequests()
+                ->where('status', SellerPlanRequest::STATUS_PENDING)
+                ->latest()
+                ->first()
+            : null;
+        $sellerPlanRequestIds = $user->isSeller()
+            ? $user->sellerPlanRequests()->pluck('id')
+            : collect();
+        $orderStatusCounts = ($user->isSeller() ? $user->salesOrders() : $user->orders())
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        $commerceSummary = [
+            'needs_action_orders' => (int) ($orderStatusCounts[Order::STATUS_PENDING] ?? 0),
+            'fulfillment_orders' => (int) collect([
+                Order::STATUS_PROCESSING,
+                Order::STATUS_PAID,
+                Order::STATUS_SHIPPED,
+            ])->sum(fn (string $status) => $orderStatusCounts[$status] ?? 0),
+            'active_orders' => (int) collect([
+                Order::STATUS_PENDING,
+                Order::STATUS_PROCESSING,
+                Order::STATUS_PAID,
+                Order::STATUS_SHIPPED,
+            ])->sum(fn (string $status) => $orderStatusCounts[$status] ?? 0),
+            'completed_orders' => (int) collect([
+                Order::STATUS_DELIVERED,
+                Order::STATUS_COMPLETED,
+            ])->sum(fn (string $status) => $orderStatusCounts[$status] ?? 0),
+            'canceled_orders' => (int) ($orderStatusCounts[Order::STATUS_CANCELED] ?? 0),
+            'active_products' => $user->isSeller() ? $user->products()->where('status', 'active')->count() : 0,
+            'draft_products' => $user->isSeller() ? $user->products()->where('status', 'draft')->count() : 0,
+            'out_of_stock_products' => $user->isSeller()
+                ? $user->products()->where('status', 'active')->where('stock', 0)->count()
+                : 0,
+        ];
+        $recentAdminActivity = AdminActivityLog::query()
+            ->with('admin')
+            ->where(function ($query) use ($user, $sellerPlanRequestIds) {
+                $query->where(function ($userQuery) use ($user) {
+                    $userQuery->where('subject_type', User::class)
+                        ->where('subject_id', $user->id);
+                });
 
-        return view('admin.users.show', compact('user', 'recentOrders', 'recentProducts', 'trustProfile', 'sellerPlanProfile'));
+                if ($sellerPlanRequestIds->isNotEmpty()) {
+                    $query->orWhere(function ($planQuery) use ($sellerPlanRequestIds) {
+                        $planQuery->where('subject_type', SellerPlanRequest::class)
+                            ->whereIn('subject_id', $sellerPlanRequestIds);
+                    });
+                }
+            })
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('admin.users.show', compact(
+            'user', 'recentOrders', 'recentProducts', 'trustProfile', 'sellerPlanProfile',
+            'sellerPlanOptions', 'pendingPlanRequest', 'commerceSummary', 'recentAdminActivity'
+        ));
     }
 
     // ✏️ Форма редактирования
@@ -160,14 +225,22 @@ class UserController extends Controller
             return back()->withErrors(['phone' => 'Этот телефон уже используется'])->withInput();
         }
 
+        $sellerPlan = $request->role === 'seller'
+            ? ($validated['seller_plan'] ?? SellerPlanService::STARTER)
+            : SellerPlanService::STARTER;
+
+        if ($request->role === 'seller' && ! $this->sellerPlans->canAssignPlan($user, $sellerPlan)) {
+            throw ValidationException::withMessages([
+                'seller_plan' => $this->sellerPlans->assignmentLimitMessage($user, $sellerPlan),
+            ]);
+        }
+
         $userData = [
             'name'  => $request->name,
             'email' => $request->email,
             'phone' => $phone,
             'role'  => $request->role,
-            'seller_plan' => $request->role === 'seller'
-                ? ($validated['seller_plan'] ?? SellerPlanService::STARTER)
-                : SellerPlanService::STARTER,
+            'seller_plan' => $sellerPlan,
         ];
 
         if ($request->filled('password')) {

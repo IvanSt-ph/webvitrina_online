@@ -141,9 +141,10 @@ window.showAppToast = (text, type = 'success') => {
   el.innerHTML = `
     <div class="flex items-center gap-2">
       <i class="${type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'} text-base"></i>
-      <span>${text}</span>
+      <span></span>
     </div>
   `;
+  el.querySelector('span').textContent = String(text ?? '');
   document.body.appendChild(el);
 
   setTimeout(() => {
