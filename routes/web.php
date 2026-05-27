@@ -215,6 +215,9 @@ Route::middleware('role:buyer')->group(function () {
     Route::post('/p/{product:slug}/chat', [ChatController::class, 'startForProduct'])
         ->middleware('throttle:20,1')
         ->name('chats.product.start');
+    Route::post('/orders/{order}/chat/{product}', [ChatController::class, 'startForOrderProduct'])
+        ->middleware('throttle:20,1')
+        ->name('orders.chat.product');
     Route::get('/my-chats/{conversation}', [ChatController::class, 'show'])->name('chats.show');
     Route::delete('/my-chats/{conversation}', [ChatController::class, 'destroy'])->name('chats.destroy');
     Route::get('/my-chats/{conversation}/messages/older', [ChatController::class, 'olderMessages'])
@@ -239,6 +242,11 @@ Route::middleware('role:buyer')->group(function () {
     Route::post('/support/start', [ChatController::class, 'startSupport'])
         ->middleware('throttle:10,1')
         ->name('support.start');
+    Route::post('/orders/{order}/support', [ChatController::class, 'startSupportForOrder'])
+        ->middleware('throttle:10,1')
+        ->name('orders.support');
+    Route::delete('/favorites/{favorite}', [FavoriteController::class, 'remove'])
+        ->name('favorites.remove');
     Route::view('/help', 'buyer.help.index')->name('help');
     Route::view('/about', 'buyer.about.index')->name('about');
 
@@ -328,6 +336,9 @@ Route::middleware('role:buyer')->group(function () {
     Route::post('/orders/{order}/confirm-delivery',
         [OrderStatusController::class, 'confirmDelivery']
     )->name('orders.confirmDelivery');
+    Route::post('/orders/{order}/request-cancellation',
+        [OrderStatusController::class, 'requestCancellation']
+    )->middleware('throttle:5,1')->name('orders.requestCancellation');
 
     /*
     |--------------------------------------------------------------------------
@@ -491,6 +502,7 @@ Route::prefix('admin')
     )->name('products.gallery.delete');
 
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
 
     Route::post('/orders/{order}/status',
         [OrderStatusController::class, 'adminUpdate']

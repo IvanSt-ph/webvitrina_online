@@ -7,34 +7,34 @@
             </div>
             <div class="min-w-0">
                 <h1 class="text-2xl font-semibold text-gray-900">Уведомления</h1>
-                <p class="mt-1 text-sm text-gray-500">Настройте, как получать важные сообщения.</p>
+                <p class="mt-1 text-sm text-gray-500">Управление каналами уведомлений скоро будет доступно.</p>
             </div>
         </div>
 
         <div class="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:rounded-2xl">
-            <label class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 p-4">
+            <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 p-4">
                 <span class="min-w-0">
                     <span class="block text-sm font-semibold text-gray-900">Email уведомления</span>
                     <span class="mt-0.5 block text-xs text-gray-500">Заказы, безопасность и важные изменения.</span>
                 </span>
-                <input type="checkbox" class="toggle shrink-0" checked>
-            </label>
+                <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">Скоро</span>
+            </div>
 
-            <label class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 p-4">
+            <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-gray-100 p-4">
                 <span class="min-w-0">
                     <span class="block text-sm font-semibold text-gray-900">SMS уведомления</span>
                     <span class="mt-0.5 block text-xs text-gray-500">Короткие сообщения по срочным событиям.</span>
                 </span>
-                <input type="checkbox" class="toggle shrink-0">
-            </label>
+                <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">Скоро</span>
+            </div>
 
-            <label class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4">
+            <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4">
                 <span class="min-w-0">
                     <span class="block text-sm font-semibold text-gray-900">Push уведомления</span>
                     <span class="mt-0.5 block text-xs text-gray-500">Быстрые уведомления в браузере.</span>
                 </span>
-                <input type="checkbox" class="toggle shrink-0">
-            </label>
+                <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500">Скоро</span>
+            </div>
         </div>
 
     </div>

@@ -26,6 +26,15 @@
   $pendingSellerPlanRequests = auth()->check()
       ? \App\Models\SellerPlanRequest::where('status', \App\Models\SellerPlanRequest::STATUS_PENDING)->count()
       : 0;
+  $pendingReviews = auth()->check()
+      ? \App\Models\Review::where('status', \App\Models\Review::STATUS_PENDING)->count()
+      : 0;
+  $attentionOrders = auth()->check()
+      ? \App\Models\Order::whereIn('status', [\App\Models\Order::STATUS_PENDING, \App\Models\Order::STATUS_PROCESSING])->count()
+      : 0;
+  $missingMobileBanners = auth()->check()
+      ? \App\Models\Banner::whereNull('image_mobile')->count()
+      : 0;
 @endphp
 
 <body class="bg-gray-50 text-gray-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}" x-data="{ sidebarOpen: false }">
@@ -62,22 +71,31 @@
       <!-- Navigation -->
       @php
         $menu = [
-          ['route'=>'admin.dashboard','icon'=>'ri-home-5-line','label'=>'Главная'],
-          ['route'=>'admin.products.index','icon'=>'ri-box-3-line','label'=>'Товары'],
-          ['route'=>'admin.categories.index','icon'=>'ri-folder-3-line','label'=>'Категории'],
-          ['route'=>'admin.orders.index','icon'=>'ri-shopping-bag-3-line','label'=>'Заказы'],
-          ['route'=>'admin.chats.index','active'=>'admin.chats.*','icon'=>'ri-message-3-line','label'=>'Чаты'],
-          ['route'=>'admin.users.index','icon'=>'ri-user-3-line','label'=>'Пользователи'],
-          ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Тарифы'],
-          ['route'=>'admin.activity.index','active'=>'admin.activity.*','icon'=>'ri-history-line','label'=>'Журнал'],
-          ['route'=>'admin.reviews.index','icon'=>'ri-chat-3-line','label'=>'Отзывы'],
-          ['route'=>'admin.banners.index','icon'=>'ri-image-line','label'=>'Баннеры'],
-          ['route'=>'admin.profile','icon'=>'ri-settings-3-line','label'=>'Настройки'],
+          'Работа' => [
+            ['route'=>'admin.dashboard','icon'=>'ri-home-5-line','label'=>'Главная'],
+            ['route'=>'admin.orders.index','icon'=>'ri-shopping-bag-3-line','label'=>'Заказы','badge'=>$attentionOrders],
+            ['route'=>'admin.chats.index','active'=>'admin.chats.*','icon'=>'ri-message-3-line','label'=>'Чаты','badge'=>$adminUnreadChats],
+            ['route'=>'admin.reviews.index','icon'=>'ri-chat-3-line','label'=>'Отзывы','badge'=>$pendingReviews],
+            ['route'=>'admin.users.index','icon'=>'ri-user-3-line','label'=>'Пользователи'],
+          ],
+          'Каталог' => [
+            ['route'=>'admin.products.index','icon'=>'ri-box-3-line','label'=>'Товары'],
+            ['route'=>'admin.categories.index','icon'=>'ri-folder-3-line','label'=>'Категории'],
+            ['route'=>'admin.banners.index','icon'=>'ri-image-line','label'=>'Баннеры','badge'=>$missingMobileBanners],
+          ],
+          'Управление' => [
+            ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Тарифы','badge'=>$pendingSellerPlanRequests],
+            ['route'=>'admin.activity.index','active'=>'admin.activity.*','icon'=>'ri-history-line','label'=>'Журнал'],
+            ['route'=>'admin.profile','icon'=>'ri-settings-3-line','label'=>'Настройки'],
+          ],
         ];
       @endphp
 
-      <nav class="flex-1 p-4 overflow-y-auto space-y-1">
-        @foreach ($menu as $item)
+      <nav class="flex-1 overflow-y-auto p-4">
+        @foreach ($menu as $section => $items)
+          <div class="{{ $loop->first ? '' : 'mt-5' }} mb-2 px-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ $section }}</div>
+          <div class="space-y-1">
+          @foreach ($items as $item)
           <a href="{{ route($item['route']) }}"
              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                     {{ request()->routeIs($item['active'] ?? $item['route'].'*')
@@ -85,17 +103,14 @@
                         : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50' }}">
             <i class="{{ $item['icon'] }} text-lg"></i>
             <span>{{ $item['label'] }}</span>
-            @if($item['route'] === 'admin.chats.index' && $adminUnreadChats > 0)
-              <span data-admin-chat-unread="{{ $adminUnreadChats }}" class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
-                {{ $adminUnreadChats > 99 ? '99+' : $adminUnreadChats }}
-              </span>
-            @endif
-            @if($item['route'] === 'admin.seller-plan-requests.index' && $pendingSellerPlanRequests > 0)
-              <span class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
-                {{ $pendingSellerPlanRequests > 99 ? '99+' : $pendingSellerPlanRequests }}
+            @if(($item['badge'] ?? 0) > 0)
+              <span @if($item['route'] === 'admin.chats.index') data-admin-chat-unread="{{ $item['badge'] }}" @endif class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
+                {{ $item['badge'] > 99 ? '99+' : $item['badge'] }}
               </span>
             @endif
           </a>
+          @endforeach
+          </div>
         @endforeach
       </nav>
 

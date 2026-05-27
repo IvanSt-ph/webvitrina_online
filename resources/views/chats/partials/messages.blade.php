@@ -13,6 +13,8 @@
         $relatedConversationUrl = null;
         $relatedBuyerUrl = null;
         $relatedSellerUrl = null;
+        $relatedOrder = $message->order;
+        $relatedOrderUrl = null;
 
         if ($relatedConversation && auth()->user()?->role === 'admin') {
             $relatedConversationUrl = route('admin.chats.show', $relatedConversation);
@@ -22,6 +24,14 @@
                 : ($relatedConversation->seller ? route('admin.users.show', $relatedConversation->seller) : null);
         } elseif ($relatedConversation && $relatedConversation->includes(auth()->user())) {
             $relatedConversationUrl = route('chats.show', $relatedConversation);
+        }
+
+        if ($relatedOrder && auth()->user()?->role === 'admin') {
+            $relatedOrderUrl = route('admin.orders.show', $relatedOrder);
+        } elseif ($relatedOrder && $relatedOrder->user_id === auth()->id()) {
+            $relatedOrderUrl = route('orders.show', $relatedOrder);
+        } elseif ($relatedOrder && $relatedOrder->seller_id === auth()->id()) {
+            $relatedOrderUrl = route('seller.orders.show', $relatedOrder);
         }
     @endphp
     @if($message->isInternalNote())
@@ -43,7 +53,7 @@
         @continue
     @endif
     @if($message->isSystem())
-        @if($relatedConversationUrl)
+        @if($relatedConversationUrl || $relatedOrder)
             <div class="flex justify-center">
                 <div class="w-full max-w-[92%] overflow-hidden rounded-2xl border border-amber-200 bg-white text-left shadow-sm sm:max-w-[720px]">
                     <div class="flex items-start gap-3 rounded-t-2xl bg-amber-50 px-4 py-3">
@@ -52,8 +62,12 @@
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="font-bold text-amber-950">Обращение в поддержку</span>
-                                <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">Диалог #{{ $relatedConversation->id }}</span>
+                                <span class="font-bold text-amber-950">{{ $relatedOrder ? 'Обращение по заказу' : 'Обращение в поддержку' }}</span>
+                                @if($relatedOrder)
+                                    <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">{{ $relatedOrder->number }}</span>
+                                @elseif($relatedConversation)
+                                    <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">Диалог #{{ $relatedConversation->id }}</span>
+                                @endif
                             </div>
                             <div class="mt-1 text-xs font-medium text-amber-700">Откройте участников или исходный диалог через ссылки ниже.</div>
                         </div>
@@ -79,6 +93,27 @@
                         @endforeach
                     </div>
 
+                    @if($relatedOrder)
+                        <div class="border-t border-amber-100 bg-amber-50/40 px-4 py-3">
+                            <div class="text-xs font-bold uppercase text-amber-700">Товары в заказе</div>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                @foreach($relatedOrder->items as $orderItem)
+                                    @if($orderItem->product && ! $orderItem->product->trashed() && $orderItem->product->status === 'active')
+                                        <a href="{{ route('product.show', $orderItem->product->slug) }}"
+                                           class="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-amber-100 hover:bg-indigo-50">
+                                            <i class="ri-shopping-bag-line"></i>
+                                            <span class="truncate">{{ $orderItem->product->title }}</span>
+                                        </a>
+                                    @else
+                                        <span class="inline-flex max-w-full items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 ring-1 ring-amber-100">
+                                            {{ $orderItem->product?->title ?? 'Товар удалён' }}
+                                        </span>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="flex flex-wrap items-center gap-2 border-t border-amber-100 px-4 py-3 text-xs font-semibold">
                         @if($relatedBuyerUrl)
                             <a href="{{ $relatedBuyerUrl }}"
@@ -94,11 +129,20 @@
                                 Продавец
                             </a>
                         @endif
-                        <a href="{{ $relatedConversationUrl }}"
-                           class="inline-flex h-8 items-center gap-1.5 rounded-full bg-amber-600 px-3 text-white transition hover:bg-amber-700">
-                            <i class="ri-arrow-right-up-line"></i>
-                            Исходный диалог
-                        </a>
+                        @if($relatedOrderUrl)
+                            <a href="{{ $relatedOrderUrl }}"
+                               class="inline-flex h-8 items-center gap-1.5 rounded-full bg-amber-600 px-3 text-white transition hover:bg-amber-700">
+                                <i class="ri-shopping-bag-3-line"></i>
+                                Открыть заказ
+                            </a>
+                        @endif
+                        @if($relatedConversationUrl)
+                            <a href="{{ $relatedConversationUrl }}"
+                               class="inline-flex h-8 items-center gap-1.5 rounded-full bg-amber-600 px-3 text-white transition hover:bg-amber-700">
+                                <i class="ri-arrow-right-up-line"></i>
+                                Исходный диалог
+                            </a>
+                        @endif
                         <span class="ml-auto text-slate-500">
                         <span>{{ $message->created_at->isToday() ? 'Сегодня, ' . $message->created_at->format('H:i') : $message->created_at->format('d.m H:i') }}</span>
                         </span>

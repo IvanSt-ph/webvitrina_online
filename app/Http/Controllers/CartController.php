@@ -15,21 +15,20 @@ class CartController extends Controller
 {
     public function index()
     {
-        CartItem::where('user_id', auth()->id())
-            ->where(function ($query) {
-                $query->whereDoesntHave('product')
-                    ->orWhereHas('product', fn ($productQuery) => $productQuery->where('status', '!=', 'active'));
-            })
-            ->delete();
-
-        $items = CartItem::with([
+        $cartItems = CartItem::with([
             'product.category',
             'product.city.country',
             'product.seller',
         ])
-        ->where('user_id', auth()->id())
-        ->whereHas('product', fn ($query) => $query->where('status', 'active'))
-        ->get();
+            ->where('user_id', auth()->id())
+            ->get();
+
+        $items = $cartItems
+            ->filter(fn (CartItem $item) => $item->product && $item->product->status === 'active')
+            ->values();
+        $unavailableItems = $cartItems
+            ->reject(fn (CartItem $item) => $item->product && $item->product->status === 'active')
+            ->values();
 
         // считаем общую сумму
         $total = 0;
@@ -39,7 +38,7 @@ class CartController extends Controller
             }
         }
 
-        return view('shop.cart', compact('items', 'total'));
+        return view('shop.cart', compact('items', 'unavailableItems', 'total'));
     }
 
     public function add(Product $product, Request $request)

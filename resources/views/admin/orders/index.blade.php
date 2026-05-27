@@ -282,18 +282,11 @@
                                 </div>
                             </td>
                             <td class="px-4 py-4 text-right">
-                                <form method="POST" action="{{ route('admin.orders.updateStatus', $order) }}" class="inline-flex items-center gap-2">
-                                    @csrf
-                                    <select name="status" class="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
-                                        @foreach(\App\Models\Order::allStatuses() as $status)
-                                            <option value="{{ $status }}" @selected($order->status === $status)>{{ $statusLabels[$status] ?? $status }}</option>
-                                        @endforeach
-                                    </select>
-                                    <button class="inline-flex h-10 items-center justify-center gap-1 rounded-xl bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700">
-                                        <i class="ri-save-3-line"></i>
-                                        Сохранить
-                                    </button>
-                                </form>
+                                <a href="{{ route('admin.orders.show', $order) }}"
+                                   class="inline-flex h-10 items-center justify-center gap-1 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100">
+                                    <i class="ri-arrow-right-up-line"></i>
+                                    Открыть
+                                </a>
                             </td>
                         </tr>
                     @empty
@@ -350,17 +343,11 @@
                         </div>
                     </div>
 
-                    <form method="POST" action="{{ route('admin.orders.updateStatus', $order) }}" class="mt-4 flex gap-2">
-                        @csrf
-                        <select name="status" class="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
-                            @foreach(\App\Models\Order::allStatuses() as $status)
-                                <option value="{{ $status }}" @selected($order->status === $status)>{{ $statusLabels[$status] ?? $status }}</option>
-                            @endforeach
-                        </select>
-                        <button class="inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700">
-                            OK
-                        </button>
-                    </form>
+                    <a href="{{ route('admin.orders.show', $order) }}"
+                       class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-bold text-indigo-700 transition hover:bg-indigo-100">
+                        <i class="ri-arrow-right-up-line"></i>
+                        Открыть заказ
+                    </a>
                 </article>
             @empty
                 <div class="px-6 py-14 text-center">

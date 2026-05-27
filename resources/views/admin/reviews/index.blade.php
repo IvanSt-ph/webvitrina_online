@@ -342,7 +342,7 @@
             <div @click.away="reasonModal.open = false" class="w-full max-w-md rounded-lg bg-white p-5 shadow-2xl">
                 <h2 class="text-lg font-semibold text-gray-900">Причина отклонения</h2>
                 <p class="mt-1 text-sm text-gray-500">Она будет видна покупателю в разделе “Мои отзывы”.</p>
-                <textarea x-model="reasonModal.reason" rows="4" class="mt-4 w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Например: отзыв содержит недопустимые выражения или не относится к товару"></textarea>
+                <textarea x-model="reasonModal.reason" rows="4" class="mt-4 w-full resize-none rounded-lg border border-gray-300 p-3 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Например: отзыв содержит недопустимые выражения или не относится к товару"></textarea>
                 <div class="mt-4 flex justify-end gap-2">
                     <button type="button" class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" @click="reasonModal.open = false">Отмена</button>
                     <button type="button" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700" @click="submitRejection()">Отклонить</button>
@@ -463,7 +463,11 @@ function reviewPanel() {
         },
 
         submitRejection() {
-            const reason = this.reasonModal.reason || '';
+            const reason = (this.reasonModal.reason || '').trim();
+            if (!reason) {
+                this.showToast('Укажите причину отклонения', 'error');
+                return;
+            }
 
             if (this.reasonModal.bulk) {
                 this.sendBulk('reject', reason);

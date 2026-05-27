@@ -112,11 +112,9 @@
                     {{-- Cart count calculation --}}
                     @php
                         try {
-                            $cartCount = 0;
-                            if (session()->has('cart')) {
-                                $cart = session()->get('cart', []);
-                                $cartCount = array_sum(array_column($cart, 'quantity'));
-                            }
+                            $cartCount = auth()->check()
+                                ? (int) \App\Models\CartItem::where('user_id', auth()->id())->sum('qty')
+                                : 0;
                         } catch (\Exception $e) {
                             $cartCount = 0;
                         }

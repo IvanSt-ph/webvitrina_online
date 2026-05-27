@@ -7,6 +7,10 @@ use App\Models\Product;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\Category;
+use App\Models\Banner;
+use App\Models\Conversation;
+use App\Models\Review;
+use App\Models\SellerPlanRequest;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -90,6 +94,31 @@ public function index()
             ->take(5)
             ->get();
 
+        $workQueue = [
+            'orders' => Order::whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING])->count(),
+            'chats' => Conversation::query()
+                ->whereNull('admin_deleted_at')
+                ->whereHas('messages', fn ($query) => $query
+                    ->where('sender_id', '!=', auth()->id())
+                    ->whereNull('admin_read_at'))
+                ->count(),
+            'reviews' => Review::where('status', Review::STATUS_PENDING)->count(),
+            'plans' => SellerPlanRequest::where('status', SellerPlanRequest::STATUS_PENDING)->count(),
+            'banners' => Banner::whereNull('image_mobile')->count(),
+        ];
+
+        $attentionOrders = Order::with(['user', 'seller'])
+            ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING])
+            ->oldest()
+            ->limit(5)
+            ->get();
+
+        $pendingPlans = SellerPlanRequest::with('user')
+            ->where('status', SellerPlanRequest::STATUS_PENDING)
+            ->latest()
+            ->limit(4)
+            ->get();
+
         // ✅ Возвращаем одним массивом
         return compact(
             'stats',
@@ -101,7 +130,10 @@ public function index()
             'newUsers',
             'topProducts',
             'topCategories',
-            'topSellers'
+            'topSellers',
+            'workQueue',
+            'attentionOrders',
+            'pendingPlans'
         );
     });
 

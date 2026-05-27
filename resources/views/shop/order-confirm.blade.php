@@ -12,48 +12,89 @@
     <div>
         <h1 class="text-2xl sm:text-3xl font-semibold text-gray-900">Подтверждение заказа</h1>
         <p class="text-gray-500 text-sm mt-1">
-            Проверьте товары перед оформлением. После подтверждения заказ уйдёт продавцу.
+            Проверьте товары перед оформлением. Для каждого магазина будет создан отдельный заказ.
         </p>
     </div>
 
-    <!-- 📦 Состав заказа -->
-    <div class="w-full max-w-full overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl sm:rounded-2xl divide-y">
-        @foreach($cart as $item)
-            @php
-                $itemTitle = $item['title'] ?? 'Товар';
-                $shortItemTitle = Str::limit($itemTitle, 18);
-            @endphp
-            <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-center sm:gap-4 sm:p-5">
-                <img src="{{ asset('storage/'.$item['image']) }}"
-                     class="h-16 w-16 rounded-xl border object-cover sm:h-20 sm:w-20"
-                     alt="{{ $itemTitle }}">
+    @if(session('error'))
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {{ session('error') }}
+        </div>
+    @endif
 
-                <div class="min-w-0 sm:flex-1">
-                    <p class="text-gray-900 font-medium text-sm sm:text-base line-clamp-2" style="overflow-wrap: anywhere; word-break: break-word;">
-                        <span class="sm:hidden">{{ $shortItemTitle }}</span>
-                        <span class="hidden sm:inline">{{ $itemTitle }}</span>
-                    </p>
-                    <p class="text-gray-500 text-xs sm:text-sm mt-1">
-                        Кол-во:
-                        <span class="text-gray-800 font-semibold">{{ $item['qty'] }}</span>
-                    </p>
-                </div>
+    @if($errors->any())
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {{ $errors->first() }}
+        </div>
+    @endif
 
-                <div class="col-span-2 min-w-0 rounded-xl bg-slate-50 px-3 py-2 text-left sm:col-span-1 sm:min-w-[110px] sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
-                    <div class="text-gray-900 font-semibold text-base sm:text-lg">
-                        {{ number_format($item['price'] * $item['qty'], 2, ',', ' ') }} ₽
+    @if($pricesUpdated)
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Цена одного или нескольких товаров изменилась. Ниже показана актуальная сумма; подтвердите заказ с новой ценой.
+        </div>
+    @endif
+
+    <!-- 📦 Заказы по магазинам -->
+    <div class="space-y-4">
+        @foreach($orderGroups as $group)
+            <section class="w-full max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm sm:rounded-2xl">
+                <div class="flex items-center justify-between gap-3 border-b border-gray-100 bg-slate-50 px-4 py-3 sm:px-5">
+                    <div class="min-w-0 text-sm font-semibold text-gray-900">
+                        <i class="ri-store-2-line mr-1 text-indigo-500"></i>
+                        <span class="break-words">{{ $group['seller_name'] }}</span>
                     </div>
-                    <div class="text-xs text-gray-400">
-                        {{ number_format($item['price'], 2, ',', ' ') }} ₽ / шт
-                    </div>
+                    <span class="shrink-0 text-xs text-gray-500">Отдельный заказ</span>
                 </div>
-            </div>
+                <div class="divide-y">
+                    @foreach($group['items'] as $item)
+                        @php
+                            $itemTitle = $item['title'] ?? 'Товар';
+                            $shortItemTitle = Str::limit($itemTitle, 18);
+                        @endphp
+                        <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-center sm:gap-4 sm:p-5">
+                            <img src="{{ asset('storage/'.$item['image']) }}"
+                                 class="h-16 w-16 rounded-xl border object-cover sm:h-20 sm:w-20"
+                                 alt="{{ $itemTitle }}">
+
+                            <div class="min-w-0 sm:flex-1">
+                                <p class="text-gray-900 font-medium text-sm sm:text-base line-clamp-2" style="overflow-wrap: anywhere; word-break: break-word;">
+                                    <span class="sm:hidden">{{ $shortItemTitle }}</span>
+                                    <span class="hidden sm:inline">{{ $itemTitle }}</span>
+                                </p>
+                                <p class="text-gray-500 text-xs sm:text-sm mt-1">
+                                    Кол-во: <span class="text-gray-800 font-semibold">{{ $item['qty'] }}</span>
+                                </p>
+                            </div>
+
+                            <div class="col-span-2 min-w-0 rounded-xl bg-slate-50 px-3 py-2 text-left sm:col-span-1 sm:min-w-[110px] sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
+                                <div class="text-gray-900 font-semibold text-base sm:text-lg">
+                                    {{ number_format($item['price'] * $item['qty'], 2, ',', ' ') }} ₽
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    {{ number_format($item['price'], 2, ',', ' ') }} ₽ / шт
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="flex justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm sm:px-5">
+                    <span class="text-gray-500">Товары магазина:</span>
+                    <span class="font-semibold text-gray-900">{{ number_format($group['subtotal'], 2, ',', ' ') }} ₽</span>
+                </div>
+            </section>
         @endforeach
     </div>
+
+    @if($orderCount > 1)
+        <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+            Будет создано заказов: <strong>{{ $orderCount }}</strong>. Стоимость выбранной доставки начисляется для каждого магазина отдельно.
+        </div>
+    @endif
 
     <!-- 📝 Форма оформления заказа -->
     <form action="{{ route('checkout.create') }}" method="POST" class="space-y-6">
         @csrf
+        <input type="hidden" name="checkout_token" value="{{ $checkoutToken }}">
 
 <!-- 📍 Доставка и оплата (теперь внутри формы!) -->
 <div class="grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-6">
@@ -93,7 +134,7 @@
         @endif
         
         <p class="text-xs text-gray-500 mt-3">
-            Стоимость доставки рассчитывается после выбора способа <br>*(Важно: стоимость доставки указана примерно и может варьироваться.)
+            Доставка начисляется отдельно для каждого заказа продавцу.
         </p>
     </div>
 
@@ -123,17 +164,17 @@
                 </label>
                 <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                     <input type="radio" name="payment_method" value="card" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-gray-800 text-sm">💳 Картой онлайн</span>
+                    <span class="min-w-0 text-gray-800 text-sm">💳 Картой при получении (онлайн-оплата пока недоступна)</span>
                 </label>
                 <label class="flex min-w-0 items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                     <input type="radio" name="payment_method" value="bank_transfer" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-gray-800 text-sm">🏦 Банковский перевод</span>
+                    <span class="min-w-0 text-gray-800 text-sm">🏦 Перевод по согласованию с продавцом</span>
                 </label>
             </div>
         @endif
         
         <p class="text-xs text-gray-500 mt-3">
-            Выбранный способ оплаты будет сохранён в заказе
+            Онлайн-платёж на сайте пока не выполняется. Условия оплаты фиксируются для связи с продавцом.
         </p>
     </div>
 </div>
@@ -150,10 +191,10 @@
     </div>
 
     <div class="flex min-w-0 justify-between gap-3 text-gray-700 text-sm">
-        <span>Доставка:</span>
+        <span>Доставка ({{ $orderCount }} {{ $orderCount === 1 ? 'заказ' : 'заказа' }}):</span>
         <span id="delivery-cost" class="shrink-0 font-medium">
-            @if(isset($deliveryPrices['courier']) && $deliveryPrices['courier'] > 0)
-                {{ number_format($deliveryPrices['courier'], 2, ',', ' ') }} ₽
+            @if($totalDeliveryCost > 0)
+                {{ number_format($totalDeliveryCost, 2, ',', ' ') }} ₽
             @else
                 Бесплатно
             @endif
@@ -218,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitButton = document.querySelector('button[type="submit"]');
     const subtotal = Number(@json($total));
     const prices = @json($deliveryPrices ?? []);
+    const orderCount = Number(@json($orderCount));
 
     const deliveryEl = document.getElementById('delivery-cost');
     const totalEl = document.getElementById('total-with-delivery');
@@ -228,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTotal(radio) {
         if (!radio) return;
 
-        const price = Number(prices[radio.value] ?? 0);
+        const price = Number(prices[radio.value] ?? 0) * orderCount;
         deliveryEl.textContent = price > 0 ? format(price) : 'Бесплатно';
         deliveryEl.className = price > 0 ? 'font-medium' : 'text-green-600 font-medium';
         totalEl.textContent = format(subtotal + price);
@@ -256,6 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addressSelect) {
         addressSelect.addEventListener('change', updateButtonState);
     }
+
+    submitButton.closest('form').addEventListener('submit', () => {
+        submitButton.setAttribute('disabled', 'disabled');
+        submitButton.textContent = 'Оформляем заказ...';
+    });
 
     // Инициализация при загрузке страницы
     const checkedRadio = document.querySelector('input[name="delivery_method"]:checked');

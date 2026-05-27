@@ -7,15 +7,17 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
     private const PAYMENT_METHODS = [
         'cash' => '💵 Наличными при получении',
-        'card' => '💳 Картой онлайн',
-        'bank_transfer' => '🏦 Банковский перевод',
+        'card' => '💳 Картой при получении (онлайн-оплата пока недоступна)',
+        'bank_transfer' => '🏦 Перевод по согласованию с продавцом',
     ];
 
     private const DELIVERY_METHODS = [
@@ -156,9 +158,11 @@ return redirect()
         $userId = auth()->id();
         $productIds = collect($cart)->pluck('product_id')->toArray();
         $products = Product::whereIn('id', $productIds)
+            ->with('seller.shop')
             ->get()
             ->keyBy('id');
 
+        $pricesUpdated = false;
         foreach ($cart as $item) {
             $product = $products[$item['product_id']] ?? null;
             if (!$product || $product->status !== 'active') {
@@ -184,6 +188,33 @@ return redirect()
             }
         }
 
+        $cart = collect($cart)->map(function (array $item) use ($products, &$pricesUpdated) {
+            $product = $products[$item['product_id']];
+
+            if ((float) $item['price'] !== (float) $product->price) {
+                $pricesUpdated = true;
+            }
+
+            return array_merge($item, [
+                'title' => $product->title,
+                'price' => $product->price,
+                'image' => $product->image,
+                'seller_id' => $product->user_id,
+                'seller_name' => $product->seller->shop?->name ?: $product->seller->name,
+            ]);
+        })->all();
+
+        session()->put('checkout_cart', $cart);
+
+        $orderGroups = collect($cart)
+            ->groupBy('seller_id')
+            ->map(fn ($items) => [
+                'seller_name' => $items->first()['seller_name'],
+                'items' => $items->all(),
+                'subtotal' => $items->sum(fn ($item) => $item['price'] * $item['qty']),
+            ])
+            ->values();
+
         $total = collect($cart)->sum(fn ($i) => $i['price'] * $i['qty']);
 
         $user = auth()->user()->load('addresses');
@@ -193,17 +224,26 @@ return redirect()
         // ✅ Рассчитываем итог с доставкой по умолчанию
         $defaultDelivery = 'courier';
         $deliveryCost = self::DELIVERY_PRICES[$defaultDelivery] ?? 0;
-        $totalWithDelivery = $total + $deliveryCost;
+        $totalDeliveryCost = $deliveryCost * $orderGroups->count();
+        $totalWithDelivery = $total + $totalDeliveryCost;
+        $checkoutToken = Str::random(40);
+
+        session()->put('checkout_token', $checkoutToken);
 
         return view('shop.order-confirm', [
             'cart'                => $cart,
+            'orderGroups'         => $orderGroups,
+            'orderCount'          => $orderGroups->count(),
             'total'               => $total,
             'addresses'           => $addresses,
             'defaultAddressId'    => $defaultAddressId,
             'paymentMethods'      => self::PAYMENT_METHODS,
             'deliveryMethods'     => self::DELIVERY_METHODS,
             'deliveryPrices'      => self::DELIVERY_PRICES,
+            'totalDeliveryCost'   => $totalDeliveryCost,
             'totalWithDelivery'   => $totalWithDelivery,
+            'pricesUpdated'       => $pricesUpdated,
+            'checkoutToken'       => $checkoutToken,
         ]);
     }
 
@@ -290,6 +330,35 @@ return redirect()
             ]);
         }
 
+        $expectedToken = session('checkout_token');
+        $submittedToken = (string) $request->input('checkout_token', '');
+        if ($expectedToken && ! hash_equals($expectedToken, $submittedToken)) {
+            return redirect()->route('checkout.confirm')
+                ->with('error', 'Заказ уже отправлялся или страница устарела. Проверьте итог и подтвердите оформление ещё раз.');
+        }
+
+        $updatedCart = collect($cart)->map(function (array $item) use ($products) {
+            $product = $products[$item['product_id']];
+
+            return array_merge($item, [
+                'title' => $product->title,
+                'price' => $product->price,
+                'image' => $product->image,
+            ]);
+        })->all();
+
+        if (collect($cart)->contains(fn ($item) => (float) $item['price'] !== (float) $products[$item['product_id']]->price)) {
+            session()->put('checkout_cart', $updatedCart);
+
+            return redirect()->route('checkout.confirm')
+                ->with('error', 'Цена одного или нескольких товаров изменилась. Проверьте обновлённую сумму и подтвердите заказ снова.');
+        }
+
+        if ($expectedToken && ! Cache::add('checkout:used:' . hash('sha256', $expectedToken), true, now()->addMinutes(10))) {
+            return redirect()->route('checkout.confirm')
+                ->with('error', 'Этот заказ уже отправлен. Проверьте список заказов перед повторным оформлением.');
+        }
+
         $deliveryCost = self::DELIVERY_PRICES[$deliveryMethod];
 
         // Добавляем seller_id к каждой позиции (уже проверили товары выше)
@@ -333,6 +402,12 @@ return redirect()
                         ]);
                     }
 
+                    if ((float) $product->price !== (float) $i['price']) {
+                        throw ValidationException::withMessages([
+                            'price' => 'Цена товара изменилась. Вернитесь к подтверждению заказа и проверьте актуальную сумму.',
+                        ]);
+                    }
+
                     $product->decrement('stock', $i['qty']);
 
                     OrderItem::create([
@@ -354,7 +429,7 @@ return redirect()
         });
 
         // Чистим "корзину для оформления"
-        session()->forget('checkout_cart');
+        session()->forget(['checkout_cart', 'checkout_token']);
 
         // Если создан один заказ — ведём на его страницу
         if (count($createdOrders) === 1) {

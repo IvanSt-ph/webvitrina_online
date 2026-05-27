@@ -4,10 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Services\AdminActivityLogger;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
+    public function __construct(private readonly AdminActivityLogger $activity)
+    {
+    }
+
     /** 🧾 Список отзывов с фильтрацией/сортировкой + счётчики */
     public function index(Request $request)
     {
@@ -58,6 +63,7 @@ class ReviewController extends Controller
             'moderated_by' => auth()->id(),
             'moderated_at' => now(),
         ]);
+        $this->activity->log('review.approved', $review, 'Отзыв одобрен администратором.');
 
         return response()->json(['ok' => true, 'status' => Review::STATUS_APPROVED]);
     }
@@ -66,7 +72,7 @@ class ReviewController extends Controller
     public function reject(Request $request, Review $review)
     {
         $data = $request->validate([
-            'reason' => ['nullable', 'string', 'max:1000'],
+            'reason' => ['required', 'string', 'max:1000'],
         ]);
 
         $review->update([
@@ -74,6 +80,9 @@ class ReviewController extends Controller
             'rejection_reason' => $data['reason'] ?? null,
             'moderated_by' => auth()->id(),
             'moderated_at' => now(),
+        ]);
+        $this->activity->log('review.rejected', $review, 'Отзыв отклонён администратором.', [
+            'reason' => $data['reason'],
         ]);
 
         return response()->json(['ok' => true, 'status' => Review::STATUS_REJECTED]);
@@ -85,13 +94,16 @@ class ReviewController extends Controller
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:reviews,id'],
             'action' => ['required', 'in:approve,reject,delete'],
-            'reason' => ['nullable', 'string', 'max:1000'],
+            'reason' => ['nullable', 'required_if:action,reject', 'string', 'max:1000'],
         ]);
 
         $reviews = Review::whereIn('id', $data['ids']);
 
         if ($data['action'] === 'delete') {
             $deleted = $reviews->get()->each->delete()->count();
+            $this->activity->log('review.bulk_deleted', null, 'Администратор удалил выбранные отзывы.', [
+                'count' => $deleted,
+            ]);
 
             return response()->json(['ok' => true, 'deleted' => $deleted]);
         }
@@ -106,6 +118,10 @@ class ReviewController extends Controller
             'moderated_by' => auth()->id(),
             'moderated_at' => now(),
         ]);
+        $this->activity->log('review.bulk_' . $data['action'], null, 'Выполнена массовая модерация отзывов.', [
+            'count' => $updated,
+            'reason' => $status === Review::STATUS_REJECTED ? ($data['reason'] ?? null) : null,
+        ]);
 
         return response()->json(['ok' => true, 'updated' => $updated, 'status' => $status]);
     }
@@ -113,7 +129,9 @@ class ReviewController extends Controller
     /** ❌ Удалить отзыв */
     public function destroy(Review $review)
     {
+        $reviewId = $review->id;
         $review->delete();
+        $this->activity->log('review.deleted', null, 'Отзыв удалён администратором.', ['review_id' => $reviewId]);
         return response()->json(['deleted' => true]);
     }
 

@@ -211,6 +211,8 @@
                     </form>
                 </header>
 
+                @include('chats.partials.product-context', ['conversation' => $conversation])
+
                 <div x-ref="thread" class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-4 py-5 sm:px-6">
                     <div x-show="hasOlderMessages" class="flex justify-center">
                         <button type="button"

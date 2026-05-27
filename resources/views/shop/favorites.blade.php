@@ -1,6 +1,7 @@
 <x-buyer-layout title="Избранное">
 
   @php
+      $unavailableItems = $unavailableItems ?? collect();
       $addedId = (int) session('cart_added_id');
       $favoritesTotal = $items->sum(function ($item) {
           $product = $item->product;
@@ -55,12 +56,39 @@
       </div>
     </div>
 
+    @if($unavailableItems->isNotEmpty())
+      <section class="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70">
+        <div class="border-b border-amber-100 px-4 py-3 sm:px-5">
+          <h2 class="font-semibold text-amber-900">Больше недоступны</h2>
+          <p class="mt-1 text-sm text-amber-700">Эти товары сохранены в избранном, но сейчас их нельзя купить.</p>
+        </div>
+        <div class="divide-y divide-amber-100">
+          @foreach($unavailableItems as $favorite)
+            <div class="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-amber-500">
+                <i class="ri-heart-line text-xl"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-slate-800">{{ $favorite->product?->title ?? 'Товар больше недоступен' }}</p>
+                <p class="text-xs text-amber-700">Товар снят с продажи или удалён продавцом</p>
+              </div>
+              <form method="POST" action="{{ route('favorites.remove', $favorite) }}">
+                @csrf
+                @method('DELETE')
+                <button class="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Удалить</button>
+              </form>
+            </div>
+          @endforeach
+        </div>
+      </section>
+    @endif
+
     @if($items->isEmpty())
 
       <x-empty-state
         icon="ri-heart-3-line"
-        title="Здесь пока пусто"
-        description="Сохраняйте понравившиеся товары, чтобы быстро вернуться к ним."
+         title="{{ $unavailableItems->isNotEmpty() ? 'Нет доступных товаров' : 'Здесь пока пусто' }}"
+         description="{{ $unavailableItems->isNotEmpty() ? 'Недоступные позиции сохранены выше, пока вы сами их не удалите.' : 'Сохраняйте понравившиеся товары, чтобы быстро вернуться к ним.' }}"
       >
         <a href="{{ route('home') }}"
            class="relative overflow-hidden group inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 backdrop-blur-sm border border-indigo-400/30">

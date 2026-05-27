@@ -108,6 +108,40 @@ class SecurityRegressionTest extends TestCase
             ->assertDontSee($hiddenOrder->number);
     }
 
+    public function test_admin_order_detail_requires_cancel_reason_and_logs_status_change(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Order detail buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Order detail seller']);
+        $order = $this->createOrder($buyer, $seller);
+
+        $this->actingAs($admin)
+            ->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Решение по заказу')
+            ->assertSee('Диалоги по ситуации')
+            ->assertSee('Order detail buyer');
+
+        $this->actingAs($admin)
+            ->post(route('admin.orders.updateStatus', $order), [
+                'status' => Order::STATUS_CANCELED,
+            ])
+            ->assertSessionHasErrors('change_reason');
+
+        $this->assertSame(Order::STATUS_PENDING, $order->fresh()->status);
+
+        $this->actingAs($admin)
+            ->post(route('admin.orders.updateStatus', $order), [
+                'status' => Order::STATUS_CANCELED,
+                'change_reason' => 'Подтверждена отмена после обращения покупателя.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(Order::STATUS_CANCELED, $order->fresh()->status);
+        $log = AdminActivityLog::where('action', 'order.status_updated')->firstOrFail();
+        $this->assertSame('Подтверждена отмена после обращения покупателя.', $log->meta['reason']);
+    }
+
     public function test_quick_checkout_rejects_invalid_quantity(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -254,6 +288,92 @@ class SecurityRegressionTest extends TestCase
             'sender_id' => $buyer->id,
             'body' => 'Здравствуйте!',
         ]);
+    }
+
+    public function test_buyer_can_start_order_product_chat_with_visible_product_context(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $otherBuyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['title' => 'Purchased chat product']);
+        $order = $this->createOrder($buyer, $seller);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($otherBuyer)
+            ->post(route('orders.chat.product', [$order, $product]))
+            ->assertForbidden();
+
+        $this->actingAs($buyer)
+            ->post(route('orders.chat.product', [$order, $product]))
+            ->assertRedirect();
+
+        $conversation = Conversation::where('product_id', $product->id)->firstOrFail();
+        $this->assertSame(Conversation::orderProductContextKey($order, $product), $conversation->context_key);
+        $this->assertSame($order->id, $conversation->order_id);
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $buyer->id,
+            'type' => Message::TYPE_SYSTEM,
+            'body' => "Диалог по заказу {$order->number}.\nТовар: Purchased chat product",
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Заказ ' . $order->number)
+            ->assertSee('Purchased chat product')
+            ->assertSee(route('product.show', $product->slug), false)
+            ->assertSee($order->number);
+    }
+
+    public function test_buyer_opens_support_from_order_with_order_context(): void
+    {
+        User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Support order shop']);
+        $product = $this->createProduct($seller, ['title' => 'Support context product']);
+        $order = $this->createOrder($buyer, $seller);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('orders.support', $order))
+            ->assertRedirect();
+
+        $conversation = Conversation::where('conversation_type', Conversation::TYPE_SUPPORT)
+            ->where('buyer_id', $buyer->id)
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $buyer->id,
+            'type' => Message::TYPE_SYSTEM,
+            'order_id' => $order->id,
+            'body' => "Обращение по заказу {$order->number}.\n"
+                . "Магазин: Support order shop\n"
+                . "Товары: Support context product\n"
+                . 'Опишите проблему следующим сообщением.',
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.show', $conversation))
+            ->assertOk()
+            ->assertSee('Обращение по заказу')
+            ->assertSee($order->number)
+            ->assertSee(route('orders.show', $order), false)
+            ->assertSee(route('product.show', $product->slug), false);
     }
 
     public function test_starting_chat_from_seller_page_opens_widget_mode(): void
@@ -2388,6 +2508,208 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(1, $product->fresh()->stock);
     }
 
+    public function test_checkout_displays_and_charges_delivery_for_each_seller_order(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $firstSeller = User::factory()->create(['role' => 'seller', 'name' => 'First seller']);
+        $secondSeller = User::factory()->create(['role' => 'seller', 'name' => 'Second seller']);
+        $firstSeller->shop()->create(['name' => 'First shop']);
+        $secondSeller->shop()->create(['name' => 'Second shop']);
+        $firstProduct = $this->createProduct($firstSeller);
+        $secondProduct = $this->createProduct($secondSeller);
+        $address = UserAddress::create([
+            'user_id' => $buyer->id,
+            'country' => 'MD',
+            'city' => 'Tiraspol',
+            'street' => 'Main',
+            'house' => '1',
+            'is_default' => true,
+        ]);
+        $cart = collect([$firstProduct, $secondProduct])->map(fn (Product $product) => [
+            'cart_id' => null,
+            'product_id' => $product->id,
+            'title' => $product->title,
+            'price' => $product->price,
+            'qty' => 1,
+            'image' => $product->image,
+        ])->all();
+
+        $this->actingAs($buyer)
+            ->withSession(['checkout_cart' => $cart])
+            ->get(route('checkout.confirm'))
+            ->assertOk()
+            ->assertSee('First shop')
+            ->assertSee('Second shop')
+            ->assertSee('Будет создано заказов:')
+            ->assertSee('510,00 ₽');
+
+        $this->actingAs($buyer)
+            ->post(route('checkout.create'), [
+                'checkout_token' => session('checkout_token'),
+                'address_id' => $address->id,
+                'payment_method' => 'cash',
+                'delivery_method' => 'courier',
+            ])
+            ->assertRedirect(route('orders.index'));
+
+        $totals = Order::where('user_id', $buyer->id)
+            ->orderBy('seller_id')
+            ->pluck('total_price')
+            ->map(fn ($total) => (float) $total)
+            ->all();
+
+        $this->assertSame([255.0, 255.0], $totals);
+    }
+
+    public function test_checkout_requires_new_confirmation_when_product_price_changes(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $cart = [[
+            'cart_id' => null,
+            'product_id' => $product->id,
+            'title' => $product->title,
+            'price' => $product->price,
+            'qty' => 1,
+            'image' => $product->image,
+        ]];
+
+        $this->actingAs($buyer)
+            ->withSession(['checkout_cart' => $cart])
+            ->get(route('checkout.confirm'))
+            ->assertOk();
+
+        $product->update(['price' => 125]);
+
+        $this->actingAs($buyer)
+            ->post(route('checkout.create'), [
+                'checkout_token' => session('checkout_token'),
+                'payment_method' => 'cash',
+                'delivery_method' => 'pickup',
+            ])
+            ->assertRedirect(route('checkout.confirm'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('orders', ['user_id' => $buyer->id]);
+        $this->assertSame(125.0, (float) session('checkout_cart.0.price'));
+    }
+
+    public function test_checkout_token_cannot_create_the_same_order_twice(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['stock' => 3]);
+        $cart = [[
+            'cart_id' => null,
+            'product_id' => $product->id,
+            'title' => $product->title,
+            'price' => $product->price,
+            'qty' => 1,
+            'image' => $product->image,
+        ]];
+
+        $this->actingAs($buyer)
+            ->withSession(['checkout_cart' => $cart])
+            ->get(route('checkout.confirm'))
+            ->assertOk();
+
+        $token = session('checkout_token');
+        $payload = [
+            'checkout_token' => $token,
+            'payment_method' => 'cash',
+            'delivery_method' => 'pickup',
+        ];
+
+        $this->actingAs($buyer)
+            ->post(route('checkout.create'), $payload)
+            ->assertRedirect();
+
+        $this->actingAs($buyer)
+            ->withSession([
+                'checkout_cart' => $cart,
+                'checkout_token' => $token,
+            ])
+            ->post(route('checkout.create'), $payload)
+            ->assertRedirect(route('checkout.confirm'))
+            ->assertSessionHas('error');
+
+        $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
+        $this->assertSame(2, $product->fresh()->stock);
+    }
+
+    public function test_buyer_order_page_exposes_only_working_status_actions(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = $seller->shop()->create(['name' => 'Order seller shop']);
+        $product = $this->createProduct($seller, ['title' => 'Reviewable order product']);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_SHIPPED);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee($shop->name)
+            ->assertSee('Написать продавцу')
+            ->assertSee('Обратиться в поддержку')
+            ->assertSee('Подтвердить получение')
+            ->assertDontSee('Скачать чек')
+            ->assertDontSee('Купить снова');
+
+        $order->update(['status' => Order::STATUS_DELIVERED]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Оставить отзыв о покупке')
+            ->assertSee('#reviews', false)
+            ->assertDontSee('Подтвердить получение');
+    }
+
+    public function test_buyer_can_request_cancellation_before_shipping_and_seller_sees_reason(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_PROCESSING);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Запросить отмену');
+
+        $this->actingAs($buyer)
+            ->post(route('orders.requestCancellation', $order), [
+                'cancellation_reason' => 'Заказ оформлен ошибочно.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'cancellation_reason' => 'Заказ оформлен ошибочно.',
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('seller.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Покупатель запросил отмену заказа')
+            ->assertSee('Заказ оформлен ошибочно.');
+
+        $order->update(['status' => Order::STATUS_SHIPPED]);
+
+        $this->actingAs($buyer)
+            ->post(route('orders.requestCancellation', $order), [
+                'cancellation_reason' => 'Поздний запрос.',
+            ])
+            ->assertSessionHasErrors('cancellation_reason');
+    }
+
     public function test_phone_verification_routes_require_authentication(): void
     {
         $this->postJson(route('phone.send'))
@@ -2559,6 +2881,42 @@ class SecurityRegressionTest extends TestCase
         $this->assertFalse(Cache::has("cat.filters.{$category->id}"));
     }
 
+    public function test_admin_category_ajax_search_updates_mobile_and_desktop_fragments(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Category::factory()->create(['name' => 'Visible mobile category']);
+        Category::factory()->create(['name' => 'Hidden category']);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.categories.index', ['ajax' => 1, 'q' => 'Visible mobile']), [
+                'X-Requested-With' => 'XMLHttpRequest',
+            ])
+            ->assertOk()
+            ->assertJsonStructure(['desktop', 'mobile', 'pagination']);
+
+        $this->assertStringContainsString('Visible mobile category', $response->json('desktop'));
+        $this->assertStringContainsString('Visible mobile category', $response->json('mobile'));
+        $this->assertStringNotContainsString('Hidden category', $response->json('mobile'));
+    }
+
+    public function test_admin_attribute_editor_serializes_user_entered_name_safely(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $category = Category::factory()->create();
+        $attribute = \App\Models\Attribute::create([
+            'name' => "'; alert('attribute-xss');//",
+            'type' => 'text',
+        ]);
+        $category->attributes()->attach($attribute);
+
+        $this->actingAs($admin)
+            ->get(route('admin.categories.attributes', $category))
+            ->assertOk()
+            ->assertSee('openEditor(', false)
+            ->assertDontSee("editName=''; alert('attribute-xss');//", false)
+            ->assertDontSee("onsubmit=\"return confirm('Удалить атрибут ';", false);
+    }
+
     public function test_user_cannot_review_product_without_completed_purchase(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -2654,12 +3012,38 @@ class SecurityRegressionTest extends TestCase
             ])
             ->assertOk()
             ->assertJson(['status' => Review::STATUS_REJECTED]);
+        $this->assertDatabaseHas('admin_activity_logs', [
+            'action' => 'review.rejected',
+            'subject_id' => $review->id,
+        ]);
 
         $this->actingAs($buyer)
             ->get(route('reviews.index', ['status' => Review::STATUS_REJECTED]))
             ->assertOk()
             ->assertSee('Причина отклонения')
             ->assertSee('Отзыв содержит неподходящий текст.');
+    }
+
+    public function test_admin_cannot_reject_review_without_reason(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $review = Review::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'rating' => 1,
+            'body' => 'Review requiring a decision',
+            'status' => Review::STATUS_PENDING,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.reviews.reject', $review), [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('reason');
+
+        $this->assertSame(Review::STATUS_PENDING, $review->fresh()->status);
     }
 
     public function test_admin_reviews_can_be_searched_and_filtered_by_rating(): void
@@ -3794,7 +4178,98 @@ class SecurityRegressionTest extends TestCase
             ->assertDontSee($activeOrder->number);
     }
 
-    public function test_cart_index_cleans_unavailable_products(): void
+    public function test_buyer_orders_search_and_action_tab_use_real_order_tasks(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Searchable buyer shop']);
+        $shippedProduct = $this->createProduct($seller, ['title' => 'Needs receipt product']);
+        $completedProduct = $this->createProduct($seller, ['title' => 'Needs review product']);
+        $hiddenProduct = $this->createProduct($seller, ['title' => 'Already reviewed product']);
+        $shippedOrder = $this->createOrder($buyer, $seller, Order::STATUS_SHIPPED);
+        $completedOrder = $this->createOrder($buyer, $seller, Order::STATUS_COMPLETED);
+        $reviewedOrder = $this->createOrder($buyer, $seller, Order::STATUS_COMPLETED);
+
+        foreach ([[$shippedOrder, $shippedProduct], [$completedOrder, $completedProduct], [$reviewedOrder, $hiddenProduct]] as [$order, $product]) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'price' => 100,
+                'total' => 100,
+            ]);
+        }
+
+        Review::create([
+            'user_id' => $buyer->id,
+            'product_id' => $hiddenProduct->id,
+            'rating' => 5,
+            'body' => 'Already done',
+            'status' => Review::STATUS_APPROVED,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.index', ['tab' => 'action']))
+            ->assertOk()
+            ->assertViewHas('tab', 'action')
+            ->assertViewHas('actionCount', 2)
+            ->assertSee('Мои действия')
+            ->assertSee($shippedOrder->number)
+            ->assertSee($completedOrder->number)
+            ->assertDontSee($reviewedOrder->number)
+            ->assertSee('Подтвердите получение товара')
+            ->assertSee('Можно оставить отзыв о покупке');
+
+        $this->actingAs($buyer)
+            ->get(route('orders.index', ['tab' => 'completed', 'q' => 'Needs review']))
+            ->assertOk()
+            ->assertSee($completedOrder->number)
+            ->assertDontSee($reviewedOrder->number);
+    }
+
+    public function test_buyer_cabinet_shows_action_counts_from_orders_and_messages(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $shippedOrder = $this->createOrder($buyer, $seller, Order::STATUS_SHIPPED);
+        $receivedOrder = $this->createOrder($buyer, $seller, Order::STATUS_DELIVERED);
+
+        foreach ([$shippedOrder, $receivedOrder] as $order) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'price' => 100,
+                'total' => 100,
+            ]);
+        }
+
+        $support = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $admin->id,
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+            'context_key' => 'support:' . $buyer->id,
+        ]);
+        $support->messages()->create([
+            'sender_id' => $admin->id,
+            'body' => 'Support reply awaiting buyer',
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('cabinet'))
+            ->assertOk()
+            ->assertViewHas('unreadMessagesCount', 1)
+            ->assertViewHas('confirmationOrdersCount', 1)
+            ->assertViewHas('reviewableOrdersCount', 1)
+            ->assertViewHas('supportUnreadCount', 1)
+            ->assertSee('Требует внимания')
+            ->assertSee('Подтвердить получение')
+            ->assertSee('Оставить отзыв');
+    }
+
+    public function test_cart_index_preserves_and_marks_unavailable_products(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
@@ -3819,20 +4294,23 @@ class SecurityRegressionTest extends TestCase
             ->get(route('cart.index'))
             ->assertOk()
             ->assertSee('Visible cart product')
+            ->assertSee('Hidden cart product')
+            ->assertSee('Недоступно для оформления')
             ->assertViewHas('items', fn ($items) => $items->contains('product_id', $activeProduct->id)
-                && ! $items->contains('product_id', $draftProduct->id));
+                && ! $items->contains('product_id', $draftProduct->id))
+            ->assertViewHas('unavailableItems', fn ($items) => $items->contains('product_id', $draftProduct->id));
 
         $this->assertDatabaseHas('cart_items', [
             'user_id' => $buyer->id,
             'product_id' => $activeProduct->id,
         ]);
-        $this->assertDatabaseMissing('cart_items', [
+        $this->assertDatabaseHas('cart_items', [
             'user_id' => $buyer->id,
             'product_id' => $draftProduct->id,
         ]);
     }
 
-    public function test_favorites_index_cleans_unavailable_products(): void
+    public function test_favorites_index_preserves_and_marks_unavailable_products(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
@@ -3855,13 +4333,29 @@ class SecurityRegressionTest extends TestCase
             ->get(route('favorites.index'))
             ->assertOk()
             ->assertSee('Visible favorite product')
+            ->assertSee('Hidden favorite product')
+            ->assertSee('Больше недоступны')
             ->assertViewHas('items', fn ($items) => $items->contains('product_id', $activeProduct->id)
-                && ! $items->contains('product_id', $draftProduct->id));
+                && ! $items->contains('product_id', $draftProduct->id))
+            ->assertViewHas('unavailableItems', fn ($items) => $items->contains('product_id', $draftProduct->id));
 
         $this->assertDatabaseHas('favorites', [
             'user_id' => $buyer->id,
             'product_id' => $activeProduct->id,
         ]);
+        $this->assertDatabaseHas('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $draftProduct->id,
+        ]);
+
+        $unavailableFavorite = Favorite::where('user_id', $buyer->id)
+            ->where('product_id', $draftProduct->id)
+            ->firstOrFail();
+
+        $this->actingAs($buyer)
+            ->delete(route('favorites.remove', $unavailableFavorite))
+            ->assertRedirect();
+
         $this->assertDatabaseMissing('favorites', [
             'user_id' => $buyer->id,
             'product_id' => $draftProduct->id,

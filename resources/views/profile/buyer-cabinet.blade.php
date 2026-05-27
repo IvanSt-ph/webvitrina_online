@@ -6,6 +6,36 @@
     $ordersCount = \App\Models\Order::where('user_id', $user->id)->count();
     $subscriptionsCount = $followedShopsCount ?? 0;
     $recs = is_array($recommendations ?? null) ? $recommendations : [];
+    $actionCards = [
+        [
+            'title' => 'Новые сообщения',
+            'count' => $unreadMessagesCount ?? 0,
+            'href' => route('chats.index'),
+            'icon' => 'ri-chat-3-line',
+            'description' => 'Ответы продавцов и поддержки',
+        ],
+        [
+            'title' => 'Подтвердить получение',
+            'count' => $confirmationOrdersCount ?? 0,
+            'href' => route('orders.index', ['tab' => 'action']),
+            'icon' => 'ri-checkbox-circle-line',
+            'description' => 'Заказы уже в доставке',
+        ],
+        [
+            'title' => 'Оставить отзыв',
+            'count' => $reviewableOrdersCount ?? 0,
+            'href' => route('orders.index', ['tab' => 'action']),
+            'icon' => 'ri-star-line',
+            'description' => 'Полученные покупки без оценки',
+        ],
+        [
+            'title' => 'Ответы поддержки',
+            'count' => $supportUnreadCount ?? 0,
+            'href' => route('support'),
+            'icon' => 'ri-customer-service-2-line',
+            'description' => 'Непрочитанные сообщения',
+        ],
+    ];
 
     $quickLinks = [
         [
@@ -49,7 +79,6 @@
         ['title' => 'Личные данные', 'icon' => 'ri-user-settings-line', 'href' => route('buyer.profile')],
         ['title' => 'Уведомления', 'icon' => 'ri-notification-3-line', 'href' => route('notifications.settings')],
         ['title' => 'Мои отзывы', 'icon' => 'ri-star-line', 'href' => route('reviews.index')],
-        ['title' => 'Вопросы и ответы', 'icon' => 'ri-question-answer-line', 'href' => route('questions.index')],
         ['title' => 'Служба поддержки', 'icon' => 'ri-customer-service-2-line', 'href' => route('support')],
         ['title' => 'Мои подписки', 'icon' => 'ri-user-follow-line', 'href' => route('subscriptions.index')],
     ];
@@ -113,6 +142,30 @@
         </div>
     </section>
 
+    <section class="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 shadow-sm sm:rounded-2xl sm:p-5">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Требует внимания</h2>
+                <p class="mt-1 text-xs text-gray-500">Ваши ближайшие действия и новые ответы</p>
+            </div>
+            <a href="{{ route('orders.index', ['tab' => 'action']) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Все действия</a>
+        </div>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach($actionCards as $card)
+                <a href="{{ $card['href'] }}" class="rounded-xl border border-white bg-white p-3 transition hover:border-indigo-100 hover:shadow-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                            <i class="{{ $card['icon'] }} text-lg"></i>
+                        </span>
+                        <span class="text-xl font-bold {{ $card['count'] > 0 ? 'text-indigo-700' : 'text-gray-400' }}">{{ $card['count'] }}</span>
+                    </div>
+                    <div class="mt-3 text-sm font-semibold text-gray-900">{{ $card['title'] }}</div>
+                    <div class="mt-1 text-xs text-gray-500">{{ $card['description'] }}</div>
+                </a>
+            @endforeach
+        </div>
+    </section>
+
     <section class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         @foreach($quickLinks as $link)
             <a href="{{ $link['href'] }}" class="group bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-indigo-100 transition">
@@ -151,6 +204,9 @@
                                         <span class="font-semibold text-gray-900">Заказ {{ $order->number ?? '#'.$order->id }}</span>
                                         <x-status-badge :status="$order->status" />
                                     </div>
+                                    @if($order->seller?->shop)
+                                        <div class="mt-1 text-xs font-medium text-indigo-600">{{ $order->seller->shop->name }}</div>
+                                    @endif
                                     <div class="text-xs text-gray-500 mt-1">{{ $order->created_at->format('d.m.Y · H:i') }}</div>
                                 </div>
 
@@ -178,6 +234,12 @@
                                     </div>
                                 @endif
                             </div>
+
+                            @if($order->status === \App\Models\Order::STATUS_SHIPPED)
+                                <div class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                                    Получили товар? Подтвердите получение в заказе.
+                                </div>
+                            @endif
                         </a>
                     @empty
                         <x-empty-state
@@ -282,21 +344,6 @@
                         </a>
                     @endforeach
                 </div>
-            </section>
-
-            <section class="bg-indigo-50 border border-indigo-100 rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5">
-                <div class="flex items-start gap-3">
-                    <div class="w-11 h-11 rounded-xl bg-white text-indigo-600 flex items-center justify-center border border-indigo-100">
-                        <i class="ri-gift-line text-xl"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <h2 class="font-semibold text-gray-900">Бонусы</h2>
-                        <p class="text-sm text-gray-600 mt-1">Доступно к использованию: <strong>245 ₽</strong></p>
-                    </div>
-                </div>
-                <button type="button" class="mt-4 w-full h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">
-                    Обменять бонусы
-                </button>
             </section>
 
             <form action="{{ route('logout') }}" method="POST">

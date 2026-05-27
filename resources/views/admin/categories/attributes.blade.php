@@ -10,6 +10,14 @@
         editType:'',
         editOptions:'',
         editColors: [],
+        openEditor(attribute) {
+          this.editId = attribute.id;
+          this.editName = attribute.name;
+          this.editType = attribute.type;
+          this.editOptions = attribute.options;
+          this.editColors = attribute.colors;
+          this.showEdit = true;
+        },
      }">
 
   {{-- Назад --}}
@@ -172,14 +180,13 @@
 
           {{-- Редактировать --}}
           <button type="button"
-                  @click="
-                    editId={{$attr->id}};
-                    editName='{{$attr->name}}';
-                    editType='{{$attr->type}}';
-                    editOptions='{{ implode(',', $attr->options ?? []) }}';
-                    editColors={{ json_encode($attr->colors->pluck('id')) }};
-                    showEdit=true;
-                  "
+                  @click='openEditor(@js([
+                    "id" => $attr->id,
+                    "name" => $attr->name,
+                    "type" => $attr->type,
+                    "options" => implode(",", $attr->options ?? []),
+                    "colors" => $attr->colors->pluck("id")->values(),
+                  ]))'
                   class="text-indigo-600 hover:text-indigo-800">
             <i class="ri-edit-line text-lg"></i>
           </button>
@@ -187,7 +194,7 @@
           {{-- Удалить --}}
           <form action="{{ route('admin.categories.attributes.destroy', [$category->id, $attr->id]) }}"
                 method="POST"
-                onsubmit="return confirm('Удалить атрибут {{ $attr->name }}?')">
+                onsubmit="return confirm('Удалить выбранный атрибут?')">
             @csrf @method('DELETE')
             <button class="text-red-600 hover:text-red-800">
               <i class="ri-delete-bin-6-line text-lg"></i>
@@ -236,7 +243,7 @@
         <div x-show="editType==='select'" class="mb-4">
           <label class="block text-sm mb-1">Значения</label>
           <textarea name="options" x-model="editOptions"
-                    class="w-full border rounded-lg p-2 h-24"></textarea>
+                    class="h-24 w-full resize-none rounded-lg border p-2"></textarea>
         </div>
 
         {{-- Цвета --}}

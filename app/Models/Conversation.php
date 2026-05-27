@@ -16,6 +16,7 @@ class Conversation extends Model
         'buyer_id',
         'seller_id',
         'product_id',
+        'order_id',
         'context_key',
         'conversation_type',
         'last_message_at',
@@ -66,7 +67,12 @@ class Conversation extends Model
 
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function lockedBy()
@@ -82,6 +88,11 @@ class Conversation extends Model
     public static function productContextKey(Product $product): string
     {
         return 'product:' . $product->id;
+    }
+
+    public static function orderProductContextKey(Order $order, Product $product): string
+    {
+        return 'order:' . $order->id . ':product:' . $product->id;
     }
 
     public function messages()
@@ -151,7 +162,7 @@ class Conversation extends Model
     public function recentMessages(int $limit = 50, bool $includeInternalNotes = false)
     {
         return $this->messages()
-            ->with(['sender', 'relatedConversation'])
+            ->with(['sender', 'relatedConversation', 'order.items.product', 'order.seller.shop'])
             ->when(! $includeInternalNotes, fn ($query) => $query->where(function ($query) {
                 $query
                     ->where('type', '!=', Message::TYPE_INTERNAL_NOTE)
@@ -167,7 +178,7 @@ class Conversation extends Model
     public function olderMessagesBefore(int $beforeId, int $limit = 50, bool $includeInternalNotes = false)
     {
         return $this->messages()
-            ->with(['sender', 'relatedConversation'])
+            ->with(['sender', 'relatedConversation', 'order.items.product', 'order.seller.shop'])
             ->where('id', '<', $beforeId)
             ->when(! $includeInternalNotes, fn ($query) => $query->where(function ($query) {
                 $query
@@ -184,7 +195,7 @@ class Conversation extends Model
     public function newerMessagesAfter(int $afterId, int $limit = 50, bool $includeInternalNotes = false)
     {
         return $this->messages()
-            ->with(['sender', 'relatedConversation'])
+            ->with(['sender', 'relatedConversation', 'order.items.product', 'order.seller.shop'])
             ->where('id', '>', $afterId)
             ->when(! $includeInternalNotes, fn ($query) => $query->where(function ($query) {
                 $query

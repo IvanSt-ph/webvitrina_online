@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\OrderItem;
 use App\Models\Order;
+use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\User;
 use App\Models\Shop;
 use Illuminate\Http\Request;
@@ -536,10 +538,36 @@ public function redirectToRoleProfile()
         }
 
         $latestOrders = $user->orders()
-            ->with(['items.product.category', 'items.product.city.country'])
+            ->with(['items.product.category', 'items.product.city.country', 'seller.shop'])
             ->latest()
             ->limit(3)
             ->get();
+
+        $unreadMessagesCount = Message::whereHas('conversation', fn ($query) => $query
+                ->where('buyer_id', $user->id)
+                ->orWhere('seller_id', $user->id))
+            ->where('sender_id', '!=', $user->id)
+            ->whereNull('read_at')
+            ->count();
+
+        $confirmationOrdersCount = $user->orders()
+            ->where('status', Order::STATUS_SHIPPED)
+            ->count();
+
+        $reviewableOrdersCount = $user->orders()
+            ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+            ->whereHas('items.product', fn ($query) => $query->whereDoesntHave(
+                'reviews',
+                fn ($reviews) => $reviews->where('user_id', $user->id)
+            ))
+            ->count();
+
+        $supportUnreadCount = Message::whereHas('conversation', fn ($query) => $query
+                ->where('conversation_type', Conversation::TYPE_SUPPORT)
+                ->where('buyer_id', $user->id))
+            ->where('sender_id', '!=', $user->id)
+            ->whereNull('read_at')
+            ->count();
 
         $followedShopsCount = $user->followedShops()->count();
         $latestFollowedShops = $user->followedShops()
@@ -554,6 +582,10 @@ public function redirectToRoleProfile()
         return view('profile.buyer-cabinet', compact(
             'user',
             'latestOrders',
+            'unreadMessagesCount',
+            'confirmationOrdersCount',
+            'reviewableOrdersCount',
+            'supportUnreadCount',
             'followedShopsCount',
             'latestFollowedShops',
             'recommendations'

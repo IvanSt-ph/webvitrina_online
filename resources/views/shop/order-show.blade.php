@@ -27,6 +27,28 @@
         $order->address?->street,
         trim(($order->address?->house ?? '') . ($order->address?->apartment ? ', кв. ' . $order->address->apartment : '')),
     ])->filter(fn ($part) => filled($part));
+
+    $shop = $order->seller?->shop;
+    $canConfirmDelivery = $order->status === \App\Models\Order::STATUS_SHIPPED;
+    $canRequestCancellation = in_array($order->status, [
+        \App\Models\Order::STATUS_PENDING,
+        \App\Models\Order::STATUS_PROCESSING,
+        \App\Models\Order::STATUS_PAID,
+    ], true) && ! $order->cancellation_requested_at;
+    $canReview = in_array($order->status, [
+        \App\Models\Order::STATUS_DELIVERED,
+        \App\Models\Order::STATUS_COMPLETED,
+    ], true);
+    $paymentLabels = [
+        'cash' => 'Наличными при получении',
+        'card' => 'Картой при получении (онлайн-оплата не выполнялась)',
+        'bank_transfer' => 'Перевод по согласованию с продавцом',
+    ];
+    $chatProducts = $order->items
+        ->pluck('product')
+        ->filter(fn ($product) => $product && ! $product->trashed())
+        ->unique('id')
+        ->values();
 @endphp
 
 
@@ -123,22 +145,25 @@
     </div>
 
 
-    <!-- ℹ Информация покупателя / доставка / оплата -->
+    <!-- ℹ Информация магазина / доставка / оплата -->
     <div class="grid w-full min-w-0 gap-4 overflow-hidden sm:grid-cols-3 sm:gap-6">
 
-<!-- Покупатель -->
+<!-- Магазин -->
 <div class="min-w-0 bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
     <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-        <i class="ri-user-line text-indigo-500"></i>
-        Покупатель
+        <i class="ri-store-2-line text-indigo-500"></i>
+        Продавец
     </h3>
 
-    @if($order->buyer)
-        <p class="break-words text-sm text-gray-800">{{ $order->buyer->name ?? '—' }}</p>
-        <p class="text-sm text-gray-500 mt-1">ID: {{ $order->buyer->id }}</p>
-        <p class="break-all text-sm text-indigo-600 mt-1">{{ $order->buyer->email }}</p>
+    @if($order->seller)
+        <p class="break-words text-sm font-semibold text-gray-800">{{ $shop?->name ?? $order->seller->name }}</p>
+        @if($shop)
+            <a href="{{ route('seller.show', $shop->slug) }}" class="mt-2 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                Открыть магазин
+            </a>
+        @endif
     @else
-        <p class="text-sm text-gray-400 italic">Покупатель не найден</p>
+        <p class="text-sm text-gray-400 italic">Продавец не найден</p>
     @endif
 </div>
 
@@ -173,7 +198,7 @@
                 Оплата
             </h3>
             <p class="break-words text-sm text-gray-700">
-                {{ $order->payment_method ?? 'Не указан' }}
+                {{ $paymentLabels[$order->payment_method] ?? ($order->payment_method ?: 'Не указан') }}
             </p>
 
             @if($order->paid_at)
@@ -255,7 +280,7 @@
     </div>
 
 
-    <!-- 🎯 Кнопки -->
+    <!-- 🎯 Действия по заказу -->
     <div class="grid w-full min-w-0 max-w-full grid-cols-1 gap-3 overflow-hidden sm:flex sm:flex-row sm:flex-wrap">
 
         <a href="{{ route('orders.index') }}"
@@ -264,28 +289,108 @@
             <span class="min-w-0 truncate">Назад</span>
         </a>
 
-        <a href="#"
-           class="group relative flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 overflow-hidden rounded-xl border border-indigo-400/30 bg-indigo-500/90 px-4 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all duration-300 hover:bg-indigo-600 hover:shadow-xl sm:w-auto sm:px-5">
-            <span class="relative z-10 flex min-w-0 items-center gap-2">
-                <i class="ri-shopping-bag-3-line shrink-0"></i>
-                <span class="min-w-0 truncate">Купить снова</span>
-            </span>
-            <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-        </a>
+        @if($chatProducts->count() === 1)
+            <form method="POST" action="{{ route('orders.chat.product', [$order, $chatProducts->first()]) }}" class="w-full sm:w-auto">
+                @csrf
+                <button type="submit"
+                        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:px-5">
+                    <i class="ri-chat-3-line shrink-0"></i>
+                    <span>Написать продавцу</span>
+                </button>
+            </form>
+        @elseif($chatProducts->count() > 1)
+            <a href="#order-product-chats"
+               class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto sm:px-5">
+                <i class="ri-chat-3-line shrink-0"></i>
+                <span>Написать о товаре</span>
+            </a>
+        @endif
 
-        <a href="#"
-           class="flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 sm:w-auto sm:px-5">
-            <i class="ri-file-download-line shrink-0"></i>
-            <span class="min-w-0 truncate">Скачать чек (PDF)</span>
-        </a>
+        <form method="POST" action="{{ route('orders.support', $order) }}" class="w-full sm:w-auto">
+            @csrf
+            <button type="submit"
+                    class="flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 sm:px-5">
+                <i class="ri-customer-service-2-line shrink-0"></i>
+                <span>Обратиться в поддержку</span>
+            </button>
+        </form>
 
-        <a href="#"
-           class="flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 sm:w-auto sm:px-5">
-            <i class="ri-star-line shrink-0"></i>
-            <span class="min-w-0 truncate">Оставить отзыв</span>
-        </a>
+        @if($canConfirmDelivery)
+            <form method="POST" action="{{ route('orders.confirmDelivery', $order) }}" class="w-full sm:w-auto">
+                @csrf
+                <button type="submit"
+                        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 sm:px-5">
+                    <i class="ri-checkbox-circle-line shrink-0"></i>
+                    <span>Подтвердить получение</span>
+                </button>
+            </form>
+        @endif
 
     </div>
+
+    @if($order->cancellation_requested_at)
+        <section class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
+            <h3 class="font-semibold text-amber-900">Запрос на отмену отправлен</h3>
+            <p class="mt-1 text-sm text-amber-800">Отправлен {{ $order->cancellation_requested_at->format('d.m.Y H:i') }}. Продавец или поддержка рассмотрят запрос.</p>
+            @if(filled($order->cancellation_reason))
+                <p class="mt-3 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700">{{ $order->cancellation_reason }}</p>
+            @endif
+        </section>
+    @elseif($canRequestCancellation)
+        <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+            <h3 class="font-semibold text-gray-900">Нужно отменить заказ?</h3>
+            <p class="mt-1 text-sm text-gray-500">Пока товар не отправлен, можно направить продавцу запрос на отмену.</p>
+            <form method="POST" action="{{ route('orders.requestCancellation', $order) }}" class="mt-4 max-w-xl space-y-3">
+                @csrf
+                <textarea name="cancellation_reason" rows="3" required maxlength="700"
+                          placeholder="Напишите причину отмены"
+                          class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">{{ old('cancellation_reason') }}</textarea>
+                @error('cancellation_reason')
+                    <p class="text-sm text-rose-600">{{ $message }}</p>
+                @enderror
+                <button class="inline-flex h-11 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
+                    Запросить отмену
+                </button>
+            </form>
+        </section>
+    @endif
+
+    @if($chatProducts->count() > 1)
+        <section id="order-product-chats" class="w-full max-w-full overflow-hidden rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
+            <h3 class="font-semibold text-gray-900">Написать продавцу о товаре</h3>
+            <p class="mt-1 text-sm text-gray-500">Выберите позицию: её карточка и ссылка сразу появятся в чате.</p>
+            <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                @foreach($chatProducts as $product)
+                    <form method="POST" action="{{ route('orders.chat.product', [$order, $product]) }}">
+                        @csrf
+                        <button type="submit"
+                                class="flex h-12 w-full min-w-0 items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-left text-sm font-medium text-indigo-700 transition hover:bg-indigo-100">
+                            <i class="ri-chat-3-line shrink-0"></i>
+                            <span class="truncate">{{ $product->title }}</span>
+                        </button>
+                    </form>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if($canReview)
+        <section class="w-full max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+            <h3 class="font-semibold text-gray-900">Оставить отзыв о покупке</h3>
+            <p class="mt-1 text-sm text-gray-500">Выберите товар, чтобы оценить его на странице товара.</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+                @foreach($order->items as $item)
+                    @if($item->product)
+                        <a href="{{ route('product.show', $item->product->slug) }}#reviews"
+                           class="inline-flex h-10 max-w-full items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-100">
+                            <i class="ri-star-line shrink-0"></i>
+                            <span class="truncate">{{ $item->product->title }}</span>
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </section>
+    @endif
 
 </div>
 </div>

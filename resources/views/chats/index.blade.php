@@ -68,6 +68,8 @@
                         </form>
                     </header>
 
+                    @include('chats.partials.product-context', ['conversation' => $conversation])
+
                     <div class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-6 py-5">
                         <div class="space-y-4">
                             @forelse($selectedMessages as $message)

@@ -3,24 +3,89 @@
 @section('title', 'Главная панель')
 
 @section('content')
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+<div class="mb-5 flex flex-col gap-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
   <div>
-    <h1 class="text-2xl font-bold text-gray-800">Общая информация</h1>
-    <p class="text-sm text-gray-500">Статистика за последние 7 дней</p>
+    <div class="text-xs font-bold uppercase text-indigo-600">Операционный центр</div>
+    <h1 class="mt-1 text-2xl font-bold text-slate-950">Что требует внимания</h1>
+    <p class="mt-1 text-sm text-slate-500">Сначала работа с обращениями и решениями, ниже - аналитика магазина.</p>
   </div>
-  <a href="{{ route('admin.products.create') }}"
-     class="mt-3 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-    <i class="ri-add-line text-lg"></i> Добавить товар
+  <a href="{{ route('admin.chats.index') }}"
+     class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white transition hover:bg-indigo-700">
+    <i class="ri-message-3-line text-lg"></i> Открыть чаты
   </a>
 </div>
+
+<section class="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+  @foreach([
+    ['value' => $workQueue['orders'] ?? 0, 'label' => 'Заказы в работе', 'route' => route('admin.orders.index', ['status' => \App\Models\Order::STATUS_PENDING]), 'icon' => 'ri-shopping-bag-3-line'],
+    ['value' => $workQueue['chats'] ?? 0, 'label' => 'Новые сообщения', 'route' => route('admin.chats.index'), 'icon' => 'ri-message-3-line'],
+    ['value' => $workQueue['reviews'] ?? 0, 'label' => 'Отзывы на проверке', 'route' => route('admin.reviews.index', ['status' => 'pending']), 'icon' => 'ri-chat-check-line'],
+    ['value' => $workQueue['plans'] ?? 0, 'label' => 'Заявки на тариф', 'route' => route('admin.seller-plan-requests.index'), 'icon' => 'ri-vip-crown-line'],
+    ['value' => $workQueue['banners'] ?? 0, 'label' => 'Баннеры без mobile', 'route' => route('admin.banners.index', ['status' => 'missing_mobile']), 'icon' => 'ri-smartphone-line'],
+  ] as $task)
+    <a href="{{ $task['route'] }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50">
+      <div class="flex items-center justify-between">
+        <span class="text-2xl font-bold {{ $task['value'] > 0 ? 'text-indigo-700' : 'text-slate-400' }}">{{ $task['value'] }}</span>
+        <i class="{{ $task['icon'] }} text-lg text-indigo-500"></i>
+      </div>
+      <div class="mt-2 text-sm font-semibold text-slate-700">{{ $task['label'] }}</div>
+    </a>
+  @endforeach
+</section>
+
+<section class="mb-7 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="font-bold text-slate-900">Старые заказы в работе</h2>
+      <a href="{{ route('admin.orders.index') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Все заказы</a>
+    </div>
+    <div class="mt-3 divide-y divide-slate-100">
+      @forelse($attentionOrders as $order)
+        <a href="{{ route('admin.orders.show', $order) }}" class="flex items-center justify-between gap-3 py-3 text-sm transition hover:text-indigo-700">
+          <div class="min-w-0">
+            <div class="truncate font-semibold text-slate-900">#{{ $order->number }}</div>
+            <div class="truncate text-xs text-slate-500">{{ $order->user?->name }} / {{ $order->seller?->name }}</div>
+          </div>
+          <div class="shrink-0 text-right">
+            <div class="font-bold text-slate-800">{{ $order->formatted_total_price }}</div>
+            <div class="text-xs text-slate-400">{{ $order->created_at->diffForHumans() }}</div>
+          </div>
+        </a>
+      @empty
+        <p class="py-6 text-center text-sm text-slate-500">Нет заказов, ожидающих решения.</p>
+      @endforelse
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="font-bold text-slate-900">Изменение тарифов</h2>
+      <a href="{{ route('admin.seller-plan-requests.index') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
+    </div>
+    <div class="mt-3 space-y-2">
+      @forelse($pendingPlans as $planRequest)
+        @if($planRequest->user)
+        <a href="{{ route('admin.users.show', $planRequest->user) }}" class="block rounded-xl bg-slate-50 p-3 transition hover:bg-indigo-50">
+          <div class="truncate text-sm font-semibold text-slate-900">{{ $planRequest->user?->name ?? 'Пользователь удален' }}</div>
+          <div class="mt-1 text-xs text-slate-500">{{ ucfirst($planRequest->current_plan) }} -> {{ ucfirst($planRequest->requested_plan) }} · {{ $planRequest->created_at->diffForHumans() }}</div>
+        </a>
+        @else
+          <div class="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">Пользователь этой заявки удалён.</div>
+        @endif
+      @empty
+        <p class="py-6 text-center text-sm text-slate-500">Нет новых заявок.</p>
+      @endforelse
+    </div>
+  </div>
+</section>
 
 <!-- ========================== -->
 <!-- 📊 ОСНОВНЫЕ ПОКАЗАТЕЛИ -->
 <!-- ========================== -->
-<div x-data="{ open: window.innerWidth >= 640 }" class="mb-10">
+<div x-data="{ open: false }" class="mb-7">
   <button @click="open = !open"
-          class="sm:hidden w-full flex justify-between items-center px-4 py-3 bg-gray-100 rounded-lg mb-3">
-    <span class="font-medium text-gray-700">Основные показатели</span>
+          class="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <span class="font-semibold text-slate-700">Показатели и динамика</span>
     <i class="ri-arrow-down-s-line text-gray-500 text-xl transition-transform duration-300"
        :class="{ 'rotate-180': open }"></i>
   </button>
@@ -61,9 +126,9 @@
 <!-- ========================== -->
 <!-- 🔝 ТОП-5 СТАТИСТИКА -->
 <!-- ========================== -->
-<div x-data="{ open: window.innerWidth >= 640 }" class="mb-10">
+<div x-data="{ open: false }" class="mb-7">
   <button @click="open = !open"
-          class="sm:hidden w-full flex justify-between items-center px-4 py-3 bg-gray-100 rounded-lg mb-3">
+          class="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
     <span class="font-medium text-gray-700">ТОП-5 статистика</span>
     <i class="ri-arrow-down-s-line text-gray-500 text-xl transition-transform duration-300"
        :class="{ 'rotate-180': open }"></i>
@@ -126,9 +191,9 @@
 <!-- ========================== -->
 <!-- 📈 ГРАФИКИ -->
 <!-- ========================== -->
-<div x-data="{ open: window.innerWidth >= 640 }" class="mb-10">
+<div x-data="{ open: false }" class="mb-7">
   <button @click="open = !open"
-          class="sm:hidden w-full flex justify-between items-center px-4 py-3 bg-gray-100 rounded-lg mb-3">
+          class="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
     <span class="font-medium text-gray-700">Графики активности</span>
     <i class="ri-arrow-down-s-line text-gray-500 text-xl transition-transform duration-300"
        :class="{ 'rotate-180': open }"></i>
@@ -164,9 +229,9 @@
 <!-- ========================== -->
 <!-- 🧾 ПОСЛЕДНИЕ ТОВАРЫ -->
 <!-- ========================== -->
-<div x-data="{ open: window.innerWidth >= 640 }">
+<div x-data="{ open: false }">
   <button @click="open = !open"
-          class="sm:hidden w-full flex justify-between items-center px-4 py-3 bg-gray-100 rounded-lg mb-3">
+          class="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
     <span class="font-medium text-gray-700">Последние товары</span>
     <i class="ri-arrow-down-s-line text-gray-500 text-xl transition-transform duration-300"
        :class="{ 'rotate-180': open }"></i>

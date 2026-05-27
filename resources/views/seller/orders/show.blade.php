@@ -102,6 +102,15 @@
                 </div>
             </div>
         </div>
+
+        @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
+            <section class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
+                <h2 class="font-semibold text-rose-900">Покупатель запросил отмену заказа</h2>
+                <p class="mt-1 text-sm text-rose-700">{{ $order->cancellation_requested_at->format('d.m.Y H:i') }}</p>
+                <p class="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-700">{{ $order->cancellation_reason }}</p>
+                <p class="mt-3 text-sm text-rose-800">Если заказ ещё не отправлен, отмените его в блоке действий ниже или свяжитесь с покупателем.</p>
+            </section>
+        @endif
 {{-- Покупатель --}}
 <div class="min-w-0 overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex items-center gap-4">
 

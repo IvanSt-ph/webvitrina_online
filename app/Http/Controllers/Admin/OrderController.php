@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminActivityLog;
+use App\Models\Conversation;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,5 +90,47 @@ class OrderController extends Controller
         $orders = $query->paginate(12)->withQueryString();
 
         return view('admin.orders.index', compact('orders', 'statusCounts', 'summary', 'sort'));
+    }
+
+    public function show(Order $order)
+    {
+        $order->load(['user', 'seller.shop', 'address', 'items.product']);
+
+        $productIds = $order->items->pluck('product_id')->filter()->values();
+
+        $marketplaceConversations = Conversation::query()
+            ->with(['product', 'lastMessage'])
+            ->where('conversation_type', Conversation::TYPE_MARKETPLACE)
+            ->where('buyer_id', $order->user_id)
+            ->where('seller_id', $order->seller_id)
+            ->when($productIds->isNotEmpty(), fn ($query) => $query->where(function ($sub) use ($productIds) {
+                $sub->whereIn('product_id', $productIds)->orWhereNull('product_id');
+            }))
+            ->latest('last_message_at')
+            ->limit(6)
+            ->get();
+
+        $supportConversations = Conversation::query()
+            ->with(['buyer', 'lastMessage'])
+            ->where('conversation_type', Conversation::TYPE_SUPPORT)
+            ->whereIn('buyer_id', [$order->user_id, $order->seller_id])
+            ->latest('last_message_at')
+            ->limit(6)
+            ->get();
+
+        $activity = AdminActivityLog::query()
+            ->with('admin')
+            ->where('subject_type', Order::class)
+            ->where('subject_id', $order->id)
+            ->latest()
+            ->limit(15)
+            ->get();
+
+        return view('admin.orders.show', compact(
+            'order',
+            'marketplaceConversations',
+            'supportConversations',
+            'activity'
+        ));
     }
 }

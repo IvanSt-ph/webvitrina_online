@@ -40,6 +40,14 @@ class CategoryController extends Controller
             ->paginate(20)
             ->appends($request->query());
 
+        if ($request->ajax() || $request->boolean('ajax')) {
+            return response()->json([
+                'desktop' => view('admin.categories.table', compact('categories'))->render(),
+                'mobile' => view('admin.categories.mobile-list', compact('categories'))->render(),
+                'pagination' => view('admin.categories.pagination', compact('categories'))->render(),
+            ]);
+        }
+
         $parents = Category::whereNull('parent_id')->orderBy('name')->get();
 
         // ====== 🔹 Режим аналитики ======
@@ -119,11 +127,6 @@ class CategoryController extends Controller
             'roots' => Category::whereNull('parent_id')->count(),
         ];
         $stats['subs'] = max($stats['total'] - $stats['roots'], 0);
-
-        // ====== 🔹 AJAX подгрузка таблицы ======
-        if ($request->ajax() || $request->boolean('ajax')) {
-            return view('admin.categories.table', compact('categories'))->render();
-        }
 
         // ====== 🔹 Итоговый вывод ======
         return view('admin.categories.index', compact(

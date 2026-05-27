@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Conversation;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\Message;
@@ -36,7 +37,7 @@ class ChatController extends Controller
         $selectedMessages = collect();
 
         if ($selectedConversation) {
-            $selectedConversation->load(['buyer', 'seller', 'product']);
+            $selectedConversation->load(['buyer', 'seller', 'product', 'order']);
             $selectedConversation->messages()
                 ->where('sender_id', '!=', $request->user()->id)
                 ->whereNull('read_at')
@@ -95,11 +96,44 @@ class ChatController extends Controller
         ]);
     }
 
+    public function startForOrderProduct(Request $request, Order $order, Product $product)
+    {
+        $user = $request->user();
+
+        abort_unless($user->isBuyer() && $order->user_id === $user->id, 403);
+        abort_unless($order->seller_id === $product->user_id, 404);
+        abort_unless($order->items()->where('product_id', $product->id)->exists(), 404);
+
+        $conversation = Conversation::firstOrCreate([
+            'buyer_id' => $user->id,
+            'seller_id' => $order->seller_id,
+            'product_id' => $product->id,
+            'order_id' => $order->id,
+            'context_key' => Conversation::orderProductContextKey($order, $product),
+        ]);
+        $this->restoreForUser($conversation, $user);
+
+        $contextBody = "Диалог по заказу {$order->number}.\nТовар: {$product->title}";
+
+        if (! $conversation->messages()->where('type', Message::TYPE_SYSTEM)->where('body', $contextBody)->exists()) {
+            $conversation->messages()->create([
+                'sender_id' => $user->id,
+                'type' => Message::TYPE_SYSTEM,
+                'order_id' => $order->id,
+                'body' => $contextBody,
+            ]);
+            $conversation->update(['last_message_at' => now()]);
+            $this->restoreForOtherParticipant($conversation, $user);
+        }
+
+        return redirect()->route('chats.show', $conversation);
+    }
+
     public function show(Request $request, Conversation $conversation)
     {
         $this->authorizeParticipant($request, $conversation);
 
-        $conversation->load(['buyer', 'seller']);
+        $conversation->load(['buyer', 'seller', 'product', 'order']);
         $supportConversation = $this->supportConversationFor($request->user());
         $conversation->messages()
             ->where('sender_id', '!=', $request->user()->id)
@@ -171,6 +205,39 @@ class ChatController extends Controller
         return redirect()
             ->route('chats.show', $conversation)
             ->with('success', 'Support-чат открыт.');
+    }
+
+    public function startSupportForOrder(Request $request, Order $order)
+    {
+        $user = $request->user();
+
+        abort_unless($user->isBuyer() && $order->user_id === $user->id, 403);
+
+        $order->load(['seller.shop', 'items.product']);
+        $conversation = $this->ensureSupportConversation($user);
+        $shopName = $order->seller?->shop?->name ?? $order->seller?->name ?? 'Продавец не найден';
+        $productTitles = $order->items
+            ->map(fn ($item) => $item->product?->title ?? 'Товар удалён')
+            ->join(', ');
+        $body = "Обращение по заказу {$order->number}.\n"
+            . "Магазин: {$shopName}\n"
+            . "Товары: {$productTitles}\n"
+            . 'Опишите проблему следующим сообщением.';
+
+        if (! $conversation->messages()->where('type', Message::TYPE_SYSTEM)->where('body', $body)->exists()) {
+            $conversation->messages()->create([
+                'sender_id' => $user->id,
+                'type' => Message::TYPE_SYSTEM,
+                'order_id' => $order->id,
+                'body' => $body,
+            ]);
+            $conversation->update(['last_message_at' => now()]);
+            $this->restoreForOtherParticipant($conversation, $user);
+        }
+
+        return redirect()
+            ->route('chats.show', $conversation)
+            ->with('success', 'Обращение по заказу открыто. Опишите проблему в чате.');
     }
 
     public function openSupportFromConversation(Request $request, Conversation $conversation)
@@ -363,7 +430,7 @@ class ChatController extends Controller
                         ->where('seller_id', $user->id)
                         ->whereNull('seller_deleted_at'));
             })
-            ->with(['buyer', 'seller', 'product', 'lastMessage'])
+            ->with(['buyer', 'seller', 'product', 'order', 'lastMessage'])
             ->withCount([
                 'messages as unread_count' => fn ($query) => $query
                     ->where('sender_id', '!=', $user->id)

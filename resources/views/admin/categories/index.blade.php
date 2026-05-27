@@ -2,7 +2,7 @@
 @section('title', 'Категории')
 
 @section('content')
-<div class="space-y-10">
+<div class="space-y-5">
 
   {{-- ===== Заголовок ===== --}}
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -20,16 +20,25 @@
     </a>
   </div>
 
-  {{-- ===== Верхняя аналитика ===== --}}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    <x-admin.stat-card color="blue"   label="Всего категорий"   :value="$stats['total']" icon="ri-grid-line" />
-    <x-admin.stat-card color="green"  label="Корневые категории" :value="$stats['roots']" icon="ri-folder-2-line" />
-    <x-admin.stat-card color="purple" label="Подкатегории"       :value="$stats['subs']"  icon="ri-folder-open-line" />
-    <x-admin.stat-card color="gray"   label="Всего товаров"      :value="\App\Models\Product::count()" icon="ri-shopping-bag-3-line" />
-  </div>
+  <details class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-slate-800">
+      <span class="inline-flex items-center gap-2">
+        <i class="ri-bar-chart-line text-indigo-600"></i>
+        Сводка и аналитика категорий
+      </span>
+      <i class="ri-arrow-down-s-line text-lg text-slate-400 transition group-open:rotate-180"></i>
+    </summary>
+
+    {{-- ===== Верхняя аналитика ===== --}}
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <x-admin.stat-card color="blue"   label="Всего категорий"   :value="$stats['total']" icon="ri-grid-line" />
+      <x-admin.stat-card color="green"  label="Корневые категории" :value="$stats['roots']" icon="ri-folder-2-line" />
+      <x-admin.stat-card color="purple" label="Подкатегории"       :value="$stats['subs']"  icon="ri-folder-open-line" />
+      <x-admin.stat-card color="gray"   label="Всего товаров"      :value="\App\Models\Product::count()" icon="ri-shopping-bag-3-line" />
+    </div>
 
   {{-- ===== Аналитика ===== --}}
-  <div class="space-y-5 mt-8">
+  <div class="mt-5 space-y-5 border-t border-slate-100 pt-4">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <h2 class="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
         <i class="ri-bar-chart-line text-indigo-600"></i>
@@ -144,6 +153,7 @@
       <p class="text-gray-500 text-sm">Недостаточно данных для анализа.</p>
     @endif
   </div>
+  </details>
 
   {{-- ===== Панель фильтров ===== --}}
   <div class="bg-white border border-gray-100 shadow-sm rounded-lg p-4 mt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -184,69 +194,13 @@
   </div>
 
   {{-- ===== Красивая пагинация ===== --}}
-  <div class="mt-6 flex justify-center">
-    @if ($categories->hasPages())
-      <nav class="flex items-center space-x-1 bg-white border border-gray-200 rounded-xl shadow-sm px-3 py-2">
-        {{-- Prev --}}
-        @if ($categories->onFirstPage())
-          <span class="px-3 py-1 text-gray-400 cursor-not-allowed">&laquo;</span>
-        @else
-          <a href="{{ $categories->previousPageUrl() }}" class="px-3 py-1 text-indigo-600 hover:bg-indigo-50 rounded-md transition">&laquo;</a>
-        @endif
-
-        {{-- Pages --}}
-        @foreach ($categories->links()->elements[0] ?? [] as $page => $url)
-          @if ($page == $categories->currentPage())
-            <span class="px-3 py-1 bg-indigo-600 text-white rounded-md shadow">{{ $page }}</span>
-          @else
-            <a href="{{ $url }}" class="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded-md transition">{{ $page }}</a>
-          @endif
-        @endforeach
-
-        {{-- Next --}}
-        @if ($categories->hasMorePages())
-          <a href="{{ $categories->nextPageUrl() }}" class="px-3 py-1 text-indigo-600 hover:bg-indigo-50 rounded-md transition">&raquo;</a>
-        @else
-          <span class="px-3 py-1 text-gray-400 cursor-not-allowed">&raquo;</span>
-        @endif
-      </nav>
-    @endif
+  <div id="categoryPagination" class="mt-6 flex justify-center">
+    @include('admin.categories.pagination', ['categories' => $categories])
   </div>
 
   {{-- ===== Мобильные карточки ===== --}}
-  <div class="block md:hidden space-y-3 mt-4">
-    @foreach($categories as $category)
-      <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-center gap-3">
-        @if($category->image)
-          <img src="{{ asset('storage/'.$category->image) }}" class="w-14 h-14 rounded-md object-cover" alt="">
-        @else
-          <i class="ri-folder-line text-gray-400 text-xl"></i>
-        @endif
-        <div class="flex-1">
-          <h3 class="font-medium text-gray-800">{{ $category->name }}</h3>
-          <p class="text-xs text-gray-500">
-            ID: {{ $category->id }} | Родитель: {{ $category->parent?->name ?? '—' }}
-          </p>
-        </div>
-        <div class="flex gap-2">
-          {{-- 🔧 Шестеренка (атрибуты) --}}
-          <a href="{{ route('admin.categories.attributes', $category->id) }}" 
-             class="text-amber-600 hover:text-amber-800 p-2" title="Атрибуты категории">
-            <i class="ri-settings-3-line text-lg"></i>
-          </a>
-          <a href="{{ route('admin.categories.edit', $category) }}" 
-             class="text-indigo-600 hover:text-indigo-800 p-2">
-            <i class="ri-edit-2-line"></i>
-          </a>
-          <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" onsubmit="return confirm('Удалить категорию?')">
-            @csrf @method('DELETE')
-            <button class="text-red-500 hover:text-red-700 p-2">
-              <i class="ri-delete-bin-line"></i>
-            </button>
-          </form>
-        </div>
-      </div>
-    @endforeach
+  <div id="categoryMobileWrapper" class="mt-4 block space-y-3 md:hidden">
+    @include('admin.categories.mobile-list', ['categories' => $categories])
   </div>
 </div>
 
@@ -257,6 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const parentFilter = document.getElementById('parentFilter');
   const resetBtn     = document.getElementById('resetBtn');
   const wrapper      = document.getElementById('categoryTableWrapper');
+  const mobileWrapper = document.getElementById('categoryMobileWrapper');
+  const pagination = document.getElementById('categoryPagination');
   const ajaxStatus   = document.getElementById('ajaxStatus');
   let timer;
 
@@ -265,6 +221,28 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="p-6 text-center text-gray-400 animate-pulse">
         Обновляем данные категорий...
       </div>`;
+    mobileWrapper.innerHTML = `
+      <div class="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-400 animate-pulse">
+        Обновляем категории...
+      </div>`;
+  };
+
+  const loadUrl = url => {
+      const q = searchInput.value.trim();
+      const parent_id = parentFilter.value;
+      showSkeleton();
+      ajaxStatus.textContent = "Загрузка...";
+      ajaxStatus.classList.remove('hidden');
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.json())
+        .then(data => {
+          wrapper.innerHTML = `<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">${data.desktop}</div>`;
+          mobileWrapper.innerHTML = data.mobile;
+          pagination.innerHTML = data.pagination;
+          ajaxStatus.textContent = "Данные обновлены";
+          setTimeout(() => ajaxStatus.classList.add('hidden'), 1200);
+        })
+        .catch(() => ajaxStatus.textContent = "Не удалось обновить категории");
   };
 
   const fetchData = () => {
@@ -273,17 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const q = searchInput.value.trim();
       const parent_id = parentFilter.value;
       const url = `{{ route('admin.categories.index') }}?ajax=1&q=${encodeURIComponent(q)}&parent_id=${encodeURIComponent(parent_id)}`;
-      showSkeleton();
-      ajaxStatus.textContent = "Загрузка...";
-      ajaxStatus.classList.remove('hidden');
-      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(res => res.text())
-        .then(html => {
-          wrapper.innerHTML = html;
-          ajaxStatus.textContent = "Данные обновлены ✔️";
-          setTimeout(() => ajaxStatus.classList.add('hidden'), 1200);
-        })
-        .catch(() => ajaxStatus.textContent = "Ошибка загрузки ⚠️");
+      loadUrl(url);
     }, 350);
   };
 
@@ -296,15 +264,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.addEventListener('click', e => {
-    const link = e.target.closest('.pagination a');
+    const link = e.target.closest('#categoryPagination a');
     if (!link) return;
     e.preventDefault();
     const url = link.href + (link.href.includes('?') ? '&' : '?') + 'ajax=1';
-    showSkeleton();
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(res => res.text())
-      .then(html => wrapper.innerHTML = html)
-      .catch(() => {});
+    loadUrl(url);
   });
 });
 </script>

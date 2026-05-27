@@ -96,11 +96,6 @@
                             <span>Мои отзывы</span>
                         </a>
 
-                        <a href="{{ route('questions.index') }}" class="{{ request()->routeIs('questions.index') ? $active : '' }} {{ $link }}">
-                            <i class="ri-question-answer-line text-[22px]"></i>
-                            <span>Вопросы и ответы</span>
-                        </a>
-
                         <a href="{{ route('support') }}" class="{{ request()->routeIs('support') ? $active : '' }} {{ $link }}">
                             <i class="ri-customer-service-2-line text-[22px]"></i>
                             <span>Поддержка</span>

@@ -16,6 +16,7 @@ class Message extends Model
     protected $fillable = [
         'conversation_id',
         'related_conversation_id',
+        'order_id',
         'sender_id',
         'type',
         'body',
@@ -47,6 +48,11 @@ class Message extends Model
     public function relatedConversation()
     {
         return $this->belongsTo(Conversation::class, 'related_conversation_id');
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function sender()

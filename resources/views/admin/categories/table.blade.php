@@ -74,7 +74,7 @@
             </a>
 
             <form action="{{ route('admin.categories.destroy', $cat) }}" method="POST"
-                  onsubmit="return confirm('Удалить категорию {{ $cat->name }}?')"
+                  onsubmit="return confirm('Удалить выбранную категорию и ее вложенные категории?')"
                   class="inline">
               @csrf
               @method('DELETE')

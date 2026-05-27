@@ -2,7 +2,7 @@
 
 <div
     class="mt-12 bg-white border rounded-2xl shadow-sm p-6"
-    x-data="{ tab: 'desc' }"
+    x-data="{ tab: window.location.hash === '#reviews' ? 'reviews' : 'desc' }"
 >
 
     {{-- Навигация вкладок --}}
@@ -100,6 +100,7 @@
 
         {{-- ================= ОТЗЫВЫ ================= --}}
         <div
+            id="reviews"
             x-show="tab==='reviews'"
             x-cloak
             class="space-y-6"

@@ -37,11 +37,27 @@ class SellerPlanRequestController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        $plans = $this->sellerPlans->plans();
+        $requestContext = $requests->getCollection()->mapWithKeys(function (SellerPlanRequest $item) use ($plans) {
+            if (! $item->user) {
+                return [$item->id => ['profile' => null, 'assignable' => false, 'target_limit' => '—']];
+            }
+
+            $targetLimit = $plans[$item->requested_plan]['limit'] ?? null;
+
+            return [$item->id => [
+                'profile' => $this->sellerPlans->profileFor($item->user),
+                'assignable' => $this->sellerPlans->canAssignPlan($item->user, $item->requested_plan),
+                'target_limit' => $targetLimit === null ? 'unlimited' : (string) $targetLimit,
+            ]];
+        });
+
         return view('admin.seller-plan-requests.index', [
             'requests' => $requests,
             'counts' => $counts,
             'status' => $status,
-            'plans' => $this->sellerPlans->plans(),
+            'plans' => $plans,
+            'requestContext' => $requestContext,
         ]);
     }
 

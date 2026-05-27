@@ -12,24 +12,23 @@ class FavoriteController extends Controller
 {
     public function index()
     {
-        Favorite::where('user_id', auth()->id())
-            ->where(function ($query) {
-                $query->whereDoesntHave('product')
-                    ->orWhereHas('product', fn ($productQuery) => $productQuery->where('status', '!=', 'active'));
-            })
-            ->delete();
-
-        $items = Favorite::with([
+        $favorites = Favorite::with([
                 'product.category',
                 'product.city.country',
                 'product.seller',
             ])
             ->where('user_id', auth()->id())
-            ->whereHas('product', fn ($query) => $query->where('status', 'active'))
             ->latest()
             ->get();
 
-        return view('shop.favorites', compact('items'));
+        $items = $favorites
+            ->filter(fn (Favorite $favorite) => $favorite->product && $favorite->product->status === 'active')
+            ->values();
+        $unavailableItems = $favorites
+            ->reject(fn (Favorite $favorite) => $favorite->product && $favorite->product->status === 'active')
+            ->values();
+
+        return view('shop.favorites', compact('items', 'unavailableItems'));
     }
 
     public function toggle(Product $product)
@@ -104,5 +103,19 @@ class FavoriteController extends Controller
             'success',
             $state ? 'Добавлено в избранное' : 'Удалено из избранного'
         );
+    }
+
+    public function remove(Favorite $favorite)
+    {
+        abort_unless($favorite->user_id === auth()->id(), 403);
+
+        $product = $favorite->product;
+        $favorite->delete();
+
+        if ($product && $product->favorites_count > 0) {
+            $product->decrement('favorites_count');
+        }
+
+        return back()->with('success', 'Товар удалён из избранного');
     }
 }

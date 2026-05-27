@@ -62,6 +62,8 @@ class Order extends Model
         'shipped_at',
         'delivered_at',
         'canceled_at',
+        'cancellation_requested_at',
+        'cancellation_reason',
     ];
 
     /* -------------------------------------------------
@@ -74,6 +76,7 @@ class Order extends Model
         'shipped_at' => 'datetime',
         'delivered_at' => 'datetime',
         'canceled_at' => 'datetime',
+        'cancellation_requested_at' => 'datetime',
     ];
 public function markAsPaid(): void
 {

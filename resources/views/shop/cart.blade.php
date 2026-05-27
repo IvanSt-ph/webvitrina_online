@@ -2,6 +2,7 @@
 <x-buyer-layout title="Моя корзина">
 
 @php
+    $unavailableItems = $unavailableItems ?? collect();
     $cartTotal = $items->sum(fn($i) => $i->product ? $i->product->price * $i->qty : 0);
     $freeShippingThreshold = 5000;
 @endphp
@@ -52,12 +53,42 @@
         </div>
     </div>
 
+    @if($unavailableItems->isNotEmpty())
+        <section class="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70">
+            <div class="border-b border-amber-100 px-4 py-3 sm:px-5">
+                <h2 class="font-semibold text-amber-900">Недоступно для оформления</h2>
+                <p class="mt-1 text-sm text-amber-700">Мы сохранили эти позиции в корзине. Удалите их вручную, когда решите.</p>
+            </div>
+            <div class="divide-y divide-amber-100">
+                @foreach($unavailableItems as $item)
+                    @php
+                        $product = $item->product;
+                    @endphp
+                    <div class="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5">
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-amber-500">
+                            <i class="ri-shopping-bag-line text-xl"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-semibold text-slate-800">{{ $product?->title ?? 'Товар больше недоступен' }}</p>
+                            <p class="text-xs text-amber-700">Товар снят с продажи или удалён продавцом</p>
+                        </div>
+                        <form method="POST" action="{{ route('cart.remove', $item) }}">
+                            @csrf
+                            @method('DELETE')
+                            <button class="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">Удалить</button>
+                        </form>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     @if($items->isEmpty())
 
         <x-empty-state
             icon="ri-shopping-cart-2-line"
-            title="Ваша корзина пуста"
-            description="Добавьте товары из каталога, чтобы оформить заказ."
+            title="{{ $unavailableItems->isNotEmpty() ? 'Нет товаров для оформления' : 'Ваша корзина пуста' }}"
+            description="{{ $unavailableItems->isNotEmpty() ? 'Недоступные позиции сохранены выше, но оформить их сейчас нельзя.' : 'Добавьте товары из каталога, чтобы оформить заказ.' }}"
             class="py-16 sm:py-24"
         >
             <a href="{{ route('home') }}"
