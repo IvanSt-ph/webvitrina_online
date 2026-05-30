@@ -221,7 +221,10 @@ class UserController extends Controller
         $phone = $this->normalizePhone($request->phone);
         
         // Проверка уникальности телефона после нормализации
-        if ($phone && User::where('phone', $phone)->where('id', '!=', $user->id)->exists()) {
+        if ($phone && (
+            User::where('phone', $phone)->where('id', '!=', $user->id)->exists()
+            || Shop::where('phone', $phone)->where('user_id', '!=', $user->id)->exists()
+        )) {
             return back()->withErrors(['phone' => 'Этот телефон уже используется'])->withInput();
         }
 
@@ -315,7 +318,10 @@ class UserController extends Controller
             $phone = $this->normalizePhone($request->phone);
             
             // Проверка уникальности телефона после нормализации
-            if ($phone && User::where('phone', $phone)->exists()) {
+            if ($phone && (
+                User::where('phone', $phone)->exists()
+                || Shop::where('phone', $phone)->exists()
+            )) {
                 throw ValidationException::withMessages([
                     'phone' => 'Этот телефон уже используется',
                 ]);

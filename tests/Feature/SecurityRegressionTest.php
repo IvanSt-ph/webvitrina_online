@@ -1964,6 +1964,32 @@ class SecurityRegressionTest extends TestCase
             ->assertDontSee('+37377777777');
     }
 
+    public function test_account_phone_cannot_duplicate_another_users_shop_phone(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create([
+            'name' => 'Phone owner shop',
+            'phone' => '+37377111222',
+            'phone_verified_at' => now(),
+        ]);
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'phone' => null,
+        ]);
+
+        $this->actingAs($buyer)
+            ->patch(route('profile.update'), [
+                'profile_section' => 'contacts',
+                'email' => $buyer->email,
+                'phone' => '+373 77 111 222',
+                'phone_dirty' => true,
+                'current_password' => 'password',
+            ])
+            ->assertSessionHasErrors('phone');
+
+        $this->assertNull($buyer->fresh()->phone);
+    }
+
     public function test_admin_views_public_user_profile_inside_admin_panel(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2065,6 +2091,54 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('Подписчики')
             ->assertSee(route('support'), false)
             ->assertSee('Поддержка');
+    }
+
+    public function test_seller_cabinet_shows_action_center_for_real_tasks(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Action Buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Action Seller Shop']);
+        $pendingOrder = $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
+        $cancelOrder = $this->createOrder($buyer, $seller, Order::STATUS_PROCESSING);
+        $cancelOrder->update([
+            'cancellation_requested_at' => now(),
+            'cancellation_reason' => 'Покупатель ошибся.',
+        ]);
+        $this->createProduct($seller, [
+            'title' => 'Empty action product',
+            'status' => 'active',
+            'stock' => 0,
+        ]);
+        $this->createProduct($seller, [
+            'title' => 'Low action product',
+            'status' => 'active',
+            'stock' => 2,
+        ]);
+        $this->createProduct($seller, [
+            'title' => 'Draft action product',
+            'status' => 'draft',
+        ]);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'seller-action-center',
+        ]);
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Unread seller question',
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('seller.cabinet'))
+            ->assertOk()
+            ->assertSee('Требует внимания')
+            ->assertSee('Новые заказы')
+            ->assertSee('Запросы отмены')
+            ->assertSee('Непрочитанные чаты')
+            ->assertSee('Нет в наличии')
+            ->assertSee(route('seller.orders.index', ['action' => 'cancel_request']), false)
+            ->assertSee($pendingOrder->number)
+            ->assertSee($cancelOrder->number);
     }
 
     public function test_buyer_cabinet_links_to_followed_shops_page(): void
@@ -4128,6 +4202,13 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(2, (int) $response->viewData('productTotals')->total);
         $this->assertSame(200.0, (float) $response->viewData('productTotals')->avg_price);
         $this->assertSame(1, (int) $response->viewData('productTotals')->out_of_stock);
+
+        $stockResponse = $this->actingAs($seller)
+            ->get(route('seller.products.index', ['stock' => 'out']))
+            ->assertOk()
+            ->assertViewHas('stock', 'out');
+
+        $this->assertSame(1, $stockResponse->viewData('products')->total());
     }
 
     public function test_seller_orders_index_searches_and_ignores_unknown_status(): void
@@ -4150,6 +4231,19 @@ class SecurityRegressionTest extends TestCase
 
         $this->assertSame(1, $response->viewData('orders')->total());
         $this->assertSame(1, (int) ($response->viewData('statusCounts')[Order::STATUS_PENDING] ?? 0));
+
+        $matchingOrder->update([
+            'cancellation_requested_at' => now(),
+            'cancellation_reason' => 'Cancel requested',
+        ]);
+
+        $actionResponse = $this->actingAs($seller)
+            ->get(route('seller.orders.index', ['action' => 'cancel_request']))
+            ->assertOk()
+            ->assertViewHas('action', 'cancel_request')
+            ->assertSee('Запрос отмены');
+
+        $this->assertSame(1, $actionResponse->viewData('orders')->total());
     }
 
     public function test_buyer_orders_index_filters_tabs_and_uses_mobile_friendly_layout(): void

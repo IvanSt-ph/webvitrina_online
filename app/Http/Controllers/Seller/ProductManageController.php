@@ -49,6 +49,9 @@ class ProductManageController extends Controller
         $status = in_array($request->get('status'), ['active', 'draft'], true)
             ? $request->get('status')
             : null;
+        $stock = in_array($request->get('stock'), ['out', 'low'], true)
+            ? $request->get('stock')
+            : null;
 
         /* =========================
          | СВОДКА ЗА ПЕРИОД
@@ -120,6 +123,12 @@ class ProductManageController extends Controller
             $productsQuery->where('status', $status);
         }
 
+        if ($stock === 'out') {
+            $productsQuery->where('stock', '<=', 0);
+        } elseif ($stock === 'low') {
+            $productsQuery->whereBetween('stock', [1, 3]);
+        }
+
         /* 🔃 СОРТИРОВКА */
         match ($sort) {
             'cheap'      => $productsQuery->orderBy('price', 'asc'),
@@ -171,6 +180,7 @@ class ProductManageController extends Controller
             'search',
             'sort',
             'status',
+            'stock',
             'statusCounts',
             'sellerPlanProfile'
         ));

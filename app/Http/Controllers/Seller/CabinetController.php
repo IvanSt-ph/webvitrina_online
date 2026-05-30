@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Conversation;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductStat;
 use App\Models\Review;
+use App\Models\SellerPlanRequest;
 use Carbon\Carbon;
 
 class CabinetController extends Controller
@@ -40,6 +43,46 @@ class CabinetController extends Controller
             ->count();
 
         $followersCount = $user->shop?->followers()->count() ?? 0;
+        $pendingOrdersCount = Order::where('seller_id', $user->id)
+            ->where('status', Order::STATUS_PENDING)
+            ->count();
+        $cancellationRequestsCount = Order::where('seller_id', $user->id)
+            ->whereNotNull('cancellation_requested_at')
+            ->where('status', '!=', Order::STATUS_CANCELED)
+            ->count();
+        $unreadMessagesCount = Conversation::where(function ($query) use ($user) {
+                $query->where('buyer_id', $user->id)
+                    ->orWhere('seller_id', $user->id);
+            })
+            ->whereHas('messages', fn ($query) => $query
+                ->where('sender_id', '!=', $user->id)
+                ->whereNull('read_at'))
+            ->count();
+        $outOfStockProductsCount = Product::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where('stock', '<=', 0)
+            ->count();
+        $lowStockProductsCount = Product::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->whereBetween('stock', [1, 3])
+            ->count();
+        $draftProductsCount = Product::where('user_id', $user->id)
+            ->where('status', 'draft')
+            ->count();
+        $pendingPlanRequest = SellerPlanRequest::where('user_id', $user->id)
+            ->where('status', SellerPlanRequest::STATUS_PENDING)
+            ->latest()
+            ->first();
+        $actionOrders = Order::where('seller_id', $user->id)
+            ->with(['user', 'items.product'])
+            ->where(function ($query) {
+                $query->where('status', Order::STATUS_PENDING)
+                    ->orWhereNotNull('cancellation_requested_at');
+            })
+            ->where('status', '!=', Order::STATUS_CANCELED)
+            ->latest()
+            ->limit(5)
+            ->get();
 
 // 🔹 5. Средний рейтинг продавца
 $reviews = Review::whereIn('product_id', $productIds)
@@ -89,6 +132,57 @@ $avgRating = $avgRatingRaw ? round($avgRatingRaw, 2) : 0.00;
 
         ];
 
-        return view('seller.cabinet', compact('stats'));
+        $actionCards = [
+            [
+                'label' => 'Новые заказы',
+                'value' => $pendingOrdersCount,
+                'text' => 'Нужно принять или уточнить',
+                'href' => route('seller.orders.index', ['status' => Order::STATUS_PENDING]),
+                'icon' => 'ri-shopping-bag-3-line',
+                'tone' => $pendingOrdersCount > 0 ? 'amber' : 'slate',
+            ],
+            [
+                'label' => 'Запросы отмены',
+                'value' => $cancellationRequestsCount,
+                'text' => 'Покупатели ждут решения',
+                'href' => route('seller.orders.index', ['action' => 'cancel_request']),
+                'icon' => 'ri-close-circle-line',
+                'tone' => $cancellationRequestsCount > 0 ? 'rose' : 'slate',
+            ],
+            [
+                'label' => 'Непрочитанные чаты',
+                'value' => $unreadMessagesCount,
+                'text' => 'Ответы покупателям и поддержке',
+                'href' => route('chats.index'),
+                'icon' => 'ri-chat-3-line',
+                'tone' => $unreadMessagesCount > 0 ? 'indigo' : 'slate',
+            ],
+            [
+                'label' => 'Нет в наличии',
+                'value' => $outOfStockProductsCount,
+                'text' => 'Товары нельзя купить',
+                'href' => route('seller.products.index', ['stock' => 'out']),
+                'icon' => 'ri-alert-line',
+                'tone' => $outOfStockProductsCount > 0 ? 'rose' : 'emerald',
+            ],
+            [
+                'label' => 'Мало остатков',
+                'value' => $lowStockProductsCount,
+                'text' => 'Пора пополнить склад',
+                'href' => route('seller.products.index', ['stock' => 'low']),
+                'icon' => 'ri-inbox-archive-line',
+                'tone' => $lowStockProductsCount > 0 ? 'amber' : 'slate',
+            ],
+            [
+                'label' => 'Черновики',
+                'value' => $draftProductsCount,
+                'text' => 'Можно довести до публикации',
+                'href' => route('seller.products.index', ['status' => 'draft']),
+                'icon' => 'ri-draft-line',
+                'tone' => $draftProductsCount > 0 ? 'indigo' : 'slate',
+            ],
+        ];
+
+        return view('seller.cabinet', compact('stats', 'actionCards', 'actionOrders', 'pendingPlanRequest'));
     }
 }

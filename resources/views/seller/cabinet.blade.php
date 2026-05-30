@@ -91,6 +91,76 @@
       </div>
     </section>
 
+    @if(!empty($actionCards))
+      <section class="space-y-4">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-950">Требует внимания</h2>
+            <p class="text-sm text-gray-500">Главные действия продавца на сегодня: заказы, ответы, остатки и публикации.</p>
+          </div>
+          @if($pendingPlanRequest)
+            <a href="{{ route('seller.plans.index') }}" class="inline-flex w-fit items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+              <i class="ri-vip-crown-line"></i>
+              Заявка на тариф в обработке
+            </a>
+          @endif
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          @foreach($actionCards as $card)
+            @php
+              $toneClass = match($card['tone']) {
+                  'amber' => 'border-amber-200 bg-amber-50 text-amber-800',
+                  'rose' => 'border-rose-200 bg-rose-50 text-rose-800',
+                  'indigo' => 'border-indigo-200 bg-indigo-50 text-indigo-800',
+                  'emerald' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                  default => 'border-slate-200 bg-white text-slate-800',
+              };
+            @endphp
+            <a href="{{ $card['href'] }}" class="group rounded-2xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md {{ $toneClass }}">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold opacity-80">{{ $card['label'] }}</p>
+                  <div class="mt-2 text-3xl font-extrabold">{{ number_format($card['value'], 0, ',', ' ') }}</div>
+                  <p class="mt-1 text-sm opacity-75">{{ $card['text'] }}</p>
+                </div>
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/70 text-xl transition group-hover:scale-105">
+                  <i class="{{ $card['icon'] }}"></i>
+                </div>
+              </div>
+            </a>
+          @endforeach
+        </div>
+
+        @if($actionOrders->isNotEmpty())
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <h3 class="font-semibold text-slate-950">Заказы, где нужен ответ</h3>
+              <a href="{{ route('seller.orders.index', ['action' => 'needs_action']) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">Все задачи</a>
+            </div>
+            <div class="divide-y divide-slate-100">
+              @foreach($actionOrders as $order)
+                <a href="{{ route('seller.orders.show', $order) }}" class="grid gap-2 px-4 py-3 transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-semibold text-slate-900">#{{ $order->number }}</span>
+                      @if($order->cancellation_requested_at)
+                        <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">Запрос отмены</span>
+                      @else
+                        <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Новый заказ</span>
+                      @endif
+                    </div>
+                    <p class="mt-1 truncate text-sm text-slate-500">{{ $order->user?->name ?? 'Покупатель' }} · {{ $order->items->first()?->product?->title ?? 'Товар не найден' }}</p>
+                  </div>
+                  <div class="text-sm font-bold text-slate-900">{{ $order->formatted_total_price }}</div>
+                </a>
+              @endforeach
+            </div>
+          </div>
+        @endif
+      </section>
+    @endif
+
     {{-- 📋 Основная информация --}}
     <section class="bg-white rounded-2xl border border-gray-100/80 shadow-sm overflow-hidden">
       <div class="p-6 space-y-5">

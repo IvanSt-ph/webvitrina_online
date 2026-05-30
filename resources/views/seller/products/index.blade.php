@@ -28,6 +28,11 @@
         'expensive' => 'Сначала дороже',
         'popular' => 'По просмотрам',
     ];
+
+    $stockLabels = [
+        'out' => 'Нет в наличии',
+        'low' => 'Мало остатков',
+    ];
 @endphp
 
 <x-seller-layout title="Мои товары" :hideHeader="true">
@@ -183,7 +188,7 @@
 
             <section class="rounded-xl border border-slate-200 bg-white">
                 <div class="border-b border-slate-100 p-3 sm:p-4">
-                    <form method="GET" action="{{ route('seller.products.index') }}" class="grid gap-3 xl:grid-cols-[1fr_220px_220px_auto]">
+                    <form method="GET" action="{{ route('seller.products.index') }}" class="grid gap-3 xl:grid-cols-[1fr_180px_180px_220px_auto]">
                         <label class="relative block">
                             <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input
@@ -199,6 +204,13 @@
                             <option value="">Все статусы</option>
                             @foreach($statusLabels as $key => $label)
                                 <option value="{{ $key }}" @selected($status === $key)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+
+                        <select name="stock" class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <option value="">Все остатки</option>
+                            @foreach($stockLabels as $key => $label)
+                                <option value="{{ $key }}" @selected(($stock ?? null) === $key)>{{ $label }}</option>
                             @endforeach
                         </select>
 
@@ -218,7 +230,7 @@
                 <div class="flex flex-col gap-3 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex min-w-0 gap-2 overflow-x-auto">
                         @php
-                            $filterBase = array_filter(['q' => $search, 'sort' => $sort]);
+                            $filterBase = array_filter(['q' => $search, 'sort' => $sort, 'stock' => $stock ?? null]);
                             $allCount = $productTotals->total ?? 0;
                         @endphp
                         <a href="{{ route('seller.products.index', $filterBase) }}"
@@ -231,6 +243,12 @@
                                class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ $status === $key ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
                                 {{ $label }}
                                 <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $statusCounts[$key] ?? 0 }}</span>
+                            </a>
+                        @endforeach
+                        @foreach($stockLabels as $key => $label)
+                            <a href="{{ route('seller.products.index', array_merge(array_filter(['q' => $search, 'sort' => $sort, 'status' => $status]), ['stock' => $key])) }}"
+                               class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ ($stock ?? null) === $key ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+                                {{ $label }}
                             </a>
                         @endforeach
                     </div>

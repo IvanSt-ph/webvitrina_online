@@ -122,7 +122,7 @@ class ProfileController extends Controller
                     ->where('id', '!=', $user->id)
                     ->exists();
 
-                if ($userExists && $phone) {
+                if (($userExists || $this->phoneExistsInAnotherShop($phone, $user)) && $phone) {
                     return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
                 }
 
@@ -171,7 +171,7 @@ class ProfileController extends Controller
                         ->where('id', '!=', $user->id)
                         ->exists();
 
-                    if ($userExists && $phone) {
+                    if (($userExists || $this->phoneExistsInAnotherShop($phone, $user)) && $phone) {
                         return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
                     }
 
@@ -240,7 +240,7 @@ class ProfileController extends Controller
                     ->where('id', '!=', $user->id)
                     ->exists();
 
-                if ($userExists && $phone) {
+                if (($userExists || $this->phoneExistsInAnotherShop($phone, $user)) && $phone) {
                     return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
                 }
 
@@ -470,6 +470,17 @@ private function requireCurrentPassword(Request $request): void
         'current_password.required' => 'Для изменения контактов подтвердите текущий пароль.',
         'current_password.current_password' => 'Текущий пароль введён неверно.',
     ]);
+}
+
+private function phoneExistsInAnotherShop(?string $phone, User $user): bool
+{
+    if (! $phone) {
+        return false;
+    }
+
+    return Shop::where('phone', $phone)
+        ->when($user->shop, fn ($query, Shop $shop) => $query->where('id', '!=', $shop->id))
+        ->exists();
 }
 
     /* =========================

@@ -24,6 +24,7 @@
 
         $totalOrders = $statusCounts->sum();
         $activeStatus = $status ?? null;
+        $activeAction = $action ?? null;
     @endphp
 
     <div class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6">
@@ -81,7 +82,7 @@
 
             <section class="rounded-xl border border-slate-200 bg-white">
                 <div class="border-b border-slate-100 p-3 sm:p-4">
-                    <form method="GET" action="{{ route('seller.orders.index') }}" class="grid gap-3 lg:grid-cols-[1fr_260px_auto]">
+                    <form method="GET" action="{{ route('seller.orders.index') }}" class="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto]">
                         <label class="relative block">
                             <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input
@@ -102,6 +103,15 @@
                                 @continue($key === null)
                                 <option value="{{ $key }}" @selected($activeStatus === $key)>{{ $tab['label'] }}</option>
                             @endforeach
+                        </select>
+
+                        <select
+                            name="action"
+                            class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                        >
+                            <option value="">Все действия</option>
+                            <option value="needs_action" @selected($activeAction === 'needs_action')>Требуют ответа</option>
+                            <option value="cancel_request" @selected($activeAction === 'cancel_request')>Запросы отмены</option>
                         </select>
 
                         <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700">
@@ -128,6 +138,21 @@
                                 <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $count }}</span>
                             </a>
                         @endforeach
+                        @foreach([
+                            'needs_action' => ['label' => 'Требуют ответа', 'icon' => 'ri-alarm-warning-line'],
+                            'cancel_request' => ['label' => 'Запросы отмены', 'icon' => 'ri-close-circle-line'],
+                        ] as $key => $tab)
+                            @php
+                                $isActive = $activeAction === $key;
+                                $href = route('seller.orders.index', array_filter(['q' => $search, 'action' => $key]));
+                            @endphp
+                            <a href="{{ $href }}"
+                               class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ $isActive ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50' }}">
+                                <i class="{{ $tab['icon'] }}"></i>
+                                <span>{{ $tab['label'] }}</span>
+                                <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $actionCounts[$key] ?? 0 }}</span>
+                            </a>
+                        @endforeach
                     </div>
                 </div>
 
@@ -145,6 +170,11 @@
                                 <div class="flex flex-wrap items-center gap-2">
                                     <span class="font-semibold text-slate-950">#{{ $order->number }}</span>
                                     <span class="rounded-full border {{ $colorClass }} px-2 py-0.5 text-xs font-medium">{{ $order->status_ru }}</span>
+                                    @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
+                                        <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">Запрос отмены</span>
+                                    @elseif($order->status === \App\Models\Order::STATUS_PENDING)
+                                        <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Нужен ответ</span>
+                                    @endif
                                 </div>
                                 <div class="mt-1 text-sm text-slate-500">
                                     {{ $order->created_at?->format('d.m.Y H:i') }} · ID {{ $order->id }}

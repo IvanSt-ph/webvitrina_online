@@ -16,6 +16,9 @@ class OrderController extends Controller
         $status = in_array($request->get('status'), Order::allStatuses(), true)
             ? $request->get('status')
             : null;
+        $action = in_array($request->get('action'), ['needs_action', 'cancel_request'], true)
+            ? $request->get('action')
+            : null;
         $search = trim((string) $request->get('q', ''));
 
         $query = Order::query()
@@ -25,6 +28,19 @@ class OrderController extends Controller
 
         if ($status) {
             $query->where('status', $status);
+        }
+
+        if ($action === 'cancel_request') {
+            $query->whereNotNull('cancellation_requested_at')
+                ->where('status', '!=', Order::STATUS_CANCELED);
+        } elseif ($action === 'needs_action') {
+            $query->where(function ($actionQuery) {
+                $actionQuery->where('status', Order::STATUS_PENDING)
+                    ->orWhere(function ($cancelQuery) {
+                        $cancelQuery->whereNotNull('cancellation_requested_at')
+                            ->where('status', '!=', Order::STATUS_CANCELED);
+                    });
+            });
         }
 
         if ($search !== '') {
@@ -44,8 +60,25 @@ class OrderController extends Controller
             ->select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
+        $actionCounts = [
+            'needs_action' => Order::query()
+                ->where('seller_id', auth()->id())
+                ->where(function ($actionQuery) {
+                    $actionQuery->where('status', Order::STATUS_PENDING)
+                        ->orWhere(function ($cancelQuery) {
+                            $cancelQuery->whereNotNull('cancellation_requested_at')
+                                ->where('status', '!=', Order::STATUS_CANCELED);
+                        });
+                })
+                ->count(),
+            'cancel_request' => Order::query()
+                ->where('seller_id', auth()->id())
+                ->whereNotNull('cancellation_requested_at')
+                ->where('status', '!=', Order::STATUS_CANCELED)
+                ->count(),
+        ];
 
-        return view('seller.orders.index', compact('orders', 'status', 'search', 'statusCounts'));
+        return view('seller.orders.index', compact('orders', 'status', 'action', 'search', 'statusCounts', 'actionCounts'));
     }
 
     /**
