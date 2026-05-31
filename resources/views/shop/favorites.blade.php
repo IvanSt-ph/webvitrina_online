@@ -36,7 +36,7 @@
         </span>
         <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Сохранённые товары</h1>
         <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Быстро возвращайтесь к товарам, переносите их в корзину и отдельно видите позиции, которые больше нельзя купить.
+          Быстро возвращайтесь к товарам, добавляйте выбранное в корзину и отдельно видите позиции, которые больше нельзя купить.
         </p>
       </div>
 
@@ -79,7 +79,7 @@
               <span x-text="selected.length"></span> выбрано
             </p>
             <p class="mt-1 text-xs leading-5 text-indigo-700">
-              Перенос добавит выбранные товары в корзину и уберёт их из избранного.
+              Добавим выбранные товары в корзину. В избранном они останутся, чтобы вы могли вернуться к ним позже.
             </p>
           </div>
 
@@ -91,13 +91,12 @@
 
             <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form min-w-0" @submit="if (selected.length === 0) { $event.preventDefault(); window.showAppToast ? window.showAppToast('Выберите хотя бы один товар', 'error') : alert('Выберите хотя бы один товар'); }">
               @csrf
-              <input type="hidden" name="remove_from_favorites" value="1">
               <template x-for="id in selected" :key="id">
                 <input type="hidden" name="favorite_ids[]" :value="id">
               </template>
               <x-action-button :full="true" x-bind:disabled="selected.length === 0">
                 <i class="ri-shopping-cart-2-line"></i>
-                Перенести
+                В корзину
               </x-action-button>
             </form>
           </div>
@@ -168,20 +167,21 @@
           <div class="fav-card group relative min-w-0 overflow-hidden bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
                :class="selectMode && selected.includes('{{ $f->id }}') ? 'border-indigo-300 bg-indigo-50/60 shadow-md' : ''"
                data-fav-card data-id="{{ $p->id }}" data-favorite-id="{{ $f->id }}">
-            <button type="button"
-                    x-show="selectMode"
-                    x-cloak
-                    @click="toggleSelect('{{ $f->id }}')"
-                    class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-xl border bg-white shadow-sm transition"
-                    :class="selected.includes('{{ $f->id }}') ? 'border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400'">
-              <i :class="selected.includes('{{ $f->id }}') ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
-            </button>
 
             {{-- Мобильная версия: фото 50px, справа название+цена, внизу кнопки --}}
             <div class="block sm:hidden">
               <div class="p-3">
                 {{-- Верхняя строка: фото + информация --}}
-                <div class="grid min-w-0 grid-cols-[48px_minmax(0,1fr)_auto] gap-3">
+                <div class="grid min-w-0 grid-cols-[auto_48px_minmax(0,1fr)_auto] gap-3">
+                  <button type="button"
+                          x-show="selectMode"
+                          x-cloak
+                          @click="toggleSelect('{{ $f->id }}')"
+                          class="mt-2 flex h-8 w-8 items-center justify-center rounded-xl border bg-white shadow-sm transition"
+                          :class="selected.includes('{{ $f->id }}') ? 'border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400'">
+                    <i :class="selected.includes('{{ $f->id }}') ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
+                  </button>
+
                   {{-- Фото 50x50 --}}
                   <a href="{{ route('product.show', $p) }}"
                      class="relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
@@ -237,10 +237,9 @@
                 <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-2 mt-3">
                   <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form flex-1">
                     @csrf
-                    <input type="hidden" name="remove_from_favorites" value="1">
                     <x-action-button size="sm" :full="true">
                       <i class="ri-shopping-cart-line text-sm"></i>
-                      <span>Перенести</span>
+                      <span>В корзину</span>
                     </x-action-button>
                   </form>
 
@@ -267,6 +266,14 @@
 
             {{-- Десктопная версия: строка --}}
             <div class="hidden sm:flex items-center gap-3 p-4">
+              <button type="button"
+                      x-show="selectMode"
+                      x-cloak
+                      @click="toggleSelect('{{ $f->id }}')"
+                      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm transition"
+                      :class="selected.includes('{{ $f->id }}') ? 'border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400'">
+                <i :class="selected.includes('{{ $f->id }}') ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
+              </button>
               
               {{-- Product image --}}
               <a href="{{ route('product.show', $p) }}"
@@ -326,10 +333,9 @@
               <div class="flex items-center gap-2 flex-shrink-0">
                 <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form">
                   @csrf
-                  <input type="hidden" name="remove_from_favorites" value="1">
                   <x-action-button size="sm">
                     <i class="ri-shopping-cart-line text-sm"></i>
-                    <span>Перенести</span>
+                    <span>В корзину</span>
                   </x-action-button>
                 </form>
 

@@ -41,11 +41,11 @@
     };
 @endphp
 
-<section {{ $attributes->merge(['class' => 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5']) }}>
+<section {{ $attributes->merge(['class' => 'rounded-2xl border border-slate-200 bg-white shadow-sm ' . ($compact ? 'p-4' : 'p-4 sm:p-5')]) }}>
     <div class="flex items-start justify-between gap-3">
         <div>
             <h2 class="font-bold text-slate-900">Ход заказа</h2>
-            <p class="mt-1 text-sm text-slate-500">Важные события по заказу в одном месте.</p>
+            <p class="mt-1 text-sm text-slate-500">{{ $compact ? 'Ключевые события по заказу.' : 'Важные события по заказу в одном месте.' }}</p>
         </div>
         <span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
             <i class="{{ $current['icon'] }}"></i>
@@ -53,14 +53,14 @@
         </span>
     </div>
 
-    <div class="mt-4 space-y-3">
+    <div class="{{ $compact ? 'mt-4 grid gap-2 sm:grid-cols-2' : 'mt-4 space-y-3' }}">
         @forelse($events as $event)
-            <div class="flex gap-3 text-sm">
-                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border {{ $toneClass($event['tone'] ?? 'indigo') }}">
+            <div class="flex gap-3 rounded-xl {{ $compact ? 'bg-slate-50 px-3 py-2' : '' }} text-sm">
+                <div class="flex {{ $compact ? 'h-7 w-7' : 'h-8 w-8' }} shrink-0 items-center justify-center rounded-full border {{ $toneClass($event['tone'] ?? 'indigo') }}">
                     <i class="{{ $event['icon'] }}"></i>
                 </div>
                 <div class="min-w-0">
-                    <div class="font-semibold text-slate-800">{{ $event['label'] }}</div>
+                    <div class="font-semibold leading-5 text-slate-800">{{ $event['label'] }}</div>
                     <div class="text-xs text-slate-500">{{ $event['at']->format('d.m.Y H:i') }}</div>
                     @if(!empty($event['description']))
                         <div class="mt-1 break-words rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-600">{{ $event['description'] }}</div>

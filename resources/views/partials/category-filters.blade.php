@@ -291,7 +291,7 @@
     /* Планшеты и ПК */
     @media (min-width: 640px) {
         .mt-responsive-filters {
-            margin-top: 64px; /* mt-16 */
+            margin-top: 80px; /* mt-16 */
         }
     }
     

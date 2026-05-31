@@ -4340,6 +4340,10 @@ class SecurityRegressionTest extends TestCase
             ->assertOk()
             ->assertSee('Рабочая панель продавца')
             ->assertSee('Написать покупателю')
+            ->assertSee('Товары в заказе')
+            ->assertSee('Seller order context product')
+            ->assertSee('Открыть товар')
+            ->assertSee($product->image_thumb_url, false)
             ->assertSee(route('seller.orders.chat.buyer', $order), false)
             ->assertSee('Покупатель ждёт');
 
@@ -4740,7 +4744,7 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
-    public function test_selected_favorites_can_be_moved_to_cart_and_removed_from_favorites(): void
+    public function test_selected_favorites_can_be_added_to_cart_without_removing_favorites(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
@@ -4764,7 +4768,6 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($buyer)
             ->post(route('cart.addFavorites'), [
                 'favorite_ids' => [$firstFavorite->id, $secondFavorite->id],
-                'remove_from_favorites' => '1',
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
@@ -4779,11 +4782,11 @@ class SecurityRegressionTest extends TestCase
             'product_id' => $secondProduct->id,
             'qty' => 1,
         ]);
-        $this->assertDatabaseMissing('favorites', [
+        $this->assertDatabaseHas('favorites', [
             'user_id' => $buyer->id,
             'product_id' => $firstProduct->id,
         ]);
-        $this->assertDatabaseMissing('favorites', [
+        $this->assertDatabaseHas('favorites', [
             'user_id' => $buyer->id,
             'product_id' => $secondProduct->id,
         ]);
@@ -4793,7 +4796,7 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
-    public function test_single_favorite_can_be_moved_to_cart_from_favorites_page(): void
+    public function test_single_favorite_can_be_added_to_cart_without_removing_favorite(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
@@ -4807,17 +4810,16 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($buyer)
             ->postJson(route('cart.add', $product), [
                 'qty' => 1,
-                'remove_from_favorites' => '1',
             ])
             ->assertOk()
-            ->assertJsonPath('removed_from_favorites', true);
+            ->assertJsonPath('removed_from_favorites', false);
 
         $this->assertDatabaseHas('cart_items', [
             'user_id' => $buyer->id,
             'product_id' => $product->id,
             'qty' => 1,
         ]);
-        $this->assertDatabaseMissing('favorites', [
+        $this->assertDatabaseHas('favorites', [
             'user_id' => $buyer->id,
             'product_id' => $product->id,
         ]);
@@ -4873,6 +4875,30 @@ class SecurityRegressionTest extends TestCase
             ->assertOk()
             ->assertSee('notifications-mobile-safe', false)
             ->assertSee('Email уведомления');
+    }
+
+    public function test_category_page_renders_associative_breadcrumbs(): void
+    {
+        $root = Category::factory()->create([
+            'name' => 'Электроника',
+            'slug' => 'electronics',
+        ]);
+        $category = Category::factory()->create([
+            'parent_id' => $root->id,
+            'name' => 'Смартфоны',
+            'slug' => 'smartfony',
+        ]);
+
+        $this->createProduct(User::factory()->create(['role' => 'seller']), [
+            'category_id' => $category->id,
+            'title' => 'Breadcrumb category product',
+        ]);
+
+        $this->get(route('category.show', $category->slug))
+            ->assertOk()
+            ->assertSee('Категории')
+            ->assertSee('Электроника')
+            ->assertSee('Смартфоны');
     }
 
     private function createProduct(User $seller, array $overrides = []): Product

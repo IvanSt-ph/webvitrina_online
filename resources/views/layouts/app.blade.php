@@ -14,7 +14,7 @@
         $hideMobileBottomNav
     );
 
-    $mainTopPadding = $hideHeader ? 'pt-0' : 'pt-0 lg:pt-20';
+    $mainTopPadding = $hideHeader ? 'pt-0' : 'pt-0 lg:pt-4';
 @endphp
 
 <!DOCTYPE html>
