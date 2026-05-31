@@ -26,6 +26,16 @@ Route::post('register', [RegisteredUserController::class, 'store'])
     Route::post('login', [AuthenticatedSessionController::class, 'store'])
         ->middleware('throttle:5,1');
 
+    Route::post('login/remembered', [AuthenticatedSessionController::class, 'remembered'])
+        ->middleware('throttle:10,1')
+        ->name('login.remembered');
+
+    Route::delete('login/remembered', [AuthenticatedSessionController::class, 'forgetAllRemembered'])
+        ->name('login.remembered.forget-all');
+
+    Route::delete('login/remembered/{selector}', [AuthenticatedSessionController::class, 'forgetRemembered'])
+        ->name('login.remembered.forget');
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 

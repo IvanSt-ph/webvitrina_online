@@ -138,9 +138,6 @@ Route::get('/countries/{country}/cities', function (Country $country) {
 Route::post('/currency', [\App\Http\Controllers\CurrencyController::class, 'set'])
     ->name('currency.set');
 
-// 🚧 Coming Soon
-Route::view('/coming-soon', 'errors.coming-soon')->name('coming.soon');
-
 // Кабинет входа
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])
     ->middleware('auth')
@@ -219,6 +216,9 @@ Route::middleware('role:buyer')->group(function () {
         ->middleware('throttle:20,1')
         ->name('orders.chat.product');
     Route::get('/my-chats/{conversation}', [ChatController::class, 'show'])->name('chats.show');
+    Route::post('/my-chats/{conversation}/pin', [ChatController::class, 'togglePin'])
+        ->middleware('throttle:30,1')
+        ->name('chats.pin');
     Route::delete('/my-chats/{conversation}', [ChatController::class, 'destroy'])->name('chats.destroy');
     Route::get('/my-chats/{conversation}/messages/older', [ChatController::class, 'olderMessages'])
         ->middleware('throttle:60,1')
@@ -406,6 +406,9 @@ Route::middleware('role:buyer')->group(function () {
         // Заказы продавца
         Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->name('orders.show');
+        Route::post('/orders/{order}/chat', [SellerOrderController::class, 'startBuyerConversation'])
+            ->middleware('throttle:20,1')
+            ->name('orders.chat.buyer');
         Route::post('/orders/{order}/status', [OrderStatusController::class, 'sellerUpdate'])
             ->name('orders.updateStatus');
 

@@ -1,6 +1,8 @@
 @php
     $currentId = $currentConversation?->id ?? null;
     $inlineDesktop = $inlineDesktop ?? false;
+    $listQuery = array_filter(request()->only(['q', 'filter']));
+    $pinColumn = auth()->user()->isSeller() ? 'seller_pinned_at' : 'buyer_pinned_at';
 @endphp
 
 <div class="min-w-0 space-y-2">
@@ -20,6 +22,12 @@
             $otherProfileUrl = $other->isSeller() && $other->shop?->slug
                 ? route('seller.show', $other->shop->slug)
                 : route('users.public.show', $other);
+            $isPinned = (bool) $item->{$pinColumn};
+            $contextLabel = $item->order
+                ? 'Заказ ' . $item->order->number
+                : ($item->product
+                    ? $item->product->title
+                    : ($item->isSupport() ? 'Поддержка' : 'Общий диалог'));
         @endphp
         <div class="group relative rounded-2xl border p-3 transition-all duration-200 sm:rounded-3xl
                     {{ $active ? 'border-indigo-200 bg-indigo-50 shadow-sm' : 'border-white bg-white hover:border-slate-200 hover:shadow-md hover:shadow-slate-900/5' }}">
@@ -27,7 +35,7 @@
                 <a href="{{ route('chats.show', $item) }}"
                    class="absolute inset-0 rounded-2xl sm:rounded-3xl lg:hidden"
                    aria-label="Открыть чат"></a>
-                <a href="{{ route('chats.index', ['chat' => $item->id]) }}"
+                <a href="{{ route('chats.index', array_merge($listQuery, ['chat' => $item->id])) }}"
                    class="absolute inset-0 hidden rounded-2xl sm:rounded-3xl lg:block"
                    aria-label="Показать чат справа"></a>
             @else
@@ -61,16 +69,33 @@
                                 {{ $other->name }}
                             </div>
                         @endif
-                        @if($item->unread_count)
-                            <span class="relative z-10 inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[11px] font-bold text-white">
-                                {{ $item->unread_count }}
-                            </span>
-                        @endif
+                        <div class="relative z-10 flex shrink-0 items-center gap-1">
+                            @if($item->unread_count)
+                                <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[11px] font-bold text-white">
+                                    {{ $item->unread_count }}
+                                </span>
+                            @endif
+                            <form method="POST" action="{{ route('chats.pin', $item) }}" class="relative z-20">
+                                @csrf
+                                <button type="submit"
+                                        class="flex h-7 w-7 items-center justify-center rounded-full transition {{ $isPinned ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400 hover:text-indigo-600' }}"
+                                        title="{{ $isPinned ? 'Открепить диалог' : 'Закрепить диалог' }}">
+                                    <i class="{{ $isPinned ? 'ri-pushpin-fill' : 'ri-pushpin-2-line' }}"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                    @if($item->product)
-                        <div class="mt-0.5 max-w-[7rem] truncate text-[11px] font-medium text-indigo-600 sm:max-w-[10rem]"
-                             title="{{ $item->product->title }}">
-                            {{ $item->product->title }}
+                    @if($item->order)
+                        <div class="mt-0.5 max-w-[10rem] truncate text-[11px] font-medium text-emerald-600 sm:max-w-[14rem]" title="{{ $contextLabel }}">
+                            {{ $contextLabel }}
+                        </div>
+                    @elseif($item->product)
+                        <div class="mt-0.5 max-w-[7rem] truncate text-[11px] font-medium text-indigo-600 sm:max-w-[10rem]" title="{{ $contextLabel }}">
+                            {{ $contextLabel }}
+                        </div>
+                    @elseif($item->isSupport())
+                        <div class="mt-0.5 text-[11px] font-medium text-indigo-600">
+                            Поддержка
                         </div>
                     @else
                         <div class="mt-0.5 text-[11px] font-medium text-slate-400">

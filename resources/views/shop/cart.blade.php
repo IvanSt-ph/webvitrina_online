@@ -70,7 +70,13 @@
                         </div>
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-semibold text-slate-800">{{ $product?->title ?? 'Товар больше недоступен' }}</p>
-                            <p class="text-xs text-amber-700">Товар снят с продажи или удалён продавцом</p>
+                            <p class="text-xs text-amber-700">
+                                @if($product && $product->stock <= 0)
+                                    Сейчас нет в наличии
+                                @else
+                                    Товар снят с продажи или удалён продавцом
+                                @endif
+                            </p>
                         </div>
                         <form method="POST" action="{{ route('cart.remove', $item) }}">
                             @csrf

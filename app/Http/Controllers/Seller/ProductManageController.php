@@ -91,6 +91,7 @@ class ProductManageController extends Controller
          ========================= */
         $productsQuery = Product::where('user_id', Auth::id())
             ->with(['category', 'city.country'])
+            ->withCount('attributeValues')
             ->withSum(['stats as views_sum' => function ($q) use ($from, $to) {
                 $q->whereBetween('date', [$from, $to]);
             }], 'views');

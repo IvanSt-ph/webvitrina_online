@@ -86,11 +86,6 @@
                     </div>
 
                     <div class="flex flex-col">
-                        <a href="{{ route('notifications.settings') }}" class="{{ request()->routeIs('notifications.settings') ? $active : '' }} {{ $link }}">
-                            <i class="ri-notification-3-line text-[22px]"></i>
-                            <span>Уведомления</span>
-                        </a>
-
                         <a href="{{ route('reviews.index') }}" class="{{ request()->routeIs('reviews.index') ? $active : '' }} {{ $link }}">
                             <i class="ri-star-line text-[22px]"></i>
                             <span>Мои отзывы</span>

@@ -1,23 +1,16 @@
 @props(['items' => []])
 
-<nav class="text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
-  <ol class="flex flex-wrap items-center gap-1">
-    <li>
-      <a href="{{ route('home') }}" class="hover:text-indigo-600">Главная</a>
-    </li>
-    @foreach ($items as $label => $url)
-      <li class="flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mx-2 text-gray-400" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 5l7 7-7 7" />
-        </svg>
-        @if ($loop->last)
-          <span class="text-gray-700 font-medium">{{ $label }}</span>
-        @else
-          <a href="{{ $url }}" class="hover:text-indigo-600">{{ $label }}</a>
-        @endif
-      </li>
-    @endforeach
-  </ol>
-</nav>
+@if(!empty($items))
+    <nav {{ $attributes->merge(['class' => 'flex min-w-0 flex-wrap items-center gap-1 text-sm text-slate-500']) }} aria-label="Breadcrumbs">
+        @foreach($items as $item)
+            @if(!$loop->first)
+                <i class="ri-arrow-right-s-line text-slate-300"></i>
+            @endif
+            @if(!empty($item['href']) && !$loop->last)
+                <a href="{{ $item['href'] }}" class="font-medium hover:text-indigo-600">{{ $item['label'] }}</a>
+            @else
+                <span class="font-semibold text-slate-700">{{ $item['label'] }}</span>
+            @endif
+        @endforeach
+    </nav>
+@endif

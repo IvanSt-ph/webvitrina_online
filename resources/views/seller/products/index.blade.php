@@ -281,6 +281,12 @@
                             @php
                                 $statusLabel = $statusLabels[$p->status] ?? 'Неизвестный статус';
                                 $statusClass = $statusClasses[$p->status] ?? 'border-rose-200 bg-rose-50 text-rose-700';
+                                $qualityHints = collect();
+                                if (!$p->image || in_array($p->image, ['default/no-image.png', 'no-image.png'], true)) $qualityHints->push('Нет фото');
+                                if (mb_strlen(strip_tags((string) $p->description)) < 60) $qualityHints->push('Короткое описание');
+                                if (!$p->category_id) $qualityHints->push('Нет категории');
+                                if (($p->attribute_values_count ?? 0) === 0) $qualityHints->push('Нет характеристик');
+                                if ($p->stock <= 0) $qualityHints->push('Нет остатков');
                             @endphp
                             <article class="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-indigo-200 hover:shadow-sm">
                                 <div class="relative aspect-[4/3] bg-slate-50">
@@ -297,6 +303,13 @@
                                     <div>
                                         <h3 class="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-slate-950">{{ $p->title }}</h3>
                                         <p class="mt-1 truncate text-xs text-slate-500">{{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }}</p>
+                                        @if($qualityHints->isNotEmpty())
+                                            <div class="mt-2 flex flex-wrap gap-1">
+                                                @foreach($qualityHints as $hint)
+                                                    <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $hint }}</span>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </div>
 
                                     <div class="flex items-end justify-between gap-3">
@@ -334,6 +347,12 @@
                             @php
                                 $statusLabel = $statusLabels[$p->status] ?? 'Неизвестный статус';
                                 $statusClass = $statusClasses[$p->status] ?? 'border-rose-200 bg-rose-50 text-rose-700';
+                                $qualityHints = collect();
+                                if (!$p->image || in_array($p->image, ['default/no-image.png', 'no-image.png'], true)) $qualityHints->push('Нет фото');
+                                if (mb_strlen(strip_tags((string) $p->description)) < 60) $qualityHints->push('Короткое описание');
+                                if (!$p->category_id) $qualityHints->push('Нет категории');
+                                if (($p->attribute_values_count ?? 0) === 0) $qualityHints->push('Нет характеристик');
+                                if ($p->stock <= 0) $qualityHints->push('Нет остатков');
                             @endphp
                             <div class="grid gap-3 px-4 py-3 transition hover:bg-slate-50 lg:grid-cols-[1fr_170px_120px_130px] lg:items-center">
                                 <div class="flex min-w-0 items-center gap-3">
@@ -346,6 +365,13 @@
                                         <div class="mt-1 truncate text-xs text-slate-500">
                                             {{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }} · {{ $p->created_at->format('d.m.Y') }}
                                         </div>
+                                        @if($qualityHints->isNotEmpty())
+                                            <div class="mt-2 flex flex-wrap gap-1">
+                                                @foreach($qualityHints as $hint)
+                                                    <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $hint }}</span>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
 

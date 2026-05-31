@@ -1,59 +1,96 @@
 <x-seller-layout title="Финансы продавца">
+  @php
+    $sellerId = auth()->id();
+    $ordersQuery = \App\Models\Order::query()->where('seller_id', $sellerId);
+    $completedTotal = (clone $ordersQuery)
+        ->whereIn('status', [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED])
+        ->sum('total_price');
+    $inProgressTotal = (clone $ordersQuery)
+        ->whereIn('status', [
+            \App\Models\Order::STATUS_PENDING,
+            \App\Models\Order::STATUS_PROCESSING,
+            \App\Models\Order::STATUS_PAID,
+            \App\Models\Order::STATUS_SHIPPED,
+        ])
+        ->sum('total_price');
+    $canceledTotal = (clone $ordersQuery)
+        ->where('status', \App\Models\Order::STATUS_CANCELED)
+        ->sum('total_price');
+    $recentOrders = (clone $ordersQuery)
+        ->with('user')
+        ->latest()
+        ->limit(8)
+        ->get();
+    $currency = $recentOrders->first()?->currency ?? 'RUB';
+  @endphp
 
-  <div class="min-h-[70vh] flex flex-col items-center justify-center text-center px-6 py-16 relative overflow-hidden">
-
-      {{-- 💫 Фоновые ореолы --}}
-      <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50 opacity-90"></div>
-      <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-indigo-300/20 rounded-full blur-3xl animate-pulse-slow"></div>
-
-      {{-- 🪙 Иконка --}}
-      <div class="relative z-10 mb-6 animate-float">
-          <div class="bg-white border border-gray-100 shadow-lg rounded-2xl p-8">
-              <i class="ri-wallet-3-line text-6xl text-indigo-500 animate-pulse"></i>
-          </div>
+  <div class="space-y-5 px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-6">
+    <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm sm:p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Финансы</p>
+          <h1 class="mt-1 text-2xl font-bold text-slate-950">Деньги по заказам</h1>
+          <p class="mt-2 max-w-2xl text-sm text-slate-500">
+            Это не платёжный баланс и не выплата на карту: здесь показана операционная сумма заказов продавца.
+          </p>
+        </div>
+        <a href="{{ route('seller.orders.index') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+          <i class="ri-shopping-bag-3-line"></i>
+          К заказам
+        </a>
       </div>
+    </section>
 
-      {{-- 📝 Заголовок --}}
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-3 z-10">
-          Раздел «Финансы» в разработке
-      </h1>
+    <section class="grid gap-3 md:grid-cols-3">
+      @foreach([
+        ['label' => 'Завершено / доставлено', 'value' => $completedTotal, 'icon' => 'ri-check-double-line', 'class' => 'border-emerald-200 bg-emerald-50 text-emerald-800'],
+        ['label' => 'В работе', 'value' => $inProgressTotal, 'icon' => 'ri-time-line', 'class' => 'border-amber-200 bg-amber-50 text-amber-800'],
+        ['label' => 'Отменено', 'value' => $canceledTotal, 'icon' => 'ri-close-circle-line', 'class' => 'border-rose-200 bg-rose-50 text-rose-800'],
+      ] as $card)
+        <div class="rounded-2xl border p-5 shadow-sm {{ $card['class'] }}">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold opacity-80">{{ $card['label'] }}</span>
+            <i class="{{ $card['icon'] }} text-xl"></i>
+          </div>
+          <div class="mt-3 text-2xl font-extrabold">{{ number_format($card['value'], 2, ',', ' ') }} {{ $currency }}</div>
+        </div>
+      @endforeach
+    </section>
 
-      {{-- 💬 Описание --}}
-      <p class="text-gray-500 max-w-md mx-auto leading-relaxed mb-8 z-10">
-          Скоро вы сможете отслеживать доходы, комиссии и историю выплат прямо в панели продавца.  
-          Мы работаем над системой аналитики и прозрачных расчетов.
-      </p>
-
-      {{-- 🔄 Кнопка возврата --}}
-      <a href="{{ route('cabinet') }}"
-         class="relative z-10 inline-flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transition">
-          <i class="ri-arrow-left-line text-lg"></i>
-          Вернуться в панель продавца
-      </a>
-
-
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+        <div>
+          <h2 class="font-bold text-slate-950">Последние финансовые события</h2>
+          <p class="mt-1 text-xs text-slate-500">Заказы, из которых складывается сумма выше.</p>
+        </div>
+      </div>
+      <div class="divide-y divide-slate-100">
+        @forelse($recentOrders as $order)
+          <a href="{{ route('seller.orders.show', $order) }}" class="grid gap-2 px-4 py-3 transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center sm:px-5">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-semibold text-slate-900">#{{ $order->number }}</span>
+                <x-status-badge :status="$order->status" />
+              </div>
+              <p class="mt-1 truncate text-sm text-slate-500">{{ $order->user?->name ?? 'Покупатель' }} · {{ $order->created_at?->format('d.m.Y H:i') }}</p>
+            </div>
+            <div class="text-sm font-bold text-slate-900">{{ $order->formatted_total_price }}</div>
+          </a>
+        @empty
+          <x-empty-state
+            icon="ri-wallet-3-line"
+            title="Финансовых событий пока нет"
+            description="Когда появятся заказы, здесь будет видна сумма в работе, завершённые и отменённые заказы."
+            class="border-0 shadow-none rounded-none"
+          >
+            <a href="{{ route('seller.products.create') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+              Добавить товар
+            </a>
+          </x-empty-state>
+        @endforelse
+      </div>
+    </section>
   </div>
 
-  {{-- ⚙️ Мобильная панель продавца --}}
   @include('layouts.mobile-bottom-seller-nav')
-
-  {{-- 💎 Иконки и анимация --}}
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
-  <style>
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-    @keyframes pulse-slow {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 0.8; transform: scale(1.05); }
-    }
-    .animate-float {
-      animation: float 3.5s ease-in-out infinite;
-    }
-    .animate-pulse-slow {
-      animation: pulse-slow 5s ease-in-out infinite;
-    }
-  </style>
-
 </x-seller-layout>

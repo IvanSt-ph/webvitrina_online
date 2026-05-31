@@ -268,9 +268,5 @@
     </form>
 </section>
 
-{{-- 🔹 Подключение стилей --}}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-
 {{-- 🔹 Alpine.js для анимаций --}}
 <script src="//unpkg.com/alpinejs" defer></script>

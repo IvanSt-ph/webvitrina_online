@@ -376,8 +376,8 @@
                 <span class="flex items-center gap-1"><i class="ri-shield-check-line text-indigo-600"></i> Гарантия качества</span>
                 <span class="flex items-center gap-1"><i class="ri-star-line text-indigo-500"></i> Топ продавцов</span>
             </div>
-            <a href="#" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
-                Смотреть все акции
+            <a href="{{ route('seller.show', $shop->slug) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+                Смотреть товары магазина
             </a>
         </div>
 

@@ -334,6 +334,13 @@ class ChatController extends Controller
             ->when($mode === Conversation::TYPE_MARKETPLACE && $type === 'product', fn ($query) => $query->whereNotNull('product_id'))
             ->when($mode === Conversation::TYPE_MARKETPLACE && $type === 'general', fn ($query) => $query->whereNull('product_id'))
             ->when($type === 'locked', fn ($query) => $query->whereNotNull('locked_at'))
+            ->when($type === 'priority', fn ($query) => $query->where(function ($priority) use ($request) {
+                $priority
+                    ->whereNotNull('locked_at')
+                    ->orWhereHas('messages', fn ($messages) => $messages
+                        ->where('sender_id', '!=', $request->user()->id)
+                        ->whereNull('admin_read_at'));
+            }))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query

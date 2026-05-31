@@ -33,6 +33,35 @@
         }
 
         $itemsCount = $order->items->sum('quantity');
+        $primaryProduct = $order->items
+            ->map(fn ($item) => $item->product)
+            ->first(fn ($product) => $product !== null);
+        $nextStatus = [
+            \App\Models\Order::STATUS_PENDING => \App\Models\Order::STATUS_PROCESSING,
+            \App\Models\Order::STATUS_PROCESSING => \App\Models\Order::STATUS_PAID,
+            \App\Models\Order::STATUS_PAID => \App\Models\Order::STATUS_SHIPPED,
+            \App\Models\Order::STATUS_SHIPPED => \App\Models\Order::STATUS_DELIVERED,
+            \App\Models\Order::STATUS_DELIVERED => \App\Models\Order::STATUS_COMPLETED,
+        ][$order->status] ?? null;
+        $nextActionLabel = [
+            \App\Models\Order::STATUS_PENDING => 'Принять заказ',
+            \App\Models\Order::STATUS_PROCESSING => 'Отметить как оплаченный',
+            \App\Models\Order::STATUS_PAID => 'Передать в доставку',
+            \App\Models\Order::STATUS_SHIPPED => 'Отметить доставленным',
+            \App\Models\Order::STATUS_DELIVERED => 'Завершить заказ',
+        ][$order->status] ?? 'Действий по статусу нет';
+        $nextActionHint = [
+            \App\Models\Order::STATUS_PENDING => 'Покупатель ждёт, что продавец подтвердит заказ.',
+            \App\Models\Order::STATUS_PROCESSING => 'Подходит для оплаты при получении или ручной проверки оплаты.',
+            \App\Models\Order::STATUS_PAID => 'После передачи в доставку покупатель увидит, что заказ уже в пути.',
+            \App\Models\Order::STATUS_SHIPPED => 'Отметьте доставку, когда заказ прибыл покупателю.',
+            \App\Models\Order::STATUS_DELIVERED => 'Завершайте после финального подтверждения.',
+        ][$order->status] ?? 'Заказ уже не требует смены статуса.';
+        $canCancel = in_array($order->status, [
+            \App\Models\Order::STATUS_PENDING,
+            \App\Models\Order::STATUS_PROCESSING,
+            \App\Models\Order::STATUS_PAID,
+        ], true);
     @endphp
 
     <div class="seller-order-show-safe min-h-screen space-y-6 overflow-x-hidden px-3 py-4 pb-[5.5rem] sm:px-5 sm:py-6 lg:px-6">
@@ -40,11 +69,11 @@
         {{-- Верхняя панель --}}
         <div class="grid min-w-0 gap-3 sm:flex sm:items-center sm:justify-between">
             <div class="min-w-0 space-y-1">
-                <a href="{{ route('seller.orders.index') }}"
-                   class="inline-flex min-w-0 items-center text-sm text-gray-500 hover:text-gray-700">
-                    <x-icon name="arrow-left" class="w-4 h-4 mr-1 shrink-0"/>
-                    <span class="min-w-0 truncate">Назад к списку заказов</span>
-                </a>
+                <x-breadcrumbs :items="[
+                    ['label' => 'Панель', 'href' => route('seller.cabinet')],
+                    ['label' => 'Заказы', 'href' => route('seller.orders.index')],
+                    ['label' => 'Заказ ' . ($order->number ?? ('#' . $order->id))],
+                ]" />
 
                 <h1 class="truncate text-2xl sm:text-3xl font-bold text-gray-900">
                     Заказ {{ $order->number ?? ('#' . $order->id) }}
@@ -111,6 +140,8 @@
                 <p class="mt-3 text-sm text-rose-800">Если заказ ещё не отправлен, отмените его в блоке действий ниже или свяжитесь с покупателем.</p>
             </section>
         @endif
+
+        <x-order-timeline :order="$order" />
 {{-- Покупатель --}}
 <div class="min-w-0 overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex items-center gap-4">
 
@@ -149,81 +180,101 @@
 
 
 
-            {{-- Действия продавца --}}
-<div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
-    <h2 class="text-sm font-semibold text-gray-800 mb-3">Действия продавца</h2>
+            {{-- Рабочая панель продавца --}}
+<section class="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/60 p-5 shadow-sm">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Рабочая панель продавца</p>
+            <h2 class="mt-1 text-xl font-bold text-slate-950">{{ $nextActionLabel }}</h2>
+            <p class="mt-2 max-w-2xl text-sm text-slate-600">{{ $nextActionHint }}</p>
+        </div>
 
-    <div class="grid gap-3 sm:flex sm:flex-wrap">
-
-        {{-- PENDING → PROCESSING --}}
-        @if($order->status === 'pending')
-            <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
+        <div class="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+            <form method="POST" action="{{ route('seller.orders.chat.buyer', $order) }}">
                 @csrf
-                <input type="hidden" name="status" value="processing">
-                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
-                    Принять заказ
+                <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                        @disabled(! $primaryProduct)>
+                    <i class="ri-chat-3-line"></i>
+                    Написать покупателю
                 </button>
             </form>
-        @endif
 
-        {{-- PROCESSING → PAID --}}
-        @if($order->status === 'processing')
-            <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
+            <form method="POST" action="{{ route('support.start') }}">
                 @csrf
-                <input type="hidden" name="status" value="paid">
-                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
-                    Отметить как оплаченный
+                <input type="hidden" name="topic" value="Вопрос по заказу {{ $order->number }}">
+                <input type="hidden" name="details" value="Заказ {{ $order->number }}, покупатель {{ $order->user->name ?? 'не указан' }}, статус: {{ $order->status_ru }}.">
+                <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto">
+                    <i class="ri-customer-service-2-line"></i>
+                    Поддержка
                 </button>
             </form>
-        @endif
-
-        {{-- PAID → SHIPPED --}}
-        @if($order->status === 'paid')
-            <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
-                @csrf
-                <input type="hidden" name="status" value="shipped">
-                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
-                    Передать в доставку
-                </button>
-            </form>
-        @endif
-
-        {{-- SHIPPED → DELIVERED --}}
-        @if($order->status === 'shipped')
-            <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
-                @csrf
-                <input type="hidden" name="status" value="delivered">
-                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
-                    Отметить доставленным
-                </button>
-            </form>
-        @endif
-
-        {{-- DELIVERED → COMPLETED --}}
-        @if($order->status === 'delivered')
-            <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
-                @csrf
-                <input type="hidden" name="status" value="completed">
-                <button class="w-full px-5 py-2 bg-indigo-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-indigo-400/30 sm:w-auto">
-                    Завершить заказ
-                </button>
-            </form>
-        @endif
-
-        {{-- Отмена заказа — доступна в любой статусной ветке, кроме completed --}}
-        @if($order->status !== 'completed' && $order->status !== 'canceled')
-            <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}"
-                onsubmit="return confirm('Вы точно хотите отменить заказ?');">
-                @csrf
-                <input type="hidden" name="status" value="canceled">
-                <button class="w-full px-5 py-2 bg-rose-500/90 text-white rounded-xl text-sm font-semibold shadow-md hover:bg-rose-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border border-rose-400/30 sm:w-auto">
-                    Отменить заказ
-                </button>
-            </form>
-        @endif
-
+        </div>
     </div>
-</div>
+
+    <div class="mt-5 grid gap-3 md:grid-cols-3">
+        <div class="rounded-xl border border-white/80 bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <i class="ri-flag-line text-indigo-500"></i>
+                Следующий шаг
+            </div>
+            <div class="mt-3">
+                @if($nextStatus)
+                    <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}">
+                        @csrf
+                        <input type="hidden" name="status" value="{{ $nextStatus }}">
+                        <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                            {{ $nextActionLabel }}
+                            <i class="ri-arrow-right-line"></i>
+                        </button>
+                    </form>
+                @else
+                    <p class="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">По этому заказу нет доступного следующего шага.</p>
+                @endif
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-white/80 bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <i class="ri-user-smile-line text-emerald-500"></i>
+                Покупатель ждёт
+            </div>
+            <p class="mt-3 text-sm text-slate-600">
+                @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
+                    Решения по отмене заказа.
+                @elseif($order->status === \App\Models\Order::STATUS_PENDING)
+                    Подтверждения заказа продавцом.
+                @elseif($order->status === \App\Models\Order::STATUS_PAID)
+                    Передачи товара в доставку.
+                @elseif($order->status === \App\Models\Order::STATUS_SHIPPED)
+                    Обновления по доставке.
+                @else
+                    Актуального статуса и ответа при вопросах.
+                @endif
+            </p>
+        </div>
+
+        <div class="rounded-xl border border-white/80 bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <i class="ri-error-warning-line text-rose-500"></i>
+                Безопасное действие
+            </div>
+            <div class="mt-3">
+                @if($canCancel)
+                    <form method="POST" action="{{ route('seller.orders.updateStatus', $order) }}"
+                          onsubmit="return confirm('Вы точно хотите отменить заказ?');">
+                        @csrf
+                        <input type="hidden" name="status" value="canceled">
+                        <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
+                            Отменить заказ
+                        </button>
+                    </form>
+                @else
+                    <p class="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">Отмена недоступна для текущего статуса.</p>
+                @endif
+            </div>
+        </div>
+    </div>
+</section>
 
 
 {{-- Доставка --}}

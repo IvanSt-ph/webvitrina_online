@@ -53,6 +53,7 @@
     class="min-h-screen overflow-x-hidden bg-white-100"
     x-data="appShell"
 >
+<x-toast-stack />
 
 {{-- 🌐 Верхнее меню (десктоп) --}}
 @unless($hideHeader)

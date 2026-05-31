@@ -101,6 +101,7 @@
                     <option value="product" @selected(request('type') === 'product')>По товарам</option>
                     <option value="general" @selected(request('type') === 'general')>Общие</option>
                 @endif
+                <option value="priority" @selected(request('type') === 'priority')>Приоритетные</option>
                 <option value="locked" @selected(request('type') === 'locked')>Заблокированные</option>
             </select>
             <button class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 sm:h-11 sm:px-5">
@@ -135,6 +136,13 @@
                         $preview = $conversation->lastMessage?->body !== ''
                             ? ($conversation->lastMessage?->body ?? 'Сообщений пока нет')
                             : ($conversation->lastMessage?->image_path ? 'Фото' : 'Сообщений пока нет');
+                        $priority = $conversation->isLocked()
+                            ? ['label' => 'Высокий', 'class' => 'bg-rose-50 text-rose-700 border-rose-100', 'reason' => 'заблокирован']
+                            : ($conversation->unread_count > 0
+                                ? ['label' => 'Высокий', 'class' => 'bg-amber-50 text-amber-700 border-amber-100', 'reason' => 'есть непрочитанные']
+                                : ($conversation->isSupport()
+                                    ? ['label' => 'Средний', 'class' => 'bg-indigo-50 text-indigo-700 border-indigo-100', 'reason' => 'support']
+                                    : ['label' => 'Обычный', 'class' => 'bg-slate-50 text-slate-600 border-slate-100', 'reason' => 'marketplace']));
                     @endphp
                     <div class="group relative mb-2 rounded-2xl border p-3 transition
                                 {{ $active ? 'border-indigo-200 bg-indigo-50 shadow-sm' : 'border-white bg-white hover:border-slate-200 hover:shadow-md hover:shadow-slate-900/5' }}">
@@ -179,6 +187,9 @@
                                             {{ $conversation->unread_count > 99 ? '99+' : $conversation->unread_count }}
                                         </span>
                                     @endif
+                                    <span class="shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold {{ $priority['class'] }}" title="{{ $priority['reason'] }}">
+                                        {{ $priority['label'] }}
+                                    </span>
                                 </div>
 
                                 @if($conversation->isLocked())

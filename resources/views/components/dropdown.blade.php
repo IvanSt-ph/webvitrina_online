@@ -28,10 +28,10 @@ $width = match ($width) {
             x-transition:leave="transition ease-in duration-100"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
-            class="absolute z-50 mt-3 {{ $width }} rounded-3xl shadow-2xl shadow-slate-900/15 {{ $alignmentClasses }}"
+            class="absolute z-50 mt-3 {{ $width }} rounded-[1.7rem] shadow-2xl shadow-slate-950/20 {{ $alignmentClasses }}"
             style="display: none;"
             @click="open = false">
-        <div class="overflow-hidden rounded-3xl border border-white/80 bg-white/95 backdrop-blur-xl ring-1 ring-slate-900/5 {{ $contentClasses }}">
+        <div class="overflow-hidden rounded-[1.7rem] border border-white/80 bg-white/90 backdrop-blur-2xl ring-1 ring-slate-900/5 {{ $contentClasses }}">
             {{ $content }}
         </div>
     </div>

@@ -24,10 +24,10 @@ class CartController extends Controller
             ->get();
 
         $items = $cartItems
-            ->filter(fn (CartItem $item) => $item->product && $item->product->status === 'active')
+            ->filter(fn (CartItem $item) => $item->product && $item->product->status === 'active' && $item->product->stock > 0)
             ->values();
         $unavailableItems = $cartItems
-            ->reject(fn (CartItem $item) => $item->product && $item->product->status === 'active')
+            ->reject(fn (CartItem $item) => $item->product && $item->product->status === 'active' && $item->product->stock > 0)
             ->values();
 
         // считаем общую сумму

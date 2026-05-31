@@ -206,7 +206,16 @@ import './seller-product-form.js';
 // Подключаем CSS и JS плагина (через Vite)
 import 'intl-tel-input/build/css/intlTelInput.css';
 import intlTelInput from 'intl-tel-input';
+import itiFlags from 'intl-tel-input/build/img/flags.webp?url';
+import itiFlags2x from 'intl-tel-input/build/img/flags@2x.webp?url';
+import itiGlobe from 'intl-tel-input/build/img/globe.webp?url';
+import itiGlobe2x from 'intl-tel-input/build/img/globe@2x.webp?url';
 window.intlTelInput = intlTelInput;
+
+document.documentElement.style.setProperty('--iti-path-flags-1x', `url("${itiFlags}")`);
+document.documentElement.style.setProperty('--iti-path-flags-2x', `url("${itiFlags2x}")`);
+document.documentElement.style.setProperty('--iti-path-globe-1x', `url("${itiGlobe}")`);
+document.documentElement.style.setProperty('--iti-path-globe-2x', `url("${itiGlobe2x}")`);
 
 
 // 🚀 Инициализация всех <input type="tel">
@@ -271,6 +280,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (formatted) input.value = formatted;
       }
     });
+
+    const form = input.closest('form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        if (window.intlTelInputUtils && iti.isValidNumber()) {
+          const formatted = iti.getNumber(intlTelInputUtils.numberFormat.E164);
+          if (formatted) input.value = formatted;
+        }
+      });
+    }
   });
 });
 

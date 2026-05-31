@@ -8,15 +8,14 @@
 
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-gray-900">Номер телефона магазина</label>
-                <div class="relative flex items-center">
+                <div class="phone-input-shell">
                     <input id="shop-phone-input"
                            type="tel"
                            name="phone"
                            value="{{ old('phone', Auth::user()->shop?->phone) }}"
                            placeholder="+373 777 00 000"
-                           class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
+                           class="w-full pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
                            required>
-                    <i class="ri-phone-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 </div>
                 <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
             </div>

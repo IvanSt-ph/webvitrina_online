@@ -14,22 +14,15 @@
         \App\Models\Order::STATUS_CANCELED => ['label' => 'Отменён', 'icon' => 'ri-close-circle-line', 'class' => 'border-rose-200 bg-rose-50 text-rose-700'],
     ];
     $current = $statuses[$order->status] ?? ['label' => $order->status, 'icon' => 'ri-information-line', 'class' => 'border-slate-200 bg-slate-50 text-slate-700'];
-    $timeline = collect([
-        ['label' => 'Заказ создан', 'at' => $order->created_at, 'icon' => 'ri-add-circle-line'],
-        ['label' => 'Принят продавцом', 'at' => $order->accepted_at, 'icon' => 'ri-user-follow-line'],
-        ['label' => 'Оплачен', 'at' => $order->paid_at, 'icon' => 'ri-bank-card-line'],
-        ['label' => 'Отправлен', 'at' => $order->shipped_at, 'icon' => 'ri-truck-line'],
-        ['label' => 'Доставлен', 'at' => $order->delivered_at, 'icon' => 'ri-checkbox-circle-line'],
-        ['label' => 'Отменён', 'at' => $order->canceled_at, 'icon' => 'ri-close-circle-line'],
-    ])->filter(fn ($step) => $step['at']);
 @endphp
 
 <div class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
-        <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-indigo-700">
-            <i class="ri-arrow-left-line"></i>
-            К заказам
-        </a>
+        <x-breadcrumbs :items="[
+            ['label' => 'Админ', 'href' => route('admin.dashboard')],
+            ['label' => 'Заказы', 'href' => route('admin.orders.index')],
+            ['label' => '#' . $order->number],
+        ]" />
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('admin.users.show', $order->user) }}" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
                 <i class="ri-user-line"></i> Покупатель
@@ -185,20 +178,7 @@
                 </form>
             </section>
 
-            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                <h2 class="font-bold text-slate-900">Ход заказа</h2>
-                <div class="mt-4 space-y-3">
-                    @foreach($timeline as $step)
-                        <div class="flex gap-3 text-sm">
-                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600"><i class="{{ $step['icon'] }}"></i></div>
-                            <div>
-                                <div class="font-semibold text-slate-800">{{ $step['label'] }}</div>
-                                <div class="text-xs text-slate-500">{{ $step['at']->format('d.m.Y H:i') }}</div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </section>
+            <x-order-timeline :order="$order" />
 
             <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <h2 class="font-bold text-slate-900">Действия админов</h2>

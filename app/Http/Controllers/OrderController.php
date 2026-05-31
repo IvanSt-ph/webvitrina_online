@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -79,6 +80,25 @@ class OrderController extends Controller
             'seller.shop',
         ]);
 
-        return view('shop.order-show', compact('order'));
+        $categoryIds = $order->items
+            ->pluck('product.category_id')
+            ->filter()
+            ->unique()
+            ->values();
+        $productIds = $order->items
+            ->pluck('product_id')
+            ->filter()
+            ->values();
+
+        $continueProducts = Product::query()
+            ->where('status', 'active')
+            ->where('stock', '>', 0)
+            ->whereNotIn('id', $productIds)
+            ->when($categoryIds->isNotEmpty(), fn ($query) => $query->whereIn('category_id', $categoryIds))
+            ->latest()
+            ->limit(4)
+            ->get();
+
+        return view('shop.order-show', compact('order', 'continueProducts'));
     }
 }

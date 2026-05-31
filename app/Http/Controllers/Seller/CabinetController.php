@@ -183,6 +183,29 @@ $avgRating = $avgRatingRaw ? round($avgRatingRaw, 2) : 0.00;
             ],
         ];
 
-        return view('seller.cabinet', compact('stats', 'actionCards', 'actionOrders', 'pendingPlanRequest'));
+        $setupChecklist = [
+            [
+                'label' => 'Заполнить телефон магазина',
+                'done' => filled($user->shop?->phone),
+                'href' => route('profile.edit'),
+            ],
+            [
+                'label' => 'Подтвердить email',
+                'done' => $user->hasVerifiedEmail(),
+                'href' => route('profile.edit'),
+            ],
+            [
+                'label' => 'Добавить первый товар',
+                'done' => $totalAllProducts > 0,
+                'href' => route('seller.products.create'),
+            ],
+            [
+                'label' => 'Выбрать тариф',
+                'done' => filled($user->seller_plan ?? null) || filled($user->plan ?? null) || $pendingPlanRequest,
+                'href' => route('seller.plans.index'),
+            ],
+        ];
+
+        return view('seller.cabinet', compact('stats', 'actionCards', 'actionOrders', 'pendingPlanRequest', 'setupChecklist'));
     }
 }

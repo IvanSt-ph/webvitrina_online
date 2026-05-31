@@ -46,7 +46,11 @@ class ChatController extends Controller
             $selectedMessages = $selectedConversation->recentMessages(self::RECENT_MESSAGES_LIMIT);
         }
 
-        return view('chats.index', compact('conversations', 'selectedConversation', 'selectedMessages'));
+        $chatFilters = $this->chatFilters();
+        $activeFilter = $this->activeFilter($request);
+        $search = trim((string) $request->query('q', ''));
+
+        return view('chats.index', compact('conversations', 'selectedConversation', 'selectedMessages', 'chatFilters', 'activeFilter', 'search'));
     }
 
     public function start(Request $request, Shop $shop)
@@ -396,6 +400,23 @@ class ChatController extends Controller
             ->with('success', 'Диалог скрыт из вашего списка.');
     }
 
+    public function togglePin(Request $request, Conversation $conversation)
+    {
+        $this->authorizeParticipant($request, $conversation);
+
+        $column = $this->pinnedColumnFor($request->user());
+        abort_unless($column, 403);
+
+        $conversation->forceFill([
+            $column => $conversation->{$column} ? null : now(),
+        ])->save();
+
+        return back()->with(
+            'success',
+            $conversation->{$column} ? 'Диалог закреплён.' : 'Диалог откреплён.'
+        );
+    }
+
     public function image(Request $request, Conversation $conversation, Message $message)
     {
         $this->authorizeParticipant($request, $conversation);
@@ -416,6 +437,9 @@ class ChatController extends Controller
     private function conversationQuery(Request $request)
     {
         $user = $request->user();
+        $search = trim((string) $request->query('q', ''));
+        $filter = $this->activeFilter($request);
+        $pinColumn = $this->pinnedColumnFor($user);
 
         return Conversation::query()
             ->where(fn ($query) => $query
@@ -436,9 +460,64 @@ class ChatController extends Controller
                     ->where('sender_id', '!=', $user->id)
                     ->whereNull('read_at'),
             ])
+            ->when($filter === 'unread', fn ($query) => $query->whereHas('messages', fn ($messages) => $messages
+                ->where('sender_id', '!=', $user->id)
+                ->whereNull('read_at')))
+            ->when($filter === 'pinned' && $pinColumn, fn ($query) => $query->whereNotNull($pinColumn))
+            ->when($filter === 'products', fn ($query) => $query->whereNotNull('product_id'))
+            ->when($filter === 'orders', fn ($query) => $query->whereNotNull('order_id'))
+            ->when($filter === 'support', fn ($query) => $query->where('conversation_type', Conversation::TYPE_SUPPORT))
+            ->when($filter === 'general', fn ($query) => $query
+                ->where('conversation_type', Conversation::TYPE_MARKETPLACE)
+                ->whereNull('product_id')
+                ->whereNull('order_id'))
+            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
+                $query
+                    ->whereHas('buyer', fn ($userQuery) => $userQuery
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%"))
+                    ->orWhereHas('seller', fn ($userQuery) => $userQuery
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%"))
+                    ->orWhereHas('seller.shop', fn ($shopQuery) => $shopQuery->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('product', fn ($productQuery) => $productQuery
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhere('sku', 'like', "%{$search}%"))
+                    ->orWhereHas('order', fn ($orderQuery) => $orderQuery->where('number', 'like', "%{$search}%"))
+                    ->orWhereHas('messages', fn ($messageQuery) => $messageQuery->where('body', 'like', "%{$search}%"));
+            }))
+            ->when($pinColumn, fn ($query) => $query->orderByRaw("CASE WHEN {$pinColumn} IS NULL THEN 1 ELSE 0 END"))
             ->orderByDesc('unread_count')
             ->orderByDesc('last_message_at')
             ->orderByDesc('updated_at');
+    }
+
+    private function activeFilter(Request $request): ?string
+    {
+        $filter = $request->query('filter');
+
+        return in_array($filter, array_keys($this->chatFilters()), true) ? $filter : null;
+    }
+
+    private function chatFilters(): array
+    {
+        return [
+            'pinned' => ['label' => 'Закреплённые', 'icon' => 'ri-pushpin-2-line'],
+            'unread' => ['label' => 'Непрочитанные', 'icon' => 'ri-mail-unread-line'],
+            'products' => ['label' => 'По товарам', 'icon' => 'ri-shopping-bag-3-line'],
+            'orders' => ['label' => 'По заказам', 'icon' => 'ri-file-list-3-line'],
+            'support' => ['label' => 'Поддержка', 'icon' => 'ri-customer-service-2-line'],
+            'general' => ['label' => 'Общие', 'icon' => 'ri-chat-1-line'],
+        ];
+    }
+
+    private function pinnedColumnFor(User $user): ?string
+    {
+        return match (true) {
+            $user->id === auth()->id() && $user->role === 'buyer' => 'buyer_pinned_at',
+            $user->id === auth()->id() && $user->role === 'seller' => 'seller_pinned_at',
+            default => null,
+        };
     }
 
     private function supportConversationFor(User $user): ?Conversation

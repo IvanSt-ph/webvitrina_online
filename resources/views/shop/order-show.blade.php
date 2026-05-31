@@ -57,11 +57,11 @@
 
     <!-- 🔙 Навигация -->
     <div class="grid w-full min-w-0 gap-2 sm:flex sm:items-center sm:justify-between">
-        <a href="{{ route('orders.index') }}"
-           class="inline-flex min-w-0 items-center gap-1 text-sm text-gray-600 hover:text-indigo-600">
-            <i class="ri-arrow-left-line shrink-0"></i>
-            <span class="min-w-0 truncate">Назад к заказам</span>
-        </a>
+        <x-breadcrumbs :items="[
+            ['label' => 'Кабинет', 'href' => route('cabinet')],
+            ['label' => 'Заказы', 'href' => route('orders.index')],
+            ['label' => 'Заказ ' . $order->number],
+        ]" />
 
         <span class="min-w-0 truncate text-xs text-gray-400">
             Создан: {{ $order->created_at->format('d.m.Y H:i') }}
@@ -143,6 +143,9 @@
         </div>
 
     </div>
+
+
+    <x-order-timeline :order="$order" />
 
 
     <!-- ℹ Информация магазина / доставка / оплата -->
@@ -391,6 +394,45 @@
             </div>
         </section>
     @endif
+
+    <section class="w-full max-w-full overflow-hidden rounded-xl border border-indigo-100 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h3 class="font-semibold text-gray-900">Продолжить покупки</h3>
+                <p class="mt-1 text-sm text-gray-500">Похожие товары, магазин продавца и чат всегда под рукой.</p>
+            </div>
+            @if($shop)
+                <a href="{{ route('seller.show', $shop->slug) }}" class="hidden text-sm font-semibold text-indigo-600 hover:text-indigo-700 sm:inline-flex">
+                    Магазин продавца
+                </a>
+            @endif
+        </div>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @forelse(($continueProducts ?? collect()) as $product)
+                <a href="{{ route('product.show', $product->slug) }}" class="group rounded-xl border border-slate-100 bg-slate-50 p-3 transition hover:border-indigo-200 hover:bg-indigo-50">
+                    <img src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-28 w-full rounded-lg object-cover">
+                    <div class="mt-2 line-clamp-2 text-sm font-semibold text-slate-900 group-hover:text-indigo-700">{{ $product->title }}</div>
+                    <div class="mt-1 text-sm font-bold text-indigo-700">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
+                </a>
+            @empty
+                <div class="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 sm:col-span-2 lg:col-span-4">
+                    Похожих товаров пока нет. Можно вернуться на витрину или написать продавцу по заказу.
+                </div>
+            @endforelse
+        </div>
+        <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+            <a href="{{ route('home') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                <i class="ri-store-3-line"></i>
+                На витрину
+            </a>
+            @if($shop)
+                <a href="{{ route('seller.show', $shop->slug) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:hidden">
+                    <i class="ri-store-2-line"></i>
+                    Магазин продавца
+                </a>
+            @endif
+        </div>
+    </section>
 
 </div>
 </div>

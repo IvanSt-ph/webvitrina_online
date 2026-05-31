@@ -91,6 +91,19 @@
       </div>
     </section>
 
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <form method="GET" action="{{ route('seller.products.index') }}" class="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <label class="relative">
+          <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input name="q" type="search" placeholder="Найти товар в моём магазине" class="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+        </label>
+        <button class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+          <i class="ri-search-line"></i>
+          Искать
+        </button>
+      </form>
+    </section>
+
     @if(!empty($actionCards))
       <section class="space-y-4">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -158,6 +171,33 @@
             </div>
           </div>
         @endif
+      </section>
+    @endif
+
+    @if(!empty($setupChecklist))
+      @php
+        $doneCount = collect($setupChecklist)->where('done', true)->count();
+        $totalCount = count($setupChecklist);
+      @endphp
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-slate-950">Чеклист запуска магазина</h2>
+            <p class="mt-1 text-sm text-slate-500">Баннеры сайта настраивает админ. Продавцу важны контакты, товары и тариф.</p>
+          </div>
+          <span class="w-fit rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">{{ $doneCount }} / {{ $totalCount }}</span>
+        </div>
+        <div class="mt-4 grid gap-2 sm:grid-cols-2">
+          @foreach($setupChecklist as $item)
+            <a href="{{ $item['href'] }}" class="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 transition {{ $item['done'] ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-amber-100 bg-amber-50 text-amber-800 hover:bg-amber-100' }}">
+              <span class="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                <i class="{{ $item['done'] ? 'ri-checkbox-circle-line' : 'ri-arrow-right-circle-line' }}"></i>
+                <span class="truncate">{{ $item['label'] }}</span>
+              </span>
+              <span class="text-xs font-bold">{{ $item['done'] ? 'Готово' : 'Сделать' }}</span>
+            </a>
+          @endforeach
+        </div>
       </section>
     @endif
 

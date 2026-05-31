@@ -20,6 +20,26 @@
         @php
             $active = 'bg-indigo-50 text-indigo-600 font-medium border-l-4 border-indigo-500';
             $link   = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
+            $sellerMenu = [
+                'Работа' => [
+                    ['route' => 'seller.cabinet', 'active' => 'seller.cabinet', 'icon' => 'ri-home-5-line', 'label' => 'Главная'],
+                    ['route' => 'seller.orders.index', 'active' => 'seller.orders.*', 'icon' => 'ri-shopping-bag-3-line', 'label' => 'Заказы'],
+                    ['route' => 'chats.index', 'active' => 'chats.*', 'icon' => 'ri-chat-3-line', 'label' => 'Чаты', 'badge' => $unreadChatsCount ?? 0],
+                    ['route' => 'support', 'active' => 'support', 'icon' => 'ri-customer-service-2-line', 'label' => 'Поддержка'],
+                ],
+                'Каталог' => [
+                    ['route' => 'seller.products.index', 'active' => 'seller.products.*', 'icon' => 'ri-box-3-line', 'label' => 'Товары'],
+                    ['route' => 'seller.followers.index', 'active' => 'seller.followers.*', 'icon' => 'ri-user-follow-line', 'label' => 'Подписчики'],
+                ],
+                'Финансы и рост' => [
+                    ['route' => 'seller.finance.index', 'active' => 'seller.finance.*', 'icon' => 'ri-cash-line', 'label' => 'Финансы'],
+                    ['route' => 'seller.analytics.index', 'active' => 'seller.analytics.*', 'icon' => 'ri-line-chart-line', 'label' => 'Аналитика'],
+                    ['route' => 'seller.plans.index', 'active' => 'seller.plans.*', 'icon' => 'ri-vip-crown-line', 'label' => 'Тарифы'],
+                ],
+                'Управление' => [
+                    ['route' => 'profile.edit', 'active' => 'profile.*', 'icon' => 'ri-user-3-line', 'label' => 'Профиль'],
+                ],
+            ];
         @endphp
 
         <nav class="flex flex-col mt-5 text-[15px] font-normal text-gray-700">
@@ -34,72 +54,23 @@
                 </a>
             </div>
 
-            <a href="{{ route('seller.cabinet') }}"
-               class="{{ request()->routeIs('seller.cabinet') ? $active : '' }} {{ $link }}">
-                <i class="ri-home-5-line text-[22px]"></i>
-                <span>Главная</span>
-            </a>
-
-            <a href="{{ route('seller.products.index') }}"
-               class="{{ request()->routeIs('seller.products.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-box-3-line text-[22px]"></i>
-                <span>Товары</span>
-            </a>
-
-            <a href="{{ route('seller.orders.index') }}"
-               class="{{ request()->routeIs('seller.orders.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-shopping-bag-3-line text-[22px]"></i>
-                <span>Заказы</span>
-            </a>
-
-            <a href="{{ route('seller.followers.index') }}"
-               class="{{ request()->routeIs('seller.followers.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-user-follow-line text-[22px]"></i>
-                <span>Подписчики</span>
-            </a>
-
-            <a href="{{ route('seller.plans.index') }}"
-               class="{{ request()->routeIs('seller.plans.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-vip-crown-line text-[22px]"></i>
-                <span>Тарифы</span>
-            </a>
-
-            <a href="{{ route('chats.index') }}"
-               class="{{ request()->routeIs('chats.*') ? $active : '' }} {{ $link }}">
-                <span class="relative">
-                    <i class="ri-chat-3-line text-[22px]"></i>
-                    @if(($unreadChatsCount ?? 0) > 0)
-                        <span class="absolute -right-3 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                            {{ min($unreadChatsCount, 99) }}
-                        </span>
-                    @endif
-                </span>
-                <span>Чаты</span>
-            </a>
-
-            <a href="{{ route('support') }}"
-               class="{{ request()->routeIs('support') ? $active : '' }} {{ $link }}">
-                <i class="ri-customer-service-2-line text-[22px]"></i>
-                <span>Поддержка</span>
-            </a>
-
-            <a href="{{ route('seller.finance.index') }}"
-               class="{{ request()->routeIs('seller.finance.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-cash-line text-[22px]"></i>
-                <span>Финансы</span>
-            </a>
-
-            <a href="{{ route('seller.analytics.index') }}"
-               class="{{ request()->routeIs('seller.analytics.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-line-chart-line text-[22px]"></i>
-                <span>Аналитика</span>
-            </a>
-
-            <a href="{{ route('profile.edit') }}"
-            class="{{ request()->routeIs('profile.*') ? $active : '' }} {{ $link }}">
-                <i class="ri-user-3-line text-[22px]"></i>
-                <span>Профиль</span>
-            </a>
+            @foreach($sellerMenu as $section => $items)
+                <div class="{{ $loop->first ? '' : 'mt-4' }} px-6 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    {{ $section }}
+                </div>
+                @foreach($items as $item)
+                    <a href="{{ route($item['route']) }}"
+                       class="{{ request()->routeIs($item['active']) ? $active : '' }} {{ $link }}">
+                        <i class="{{ $item['icon'] }} text-[22px]"></i>
+                        <span>{{ $item['label'] }}</span>
+                        @if(($item['badge'] ?? 0) > 0)
+                            <span class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
+                                {{ min($item['badge'], 99) }}
+                            </span>
+                        @endif
+                    </a>
+                @endforeach
+            @endforeach
         </nav>
     </div>
 

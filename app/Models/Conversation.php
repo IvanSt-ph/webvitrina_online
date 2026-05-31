@@ -26,6 +26,8 @@ class Conversation extends Model
         'buyer_deleted_at',
         'seller_deleted_at',
         'admin_deleted_at',
+        'buyer_pinned_at',
+        'seller_pinned_at',
     ];
 
     protected $casts = [
@@ -34,6 +36,8 @@ class Conversation extends Model
         'buyer_deleted_at' => 'datetime',
         'seller_deleted_at' => 'datetime',
         'admin_deleted_at' => 'datetime',
+        'buyer_pinned_at' => 'datetime',
+        'seller_pinned_at' => 'datetime',
     ];
 
     protected static function booted(): void

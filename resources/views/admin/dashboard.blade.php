@@ -33,6 +33,19 @@
   @endforeach
 </section>
 
+<section class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <form method="GET" action="{{ route('admin.orders.index') }}" class="grid gap-2 sm:grid-cols-[1fr_auto]">
+    <label class="relative">
+      <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      <input name="q" type="search" placeholder="Поиск по заказам, пользователям, товарам" class="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+    </label>
+    <button class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+      <i class="ri-search-line"></i>
+      Найти
+    </button>
+  </form>
+</section>
+
 <section class="mb-7 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
     <div class="flex items-center justify-between gap-3">

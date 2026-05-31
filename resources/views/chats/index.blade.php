@@ -26,6 +26,55 @@
                     </div>
                 @endif
             </div>
+
+            <details class="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm" @if($search !== '' || $activeFilter) open @endif>
+                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-700">
+                    <span class="flex items-center gap-2">
+                        <i class="ri-equalizer-3-line text-indigo-500"></i>
+                        Поиск и фильтры
+                        @if($search !== '' || $activeFilter)
+                            <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700">активно</span>
+                        @endif
+                    </span>
+                    <i class="ri-arrow-down-s-line text-lg text-slate-400"></i>
+                </summary>
+
+                <div class="border-t border-slate-100 px-3 pb-3 pt-3">
+                    <form method="GET" action="{{ route('chats.index') }}" class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+                        <label class="relative min-w-0">
+                            <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input
+                                type="search"
+                                name="q"
+                                value="{{ $search }}"
+                                placeholder="Поиск: покупатель, магазин, товар, заказ или текст сообщения"
+                                class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                            >
+                            @if($activeFilter)
+                                <input type="hidden" name="filter" value="{{ $activeFilter }}">
+                            @endif
+                        </label>
+                        <button class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                            <i class="ri-search-line"></i>
+                            Найти
+                        </button>
+                    </form>
+
+                    <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
+                        <a href="{{ route('chats.index', array_filter(['q' => $search])) }}"
+                           class="inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition {{ $activeFilter === null ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50' }}">
+                            Все
+                        </a>
+                        @foreach($chatFilters as $key => $meta)
+                            <a href="{{ route('chats.index', array_filter(['q' => $search, 'filter' => $key])) }}"
+                               class="inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition {{ $activeFilter === $key ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50' }}">
+                                <i class="{{ $meta['icon'] }}"></i>
+                                {{ $meta['label'] }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            </details>
         </div>
 
         <div class="grid min-h-0 min-w-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[380px_minmax(0,1fr)]">

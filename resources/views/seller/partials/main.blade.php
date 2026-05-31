@@ -41,16 +41,13 @@
 
 {{-- Подключаем стили и скрипты --}}
 @push('styles')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.min.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <style>[x-cloak] { display: none !important; }</style>
 @endpush
 
 @push('scripts')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <script src="{{ asset('js/profile/avatar-cropper.js') }}"></script>
-    <script src="{{ asset('js/profile/phone-input.js') }}"></script>
 @endpush
 
 
@@ -84,8 +81,7 @@
 └── 📄 verify-code-form.blade.php    # Форма ввода кода
 
 📁 public/js/profile/                # JavaScript файлы
-├── 📄 avatar-cropper.js             # Логика обрезки аватара
-└── 📄 phone-input.js                 # Инициализация полей телефона
+└── 📄 avatar-cropper.js             # Логика обрезки аватара
 
 ─────────────────────────────────────────────────────────────────────
 📁 resources/views/profile/partials/  # Стандартные компоненты (Breeze)

@@ -77,7 +77,6 @@
 
     $settingsLinks = [
         ['title' => 'Личные данные', 'icon' => 'ri-user-settings-line', 'href' => route('buyer.profile')],
-        ['title' => 'Уведомления', 'icon' => 'ri-notification-3-line', 'href' => route('notifications.settings')],
         ['title' => 'Мои отзывы', 'icon' => 'ri-star-line', 'href' => route('reviews.index')],
         ['title' => 'Служба поддержки', 'icon' => 'ri-customer-service-2-line', 'href' => route('support')],
         ['title' => 'Мои подписки', 'icon' => 'ri-user-follow-line', 'href' => route('subscriptions.index')],
@@ -140,6 +139,19 @@
                 <div class="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{{ $subscriptionsCount }}</div>
             </a>
         </div>
+    </section>
+
+    <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl">
+        <form method="GET" action="{{ route('home') }}" class="grid gap-2 sm:grid-cols-[1fr_auto]">
+            <label class="relative">
+                <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input name="q" type="search" placeholder="Найти товар или магазин" class="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+            </label>
+            <button class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+                <i class="ri-search-line"></i>
+                Искать
+            </button>
+        </form>
     </section>
 
     <section class="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 shadow-sm sm:rounded-2xl sm:p-5">

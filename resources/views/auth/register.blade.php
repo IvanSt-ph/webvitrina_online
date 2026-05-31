@@ -241,12 +241,11 @@
 
                             <div>
                                 <label class="mb-2 block text-sm font-bold text-slate-800">Телефон</label>
-                                <div class="relative">
-                                    <i class="ri-smartphone-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
+                                <div class="phone-input-shell">
                                     <input type="tel"
                                            name="phone"
                                            value="{{ old('phone') }}"
-                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
                                            placeholder="+373 ___ __ __">
                                 </div>
                                 <x-input-error :messages="$errors->get('phone')" class="mt-2 text-sm" />
@@ -337,16 +336,11 @@
                             <div class="h-px flex-1 bg-slate-200"></div>
                         </div>
 
-                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div class="mt-4 text-sm">
                             <a href="{{ route('auth.google.redirect') }}"
                                class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
                                 <img src="{{ asset('images/icons/google.png') }}" class="h-5 w-5" alt="">
                                 Google
-                            </a>
-                            <a href="#"
-                               class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
-                                <i class="ri-telegram-line text-lg"></i>
-                                Telegram
                             </a>
                         </div>
                     </div>

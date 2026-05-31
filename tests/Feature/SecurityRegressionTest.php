@@ -1060,6 +1060,76 @@ class SecurityRegressionTest extends TestCase
         );
     }
 
+    public function test_chat_index_search_filters_and_pin_dialogs(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller', 'name' => 'Search Seller']);
+        $seller->shop()->create(['name' => 'Searchable Shop']);
+        $product = $this->createProduct($seller, ['title' => 'Findable Chat Product']);
+        $matching = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'product_id' => $product->id,
+            'context_key' => Conversation::productContextKey($product),
+            'last_message_at' => now()->subDay(),
+        ]);
+        $other = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'chat-search-other',
+            'last_message_at' => now(),
+        ]);
+        $matching->messages()->create([
+            'sender_id' => $seller->id,
+            'body' => 'Needle message body',
+        ]);
+        $other->messages()->create([
+            'sender_id' => $seller->id,
+            'body' => 'Other dialog body',
+            'read_at' => now(),
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.index', ['q' => 'Needle']))
+            ->assertOk()
+            ->assertSee('Поиск и фильтры')
+            ->assertSee('<details', false)
+            ->assertSee('активно')
+            ->assertSee('Needle message body')
+            ->assertDontSee('Other dialog body');
+
+        $this->actingAs($buyer)
+            ->get(route('chats.index', ['filter' => 'products']))
+            ->assertOk()
+            ->assertSee('Findable Chat Product')
+            ->assertDontSee('Other dialog body');
+
+        $this->actingAs($buyer)
+            ->post(route('chats.pin', $matching))
+            ->assertRedirect();
+
+        $this->assertNotNull($matching->fresh()->buyer_pinned_at);
+        $this->assertNull($matching->fresh()->seller_pinned_at);
+
+        $this->actingAs($buyer)
+            ->get(route('chats.index', ['filter' => 'pinned']))
+            ->assertOk()
+            ->assertSee('Findable Chat Product')
+            ->assertSee('ri-pushpin-fill')
+            ->assertDontSee('Other dialog body');
+
+        $this->actingAs($seller)
+            ->post(route('chats.pin', $matching))
+            ->assertRedirect();
+
+        $this->assertNotNull($matching->fresh()->seller_pinned_at);
+
+        $this->actingAs($seller)
+            ->get(route('chats.index', ['filter' => 'pinned']))
+            ->assertOk()
+            ->assertSee('Findable Chat Product');
+    }
+
     public function test_chat_index_can_select_conversation_inline_on_desktop(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -1798,6 +1868,10 @@ class SecurityRegressionTest extends TestCase
 
         $this->actingAs($seller)
             ->view('layouts.seller', ['slot' => ''])
+            ->assertSee('Работа')
+            ->assertSee('Каталог')
+            ->assertSee('Финансы и рост')
+            ->assertSee('Управление')
             ->assertSee('Чаты')
             ->assertSee(route('chats.index'), false);
     }
@@ -4244,6 +4318,216 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('Запрос отмены');
 
         $this->assertSame(1, $actionResponse->viewData('orders')->total());
+    }
+
+    public function test_seller_order_show_has_work_panel_and_chat_context(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Order Chat Buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $otherSeller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['title' => 'Seller order context product']);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('seller.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Рабочая панель продавца')
+            ->assertSee('Написать покупателю')
+            ->assertSee(route('seller.orders.chat.buyer', $order), false)
+            ->assertSee('Покупатель ждёт');
+
+        $this->actingAs($otherSeller)
+            ->post(route('seller.orders.chat.buyer', $order))
+            ->assertForbidden();
+
+        $this->actingAs($seller)
+            ->post(route('seller.orders.chat.buyer', $order))
+            ->assertRedirect();
+
+        $conversation = Conversation::where('order_id', $order->id)
+            ->where('product_id', $product->id)
+            ->firstOrFail();
+
+        $this->assertSame($buyer->id, $conversation->buyer_id);
+        $this->assertSame($seller->id, $conversation->seller_id);
+        $this->assertSame(Conversation::orderProductContextKey($order, $product), $conversation->context_key);
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $conversation->id,
+            'sender_id' => $seller->id,
+            'type' => Message::TYPE_SYSTEM,
+            'order_id' => $order->id,
+            'body' => "Диалог по заказу {$order->number}.\nТовар: Seller order context product",
+        ]);
+    }
+
+    public function test_order_show_pages_include_shared_timeline_for_all_roles(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['title' => 'Timeline product']);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_SHIPPED);
+        $order->update([
+            'accepted_at' => now()->subDays(2),
+            'shipped_at' => now()->subDay(),
+            'cancellation_requested_at' => now()->subHours(12),
+            'cancellation_reason' => 'Timeline cancellation reason',
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Ход заказа')
+            ->assertSee('Покупатель запросил отмену')
+            ->assertSee('Timeline cancellation reason');
+
+        $this->actingAs($seller)
+            ->get(route('seller.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Ход заказа')
+            ->assertSee('Передан в доставку');
+
+        $this->actingAs($admin)
+            ->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Ход заказа')
+            ->assertSee('Передан в доставку');
+    }
+
+    public function test_buyer_help_questions_and_seller_finance_are_honest_working_pages(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Finance seller shop']);
+        $this->createOrder($buyer, $seller, Order::STATUS_COMPLETED);
+        $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
+        $this->createOrder($buyer, $seller, Order::STATUS_CANCELED);
+
+        $this->actingAs($buyer)
+            ->get(route('help'))
+            ->assertOk()
+            ->assertSee('Как оформить заказ?')
+            ->assertDontSee('href="#"', false);
+
+        $this->actingAs($buyer)
+            ->get(route('questions.index'))
+            ->assertOk()
+            ->assertSee('Вопросы по товарам пока живут в чатах')
+            ->assertDontSee('находится в разработке');
+
+        $this->actingAs($seller)
+            ->get(route('seller.finance.index'))
+            ->assertOk()
+            ->assertSee('Деньги по заказам')
+            ->assertSee('Завершено / доставлено')
+            ->assertDontSee('Раздел «Финансы» в разработке');
+    }
+
+    public function test_cart_keeps_out_of_stock_items_in_unavailable_block(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $available = $this->createProduct($seller, ['title' => 'Available cart product', 'stock' => 3]);
+        $unavailable = $this->createProduct($seller, ['title' => 'Out cart product', 'stock' => 0]);
+        CartItem::create(['user_id' => $buyer->id, 'product_id' => $available->id, 'qty' => 1]);
+        CartItem::create(['user_id' => $buyer->id, 'product_id' => $unavailable->id, 'qty' => 1]);
+
+        $this->actingAs($buyer)
+            ->get(route('cart.index'))
+            ->assertOk()
+            ->assertSee('Недоступно для оформления')
+            ->assertSee('Сейчас нет в наличии')
+            ->assertSee('Out cart product')
+            ->assertSee('Available cart product');
+    }
+
+    public function test_buyer_order_show_suggests_continuing_purchase(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $seller->shop()->create(['name' => 'Continue shop']);
+        $category = Category::factory()->create();
+        $purchased = $this->createProduct($seller, ['title' => 'Purchased continue product', 'category_id' => $category->id]);
+        $related = $this->createProduct($seller, ['title' => 'Related continue product', 'category_id' => $category->id]);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_COMPLETED);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $purchased->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Продолжить покупки')
+            ->assertSee('Related continue product');
+    }
+
+    public function test_seller_cabinet_checklist_and_product_quality_hints_are_visible(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller', 'email_verified_at' => null]);
+        $seller->shop()->create(['name' => 'Checklist shop', 'phone' => null]);
+        $this->createProduct($seller, [
+            'title' => 'Quality hint product',
+            'image' => 'default/no-image.png',
+            'description' => 'Short',
+            'stock' => 0,
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('seller.cabinet'))
+            ->assertOk()
+            ->assertSee('Чеклист запуска магазина')
+            ->assertSee('Заполнить телефон магазина')
+            ->assertDontSee('Добавить баннер');
+
+        $this->actingAs($seller)
+            ->get(route('seller.products.index'))
+            ->assertOk()
+            ->assertSee('Нет фото')
+            ->assertSee('Короткое описание')
+            ->assertSee('Нет характеристик')
+            ->assertSee('Нет остатков');
+    }
+
+    public function test_admin_chats_show_priority_badges_and_filter(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'context_key' => 'admin-priority-test',
+            'conversation_type' => Conversation::TYPE_SUPPORT,
+        ]);
+        $conversation->messages()->create([
+            'sender_id' => $buyer->id,
+            'body' => 'Priority question',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.chats.index', ['type' => 'priority']))
+            ->assertOk()
+            ->assertSee('Приоритетные')
+            ->assertSee('Высокий')
+            ->assertSee('Priority question');
     }
 
     public function test_buyer_orders_index_filters_tabs_and_uses_mobile_friendly_layout(): void
