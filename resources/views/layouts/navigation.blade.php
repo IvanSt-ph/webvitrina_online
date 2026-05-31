@@ -11,49 +11,48 @@
     }
 </style>
 
-<nav class="bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-md shadow-gray-200/40 fixed top-0 left-0 w-full z-50">
+<nav class="fixed left-0 top-0 z-50 w-full border-b border-slate-200/70 bg-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
 
-    <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="w-full mx-auto px-4 sm:px-6 lg:px-7">
         <!-- Основная линия хедера -->
-        <div class="hidden lg:flex items-center h-16 gap-6">
+        <div class="hidden lg:flex items-center h-16 gap-5">
 
             <!-- ========== Левая часть: Логотип + Категории ========== -->
-            <div class="flex items-center gap-4 flex-shrink-0">
+            <div class="flex items-center gap-3 flex-shrink-0">
                 <!-- Логотип -->
-                <a href="{{ route('home') }}" class="flex items-center gap-2">
-                    <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-9 w-auto" />
-                    <span class="font-semibold text-gray-800">WebVitrina</span>
+                <a href="{{ route('home') }}" class="group flex items-center gap-2 rounded-2xl px-1.5 py-1 transition hover:bg-slate-50">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/20 transition group-hover:-translate-y-0.5 group-hover:shadow-indigo-500/30">
+                        <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-8 w-8" />
+                    </span>
+                    <span class="text-[15px] font-bold tracking-tight text-slate-800">WebVitrina</span>
                 </a>
 
                 <!-- Кнопка категорий -->
                 <button @click="open = true"
-                        class="flex items-center gap-2 px-4 h-10 rounded-lg border border-gray-300 bg-white 
-                               text-gray-700 shadow-sm transition-all duration-200 hover:bg-indigo-600 hover:text-white hover:shadow-md">
-                    <div class="flex items-center justify-center w-6 h-6">
+                        class="group flex h-10 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 text-slate-700 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:shadow-indigo-900/5">
+                    <div class="flex h-6 w-6 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-900/5 transition group-hover:text-indigo-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" 
                              viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
                     </div>
-                    <span class="text-sm font-medium">-Категории</span> 
+                    <span class="text-sm font-semibold">Категории</span>
                 </button>
             </div>
 
             <!-- ========== Центр: Поиск + иерархический выбор страны/города ========== -->
-            <div class="flex-1 flex justify-center items-center gap-3 ">
+            <div class="flex-1 flex justify-center items-center gap-3">
                 
                 <!-- Поле поиска с крестиком очистки -->
-                <form action="{{ route('home') }}" method="GET" class="w-full max-w-2xl m-0" 
+                <form action="{{ route('home') }}" method="GET" class="w-full max-w-3xl m-0"
                     x-data="{ search: '{{ request('q') }}' }">
-                    <div class="relative">
+                    <div class="group relative">
                         <input type="text" 
                             name="q" 
                             x-model="search"
                             placeholder="Искать товары..."
-                            class="w-full h-10 rounded-xl border-gray-300 pr-20 pl-4
-                                    focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50
-                                    transition-all duration-200" />
+                            class="h-11 w-full rounded-2xl border-slate-200 bg-slate-50/80 pl-4 pr-20 text-sm text-slate-800 shadow-inner shadow-slate-200/50 transition-all duration-200 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100" />
                         
                         <!-- Крестик очистки -->
                         <button type="button"
@@ -67,7 +66,7 @@
                                     url.searchParams.delete('q');
                                     window.location.href = url.toString();
                                 "
-                                class="absolute inset-y-0 right-10 flex items-center px-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                class="absolute inset-y-0 right-12 flex items-center px-2 text-slate-400 transition-colors hover:text-slate-600"
                                 title="Очистить">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -76,8 +75,8 @@
 
                         <!-- Кнопка поиска -->
                         <button type="submit" 
-                                class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-indigo-600 transition-colors">
-                            <div class="flex items-center justify-center w-6 h-6">
+                                class="absolute right-1.5 top-1/2 flex h-8 w-9 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-indigo-600 hover:text-white">
+                            <div class="flex h-6 w-6 items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" 
                                     viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -197,21 +196,18 @@
                     
                     <!-- Кнопка-триггер (показывает текущий выбор) -->
                     <button @click="open = !open; if(open) step = 'country'"
-                            class="flex items-center gap-2 px-3 h-10 rounded-lg border border-gray-300 bg-white 
-                                   text-gray-700 shadow-sm transition-all duration-200 
-                                   hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700
-                                   min-w-[150px] justify-between group">
+                            class="group flex h-11 min-w-[164px] items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 text-slate-700 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:shadow-indigo-900/5">
                         <div class="flex items-center gap-2 truncate">
                      
                             <!-- Флаг показываем, если страна выбрана -->
                             <template x-if="selectedCountryData && selectedCountryData.slug">
                                 <img :src="'{{ asset('flags') }}/' + selectedCountryData.slug + '.png'" 
-                                    class="w-5 h-5 rounded-sm flex-shrink-0">
+                                    class="w-5 h-5 rounded-md flex-shrink-0 shadow-sm">
                             </template>
 
                             <!-- Ваша НОВАЯ иконка-заглушка, если страна НЕ выбрана -->
                             <template x-if="!selectedCountryData">
-                                <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-slate-400 flex-shrink-0 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
                                         d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
@@ -219,15 +215,15 @@
                             </template>
 
                             <!-- Текст выбора -->
-                            <span class="text-sm truncate" x-text="displayText"></span>
+                            <span class="text-sm font-medium truncate" x-text="displayText"></span>
                         </div>
                         
                         <!-- Стрелка и индикатор активности -->
                         <div class="flex items-center gap-1 flex-shrink-0">
                             <template x-if="selectedCountry || selectedCity">
-                                <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                                <span class="w-2 h-2 bg-indigo-500 rounded-full shadow-sm shadow-indigo-500/40"></span>
                             </template>
-                            <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" 
+                            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200 group-hover:text-indigo-500"
                                  :class="{ 'rotate-180': open }"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -245,13 +241,13 @@
                          x-transition:leave-start="opacity-100 translate-y-0"
                          x-transition:leave-end="opacity-0 translate-y-1"
                          @click.away="open = false"
-                         class="absolute right-0 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
+                         class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-3xl border border-white/80 bg-white/95 py-2 shadow-2xl shadow-slate-950/15 ring-1 ring-slate-900/5 backdrop-blur-xl">
                         
                         <!-- Шапка с навигацией -->
-                        <div class="px-3 pb-2 border-b border-gray-100 flex items-center gap-2">
+                        <div class="px-4 pb-2 border-b border-slate-100 flex items-center gap-2">
                             <template x-if="step === 'city'">
                                 <button @click="goBack" 
-                                        class="flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600 transition-colors">
+                                        class="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                                     </svg>
@@ -259,7 +255,7 @@
                                 </button>
                             </template>
                             <template x-if="step === 'country'">
-                                <span class="text-xs font-medium text-gray-500">Выберите страну</span>
+                                <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Выберите страну</span>
                             </template>
                         </div>
                         
@@ -270,7 +266,7 @@
                                 <div>
                                     <!-- Кнопка "Все страны" -->
                                     <button @click="selectedCountry = null; selectedCity = null; applySelection()"
-                                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                    class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                                             :class="{ 'bg-indigo-50 text-indigo-600': !selectedCountry }">
                                                 <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/>
@@ -281,15 +277,15 @@
                                     </button>
                                     
                                     <!-- Разделитель -->
-                                    <div class="border-t border-gray-100 my-2"></div>
+                                    <div class="border-t border-slate-100 my-2"></div>
                                     
                                     <!-- Список стран -->
                                     <template x-for="country in countries" :key="country.id">
                                         <button @click="selectCountry(country.id)"
-                                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                                class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                                                 :class="{ 'bg-indigo-50 text-indigo-600': selectedCountry === country.id && !selectedCity }">
                                             <img :src="'{{ asset('flags') }}/' + country.slug + '.png'" 
-                                                 class="w-5 h-5 rounded-sm">
+                                                 class="w-5 h-5 rounded-md shadow-sm">
                                             <span class="text-sm font-medium" x-text="country.name"></span>
                                             <span class="text-xs text-gray-400 ml-auto" x-text="country.cities.length + ' гор.'"></span>
                                         </button>
@@ -302,22 +298,22 @@
                                 <div>
                                     <!-- Кнопка "Все города" (выбрать страну без конкретного города) -->
                                     <button @click="selectedCity = null; applySelection()"
-                                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 transition-colors font-medium"
+                                    class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors font-medium"
                                             :class="{ 'bg-indigo-50 text-indigo-600': !selectedCity }">
                                         <img :src="'{{ asset('flags') }}/' + selectedCountryData.slug + '.png'" 
-                                             class="w-5 h-5 rounded-sm">
+                                             class="w-5 h-5 rounded-md shadow-sm">
                                         <span class="text-sm" x-text="'Все города ' + selectedCountryData.name"></span>
                                     </button>
                                     
                                     <!-- Разделитель если есть города -->
                                     <template x-if="selectedCountryData.cities.length > 0">
-                                        <div class="border-t border-gray-100 my-2"></div>
+                                        <div class="border-t border-slate-100 my-2"></div>
                                     </template>
                                     
                                     <!-- Список городов -->
                                     <template x-for="city in selectedCountryData.cities" :key="city.id">
                                         <button @click="selectCity(city.id)"
-                                                class="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 transition-colors pl-12"
+                                                class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors pl-12"
                                                 :class="{ 'bg-indigo-50 text-indigo-600': selectedCity === city.id }">
                                             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -339,7 +335,7 @@
                         
                         <!-- Кнопка сброса (если что-то выбрано) -->
                         <div x-show="selectedCountry || selectedCity" 
-                             class="border-t border-gray-100 mt-2 pt-2 px-3">
+                             class="border-t border-slate-100 mt-2 pt-2 px-3">
                             <button @click="clearFilters()"
                                     class="w-full px-3 py-1.5 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center justify-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +353,7 @@
 
                 <!-- Избранное -->
                 <a href="{{ route('favorites.index') }}" 
-                   class="flex items-center justify-center w-8 h-8 text-gray-600 border border-gray-200 rounded-lg hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition-all duration-200 group relative"
+                   class="group relative flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 text-slate-600 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:text-red-500 hover:shadow-md hover:shadow-red-900/5"
                    title="Избранное">
                     <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" 
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,7 +364,7 @@
 
                 <!-- Корзина -->
                 <a href="{{ route('cart.index') }}" 
-                   class="flex items-center justify-center w-8 h-8 text-gray-600 border border-gray-200 rounded-lg hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200 group relative"
+                   class="group relative flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 text-slate-600 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-md hover:shadow-indigo-900/5"
                    title="Корзина">
                     <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" 
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -400,7 +396,7 @@
                     }" class="relative">
 
                     <button @click="open = !open"
-                            class="flex items-center justify-center w-8 h-8 text-gray-600 border border-gray-200 rounded-lg hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200">
+                            class="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 text-slate-600 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-md hover:shadow-indigo-900/5">
                         <template x-if="currency === 'PRB' || currency === 'RUB'">
                             <img src='{{ asset("icons/rub.png") }}' alt="RUB" class="w-5 h-5">
                         </template>
@@ -416,10 +412,10 @@
                          x-show="open"
                          x-transition
                          @click.away="open = false"
-                         class="absolute right-0 mt-2 w-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm z-50">
-                        <button @click="setCurrency('PRB')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50">₽ RUB</button>
-                        <button @click="setCurrency('MDL')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50">MDL</button>
-                        <button @click="setCurrency('UAH')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50">₴ UAH</button>
+                         class="absolute right-0 z-50 mt-2 w-24 overflow-hidden rounded-2xl border border-white/80 bg-white/95 py-1 text-sm shadow-2xl shadow-slate-950/15 ring-1 ring-slate-900/5 backdrop-blur-xl">
+                        <button @click="setCurrency('PRB')" class="block w-full px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">₽ RUB</button>
+                        <button @click="setCurrency('MDL')" class="block w-full px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">MDL</button>
+                        <button @click="setCurrency('UAH')" class="block w-full px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">₴ UAH</button>
                     </div>
                 </div>
 
@@ -436,7 +432,7 @@
                     }" class="relative">
 
                     <button @click="open = !open"
-                            class="flex items-center justify-center w-8 h-8 border border-gray-200 rounded-lg hover:border-indigo-200 hover:bg-indigo-50 transition-all duration-200">
+                            class="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md hover:shadow-indigo-900/5">
                         <template x-if="lang === 'ru'">
                             <img src="{{ asset('flags/ru.png') }}" alt="Русский" class="w-5 h-5 rounded-sm">
                         </template>
@@ -455,17 +451,17 @@
                          x-show="open"
                          x-transition
                          @click.away="open = false"
-                         class="absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded-lg shadow-lg py-1 text-sm z-50">
-                        <button @click="setLang('ru')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2">
+                         class="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-2xl border border-white/80 bg-white/95 py-1 text-sm shadow-2xl shadow-slate-950/15 ring-1 ring-slate-900/5 backdrop-blur-xl">
+                        <button @click="setLang('ru')" class="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
                             <img src="{{ asset('flags/ru.png') }}" class="w-4 h-4 rounded-sm"> Русский
                         </button>
-                        <button @click="setLang('en')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2">
+                        <button @click="setLang('en')" class="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
                             <img src="{{ asset('flags/en.png') }}" class="w-4 h-4 rounded-sm"> English
                         </button>
-                        <button @click="setLang('uk')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2">
+                        <button @click="setLang('uk')" class="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
                             <img src="{{ asset('flags/uk.png') }}" class="w-4 h-4 rounded-sm"> Українська
                         </button>
-                        <button @click="setLang('ro')" class="block w-full text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2">
+                        <button @click="setLang('ro')" class="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
                             <img src="{{ asset('flags/ro.png') }}" class="w-4 h-4 rounded-sm"> Română
                         </button>
                     </div>
@@ -475,7 +471,7 @@
                  @auth
                     <x-dropdown align="right" width="72">
                         <x-slot name="trigger">
-                            <button class="flex items-center gap-2 rounded-2xl border border-transparent bg-white/40 py-1 pl-1.5 pr-2 shadow-sm shadow-slate-900/0 transition-all duration-200 hover:border-slate-200 hover:bg-white hover:shadow-md hover:shadow-slate-900/5 group">
+                            <button class="group flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 py-1 pl-1.5 pr-2.5 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-md hover:shadow-indigo-900/5">
                                 
                                 <!-- Если есть аватарка - показываем её, если нет - градиент -->
                                 @if(auth()->user()->avatar)
@@ -488,7 +484,7 @@
                                     </div>
                                 @endif
                                 
-                                <span class="hidden max-w-[9rem] truncate text-sm font-semibold text-slate-700 xl:block">{{ auth()->user()->name }}</span>
+                                <span class="hidden max-w-[9rem] truncate text-sm font-bold text-slate-700 xl:block">{{ auth()->user()->name }}</span>
                                 <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                 </svg>
@@ -618,8 +614,8 @@
                     </x-dropdown>
                 @else
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('login') }}" class="text-sm text-gray-600 hover:text-indigo-600 transition-colors">Войти</a>
-                        <a href="{{ route('register') }}" class="text-sm px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Регистрация</a>
+                        <a href="{{ route('login') }}" class="inline-flex h-10 items-center rounded-2xl px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-indigo-600">Войти</a>
+                        <a href="{{ route('register') }}" class="inline-flex h-10 items-center rounded-2xl bg-indigo-600 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-indigo-600/30">Регистрация</a>
                     </div>
                 @endauth
             </div>

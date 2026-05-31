@@ -9,11 +9,14 @@ class ProductsSeeder extends Seeder
 {
     public function run(): void
     {
+        $categoryId = fn (string $slug, int $fallback) =>
+            (int) (DB::table('categories')->where('slug', $slug)->value('id') ?: $fallback);
+
         DB::table('products')->insertOrIgnore([
             [
                 'id' => 1,
                 'user_id' => 2,
-                'category_id' => 28,
+                'category_id' => $categoryId('futbolki-men', 28),
                 'title' => 'Футболка белая мужская',
                 'slug' => 'futbolka-belaya-muzhskaya',
                 'price' => 1200.00,
@@ -30,7 +33,7 @@ class ProductsSeeder extends Seeder
             [
                 'id' => 2,
                 'user_id' => 2,
-                'category_id' => 8,
+                'category_id' => $categoryId('smartfony', 8),
                 'title' => 'Смартфон Samsung Galaxy A52',
                 'slug' => 'smartfon-samsung-galaxy-a52',
                 'price' => 10500.00,
@@ -47,7 +50,7 @@ class ProductsSeeder extends Seeder
             [
                 'id' => 3,
                 'user_id' => 2,
-                'category_id' => 34,
+                'category_id' => $categoryId('dekor', 34),
                 'title' => 'Ковёр Аладина',
                 'slug' => 'kover-aladina',
                 'price' => 1500.00,

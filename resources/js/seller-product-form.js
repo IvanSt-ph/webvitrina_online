@@ -88,6 +88,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  async function restoreCategoryChain() {
+    if (!rootSelect || !catHidden?.value || !Array.isArray(window.allCategories)) return;
+
+    const byId = new Map(window.allCategories.map(category => [String(category.id), category]));
+    const chain = [];
+    let current = byId.get(String(catHidden.value));
+
+    while (current) {
+      chain.unshift(current);
+      current = current.parent_id ? byId.get(String(current.parent_id)) : null;
+    }
+
+    if (chain.length < 2) return;
+
+    let currentSelect = rootSelect;
+    currentSelect.value = chain[0].id;
+
+    for (let i = 1; i < chain.length; i++) {
+      await loadChildren(chain[i - 1].id, currentSelect);
+
+      const nextSelect = currentSelect.nextElementSibling;
+      if (!nextSelect || nextSelect.tagName !== 'SELECT') break;
+
+      nextSelect.value = chain[i].id;
+      currentSelect = nextSelect;
+    }
+
+    catHidden.value = chain[chain.length - 1].id;
+  }
+
+  restoreCategoryChain();
+
   // ===============================================================
   // === 🌍 ЛОКАЦИЯ: загрузка городов по стране ====================
   // ===============================================================
