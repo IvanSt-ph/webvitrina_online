@@ -90,7 +90,10 @@
                     $conversation = $selectedConversation;
                     $other = $conversation->otherParticipant(auth()->user());
                 @endphp
-                <section class="hidden min-h-0 min-w-0 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm lg:flex lg:h-full lg:flex-col">
+                <section
+                    x-data
+                    x-init="$nextTick(() => { $refs.thread?.scrollTo({ top: $refs.thread.scrollHeight, behavior: 'auto' }) })"
+                    class="hidden min-h-0 min-w-0 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm lg:flex lg:h-full lg:flex-col">
                     <header class="flex shrink-0 items-center gap-3 border-b border-slate-100 bg-white/95 px-4 py-4">
                         <img src="{{ $other->avatar_url }}" alt="{{ $other->name }}" class="h-12 w-12 rounded-2xl object-cover">
                         <div class="min-w-0 flex-1">
@@ -119,7 +122,7 @@
 
                     @include('chats.partials.product-context', ['conversation' => $conversation])
 
-                    <div class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-6 py-5">
+                    <div x-ref="thread" class="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-6 py-5">
                         <div class="space-y-4">
                             @forelse($selectedMessages as $message)
                                 @include('chats.partials.messages', ['conversation' => $conversation, 'messages' => collect([$message])])

@@ -4740,6 +4740,89 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_selected_favorites_can_be_moved_to_cart_and_removed_from_favorites(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $firstProduct = $this->createProduct($seller, ['title' => 'First selected favorite']);
+        $secondProduct = $this->createProduct($seller, ['title' => 'Second selected favorite']);
+        $unselectedProduct = $this->createProduct($seller, ['title' => 'Still favorite product']);
+
+        $firstFavorite = Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $firstProduct->id,
+        ]);
+        $secondFavorite = Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $secondProduct->id,
+        ]);
+        Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $unselectedProduct->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('cart.addFavorites'), [
+                'favorite_ids' => [$firstFavorite->id, $secondFavorite->id],
+                'remove_from_favorites' => '1',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('cart_items', [
+            'user_id' => $buyer->id,
+            'product_id' => $firstProduct->id,
+            'qty' => 1,
+        ]);
+        $this->assertDatabaseHas('cart_items', [
+            'user_id' => $buyer->id,
+            'product_id' => $secondProduct->id,
+            'qty' => 1,
+        ]);
+        $this->assertDatabaseMissing('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $firstProduct->id,
+        ]);
+        $this->assertDatabaseMissing('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $secondProduct->id,
+        ]);
+        $this->assertDatabaseHas('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $unselectedProduct->id,
+        ]);
+    }
+
+    public function test_single_favorite_can_be_moved_to_cart_from_favorites_page(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['title' => 'Move single favorite']);
+
+        Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->postJson(route('cart.add', $product), [
+                'qty' => 1,
+                'remove_from_favorites' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('removed_from_favorites', true);
+
+        $this->assertDatabaseHas('cart_items', [
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+            'qty' => 1,
+        ]);
+        $this->assertDatabaseMissing('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+    }
+
     public function test_buyer_utility_pages_use_mobile_safe_layouts(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);

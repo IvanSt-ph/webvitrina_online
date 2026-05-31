@@ -3,44 +3,55 @@
   @php
       $unavailableItems = $unavailableItems ?? collect();
       $addedId = (int) session('cart_added_id');
-      $favoritesTotal = $items->sum(function ($item) {
-          $product = $item->product;
-          return $product ? ($product->price_for_current_currency['amount'] ?? 0) : 0;
-      });
-      $discountTotal = $items->sum(function ($item) {
-          $product = $item->product;
-
-          return $product && isset($product->old_price) && $product->old_price
-              ? max(0, $product->old_price - $product->price)
-              : 0;
-      });
       $currencySymbol = \App\Models\Product::currencySymbol(session('currency', 'PRB'));
+      $availableFavoriteIds = $items->pluck('id')->map(fn ($id) => (string) $id)->values();
   @endphp
 
-  <div class="favorites-mobile-safe w-full max-w-none overflow-x-hidden px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8">
+  <div
+    x-data="{
+      selectMode: false,
+      selected: [],
+      allIds: @js($availableFavoriteIds),
+      toggleSelect(id) {
+        id = String(id);
+        this.selected = this.selected.includes(id)
+          ? this.selected.filter(item => item !== id)
+          : [...this.selected, id];
+      },
+      selectAll() {
+        this.selected = this.selected.length === this.allIds.length ? [] : [...this.allIds];
+      },
+      closeSelection() {
+        this.selectMode = false;
+        this.selected = [];
+      }
+    }"
+    class="favorites-mobile-safe w-full max-w-none space-y-5 overflow-x-hidden bg-white px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8">
 
-    {{-- Header --}}
-    <div class="mb-6 sm:mb-10">
-      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-            <i class="ri-heart-3-line text-xl"></i>
-          </div>
-          <div>
-          <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Избранное</h1>
-          <p class="text-gray-500 text-xs sm:text-sm mt-0.5">{{ $items->isNotEmpty() ? $items->count() . ' сохранённых товара' : 'пусто' }}</p>
-          </div>
-        </div>
+    <header class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+      <div class="min-w-0">
+        <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-rose-600">
+          <i class="ri-heart-3-line"></i>
+          Избранное
+        </span>
+        <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Сохранённые товары</h1>
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+          Быстро возвращайтесь к товарам, переносите их в корзину и отдельно видите позиции, которые больше нельзя купить.
+        </p>
+      </div>
 
+      <div class="grid w-full grid-cols-2 gap-2 lg:w-auto">
         @if($items->isNotEmpty())
-        <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
-          <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form min-w-0">
-            @csrf
-            <x-action-button>
-              <i class="ri-shopping-cart-2-line"></i>
-              Добавить всё
-            </x-action-button>
-          </form>
+          <x-secondary-action type="button" @click="selectMode ? closeSelection() : selectMode = true">
+            <span x-show="!selectMode" class="inline-flex items-center gap-2">
+              <i class="ri-checkbox-multiple-line"></i>
+              Выбрать
+            </span>
+            <span x-show="selectMode" class="inline-flex items-center gap-2">
+              <i class="ri-close-line"></i>
+              Отменить
+            </span>
+          </x-secondary-action>
 
           <x-secondary-action as="a" href="{{ route('cart.index') }}">
             <div class="relative">
@@ -51,10 +62,48 @@
             </div>
             <span>Корзина</span>
           </x-secondary-action>
-        </div>
+        @else
+          <a href="{{ route('home') }}" class="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700 lg:w-44">
+            <i class="ri-store-3-line"></i>
+            Найти товары
+          </a>
         @endif
       </div>
-    </div>
+    </header>
+
+    @if($items->isNotEmpty())
+      <section x-show="selectMode" x-cloak class="rounded-xl border border-indigo-100 bg-indigo-50 p-3 shadow-sm sm:p-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm font-semibold text-indigo-950">
+              <span x-text="selected.length"></span> выбрано
+            </p>
+            <p class="mt-1 text-xs leading-5 text-indigo-700">
+              Перенос добавит выбранные товары в корзину и уберёт их из избранного.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+            <button type="button" @click="selectAll" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100">
+              <i class="ri-checkbox-circle-line"></i>
+              <span x-text="selected.length === allIds.length ? 'Снять всё' : 'Выбрать всё'"></span>
+            </button>
+
+            <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form min-w-0" @submit="if (selected.length === 0) { $event.preventDefault(); window.showAppToast ? window.showAppToast('Выберите хотя бы один товар', 'error') : alert('Выберите хотя бы один товар'); }">
+              @csrf
+              <input type="hidden" name="remove_from_favorites" value="1">
+              <template x-for="id in selected" :key="id">
+                <input type="hidden" name="favorite_ids[]" :value="id">
+              </template>
+              <x-action-button :full="true" x-bind:disabled="selected.length === 0">
+                <i class="ri-shopping-cart-2-line"></i>
+                Перенести
+              </x-action-button>
+            </form>
+          </div>
+        </div>
+      </section>
+    @endif
 
     @if($unavailableItems->isNotEmpty())
       <section class="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70">
@@ -116,8 +165,17 @@
             $itemCurrencySymbol = $currentPrice['symbol'] ?? $currencySymbol;
           @endphp
 
-          <div class="fav-card group min-w-0 overflow-hidden bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
-               data-fav-card data-id="{{ $p->id }}">
+          <div class="fav-card group relative min-w-0 overflow-hidden bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
+               :class="selectMode && selected.includes('{{ $f->id }}') ? 'border-indigo-300 bg-indigo-50/60 shadow-md' : ''"
+               data-fav-card data-id="{{ $p->id }}" data-favorite-id="{{ $f->id }}">
+            <button type="button"
+                    x-show="selectMode"
+                    x-cloak
+                    @click="toggleSelect('{{ $f->id }}')"
+                    class="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-xl border bg-white shadow-sm transition"
+                    :class="selected.includes('{{ $f->id }}') ? 'border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400'">
+              <i :class="selected.includes('{{ $f->id }}') ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
+            </button>
 
             {{-- Мобильная версия: фото 50px, справа название+цена, внизу кнопки --}}
             <div class="block sm:hidden">
@@ -179,9 +237,10 @@
                 <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-2 mt-3">
                   <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form flex-1">
                     @csrf
+                    <input type="hidden" name="remove_from_favorites" value="1">
                     <x-action-button size="sm" :full="true">
                       <i class="ri-shopping-cart-line text-sm"></i>
-                      <span>В корзину</span>
+                      <span>Перенести</span>
                     </x-action-button>
                   </form>
 
@@ -267,9 +326,10 @@
               <div class="flex items-center gap-2 flex-shrink-0">
                 <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form">
                   @csrf
+                  <input type="hidden" name="remove_from_favorites" value="1">
                   <x-action-button size="sm">
                     <i class="ri-shopping-cart-line text-sm"></i>
-                    <span>В корзину</span>
+                    <span>Перенести</span>
                   </x-action-button>
                 </form>
 
@@ -296,25 +356,6 @@
           </div>
 
         @endforeach
-      </div>
-
-      <div class="mt-5 rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm sm:mt-6 sm:rounded-2xl sm:p-4">
-        <div class="grid min-w-0 gap-2 sm:grid-cols-3">
-          <div class="min-w-0 rounded-xl bg-slate-50 px-3 py-3">
-            <div class="text-xs text-gray-500">В избранном</div>
-            <div class="mt-1 text-lg font-bold text-gray-900 break-words">{{ $items->count() }}</div>
-          </div>
-
-          <div class="min-w-0 rounded-xl bg-slate-50 px-3 py-3">
-            <div class="text-xs text-gray-500">Если добавить по 1 шт.</div>
-            <div class="mt-1 text-lg font-bold text-gray-900 break-words">{{ number_format($favoritesTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
-          </div>
-
-          <div class="min-w-0 rounded-xl bg-indigo-50 px-3 py-3">
-            <div class="text-xs text-indigo-700">Экономия по скидкам</div>
-            <div class="mt-1 text-lg font-bold text-indigo-700 break-words">{{ number_format($discountTotal, 0, ',', ' ') }} {{ $currencySymbol }}</div>
-          </div>
-        </div>
       </div>
 
     @endif
@@ -473,6 +514,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
           btn.innerHTML = '<i class="ri-check-line text-sm"></i><span>Готово</span>';
           added = true;
+
+          if (data?.removed_from_favorites && card) {
+            setTimeout(() => {
+              card.classList.add('fav-removing');
+              setTimeout(() => card.remove(), 220);
+            }, 450);
+          }
         } catch (error) {
           showToast('Не удалось добавить товар в корзину', 'error');
         } finally {

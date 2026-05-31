@@ -97,26 +97,47 @@ class CartController extends Controller
         $item->qty = $newQty;
         $item->save();
 
+        $removedFromFavorites = false;
+
+        if ($request->boolean('remove_from_favorites')) {
+            $removedFromFavorites = Favorite::where('user_id', auth()->id())
+                ->where('product_id', $product->id)
+                ->delete() > 0;
+        }
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'quantity' => $item->qty,
-                'message' => 'Товар добавлен в корзину'
+                'removed_from_favorites' => $removedFromFavorites,
+                'message' => $removedFromFavorites ? 'Товар перенесён в корзину' : 'Товар добавлен в корзину'
             ]);
         }
 
         return back()
-            ->with('success', 'Товар добавлен в корзину!')
+            ->with('success', $removedFromFavorites ? 'Товар перенесён в корзину!' : 'Товар добавлен в корзину!')
             ->with('cart_added_id', $product->id);
     }
 
     public function addFavorites(Request $request)
     {
-        $favorites = Favorite::with('product')
-            ->where('user_id', auth()->id())
-            ->get();
+        $data = $request->validate([
+            'favorite_ids' => ['nullable', 'array'],
+            'favorite_ids.*' => ['integer'],
+            'remove_from_favorites' => ['nullable', 'boolean'],
+        ]);
+
+        $favoritesQuery = Favorite::with('product')
+            ->where('user_id', auth()->id());
+
+        if (! empty($data['favorite_ids'])) {
+            $favoritesQuery->whereIn('id', $data['favorite_ids']);
+        }
+
+        $favorites = $favoritesQuery->get();
 
         $added = 0;
+        $addedFavoriteIds = [];
         $today = Carbon::today()->toDateString();
 
         foreach ($favorites as $favorite) {
@@ -147,12 +168,21 @@ class CartController extends Controller
             $item->qty = max(1, (int) $item->qty + 1);
             $item->save();
             $added++;
+            $addedFavoriteIds[] = $favorite->id;
+        }
+
+        if ($request->boolean('remove_from_favorites') && ! empty($addedFavoriteIds)) {
+            Favorite::where('user_id', auth()->id())
+                ->whereIn('id', $addedFavoriteIds)
+                ->delete();
         }
 
         return back()->with(
             $added > 0 ? 'success' : 'error',
             $added > 0
-                ? "Добавлено в корзину: {$added} товар(ов)"
+                ? ($request->boolean('remove_from_favorites')
+                    ? "Перенесено в корзину: {$added} товар(ов)"
+                    : "Добавлено в корзину: {$added} товар(ов)")
                 : 'В избранном нет товаров, которые можно добавить в корзину.'
         );
     }

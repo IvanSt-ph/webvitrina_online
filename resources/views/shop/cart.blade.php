@@ -7,51 +7,66 @@
     $freeShippingThreshold = 5000;
 @endphp
 
-<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe w-full max-w-none overflow-x-hidden px-3 py-4 sm:px-6 sm:py-8 {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
+<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe w-full max-w-none space-y-5 overflow-x-hidden bg-white px-3 py-4 sm:px-6 sm:py-8 {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
 
-    <!-- 🔝 Элегантный заголовок -->
-    <div class="mb-6 sm:mb-10">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                    <i class="ri-shopping-cart-2-line text-xl"></i>
-                </div>
+    <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center sm:p-5">
+        <div class="min-w-0">
+            <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+                <i class="ri-shopping-cart-2-line"></i>
+                Корзина
+            </span>
+            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Проверьте товары перед оформлением</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                Здесь видны доступные товары, недоступные позиции и сумма заказа до перехода к подтверждению.
+            </p>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex items-center justify-between gap-3">
                 <div>
-                    <h1 class="text-2xl sm:text-4xl font-semibold tracking-tight text-gray-900">Корзина</h1>
-                    <p class="text-gray-500 text-sm mt-1">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">В корзине</p>
+                    <p class="mt-1 text-2xl font-bold text-slate-950">
                         @if($items->isNotEmpty())
-                            <span x-text="totalQty"></span> товара(ов)
+                            <span x-text="totalQty"></span>
                         @else
-                            пусто
+                            0
                         @endif
                     </p>
+                </div>
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl text-indigo-600 shadow-sm">
+                    <i class="ri-shopping-bag-3-line"></i>
                 </div>
             </div>
 
             @if($items->isNotEmpty())
-            <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3 sm:flex-wrap">
-                <x-secondary-action type="button" @click="toggleSelectMode">
-                    <span x-show="!selectMode" class="inline-flex items-center gap-2">
-                        <i class="ri-checkbox-multiple-line"></i>
-                        Выбрать
-                    </span>
-                    <span x-show="selectMode" class="inline-flex items-center gap-2">
-                        <i class="ri-close-line"></i>
-                        Отменить
-                    </span>
-                </x-secondary-action>
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                    <x-secondary-action type="button" @click="toggleSelectMode">
+                        <span x-show="!selectMode" class="inline-flex items-center gap-2">
+                            <i class="ri-checkbox-multiple-line"></i>
+                            Выбрать
+                        </span>
+                        <span x-show="selectMode" class="inline-flex items-center gap-2">
+                            <i class="ri-close-line"></i>
+                            Отменить
+                        </span>
+                    </x-secondary-action>
 
-                <form method="POST" action="{{ route('checkout.prepare') }}" class="min-w-0">
-                    @csrf
-                    <x-action-button>
-                        <i class="ri-bank-card-line"></i>
-                        Оформить всё
-                    </x-action-button>
-                </form>
-            </div>
+                    <form method="POST" action="{{ route('checkout.prepare') }}" class="min-w-0">
+                        @csrf
+                        <x-action-button :full="true">
+                            <i class="ri-bank-card-line"></i>
+                            Оформить
+                        </x-action-button>
+                    </form>
+                </div>
+            @else
+                <a href="{{ route('home') }}" class="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                    <i class="ri-store-3-line"></i>
+                    В каталог
+                </a>
             @endif
         </div>
-    </div>
+    </header>
 
     @if($unavailableItems->isNotEmpty())
         <section class="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70">

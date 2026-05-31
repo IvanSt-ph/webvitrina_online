@@ -1,9 +1,21 @@
 <x-buyer-layout title="Выбор валюты">
-    <div class="max-w-8xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4">
+    <div class="w-full max-w-none space-y-5 bg-white px-3 py-4 pb-24 sm:px-6 sm:py-8">
+        <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center sm:p-5">
+            <div class="min-w-0">
+                <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+                    <i class="ri-exchange-dollar-line"></i>
+                    Валюта
+                </span>
+                <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Выбор валюты</h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Выберите валюту для показа цен. Сохранение будет подключено в настройках профиля.</p>
+            </div>
+            <div class="rounded-xl border border-amber-100 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                <p class="font-semibold">Предпросмотр настройки</p>
+                <p class="mt-1">Сейчас список показывает будущую механику выбора валюты.</p>
+            </div>
+        </header>
 
-        <p class="text-gray-500">Выберите валюту для показа цен:</p>
-
-        <div class="bg-white rounded-xl border shadow-sm divide-y">
+        <div class="divide-y rounded-xl border border-slate-200 bg-white shadow-sm">
 
             <label class="flex items-center justify-between px-4 py-3">
                 <div class="flex items-center gap-3">
@@ -39,8 +51,8 @@
 
         </div>
 
-        <button class="w-full mt-4 bg-indigo-600 text-white py-2 rounded-lg font-medium">
-            Сохранить
+        <button class="w-full rounded-xl bg-slate-200 py-3 text-sm font-semibold text-slate-500" disabled>
+            Сохранение скоро будет доступно
         </button>
 
     </div>

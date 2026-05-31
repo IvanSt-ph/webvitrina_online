@@ -1,6 +1,7 @@
-<x-seller-layout title="Аналитика продавца">
+<x-seller-layout title="Аналитика продавца" :hideHeader="true">
 
-<div class="min-h-screen bg-white text-gray-800 pb-[5.5rem] px-3 sm:px-6 overflow-x-hidden">
+<div class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6 overflow-x-hidden">
+<div class="w-full max-w-none space-y-5">
 
 @php
     function delta($now, $prev) {
@@ -10,53 +11,58 @@
     }
 @endphp
 
-{{-- Заголовок --}}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+<header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[1fr_420px] lg:items-center">
     <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Аналитика продавца</h1>
-        <p class="text-sm text-gray-500 mt-1">
-            Период: {{ $from }} — {{ $to }}
+        <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+            <i class="ri-line-chart-line"></i>
+            Аналитика продавца
+        </div>
+        <h1 class="mt-3 text-2xl font-bold text-slate-950 sm:text-3xl">Понимайте, что происходит с товарами</h1>
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Смотрите просмотры, избранное, добавления в корзину и динамику за выбранный период. Данные помогают понять, какие карточки стоит улучшить первыми.
         </p>
-        <div class="mt-2 inline-flex items-center gap-2 rounded-full border {{ $sellerPlanProfile['class'] }} px-3 py-1 text-xs font-semibold">
-            <i class="ri-vip-crown-line"></i>
-            {{ $sellerPlanProfile['label'] }}
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-2 rounded-full border {{ $sellerPlanProfile['class'] }} px-3 py-1 text-xs font-semibold">
+                <i class="ri-vip-crown-line"></i>
+                {{ $sellerPlanProfile['label'] }}
+            </span>
+            <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                <i class="ri-calendar-line"></i>
+                {{ $from }} - {{ $to }}
+            </span>
         </div>
     </div>
 
-    {{-- Фильтры --}}
-    <form method="GET" class="flex flex-wrap gap-2 mt-4 sm:mt-0 w-full sm:w-auto">
-
-        <div class="flex gap-2 w-full sm:w-auto justify-between sm:justify-start">
+    <form method="GET" class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div class="grid grid-cols-3 gap-2">
             @foreach([7,14,30] as $p)
                 <button
                     type="submit"
                     name="period"
                     value="{{ $p }}"
-                    class="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-lg border text-xs sm:text-sm transition
-                           {{ $period == $p 
-                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100' }}">
+                    class="h-10 rounded-lg border text-xs font-bold transition sm:text-sm
+                           {{ $period == $p
+                                ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:text-indigo-700' }}">
                     {{ $p }} дней
                 </button>
             @endforeach
         </div>
 
-        <div class="hidden sm:block h-6 w-px bg-gray-200"></div>
-
-        <div class="flex-wrap gap-2 w-full sm:w-auto justify-between sm:justify-start mt-2 sm:mt-0 flex">
+        <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <input type="date" name="from" value="{{ $from }}"
-                   class="w-[48%] sm:w-auto border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm">
+                   class="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 sm:text-sm">
 
             <input type="date" name="to" value="{{ $to }}"
-                   class="w-[48%] sm:w-auto border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm">
+                   class="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 sm:text-sm">
 
             <button type="submit"
-                    class="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs sm:text-sm">
+                    class="h-10 rounded-lg bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-indigo-600 sm:text-sm">
                 Обновить
             </button>
         </div>
     </form>
-</div>
+</header>
 
 
 {{-- KPI --}}
@@ -189,6 +195,7 @@
     </div>
 </section>
 
+</div>
 </div>
 
 {{-- Мобильная нижняя навигация --}}

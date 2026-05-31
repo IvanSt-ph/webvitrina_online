@@ -53,39 +53,36 @@
         ];
     @endphp
 
-    <div x-data="{ expanded: {} }" class="w-full space-y-5 px-3 py-4 sm:space-y-6 sm:px-5 sm:py-6 lg:px-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                    <i class="ri-star-smile-line text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">Мои отзывы</h1>
-                    <p class="text-gray-500 text-xs sm:text-sm mt-0.5">
-                        {{ $counters['all'] > 0 ? $counters['all'] . ' отзывов · средняя оценка ' . number_format($avgRating, 1) : 'пока пусто' }}
-                    </p>
-                </div>
+    <div x-data="{ expanded: {} }" class="w-full max-w-none space-y-5 bg-white px-3 py-4 sm:space-y-6 sm:px-6 sm:py-8">
+        <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center sm:p-5">
+            <div class="min-w-0">
+                <span class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-600">
+                    <i class="ri-star-smile-line"></i>
+                    Отзывы
+                </span>
+                <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Мои отзывы</h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                    Следите за модерацией отзывов, открывайте товар и быстро возвращайтесь к оценкам после покупки.
+                </p>
             </div>
 
-            @if($counters['all'] > 0)
-                <div class="flex flex-wrap gap-2">
-                    <span class="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">
-                        <i class="ri-chat-3-line text-gray-400"></i>
-                        {{ $counters['all'] }}
-                    </span>
-                    <span class="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">
-                        <i class="ri-star-fill text-amber-400"></i>
-                        {{ number_format($avgRating, 1) }}
-                    </span>
-                    @if(($counters[\App\Models\Review::STATUS_PENDING] ?? 0) > 0)
-                        <span class="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                            <i class="ri-time-line"></i>
-                            {{ $counters[\App\Models\Review::STATUS_PENDING] }}
-                        </span>
-                    @endif
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+                        <p class="text-lg font-bold text-slate-950">{{ $counters['all'] }}</p>
+                        <p class="text-[11px] font-medium text-slate-400">Всего</p>
+                    </div>
+                    <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+                        <p class="text-lg font-bold text-slate-950">{{ number_format($avgRating, 1) }}</p>
+                        <p class="text-[11px] font-medium text-slate-400">Оценка</p>
+                    </div>
+                    <div class="rounded-xl bg-white px-3 py-2 shadow-sm">
+                        <p class="text-lg font-bold text-amber-600">{{ $counters[\App\Models\Review::STATUS_PENDING] ?? 0 }}</p>
+                        <p class="text-[11px] font-medium text-slate-400">Модерация</p>
+                    </div>
                 </div>
-            @endif
-        </div>
+            </div>
+        </header>
 
         @if($counters['all'] > 0)
             <div class="space-y-3">

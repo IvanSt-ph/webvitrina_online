@@ -1,27 +1,34 @@
 <x-buyer-layout title="Личный кабинет">
-  <div class="addresses-mobile-safe w-full max-w-none overflow-x-hidden px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8 space-y-5 sm:space-y-8">
+  <div class="addresses-mobile-safe w-full max-w-none space-y-5 overflow-x-hidden bg-white px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8">
 
-    <!-- Заголовок -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-          <i class="ri-map-pin-line text-xl"></i>
-        </div>
-        <div>
-        <h1 class="text-2xl font-semibold text-gray-900">Мои адреса доставки</h1>
-        <p class="text-sm text-gray-500 mt-1">Добавьте или измените адреса для оформления заказов</p>
-        </div>
+    <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center sm:p-5">
+      <div class="min-w-0">
+        <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+          <i class="ri-map-pin-line"></i>
+          Адреса
+        </span>
+        <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Мои адреса доставки</h1>
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+          Сохраняйте несколько адресов и выбирайте основной, чтобы быстрее оформлять новые заказы.
+        </p>
       </div>
 
-      <!-- Кнопка добавления -->
-      <div class="w-full sm:w-auto">
-      <x-action-button type="button" :full="true" x-data x-on:click="$dispatch('open-modal', 'addAddress')">
-        <i class="ri-add-line text-lg"></i>
-        Добавить адрес
-      </x-action-button>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Сохранено</p>
+            <p class="mt-1 text-2xl font-bold text-slate-950">{{ $addresses->count() }}</p>
+          </div>
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl text-indigo-600 shadow-sm">
+            <i class="ri-home-heart-line"></i>
+          </div>
+        </div>
+        <x-action-button type="button" :full="true" class="mt-4" x-data x-on:click="$dispatch('open-modal', 'addAddress')">
+          <i class="ri-add-line text-lg"></i>
+          Добавить адрес
+        </x-action-button>
       </div>
-
-    </div>
+    </header>
 
     <!-- Список адресов -->
     <div class="space-y-4">
