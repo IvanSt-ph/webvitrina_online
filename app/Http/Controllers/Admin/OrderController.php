@@ -19,6 +19,7 @@ class OrderController extends Controller
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
             'sort' => ['nullable', 'in:latest,oldest,amount_desc,amount_asc'],
+            'focus' => ['nullable', 'in:active,cancel_requests,stuck'],
         ]);
 
         $statusCounts = Order::query()
@@ -64,6 +65,36 @@ class OrderController extends Controller
             $query->whereDate('created_at', '<=', $request->date('date_to'));
         }
 
+        if ($request->filled('focus')) {
+            match ($request->string('focus')->toString()) {
+                'active' => $query->whereIn('status', [
+                    Order::STATUS_PENDING,
+                    Order::STATUS_PROCESSING,
+                    Order::STATUS_PAID,
+                    Order::STATUS_SHIPPED,
+                    Order::STATUS_DELIVERED,
+                ]),
+                'cancel_requests' => $query->whereNotNull('cancellation_requested_at')
+                    ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED]),
+                'stuck' => $query->where(function ($stuck) {
+                    $stuck->where(function ($pending) {
+                        $pending->where('status', Order::STATUS_PENDING)
+                            ->where('created_at', '<=', now()->subDay());
+                    })->orWhere(function ($processing) {
+                        $processing->where('status', Order::STATUS_PROCESSING)
+                            ->where(function ($dates) {
+                                $dates->where('accepted_at', '<=', now()->subDays(2))
+                                    ->orWhere(function ($fallback) {
+                                        $fallback->whereNull('accepted_at')
+                                            ->where('created_at', '<=', now()->subDays(2));
+                                    });
+                            });
+                    });
+                }),
+                default => null,
+            };
+        }
+
         $filtered = clone $query;
 
         $summary = [
@@ -71,8 +102,35 @@ class OrderController extends Controller
             'revenue' => (clone $filtered)
                 ->where('status', '!=', Order::STATUS_CANCELED)
                 ->sum('total_price'),
-            'attention' => (clone $filtered)
-                ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING])
+            'active' => (clone $filtered)
+                ->whereIn('status', [
+                    Order::STATUS_PENDING,
+                    Order::STATUS_PROCESSING,
+                    Order::STATUS_PAID,
+                    Order::STATUS_SHIPPED,
+                    Order::STATUS_DELIVERED,
+                ])
+                ->count(),
+            'cancel_requests' => (clone $filtered)
+                ->whereNotNull('cancellation_requested_at')
+                ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED])
+                ->count(),
+            'stuck' => (clone $filtered)
+                ->where(function ($stuck) {
+                    $stuck->where(function ($pending) {
+                        $pending->where('status', Order::STATUS_PENDING)
+                            ->where('created_at', '<=', now()->subDay());
+                    })->orWhere(function ($processing) {
+                        $processing->where('status', Order::STATUS_PROCESSING)
+                            ->where(function ($dates) {
+                                $dates->where('accepted_at', '<=', now()->subDays(2))
+                                    ->orWhere(function ($fallback) {
+                                        $fallback->whereNull('accepted_at')
+                                            ->where('created_at', '<=', now()->subDays(2));
+                                    });
+                            });
+                    });
+                })
                 ->count(),
             'today' => Order::query()
                 ->whereDate('created_at', today())

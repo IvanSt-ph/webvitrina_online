@@ -5,19 +5,47 @@
 <div class="space-y-5">
 
   {{-- ===== Заголовок ===== --}}
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div>
-      <h1 class="text-2xl sm:text-3xl font-semibold text-gray-800 tracking-tight flex items-center gap-2">
-        <i class="ri-folder-3-line text-indigo-600 text-2xl"></i>
-        Категории
-      </h1>
-      <p class="text-sm text-gray-500 mt-1">Управление, структура и аналитика категорий</p>
+  <div class="rounded-3xl border border-indigo-100 bg-gradient-to-br from-white via-white to-indigo-50/70 p-5 shadow-sm">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+          <i class="ri-node-tree"></i>
+          Дерево каталога
+        </div>
+        <h1 class="mt-3 text-2xl sm:text-3xl font-semibold text-gray-900 tracking-tight flex items-center gap-2">
+          <i class="ri-folder-3-line text-indigo-600 text-2xl"></i>
+          Категории
+        </h1>
+        <p class="text-sm text-gray-500 mt-1 max-w-2xl">
+          Корневые категории попадают в основные разделы, подкатегории помогают навигации, а конечные категории должны иметь характеристики для фильтров и карточек товара.
+        </p>
+      </div>
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <a href="{{ route('admin.categories.create') }}"
+           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl shadow hover:bg-indigo-700 hover:shadow-md transition-all duration-200">
+          <i class="ri-add-line text-base"></i>
+          Добавить категорию
+        </a>
+      </div>
     </div>
-    <a href="{{ route('admin.categories.create') }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg shadow hover:bg-indigo-700 hover:shadow-md transition-all duration-200">
-      <i class="ri-add-line text-base"></i>
-      Добавить категорию
-    </a>
+
+    <div class="mt-5 grid gap-3 md:grid-cols-3">
+      <div class="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">1. Корень</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">Раздел витрины</p>
+        <p class="mt-1 text-xs text-slate-500">Например: Электроника, Одежда, Зоотовары.</p>
+      </div>
+      <div class="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">2. Ветка</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">Группа товаров</p>
+        <p class="mt-1 text-xs text-slate-500">Помогает покупателю быстро сузить каталог.</p>
+      </div>
+      <div class="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">3. Конечная</p>
+        <p class="mt-1 text-sm font-semibold text-slate-900">Товары и характеристики</p>
+        <p class="mt-1 text-xs text-slate-500">Сюда продавец привязывает товар, здесь нужны фильтры.</p>
+      </div>
+    </div>
   </div>
 
   <details class="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -30,11 +58,13 @@
     </summary>
 
     {{-- ===== Верхняя аналитика ===== --}}
-    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
       <x-admin.stat-card color="blue"   label="Всего категорий"   :value="$stats['total']" icon="ri-grid-line" />
       <x-admin.stat-card color="green"  label="Корневые категории" :value="$stats['roots']" icon="ri-folder-2-line" />
       <x-admin.stat-card color="purple" label="Подкатегории"       :value="$stats['subs']"  icon="ri-folder-open-line" />
-      <x-admin.stat-card color="gray"   label="Всего товаров"      :value="\App\Models\Product::count()" icon="ri-shopping-bag-3-line" />
+      <x-admin.stat-card color="orange" label="Конечные категории" :value="$stats['leafs']" icon="ri-price-tag-3-line" />
+      <x-admin.stat-card color="{{ $stats['without_attributes'] ? 'red' : 'green' }}" label="Без характеристик" :value="$stats['without_attributes']" icon="ri-equalizer-line" />
+      <x-admin.stat-card color="gray"   label="Всего товаров"      :value="$stats['products']" icon="ri-shopping-bag-3-line" />
     </div>
 
   {{-- ===== Аналитика ===== --}}
@@ -156,32 +186,63 @@
   </details>
 
   {{-- ===== Панель фильтров ===== --}}
-  <div class="bg-white border border-gray-100 shadow-sm rounded-lg p-4 mt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div class="flex items-center gap-2 w-full md:w-auto">
-      <label for="parentFilter" class="text-gray-500 text-sm whitespace-nowrap">Родитель:</label>
-      <select id="parentFilter"
-              class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full md:w-auto focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400">
-        <option value="">Все категории</option>
-        @foreach($parents as $parent)
-          <option value="{{ $parent->id }}" {{ request('parent_id') == $parent->id ? 'selected' : '' }}>
-            {{ $parent->name }}
-          </option>
-        @endforeach
-      </select>
+  <div class="mt-8 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
+      <div class="flex-1">
+        <label for="searchInput" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Поиск</label>
+        <div class="relative">
+          <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base"></i>
+          <input type="text" id="searchInput"
+                 value="{{ request('q') }}"
+                 placeholder="Название или slug категории..."
+                 class="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500">
+        </div>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:w-[520px]">
+        <div>
+          <label for="parentFilter" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Раздел</label>
+          <select id="parentFilter"
+                  class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500">
+            <option value="">Все разделы</option>
+            @foreach($parents as $parent)
+              <option value="{{ $parent->id }}" {{ request('parent_id') == $parent->id ? 'selected' : '' }}>
+                {{ $parent->name }} · {{ $parent->children_count }}
+              </option>
+            @endforeach
+          </select>
+        </div>
+
+        <div>
+          <label for="typeFilter" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Тип</label>
+          <select id="typeFilter"
+                  class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500">
+            <option value="">Все типы</option>
+            <option value="root" {{ request('type') === 'root' ? 'selected' : '' }}>Корневые</option>
+            <option value="child" {{ request('type') === 'child' ? 'selected' : '' }}>Подкатегории</option>
+            <option value="with_children" {{ request('type') === 'with_children' ? 'selected' : '' }}>С подкатегориями</option>
+            <option value="leaf" {{ request('type') === 'leaf' ? 'selected' : '' }}>Конечные</option>
+            <option value="no_attributes" {{ request('type') === 'no_attributes' ? 'selected' : '' }}>Без характеристик</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="resetBtn"
+              class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-200">
+        <i class="ri-refresh-line text-base"></i>
+        Сброс
+      </button>
     </div>
 
-    <div class="flex items-center gap-2 w-full md:w-1/3">
-      <div class="relative w-full">
-        <i class="ri-search-line absolute left-3 top-2.5 text-gray-400 text-base"></i>
-        <input type="text" id="searchInput"
-               value="{{ request('q') }}"
-               placeholder="Поиск категорий..."
-               class="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400">
-      </div>
-      <button id="resetBtn"
-              class="flex items-center gap-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 text-gray-600 transition">
-        <i class="ri-refresh-line text-base"></i> Сброс
-      </button>
+    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
+        <i class="ri-information-line"></i>
+        Конечные категории должны иметь характеристики.
+      </span>
+      <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
+        <i class="ri-price-tag-3-line"></i>
+        Товары лучше привязывать к самому нижнему уровню.
+      </span>
     </div>
   </div>
 
@@ -209,6 +270,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const searchInput  = document.getElementById('searchInput');
   const parentFilter = document.getElementById('parentFilter');
+  const typeFilter   = document.getElementById('typeFilter');
   const resetBtn     = document.getElementById('resetBtn');
   const wrapper      = document.getElementById('categoryTableWrapper');
   const mobileWrapper = document.getElementById('categoryMobileWrapper');
@@ -230,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const loadUrl = url => {
       const q = searchInput.value.trim();
       const parent_id = parentFilter.value;
+      const type = typeFilter.value;
       showSkeleton();
       ajaxStatus.textContent = "Загрузка...";
       ajaxStatus.classList.remove('hidden');
@@ -250,16 +313,19 @@ document.addEventListener('DOMContentLoaded', () => {
     timer = setTimeout(() => {
       const q = searchInput.value.trim();
       const parent_id = parentFilter.value;
-      const url = `{{ route('admin.categories.index') }}?ajax=1&q=${encodeURIComponent(q)}&parent_id=${encodeURIComponent(parent_id)}`;
+      const type = typeFilter.value;
+      const url = `{{ route('admin.categories.index') }}?ajax=1&q=${encodeURIComponent(q)}&parent_id=${encodeURIComponent(parent_id)}&type=${encodeURIComponent(type)}`;
       loadUrl(url);
     }, 350);
   };
 
   searchInput.addEventListener('input', fetchData);
   parentFilter.addEventListener('change', fetchData);
+  typeFilter.addEventListener('change', fetchData);
   resetBtn.addEventListener('click', () => {
     searchInput.value = '';
     parentFilter.value = '';
+    typeFilter.value = '';
     fetchData();
   });
 

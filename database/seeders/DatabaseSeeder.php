@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             CountriesSeeder::class,
             CountryCitySeeder::class,
             CategoriesSeeder::class,
+            CategoryAttributesSeeder::class,
         ]);
 
         if (filter_var(env('SEED_ADMIN_USER', false), FILTER_VALIDATE_BOOL)) {

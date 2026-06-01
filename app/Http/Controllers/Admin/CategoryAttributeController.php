@@ -15,12 +15,15 @@ class CategoryAttributeController extends Controller
     /** 📄 Показ */
 public function index(Category $category)
 {
+    $category->load(['parent.parent.parent'])
+        ->loadCount(['children', 'products']);
+
     $attributes = $category->attributes()
         ->with('colors')
         ->orderBy('name')
         ->get();
 
-    $colors = \App\Models\Color::all();
+    $colors = Color::orderBy('name')->get();
 
     return view('admin.categories.attributes', compact('category','attributes','colors'));
 }
@@ -30,11 +33,13 @@ public function index(Category $category)
     public function store(Request $request, Category $category)
     {
         $validated = $request->validate([
-            'name'    => 'required|string|max:255',
-            'type'    => 'required|in:select,text,number,color',
-            'options' => 'nullable|string|max:500',
-            'colors'  => 'nullable|array',
-            'colors.*'=> 'integer|exists:colors,id'
+            'name'          => 'required|string|max:255',
+            'type'          => 'required|in:select,text,number,color',
+            'unit'          => 'nullable|string|max:50',
+            'is_filterable' => 'nullable|boolean',
+            'options'       => 'nullable|string|max:1000',
+            'colors'        => 'nullable|array',
+            'colors.*'      => 'integer|exists:colors,id'
         ]);
 
         try {
@@ -44,17 +49,15 @@ public function index(Category $category)
             $options = null;
 
             if ($validated['type'] !== 'color' && !empty($validated['options'])) {
-                $options = collect(explode(',', $validated['options']))
-                    ->map(fn($v) => trim($v))
-                    ->filter()
-                    ->values()
-                    ->toArray();
+                $options = $this->normalizeOptions($validated['options']);
             }
 
             $attribute = Attribute::create([
-                'name'    => $validated['name'],
-                'type'    => $validated['type'],
-                'options' => $options,
+                'name'          => $validated['name'],
+                'type'          => $validated['type'],
+                'unit'          => $validated['unit'] ?? null,
+                'is_filterable' => $request->boolean('is_filterable', true),
+                'options'       => $options,
             ]);
 
             // Привязка категории
@@ -82,26 +85,26 @@ public function index(Category $category)
         $attribute = $category->attributes()->whereKey($attributeId)->firstOrFail();
 
         $validated = $request->validate([
-            'name'    => 'required|string|max:255',
-            'type'    => 'required|in:select,text,number,color',
-            'options' => 'nullable|string|max:500',
-            'colors'  => 'nullable|array',
-            'colors.*'=> 'integer|exists:colors,id'
+            'name'          => 'required|string|max:255',
+            'type'          => 'required|in:select,text,number,color',
+            'unit'          => 'nullable|string|max:50',
+            'is_filterable' => 'nullable|boolean',
+            'options'       => 'nullable|string|max:1000',
+            'colors'        => 'nullable|array',
+            'colors.*'      => 'integer|exists:colors,id'
         ]);
 
         $options = null;
         if ($validated['type'] !== 'color' && !empty($validated['options'])) {
-            $options = collect(explode(',', $validated['options']))
-                ->map(fn($v) => trim($v))
-                ->filter()
-                ->values()
-                ->toArray();
+            $options = $this->normalizeOptions($validated['options']);
         }
 
         $attribute->update([
-            'name'    => $validated['name'],
-            'type'    => $validated['type'],
-            'options' => $options,
+            'name'          => $validated['name'],
+            'type'          => $validated['type'],
+            'unit'          => $validated['unit'] ?? null,
+            'is_filterable' => $request->boolean('is_filterable', true),
+            'options'       => $options,
         ]);
 
         // Обновляем цвета
@@ -142,5 +145,15 @@ public function index(Category $category)
             DB::rollBack();
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    private function normalizeOptions(string $options): array
+    {
+        return collect(preg_split('/[\r\n,]+/', $options))
+            ->map(fn($value) => trim($value))
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
     }
 }

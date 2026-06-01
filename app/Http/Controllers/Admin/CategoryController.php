@@ -20,20 +20,34 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         // ====== 🔹 Базовый запрос ======
-        $query = Category::with('parent');
+        $query = Category::with(['parent.parent.parent'])
+            ->withCount(['children', 'products', 'attributes']);
 
         if ($request->filled('q')) {
-            $query->where('name', 'like', '%' . $request->q . '%');
+            $search = trim((string) $request->q);
+            $query->where(function ($inner) use ($search) {
+                $inner->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%');
+            });
         }
 
         if ($request->filled('parent_id')) {
             $query->where('parent_id', $request->parent_id);
         }
 
+        match ($request->get('type')) {
+            'root' => $query->whereNull('parent_id'),
+            'child' => $query->whereNotNull('parent_id'),
+            'leaf' => $query->doesntHave('children'),
+            'with_children' => $query->has('children'),
+            'no_attributes' => $query->doesntHave('children')->doesntHave('attributes'),
+            default => null,
+        };
+
         $sort = $request->get('sort', 'name');
         $direction = $request->get('direction', 'asc');
 
-        if (!in_array($sort, ['id', 'name', 'slug', 'parent_id'])) $sort = 'name';
+        if (!in_array($sort, ['id', 'name', 'slug', 'parent_id', 'children_count', 'products_count', 'attributes_count'])) $sort = 'name';
         if (!in_array($direction, ['asc', 'desc'])) $direction = 'asc';
 
         $categories = $query->orderBy($sort, $direction)
@@ -48,7 +62,10 @@ class CategoryController extends Controller
             ]);
         }
 
-        $parents = Category::whereNull('parent_id')->orderBy('name')->get();
+        $parents = Category::whereNull('parent_id')
+            ->withCount('children')
+            ->orderBy('name')
+            ->get();
 
         // ====== 🔹 Режим аналитики ======
         $mode = $request->get('mode', 'products');
@@ -125,6 +142,9 @@ class CategoryController extends Controller
         $stats = [
             'total' => Category::count(),
             'roots' => Category::whereNull('parent_id')->count(),
+            'leafs' => Category::doesntHave('children')->count(),
+            'without_attributes' => Category::doesntHave('children')->doesntHave('attributes')->count(),
+            'products' => Product::count(),
         ];
         $stats['subs'] = max($stats['total'] - $stats['roots'], 0);
 
@@ -144,7 +164,9 @@ class CategoryController extends Controller
     public function create()
     {
         $parents = Category::orderBy('parent_id')->orderBy('name')->get();
-        return view('admin.categories.create', compact('parents'));
+        $blockedParentIds = collect();
+
+        return view('admin.categories.create', compact('parents', 'blockedParentIds'));
     }
 
     /** 💾 Сохранение новой категории */
@@ -183,8 +205,9 @@ class CategoryController extends Controller
         }
 
         $parents = Category::orderBy('parent_id')->orderBy('name')->get(['id', 'name', 'parent_id']);
+        $blockedParentIds = $category->allChildrenIds();
 
-        return view('admin.categories.edit', compact('category', 'parents', 'chain'));
+        return view('admin.categories.edit', compact('category', 'parents', 'chain', 'blockedParentIds'));
     }
 
     /** 💾 Обновление категории */
