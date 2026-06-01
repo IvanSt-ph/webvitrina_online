@@ -243,22 +243,22 @@
                         <span class="w-px h-4 bg-gray-200 mx-1"></span>
                         <div class="flex items-center gap-4">
                             @if($shop->facebook)
-                                <a href="{{ Str::startsWith($shop->facebook, 'http') ? $shop->facebook : 'https://' . $shop->facebook }}" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Facebook">
+                                <a href="{{ Str::startsWith($shop->facebook, 'http') ? $shop->facebook : 'https://' . $shop->facebook }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Facebook">
                                     <i class="ri-facebook-fill text-lg"></i>
                                 </a>
                             @endif
                             @if($shop->instagram)
-                                <a href="{{ Str::startsWith($shop->instagram, 'http') ? $shop->instagram : 'https://' . $shop->instagram }}" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Instagram">
+                                <a href="{{ Str::startsWith($shop->instagram, 'http') ? $shop->instagram : 'https://' . $shop->instagram }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Instagram">
                                     <i class="ri-instagram-fill text-lg"></i>
                                 </a>
                             @endif
                             @if($shop->telegram)
-                                <a href="{{ Str::startsWith($shop->telegram, 'http') ? $shop->telegram : 'https://' . $shop->telegram }}" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Telegram">
+                                <a href="{{ Str::startsWith($shop->telegram, 'http') ? $shop->telegram : 'https://' . $shop->telegram }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Telegram">
                                     <i class="ri-telegram-fill text-lg"></i>
                                 </a>
                             @endif
                             @if($shop->whatsapp)
-                                <a href="{{ Str::startsWith($shop->whatsapp, 'http') ? $shop->whatsapp : 'https://' . $shop->whatsapp }}" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors" title="WhatsApp">
+                                <a href="{{ Str::startsWith($shop->whatsapp, 'http') ? $shop->whatsapp : 'https://' . $shop->whatsapp }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-600 transition-colors" title="WhatsApp">
                                     <i class="ri-whatsapp-fill text-lg"></i>
                                 </a>
                             @endif

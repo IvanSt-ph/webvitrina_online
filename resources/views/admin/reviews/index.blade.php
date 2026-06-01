@@ -179,6 +179,7 @@
                         @if($product)
                             <a href="{{ route('product.show', $product->slug ?? $product->id) }}"
                                target="_blank"
+                               rel="noopener noreferrer"
                                title="{{ $product->title }}"
                                class="inline-block max-w-[min(100%,34rem)] truncate align-bottom font-medium text-gray-700 hover:text-indigo-600"
                                @click.stop>
@@ -288,7 +289,7 @@
 
                     <div class="rounded-lg border border-gray-200 p-4">
                         <div class="mb-2 text-xs font-semibold uppercase text-gray-400">Товар</div>
-                        <a :href="productUrl(modal.data.product)" target="_blank" class="block break-words font-semibold leading-6 text-gray-900 hover:text-indigo-600" x-text="modal.data.product?.title ?? 'Товар удалён'"></a>
+                        <a :href="productUrl(modal.data.product)" target="_blank" rel="noopener noreferrer" class="block break-words font-semibold leading-6 text-gray-900 hover:text-indigo-600" x-text="modal.data.product?.title ?? 'Товар удалён'"></a>
                         <div x-show="modal.data.product?.sku" class="mt-1 text-sm text-gray-500">
                             <span class="text-gray-400">SKU:</span>
                             <span x-text="modal.data.product?.sku"></span>

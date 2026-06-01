@@ -173,7 +173,7 @@
             @if($message->image_path)
                 <a href="{{ route($imageRouteName, [$conversation, $message]) }}"
                    target="_blank"
-                   rel="noopener"
+                   rel="noopener noreferrer"
                    class="mb-2 block overflow-hidden rounded-2xl bg-black/5">
                     <img src="{{ route($imageRouteName, [$conversation, $message]) }}"
                          alt="Фото в сообщении"

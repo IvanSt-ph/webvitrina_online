@@ -153,7 +153,16 @@
 
 
       {{-- ================= Описание ================= --}}
-      <section class="seller-form-card">
+      <section class="seller-form-card"
+               x-data="{
+                 description: @js(old('description', $product->description ?? '')),
+                 max: 3000,
+                 count() { return Array.from(this.description || '').length },
+                 clamp() {
+                   const chars = Array.from(this.description || '');
+                   if (chars.length > this.max) this.description = chars.slice(0, this.max).join('');
+                 }
+               }">
         <div class="seller-section-head">
           <div>
             <p class="seller-section-kicker">04</p>
@@ -161,8 +170,22 @@
           </div>
           <p class="seller-section-hint">Состояние, комплектация, размеры, нюансы доставки.</p>
         </div>
-        <textarea name="description" rows="5" placeholder="Опишите товар, его характеристики, преимущества..."
-                  class="seller-input min-h-36 resize-y">{{ old('description',$product->description) }}</textarea>
+        <textarea name="description"
+                  rows="7"
+                  maxlength="3000"
+                  x-model="description"
+                  @input="clamp()"
+                  placeholder="Опишите товар, комплектацию, состояние, размеры, сценарии применения, гарантию и важные нюансы..."
+                  class="seller-input min-h-44 resize-y">{{ old('description',$product->description) }}</textarea>
+        <div class="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-gray-500">
+            Хорошее описание отвечает на вопросы покупателя до чата: что входит в комплект, есть ли дефекты, кому подходит товар.
+          </p>
+          <div class="shrink-0 text-sm font-semibold"
+               :class="count() > max * 0.9 ? 'text-amber-600' : 'text-gray-400'">
+            <span x-text="count()"></span>/<span x-text="max"></span>
+          </div>
+        </div>
         @error('description') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
       </section>
 

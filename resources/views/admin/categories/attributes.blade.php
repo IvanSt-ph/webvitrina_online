@@ -62,7 +62,7 @@
       Назад к категориям
     </a>
 
-    <a href="{{ route('admin.colors.index') }}" target="_blank"
+    <a href="{{ route('admin.colors.index') }}" target="_blank" rel="noopener noreferrer"
        class="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100">
       <i class="ri-palette-line"></i>
       Справочник цветов
@@ -200,7 +200,7 @@
         <div class="md:col-span-2" x-show="type === 'color'">
           <div class="mb-2 flex items-center justify-between gap-2">
             <label class="block text-sm font-semibold text-gray-700">Цвета из справочника</label>
-            <a href="{{ route('admin.colors.index') }}" target="_blank" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Управлять цветами</a>
+            <a href="{{ route('admin.colors.index') }}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Управлять цветами</a>
           </div>
           <div class="flex flex-wrap gap-3">
             @foreach($colors as $c)

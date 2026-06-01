@@ -36,6 +36,7 @@
 
                 <a href="https://www.google.com/maps/search/?api=1&query={{ $product->latitude }},{{ $product->longitude }}"
                    target="_blank"
+                   rel="noopener noreferrer"
                    class="mt-2 inline-block text-indigo-600 hover:underline text-sm">
                     📍 Открыть в Google Maps
                 </a>

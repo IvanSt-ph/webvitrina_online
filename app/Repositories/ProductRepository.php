@@ -304,6 +304,7 @@ class ProductRepository
                 'city.country',
                 'category.parent',
                 'seller.shop',
+                'attributes.colors',
             ])
             ->withCount([
                 'reviews as reviews_count' => function ($q) {

@@ -258,7 +258,7 @@
 
                             <div class="mt-4 rounded-xl border border-slate-200 px-3 py-2 text-sm">
                                 @if($banner->link)
-                                    <a href="{{ $banner->link }}" target="_blank" rel="noopener" class="flex items-center justify-between gap-2 font-semibold text-indigo-600 hover:text-indigo-800">
+                                    <a href="{{ $banner->link }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-2 font-semibold text-indigo-600 hover:text-indigo-800">
                                         <span class="truncate">{{ $banner->link }}</span>
                                         <i class="ri-arrow-right-up-line shrink-0"></i>
                                     </a>
