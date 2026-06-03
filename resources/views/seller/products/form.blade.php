@@ -350,6 +350,20 @@
         @php
           $statusValue = old('status', $product->status ?: 'draft');
         @endphp
+        @if($product->isBlocked())
+          <input type="hidden" name="status" value="draft">
+          <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+            <div class="flex items-start gap-3">
+              <i class="ri-lock-2-line mt-0.5 text-lg"></i>
+              <div>
+                <div class="font-bold">Товар заблокирован администратором</div>
+                <p class="mt-1 leading-5">
+                  Можно исправить описание, фото, цену и характеристики, но вернуть товар на витрину сможет только администратор после проверки.
+                </p>
+              </div>
+            </div>
+          </div>
+        @else
         <div class="grid grid-cols-1 gap-3">
           <label class="seller-status-option">
             <input type="radio" name="status" value="draft" class="sr-only peer" @checked($statusValue === 'draft')>
@@ -368,10 +382,13 @@
             </span>
           </label>
         </div>
+        @endif
         @error('status') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-        <div class="mt-3 rounded-lg bg-indigo-50 p-3 text-xs text-indigo-800">
-          Черновик не виден покупателям. Опубликованный товар сразу появится на витрине.
-        </div>
+        @unless($product->isBlocked())
+          <div class="mt-3 rounded-lg bg-indigo-50 p-3 text-xs text-indigo-800">
+            Черновик не виден покупателям. Опубликованный товар сразу появится на витрине.
+          </div>
+        @endunless
       </section>
 
 

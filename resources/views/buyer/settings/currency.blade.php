@@ -1,59 +1,39 @@
+@php
+    $current = old('currency', auth()->user()->preferred_currency ?? session('currency', 'PRB'));
+@endphp
+
 <x-buyer-layout title="Выбор валюты">
     <div class="w-full max-w-none space-y-5 bg-white px-3 py-4 pb-24 sm:px-6 sm:py-8">
-        <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center sm:p-5">
-            <div class="min-w-0">
-                <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
-                    <i class="ri-exchange-dollar-line"></i>
-                    Валюта
-                </span>
-                <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Выбор валюты</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Выберите валюту для показа цен. Сохранение будет подключено в настройках профиля.</p>
-            </div>
-            <div class="rounded-xl border border-amber-100 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-                <p class="font-semibold">Предпросмотр настройки</p>
-                <p class="mt-1">Сейчас список показывает будущую механику выбора валюты.</p>
-            </div>
+        <header class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+                <i class="ri-exchange-dollar-line"></i>
+                Валюта
+            </span>
+            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Выбор валюты</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Валюта сохраняется в профиле и применяется к витрине на этом аккаунте.</p>
         </header>
 
-        <div class="divide-y rounded-xl border border-slate-200 bg-white shadow-sm">
-
-            <label class="flex items-center justify-between px-4 py-3">
-                <div class="flex items-center gap-3">
-                    <span class="text-xl">🇲🇩</span>
-                    <span>Moldovan Leu (MDL)</span>
-                </div>
-                <input type="radio" name="currency" checked>
-            </label>
-
-            <label class="flex items-center justify-between px-4 py-3">
-                <div class="flex items-center gap-3">
-                    <span class="text-xl">🇺🇦</span>
-                    <span>Ukrainian Hryvnia (UAH)</span>
-                </div>
-                <input type="radio" name="currency">
-            </label>
-
-            <label class="flex items-center justify-between px-4 py-3">
-                <div class="flex items-center gap-3">
-                    <span class="text-xl">🇷🇺</span>
-                    <span>PMR Ruble (RUB PMR)</span>
-                </div>
-                <input type="radio" name="currency">
-            </label>
-
-            <label class="flex items-center justify-between px-4 py-3">
-                <div class="flex items-center gap-3">
-                    <span class="text-xl">💵</span>
-                    <span>US Dollar (USD)</span>
-                </div>
-                <input type="radio" name="currency">
-            </label>
-
-        </div>
-
-        <button class="w-full rounded-xl bg-slate-200 py-3 text-sm font-semibold text-slate-500" disabled>
-            Сохранение скоро будет доступно
-        </button>
-
+        <form method="POST" action="{{ route('settings.currency.update') }}" class="space-y-4">
+            @csrf
+            @method('PATCH')
+            <div class="divide-y rounded-xl border border-slate-200 bg-white shadow-sm">
+                @foreach([
+                    'PRB' => ['🇷🇺', 'PMR Ruble (PRB)'],
+                    'MDL' => ['🇲🇩', 'Moldovan Leu (MDL)'],
+                    'UAH' => ['🇺🇦', 'Ukrainian Hryvnia (UAH)'],
+                ] as $code => [$flag, $label])
+                    <label class="flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-slate-50">
+                        <span class="flex items-center gap-3">
+                            <span class="text-xl">{{ $flag }}</span>
+                            <span class="font-medium text-slate-800">{{ $label }}</span>
+                        </span>
+                        <input type="radio" name="currency" value="{{ $code }}" @checked($current === $code) class="text-indigo-600 focus:ring-indigo-500">
+                    </label>
+                @endforeach
+            </div>
+            <button class="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                Сохранить валюту
+            </button>
+        </form>
     </div>
 </x-buyer-layout>

@@ -15,11 +15,19 @@
         '' => ['label' => 'Все', 'icon' => 'ri-box-3-line'],
         'active' => ['label' => 'Опубликованы', 'icon' => 'ri-checkbox-circle-line'],
         'draft' => ['label' => 'Черновики', 'icon' => 'ri-draft-line'],
+        'blocked' => ['label' => 'Заблокированы', 'icon' => 'ri-lock-2-line'],
     ];
 
     $statusLabels = [
         'active' => 'Опубликован',
         'draft' => 'Черновик',
+        'blocked' => 'Заблокирован',
+    ];
+
+    $statusClasses = [
+        'active' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        'draft' => 'border-slate-200 bg-slate-50 text-slate-600',
+        'blocked' => 'border-rose-200 bg-rose-50 text-rose-700',
     ];
 
     $stockLabels = [
@@ -215,6 +223,14 @@
             <div class="mt-1 text-xl font-bold text-slate-950">{{ number_format($summary['draft'], 0, ',', ' ') }}</div>
             <p class="mt-1 text-xs text-slate-400">Не опубликованы</p>
         </div>
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3">
+            <div class="flex items-center justify-between text-sm text-rose-700">
+                <span>Заблокированы</span>
+                <i class="ri-lock-2-line"></i>
+            </div>
+            <div class="mt-1 text-xl font-bold text-rose-800">{{ number_format($summary['blocked'] ?? 0, 0, ',', ' ') }}</div>
+            <p class="mt-1 text-xs text-rose-700/70">Сняты администратором</p>
+        </div>
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
             <div class="flex items-center justify-between text-sm text-amber-700">
                 <span>Требуют внимания</span>
@@ -242,6 +258,7 @@
                     <option value="">Все статусы</option>
                     <option value="active" @selected($currentStatus === 'active')>Опубликованы</option>
                     <option value="draft" @selected($currentStatus === 'draft')>Черновики</option>
+                    <option value="blocked" @selected($currentStatus === 'blocked')>Заблокированы</option>
                 </select>
 
                 <select name="stock" class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
@@ -396,6 +413,8 @@
                     @forelse($products as $product)
                         @php
                             $isActive = $product->status === 'active';
+                            $statusLabel = $statusLabels[$product->status] ?? $product->status;
+                            $statusClass = $statusClasses[$product->status] ?? 'border-slate-200 bg-slate-50 text-slate-600';
                             $stockClass = $product->stock === 0
                                 ? 'border-rose-200 bg-rose-50 text-rose-700'
                                 : ($product->stock <= 5
@@ -433,8 +452,8 @@
                                 </span>
                             </td>
                             <td class="px-4 py-4">
-                                <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ $isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600' }}">
-                                    {{ $isActive ? 'Опубликован' : 'Черновик' }}
+                                <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusClass }}">
+                                    {{ $statusLabel }}
                                 </span>
                                 <div class="mt-2 text-xs text-slate-400">{{ number_format((int) ($product->views_count ?? 0), 0, ',', ' ') }} просмотров</div>
                             </td>
@@ -480,6 +499,8 @@
             @forelse($products as $product)
                 @php
                     $isActive = $product->status === 'active';
+                    $statusLabel = $statusLabels[$product->status] ?? $product->status;
+                    $statusClass = $statusClasses[$product->status] ?? 'border-slate-200 bg-slate-50 text-slate-600';
                     $stockClass = $product->stock === 0
                         ? 'border-rose-200 bg-rose-50 text-rose-700'
                         : ($product->stock <= 5
@@ -492,8 +513,8 @@
                              class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                              alt="{{ $product->title }}">
                         @if(! $isActive)
-                            <span class="absolute left-1.5 top-1.5 rounded-md border border-slate-200 bg-white/95 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600 shadow-sm">
-                                Черновик
+                            <span class="absolute left-1.5 top-1.5 rounded-md border bg-white/95 px-1.5 py-0.5 text-[9px] font-semibold shadow-sm {{ $statusClass }}">
+                                {{ $statusLabel }}
                             </span>
                         @endif
                         @if($product->stock <= 5)
@@ -508,7 +529,7 @@
                             <span class="truncate text-xs font-bold text-indigo-700">{{ number_format((float) $product->price, 0, ',', ' ') }} ₽</span>
                             <span class="inline-flex shrink-0 items-center gap-1 text-[9px] text-slate-400">
                                 <span class="h-1.5 w-1.5 rounded-full {{ $isActive ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
-                                {{ $isActive ? 'В продаже' : 'Скрыт' }}
+                                {{ $isActive ? 'В продаже' : $statusLabel }}
                             </span>
                         </div>
                         <div class="mt-2 flex gap-1 border-t border-slate-100 pt-1.5">
@@ -548,6 +569,8 @@
             @forelse($products as $product)
                 @php
                     $isActive = $product->status === 'active';
+                    $statusLabel = $statusLabels[$product->status] ?? $product->status;
+                    $statusClass = $statusClasses[$product->status] ?? 'border-slate-200 bg-slate-50 text-slate-600';
                     $stockClass = $product->stock === 0
                         ? 'border-rose-200 bg-rose-50 text-rose-700'
                         : ($product->stock <= 5
@@ -561,8 +584,8 @@
                              alt="{{ $product->title }}">
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap gap-1.5">
-                                <span class="rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600' }}">
-                                    {{ $isActive ? 'Опубликован' : 'Черновик' }}
+                                <span class="rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $statusClass }}">
+                                    {{ $statusLabel }}
                                 </span>
                                 <span class="rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $stockClass }}">{{ $product->stock }} шт.</span>
                             </div>

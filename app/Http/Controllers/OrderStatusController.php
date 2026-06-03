@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Services\AdminActivityLogger;
+use App\Services\UserNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -33,6 +34,14 @@ class OrderStatusController extends Controller
 
         // Устанавливаем delivered
         $order->setStatus(Order::STATUS_DELIVERED);
+        app(UserNotificationService::class)->create(
+            $order->seller,
+            'order_delivered',
+            'Покупатель подтвердил получение',
+            "Заказ {$order->number} отмечен как полученный.",
+            route('seller.orders.show', $order, false),
+            ['order_id' => $order->id]
+        );
 
         return back()->with('success', 'Спасибо! Вы подтвердили получение заказа.');
     }
@@ -59,6 +68,14 @@ class OrderStatusController extends Controller
             'cancellation_requested_at' => now(),
             'cancellation_reason' => trim($data['cancellation_reason']),
         ]);
+        app(UserNotificationService::class)->create(
+            $order->seller,
+            'order_cancellation_requested',
+            'Покупатель запросил отмену',
+            "По заказу {$order->number} нужно рассмотреть отмену.",
+            route('seller.orders.show', $order, false),
+            ['order_id' => $order->id]
+        );
 
         return back()->with('success', 'Запрос на отмену отправлен продавцу.');
     }
@@ -97,6 +114,14 @@ public function sellerUpdate(Request $request, Order $order)
         return back()->with('error', 'Недопустимый переход статуса.');
     }
     $order->setStatus($new);
+    app(UserNotificationService::class)->create(
+        $order->user,
+        'order_status_updated',
+        'Статус заказа изменён',
+        "Заказ {$order->number}: {$order->status_ru}.",
+        route('orders.show', $order, false),
+        ['order_id' => $order->id, 'status' => $new]
+    );
 
     return back()->with('success', 'Статус обновлён.');
 }
@@ -121,6 +146,14 @@ public function sellerUpdate(Request $request, Order $order)
 
         $previousStatus = $order->status;
         $order->setStatus($data['status']);
+        app(UserNotificationService::class)->create(
+            $order->user,
+            'order_status_updated',
+            'Администратор изменил статус заказа',
+            "Заказ {$order->number}: {$order->status_ru}.",
+            route('orders.show', $order, false),
+            ['order_id' => $order->id, 'status' => $data['status']]
+        );
 
         $this->activity->log('order.status_updated', $order, 'Администратор изменил статус заказа.', [
             'from' => $previousStatus,

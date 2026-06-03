@@ -36,6 +36,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'password_set_at',
         'role',
         'seller_plan',
+        'preferred_currency',
+        'locale',
+        'notification_preferences',
         'avatar',
         'phone',
         'phone_verified_at',
@@ -67,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'password_set_at' => 'datetime',
+            'notification_preferences' => 'array',
         ];
     }
 
@@ -148,6 +152,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sellerPlanRequests()
     {
         return $this->hasMany(SellerPlanRequest::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(UserNotification::class)->latest();
     }
 
     public function defaultAddress()

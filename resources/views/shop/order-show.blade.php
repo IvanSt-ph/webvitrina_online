@@ -358,6 +358,51 @@
         </section>
     @endif
 
+    @php $openDispute = $order->openDispute; @endphp
+    @if($openDispute)
+        <section class="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
+            <h3 class="font-semibold text-rose-900">Спор открыт</h3>
+            <p class="mt-1 text-sm text-rose-800">
+                Причина: {{ $openDispute->reason }}. Поддержка проверит заказ, переписку и данные продавца.
+            </p>
+            @if($openDispute->details)
+                <p class="mt-3 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700">{{ $openDispute->details }}</p>
+            @endif
+        </section>
+    @else
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <h3 class="font-semibold text-slate-900">Возникла проблема с заказом?</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-slate-500">
+                        Если отмены или обычного сообщения продавцу недостаточно, откройте спор. Его увидят продавец и поддержка.
+                    </p>
+                </div>
+                <details class="w-full lg:max-w-md">
+                    <summary class="cursor-pointer rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-center text-sm font-semibold text-rose-700">
+                        Открыть спор
+                    </summary>
+                    <form method="POST" action="{{ route('orders.disputes.store', $order) }}" class="mt-3 space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        @csrf
+                        <select name="reason" required class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                            <option value="">Выберите причину</option>
+                            <option value="Товар не получен">Товар не получен</option>
+                            <option value="Товар не соответствует описанию">Товар не соответствует описанию</option>
+                            <option value="Проблема с оплатой">Проблема с оплатой</option>
+                            <option value="Продавец не отвечает">Продавец не отвечает</option>
+                            <option value="Другое">Другое</option>
+                        </select>
+                        <textarea name="details" rows="3" maxlength="1200" placeholder="Опишите ситуацию для поддержки"
+                                  class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"></textarea>
+                        <button class="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700">
+                            Отправить спор
+                        </button>
+                    </form>
+                </details>
+            </div>
+        </section>
+    @endif
+
     @if($chatProducts->count() > 1)
         <section id="order-product-chats" class="w-full max-w-full overflow-hidden rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
             <h3 class="font-semibold text-gray-900">Написать продавцу о товаре</h3>

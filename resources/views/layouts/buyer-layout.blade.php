@@ -62,6 +62,18 @@
                             <span>Чаты</span>
                         </a>
 
+                        <a href="{{ route('notifications.index') }}" class="{{ request()->routeIs('notifications.*') ? $active : '' }} {{ $link }}">
+                            <span class="relative">
+                                <i class="ri-notification-3-line text-[22px]"></i>
+                                @if(($unreadNotificationsCount ?? 0) > 0)
+                                    <span class="absolute -right-3 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                        {{ min($unreadNotificationsCount, 99) }}
+                                    </span>
+                                @endif
+                            </span>
+                            <span>Уведомления</span>
+                        </a>
+
                         <a href="{{ route('cart.index') }}" class="{{ request()->routeIs('cart.*') ? $active : '' }} {{ $link }}">
                             <div class="relative">
                                 <i class="ri-shopping-cart-2-line text-[22px]" data-cart-icon></i>
@@ -94,6 +106,11 @@
                         <a href="{{ route('support') }}" class="{{ request()->routeIs('support') ? $active : '' }} {{ $link }}">
                             <i class="ri-customer-service-2-line text-[22px]"></i>
                             <span>Поддержка</span>
+                        </a>
+
+                        <a href="{{ route('disputes.index') }}" class="{{ request()->routeIs('disputes.*') ? $active : '' }} {{ $link }}">
+                            <i class="ri-scales-3-line text-[22px]"></i>
+                            <span>Обращения</span>
                         </a>
 
                         <a href="{{ route('subscriptions.index') }}" class="{{ request()->routeIs('subscriptions.*') ? $active : '' }} {{ $link }}">

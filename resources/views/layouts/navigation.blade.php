@@ -469,6 +469,16 @@
 
                 <!-- Аккаунт -->
                  @auth
+                    <a href="{{ route('notifications.index') }}"
+                       class="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50">
+                        <i class="ri-notification-3-line text-lg text-slate-600"></i>
+                        @if(($unreadNotificationsCount ?? 0) > 0)
+                            <span class="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                {{ min($unreadNotificationsCount, 99) }}
+                            </span>
+                        @endif
+                    </a>
+
                     <x-dropdown align="right" width="72">
                         <x-slot name="trigger">
                             <button class="group flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 py-1 pl-1.5 pr-2.5 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-md hover:shadow-indigo-900/5">

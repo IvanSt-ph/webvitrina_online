@@ -47,6 +47,15 @@
         </div>
     @endif
 
+    @if($order->openDispute)
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div class="font-semibold">Открыт спор по заказу: {{ $order->openDispute->reason }}</div>
+            @if($order->openDispute->details)
+                <div class="mt-1">{{ $order->openDispute->details }}</div>
+            @endif
+        </div>
+    @endif
+
     <header class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="min-w-0">

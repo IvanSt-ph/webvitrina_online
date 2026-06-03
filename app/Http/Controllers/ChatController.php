@@ -9,6 +9,7 @@ use App\Models\Shop;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\ChatImageService;
+use App\Services\UserNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -364,6 +365,15 @@ class ChatController extends Controller
 
         $conversation->update(['last_message_at' => now()]);
         $this->restoreForOtherParticipant($conversation, $request->user());
+        $other = $conversation->otherParticipant($request->user());
+        app(UserNotificationService::class)->create(
+            $other,
+            'chat_message',
+            'Новое сообщение',
+            $request->user()->name . ' написал(а) в чате.',
+            route('chats.show', $conversation, false),
+            ['conversation_id' => $conversation->id]
+        );
 
         if ($request->expectsJson()) {
             $messages = collect([$message->load('sender')]);

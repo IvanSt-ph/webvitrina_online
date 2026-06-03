@@ -29,8 +29,33 @@
   $pendingReviews = auth()->check()
       ? \App\Models\Review::where('status', \App\Models\Review::STATUS_PENDING)->count()
       : 0;
+  $openProductReports = auth()->check()
+      ? \App\Models\ProductReport::where('status', \App\Models\ProductReport::STATUS_OPEN)->count()
+      : 0;
+  $openDisputes = auth()->check()
+      ? \App\Models\OrderDispute::where('status', \App\Models\OrderDispute::STATUS_OPEN)->count()
+      : 0;
   $attentionOrders = auth()->check()
-      ? \App\Models\Order::whereIn('status', [\App\Models\Order::STATUS_PENDING, \App\Models\Order::STATUS_PROCESSING])->count()
+      ? \App\Models\Order::where(function ($query) {
+          $query->where(function ($cancel) {
+              $cancel->whereNotNull('cancellation_requested_at')
+                  ->whereNotIn('status', [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED]);
+          })->orWhere(function ($stuck) {
+              $stuck->where(function ($pending) {
+                  $pending->where('status', \App\Models\Order::STATUS_PENDING)
+                      ->where('created_at', '<=', now()->subDay());
+              })->orWhere(function ($processing) {
+                  $processing->where('status', \App\Models\Order::STATUS_PROCESSING)
+                      ->where(function ($dates) {
+                          $dates->where('accepted_at', '<=', now()->subDays(2))
+                              ->orWhere(function ($fallback) {
+                                  $fallback->whereNull('accepted_at')
+                                      ->where('created_at', '<=', now()->subDays(2));
+                              });
+                      });
+              });
+          });
+      })->count()
       : 0;
   $missingMobileBanners = auth()->check()
       ? \App\Models\Banner::whereNull('image_mobile')->count()
@@ -73,9 +98,11 @@
         $menu = [
           'Работа' => [
             ['route'=>'admin.dashboard','icon'=>'ri-home-5-line','label'=>'Главная'],
-            ['route'=>'admin.orders.index','icon'=>'ri-shopping-bag-3-line','label'=>'Заказы','badge'=>$attentionOrders],
+            ['route'=>'admin.orders.index','params'=>['focus'=>'attention'],'icon'=>'ri-shopping-bag-3-line','label'=>'Заказы','badge'=>$attentionOrders,'badgeTitle'=>'Требуют внимания: отмена или долго без движения'],
             ['route'=>'admin.chats.index','active'=>'admin.chats.*','icon'=>'ri-message-3-line','label'=>'Чаты','badge'=>$adminUnreadChats],
+            ['route'=>'admin.disputes.index','active'=>'admin.disputes.*','icon'=>'ri-scales-3-line','label'=>'Споры','badge'=>$openDisputes],
             ['route'=>'admin.reviews.index','icon'=>'ri-chat-3-line','label'=>'Отзывы','badge'=>$pendingReviews],
+            ['route'=>'admin.product-reports.index','active'=>'admin.product-reports.*','icon'=>'ri-alarm-warning-line','label'=>'Жалобы','badge'=>$openProductReports],
             ['route'=>'admin.users.index','icon'=>'ri-user-3-line','label'=>'Пользователи'],
           ],
           'Каталог' => [
@@ -85,6 +112,7 @@
           ],
           'Управление' => [
             ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Тарифы','badge'=>$pendingSellerPlanRequests],
+            ['route'=>'admin.production-checklist','icon'=>'ri-rocket-line','label'=>'Релиз-чеклист'],
             ['route'=>'admin.activity.index','active'=>'admin.activity.*','icon'=>'ri-history-line','label'=>'Журнал'],
             ['route'=>'admin.profile','icon'=>'ri-settings-3-line','label'=>'Настройки'],
           ],
@@ -96,7 +124,7 @@
           <div class="{{ $loop->first ? '' : 'mt-5' }} mb-2 px-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ $section }}</div>
           <div class="space-y-1">
           @foreach ($items as $item)
-          <a href="{{ route($item['route']) }}"
+          <a href="{{ route($item['route'], $item['params'] ?? []) }}"
              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                     {{ request()->routeIs($item['active'] ?? $item['route'].'*')
                         ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm'
@@ -104,7 +132,7 @@
             <i class="{{ $item['icon'] }} text-lg"></i>
             <span>{{ $item['label'] }}</span>
             @if(($item['badge'] ?? 0) > 0)
-              <span @if($item['route'] === 'admin.chats.index') data-admin-chat-unread="{{ $item['badge'] }}" @endif class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
+              <span @if($item['route'] === 'admin.chats.index') data-admin-chat-unread="{{ $item['badge'] }}" @endif title="{{ $item['badgeTitle'] ?? '' }}" class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
                 {{ $item['badge'] > 99 ? '99+' : $item['badge'] }}
               </span>
             @endif

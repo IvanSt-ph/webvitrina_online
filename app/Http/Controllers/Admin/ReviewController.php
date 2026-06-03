@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Services\AdminActivityLogger;
+use App\Services\UserNotificationService;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
@@ -64,6 +65,14 @@ class ReviewController extends Controller
             'moderated_at' => now(),
         ]);
         $this->activity->log('review.approved', $review, 'Отзыв одобрен администратором.');
+        app(UserNotificationService::class)->create(
+            $review->user,
+            'review_approved',
+            'Отзыв опубликован',
+            'Ваш отзыв прошёл модерацию и появился на странице товара.',
+            $review->product ? route('product.show', $review->product->slug, false) . '#reviews' : null,
+            ['review_id' => $review->id]
+        );
 
         return response()->json(['ok' => true, 'status' => Review::STATUS_APPROVED]);
     }
@@ -84,6 +93,14 @@ class ReviewController extends Controller
         $this->activity->log('review.rejected', $review, 'Отзыв отклонён администратором.', [
             'reason' => $data['reason'],
         ]);
+        app(UserNotificationService::class)->create(
+            $review->user,
+            'review_rejected',
+            'Отзыв нужно исправить',
+            'Причина: ' . $data['reason'],
+            route('reviews.index', [], false),
+            ['review_id' => $review->id]
+        );
 
         return response()->json(['ok' => true, 'status' => Review::STATUS_REJECTED]);
     }

@@ -17,6 +17,10 @@ class CurrencyController extends Controller
 
         session(['currency' => $code]);
 
+        if ($request->user()) {
+            $request->user()->forceFill(['preferred_currency' => $code])->save();
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
                 'currency' => $code,

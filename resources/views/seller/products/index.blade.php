@@ -15,11 +15,13 @@
     $statusLabels = [
         'active' => 'Опубликован',
         'draft' => 'Черновик',
+        'blocked' => 'Заблокирован',
     ];
 
     $statusClasses = [
         'active' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
         'draft' => 'border-amber-200 bg-amber-50 text-amber-700',
+        'blocked' => 'border-rose-200 bg-rose-50 text-rose-700',
     ];
 
     $sortLabels = [
@@ -135,6 +137,21 @@
                     <a href="{{ route('seller.plans.index') }}" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white hover:bg-indigo-700">
                         <i class="ri-vip-crown-line"></i>
                         Тарифы
+                    </a>
+                </div>
+            @endif
+
+            @if(($statusCounts['blocked'] ?? 0) > 0)
+                <div class="flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <div class="font-bold">Есть товары, заблокированные администратором: {{ $statusCounts['blocked'] }}</div>
+                        <p class="mt-1 text-rose-800">
+                            Они сняты с витрины после модерации или жалобы. Можно исправить карточку, но вернуть товар в продажу сможет только администратор после проверки.
+                        </p>
+                    </div>
+                    <a href="{{ route('seller.products.index', ['status' => 'blocked']) }}" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-bold text-white hover:bg-rose-700">
+                        <i class="ri-lock-2-line"></i>
+                        Показать
                     </a>
                 </div>
             @endif
@@ -310,6 +327,12 @@
                                                 @endforeach
                                             </div>
                                         @endif
+                                        @if($p->status === 'blocked')
+                                            <div class="mt-2 rounded-xl border border-rose-100 bg-rose-50 p-2 text-xs leading-5 text-rose-800">
+                                                <span class="font-bold">Заблокирован админом.</span>
+                                                Исправьте карточку и напишите в поддержку/админу: самостоятельно опубликовать нельзя.
+                                            </div>
+                                        @endif
                                     </div>
 
                                     <div class="flex items-end justify-between gap-3">
@@ -370,6 +393,12 @@
                                                 @foreach($qualityHints as $hint)
                                                     <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $hint }}</span>
                                                 @endforeach
+                                            </div>
+                                        @endif
+                                        @if($p->status === 'blocked')
+                                            <div class="mt-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-800">
+                                                <span class="font-bold">Заблокирован администратором.</span>
+                                                Можно исправить данные, но публикацию вернёт только админ.
                                             </div>
                                         @endif
                                     </div>

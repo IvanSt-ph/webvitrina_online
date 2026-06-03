@@ -75,6 +75,62 @@
     {{ $slot }}
 </main>
 
+@unless($hideHeader)
+    <footer class="border-t border-slate-100 bg-white px-4 py-10 text-sm text-slate-500 sm:px-6 lg:px-8">
+        <div class="mx-auto grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-5">
+            <div class="sm:col-span-2 lg:col-span-1">
+                <div class="flex items-center gap-2 font-bold text-slate-900">
+                    <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-8 w-8 rounded-lg">
+                    WebVitrina
+                </div>
+                <p class="mt-3 text-sm leading-6 text-slate-500">
+                    Маркетплейс для покупателей и продавцов Приднестровья.
+                </p>
+                <a href="{{ route('faq') }}" class="mt-4 inline-flex font-semibold text-indigo-600 hover:text-indigo-700">
+                    Вопросы и ответы
+                </a>
+            </div>
+
+            <nav class="space-y-2">
+                <div class="font-bold text-slate-900">Маркетплейс</div>
+                <a href="{{ route('about') }}" class="block hover:text-indigo-600">О компании</a>
+                <a href="{{ route('contacts') }}" class="block hover:text-indigo-600">Обратная связь</a>
+                <a href="{{ route('sitemap') }}" class="block hover:text-indigo-600">Карта сайта</a>
+                <a href="{{ route('faq') }}#buyers" class="block hover:text-indigo-600">Вопросы и ответы</a>
+            </nav>
+
+            <nav class="space-y-2">
+                <div class="font-bold text-slate-900">Покупателю</div>
+                <a href="{{ route('orders.index') }}" class="block hover:text-indigo-600">Ваши заказы</a>
+                <a href="{{ route('favorites.index') }}" class="block hover:text-indigo-600">Отложенные</a>
+                <a href="{{ route('legal.delivery-returns') }}" class="block hover:text-indigo-600">Доставка и возврат</a>
+                <a href="{{ route('faq') }}#buyers" class="block hover:text-indigo-600">Помощь покупателю</a>
+            </nav>
+
+            <nav class="space-y-2">
+                <div class="font-bold text-slate-900">Для продавцов</div>
+                <a href="{{ route('seller.cabinet') }}" class="block hover:text-indigo-600">Кабинет продавца</a>
+                <a href="{{ route('register') }}" class="block hover:text-indigo-600">Стать продавцом</a>
+                <a href="{{ route('faq') }}#sellers" class="block hover:text-indigo-600">Инструкции для продавцов</a>
+                <a href="{{ route('legal.seller-terms') }}" class="block hover:text-indigo-600">Правила для продавцов</a>
+            </nav>
+
+            <nav class="space-y-2">
+                <div class="font-bold text-slate-900">Документы</div>
+                <a href="{{ route('legal.privacy') }}" class="block hover:text-indigo-600">Политика обработки персональных данных</a>
+                <a href="{{ route('legal.rules') }}" class="block hover:text-indigo-600">Пользовательское соглашение</a>
+                <a href="{{ route('legal.seller-terms') }}" class="block hover:text-indigo-600">Требования к товарам продавцов</a>
+                <a href="{{ route('contacts') }}" class="block hover:text-indigo-600">Контакты</a>
+                <div class="pt-2 text-xs leading-5 text-slate-400">
+                    г. Тирасполь<br>
+                    +373 (777) 14272<br>
+                    Пн-Вс: 9.00 - 18.00
+                </div>
+            </nav>
+        </div>
+    </footer>
+@endunless
+
 
 {{-- Нижняя панель - только до 768px --}}
 @if($showBuyerMobileBottomNav)

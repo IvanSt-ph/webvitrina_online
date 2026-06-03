@@ -11,7 +11,33 @@ class Product extends Model
 {
     use SoftDeletes;
 
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_BLOCKED = 'blocked';
+
     private const DEFAULT_IMAGE_PATH = 'default/no-image.png';
+
+    public static function statuses(): array
+    {
+        return [
+            self::STATUS_ACTIVE,
+            self::STATUS_DRAFT,
+            self::STATUS_BLOCKED,
+        ];
+    }
+
+    public static function sellerEditableStatuses(): array
+    {
+        return [
+            self::STATUS_ACTIVE,
+            self::STATUS_DRAFT,
+        ];
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->status === self::STATUS_BLOCKED;
+    }
 
     protected $fillable = [
         'user_id','category_id','title','slug','sku','price','stock','image',
@@ -290,12 +316,17 @@ class Product extends Model
 
     public function scopeActive($q)
     {
-        return $q->where('status', 'active');
+        return $q->where('status', self::STATUS_ACTIVE);
     }
 
     public function scopeDraft($q)
     {
-        return $q->where('status', 'draft');
+        return $q->where('status', self::STATUS_DRAFT);
+    }
+
+    public function scopeBlocked($q)
+    {
+        return $q->where('status', self::STATUS_BLOCKED);
     }
 
     public function scopeByCategory($q, $id)

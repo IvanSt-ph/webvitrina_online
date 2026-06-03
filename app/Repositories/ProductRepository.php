@@ -24,7 +24,7 @@ class ProductRepository
             $this->applySearchFilter($query, $request->q);
         }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && in_array($request->status, Product::statuses(), true)) {
             $query->where('status', $request->status);
         }
 

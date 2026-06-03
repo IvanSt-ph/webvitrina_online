@@ -237,6 +237,20 @@
             </section>
         @endif
 
+        @if($order->openDispute)
+            <section class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
+                <h2 class="font-semibold text-rose-900">Покупатель открыл спор</h2>
+                <p class="mt-1 text-sm text-rose-700">{{ $order->openDispute->created_at?->format('d.m.Y H:i') }}</p>
+                <div class="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-700">
+                    <div class="font-semibold">{{ $order->openDispute->reason }}</div>
+                    @if($order->openDispute->details)
+                        <div class="mt-1">{{ $order->openDispute->details }}</div>
+                    @endif
+                </div>
+                <p class="mt-3 text-sm text-rose-800">Сохраните переписку и отвечайте покупателю через чат. Поддержка увидит спор в админке.</p>
+            </section>
+        @endif
+
         <div class="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
             {{-- Покупатель --}}
             <div class="min-w-0 overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm p-5">

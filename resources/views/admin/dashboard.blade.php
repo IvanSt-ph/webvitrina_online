@@ -15,11 +15,13 @@
   </a>
 </div>
 
-<section class="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+<section class="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
   @foreach([
-    ['value' => $workQueue['orders'] ?? 0, 'label' => 'Заказы в работе', 'route' => route('admin.orders.index', ['status' => \App\Models\Order::STATUS_PENDING]), 'icon' => 'ri-shopping-bag-3-line'],
+    ['value' => $workQueue['orders'] ?? 0, 'label' => 'Заказы требуют внимания', 'route' => route('admin.orders.index', ['focus' => 'attention']), 'icon' => 'ri-error-warning-line'],
     ['value' => $workQueue['chats'] ?? 0, 'label' => 'Новые сообщения', 'route' => route('admin.chats.index'), 'icon' => 'ri-message-3-line'],
+    ['value' => $workQueue['disputes'] ?? 0, 'label' => 'Споры по заказам', 'route' => route('admin.disputes.index'), 'icon' => 'ri-scales-3-line'],
     ['value' => $workQueue['reviews'] ?? 0, 'label' => 'Отзывы на проверке', 'route' => route('admin.reviews.index', ['status' => 'pending']), 'icon' => 'ri-chat-check-line'],
+    ['value' => $workQueue['productReports'] ?? 0, 'label' => 'Жалобы на товары', 'route' => route('admin.product-reports.index'), 'icon' => 'ri-alarm-warning-line'],
     ['value' => $workQueue['plans'] ?? 0, 'label' => 'Заявки на тариф', 'route' => route('admin.seller-plan-requests.index'), 'icon' => 'ri-vip-crown-line'],
     ['value' => $workQueue['banners'] ?? 0, 'label' => 'Баннеры без mobile', 'route' => route('admin.banners.index', ['status' => 'missing_mobile']), 'icon' => 'ri-smartphone-line'],
   ] as $task)
@@ -31,6 +33,107 @@
       <div class="mt-2 text-sm font-semibold text-slate-700">{{ $task['label'] }}</div>
     </a>
   @endforeach
+</section>
+
+<section class="mb-7 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <div class="text-xs font-bold uppercase tracking-wide text-indigo-600">Сегодня</div>
+      <h2 class="mt-1 text-xl font-bold text-slate-950">Конкретные задачи для проверки</h2>
+      <p class="mt-1 text-sm text-slate-500">Не только счётчики: ниже последние объекты, куда админ должен зайти руками.</p>
+    </div>
+    <a href="{{ route('admin.production-checklist') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+      <i class="ri-rocket-line"></i>
+      Релиз-чеклист
+    </a>
+  </div>
+
+  <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-alarm-warning-line text-indigo-600"></i> Жалобы сегодня</div>
+        <a href="{{ route('admin.product-reports.index', ['status' => \App\Models\ProductReport::STATUS_OPEN]) }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
+      </div>
+      <div class="mt-3 space-y-2">
+        @forelse(($todayQueue['productReports'] ?? collect()) as $report)
+          <a href="{{ route('admin.product-reports.index', ['q' => $report->product?->title ?? $report->reason]) }}" class="block rounded-xl bg-white p-3 text-sm transition hover:bg-indigo-50">
+            <div class="truncate font-semibold text-slate-900">{{ $report->product?->title ?? 'Товар удалён' }}</div>
+            <div class="mt-1 truncate text-xs text-slate-500">{{ $report->reason }} · {{ $report->user?->name ?? 'Покупатель' }}</div>
+          </a>
+        @empty
+          <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Новых жалоб сегодня нет.</div>
+        @endforelse
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-scales-3-line text-indigo-600"></i> Споры сегодня</div>
+        <a href="{{ route('admin.disputes.index') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
+      </div>
+      <div class="mt-3 space-y-2">
+        @forelse(($todayQueue['disputes'] ?? collect()) as $dispute)
+          <a href="{{ route('admin.disputes.index', ['q' => $dispute->order?->number]) }}" class="block rounded-xl bg-white p-3 text-sm transition hover:bg-indigo-50">
+            <div class="truncate font-semibold text-slate-900">Заказ {{ $dispute->order?->number ?? '—' }}</div>
+            <div class="mt-1 truncate text-xs text-slate-500">{{ $dispute->reason }} · {{ $dispute->user?->name ?? 'Покупатель' }}</div>
+          </a>
+        @empty
+          <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Новых споров сегодня нет.</div>
+        @endforelse
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-chat-check-line text-indigo-600"></i> Отзывы сегодня</div>
+        <a href="{{ route('admin.reviews.index', ['status' => \App\Models\Review::STATUS_PENDING]) }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
+      </div>
+      <div class="mt-3 space-y-2">
+        @forelse(($todayQueue['reviews'] ?? collect()) as $review)
+          <a href="{{ route('admin.reviews.index', ['q' => $review->product?->title]) }}" class="block rounded-xl bg-white p-3 text-sm transition hover:bg-indigo-50">
+            <div class="truncate font-semibold text-slate-900">{{ $review->product?->title ?? 'Товар' }}</div>
+            <div class="mt-1 truncate text-xs text-slate-500">Оценка {{ $review->rating }} · {{ $review->user?->name ?? 'Покупатель' }}</div>
+          </a>
+        @empty
+          <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Новых отзывов сегодня нет.</div>
+        @endforelse
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-vip-crown-line text-indigo-600"></i> Заявки сегодня</div>
+        <a href="{{ route('admin.seller-plan-requests.index') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
+      </div>
+      <div class="mt-3 space-y-2">
+        @forelse(($todayQueue['plans'] ?? collect()) as $planRequest)
+          <a href="{{ $planRequest->user ? route('admin.users.show', $planRequest->user) : route('admin.seller-plan-requests.index') }}" class="block rounded-xl bg-white p-3 text-sm transition hover:bg-indigo-50">
+            <div class="truncate font-semibold text-slate-900">{{ $planRequest->user?->name ?? 'Продавец' }}</div>
+            <div class="mt-1 truncate text-xs text-slate-500">{{ ucfirst($planRequest->current_plan) }} -> {{ ucfirst($planRequest->requested_plan) }}</div>
+          </a>
+        @empty
+          <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Новых заявок на тариф сегодня нет.</div>
+        @endforelse
+      </div>
+    </article>
+
+    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-shopping-bag-3-line text-indigo-600"></i> Заказы сегодня</div>
+        <a href="{{ route('admin.orders.index', ['focus' => 'attention']) }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
+      </div>
+      <div class="mt-3 space-y-2">
+        @forelse(($todayQueue['orders'] ?? collect()) as $order)
+          <a href="{{ route('admin.orders.show', $order) }}" class="block rounded-xl bg-white p-3 text-sm transition hover:bg-indigo-50">
+            <div class="truncate font-semibold text-slate-900">#{{ $order->number }}</div>
+            <div class="mt-1 truncate text-xs text-slate-500">{{ $order->user?->name ?? 'Покупатель' }} / {{ $order->seller?->name ?? 'Продавец' }}</div>
+          </a>
+        @empty
+          <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Подозрительных заказов сегодня нет.</div>
+        @endforelse
+      </div>
+    </article>
+  </div>
 </section>
 
 <section class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -49,8 +152,8 @@
 <section class="mb-7 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
     <div class="flex items-center justify-between gap-3">
-      <h2 class="font-bold text-slate-900">Старые заказы в работе</h2>
-      <a href="{{ route('admin.orders.index') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Все заказы</a>
+      <h2 class="font-bold text-slate-900">Заказы, где нужен контроль</h2>
+      <a href="{{ route('admin.orders.index', ['focus' => 'attention']) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Открыть фокус</a>
     </div>
     <div class="mt-3 divide-y divide-slate-100">
       @forelse($attentionOrders as $order)
@@ -58,6 +161,14 @@
           <div class="min-w-0">
             <div class="truncate font-semibold text-slate-900">#{{ $order->number }}</div>
             <div class="truncate text-xs text-slate-500">{{ $order->user?->name }} / {{ $order->seller?->name }}</div>
+            <div class="mt-1 flex flex-wrap gap-1">
+              @if($order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true))
+                <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">запрос отмены</span>
+              @endif
+              @if(($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDay())) || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(2))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(2))))))
+                <span class="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">долго без движения</span>
+              @endif
+            </div>
           </div>
           <div class="shrink-0 text-right">
             <div class="font-bold text-slate-800">{{ $order->formatted_total_price }}</div>
@@ -65,7 +176,7 @@
           </div>
         </a>
       @empty
-        <p class="py-6 text-center text-sm text-slate-500">Нет заказов, ожидающих решения.</p>
+        <p class="py-6 text-center text-sm text-slate-500">Нет заказов с запросом отмены или долгим простоем.</p>
       @endforelse
     </div>
   </div>

@@ -28,7 +28,11 @@ use App\Http\Controllers\{
     OrderStatusController,
     ChatController,
     PublicUserController,
-    ShopFollowController
+    ShopFollowController,
+    UserSettingsController,
+    UserNotificationController,
+    OrderDisputeController,
+    ProductReportController
 };
 
 use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
@@ -51,6 +55,8 @@ use App\Http\Controllers\Admin\{
     ActivityLogController,
     BannerController,
     ReviewController as AdminReviewController,
+    ProductReportController as AdminProductReportController,
+    OrderDisputeController as AdminOrderDisputeController,
     ChatController as AdminChatController,
     CategoryAttributeController,
     CategoryController as AdminCategoryController,
@@ -111,6 +117,24 @@ Route::get('/internal/currency/agroprombank', [
 
 // 🏠 Главная
 Route::get('/', [ProductController::class, 'index'])->name('home');
+Route::get('/search', [ProductController::class, 'index'])->name('search');
+Route::view('/about', 'legal.about')->name('about');
+Route::view('/contacts', 'legal.contacts')->name('contacts');
+
+Route::get('/robots.txt', function () {
+    return response("User-agent: *\nAllow: /\nSitemap: " . url('/sitemap.xml') . "\n", 200)
+        ->header('Content-Type', 'text/plain');
+})->name('robots');
+
+Route::get('/sitemap.xml', function () {
+    $products = \App\Models\Product::query()->active()->latest('updated_at')->limit(1000)->get(['slug', 'updated_at']);
+    $categories = \App\Models\Category::query()->where('is_active', true)->latest('updated_at')->limit(1000)->get(['slug', 'updated_at']);
+    $shops = \App\Models\Shop::query()->whereNotNull('slug')->latest('updated_at')->limit(1000)->get(['slug', 'updated_at']);
+
+    return response()
+        ->view('sitemap', compact('products', 'categories', 'shops'))
+        ->header('Content-Type', 'application/xml');
+})->name('sitemap');
 
 
 // 🛍 Товар
@@ -137,6 +161,12 @@ Route::get('/countries/{country}/cities', function (Country $country) {
 // 💱 Смена валюты
 Route::post('/currency', [\App\Http\Controllers\CurrencyController::class, 'set'])
     ->name('currency.set');
+
+Route::view('/voprosy-i-otvety', 'legal.faq')->name('faq');
+Route::view('/rules', 'legal.rules')->name('legal.rules');
+Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/delivery-returns', 'legal.delivery-returns')->name('legal.delivery-returns');
+Route::view('/seller-terms', 'legal.seller-terms')->name('legal.seller-terms');
 
 // Кабинет входа
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])
@@ -235,9 +265,15 @@ Route::middleware('role:buyer')->group(function () {
     Route::post('/my-chats/{conversation}/support', [ChatController::class, 'openSupportFromConversation'])
         ->middleware('throttle:10,1')
         ->name('chats.support.dispute');
+    Route::get('/notifications', [UserNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllRead'])->name('notifications.readAll');
+    Route::post('/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->name('notifications.read');
     Route::view('/notifications/settings', 'buyer.notifications.settings')->name('notifications.settings');
+    Route::patch('/notifications/settings', [UserSettingsController::class, 'updateNotifications'])->name('notifications.settings.update');
     Route::view('/settings/language', 'buyer.settings.language')->name('settings.language');
+    Route::patch('/settings/language', [UserSettingsController::class, 'updateLanguage'])->name('settings.language.update');
     Route::view('/settings/currency', 'buyer.settings.currency')->name('settings.currency');
+    Route::patch('/settings/currency', [UserSettingsController::class, 'updateCurrency'])->name('settings.currency.update');
     Route::get('/support', [ChatController::class, 'support'])->name('support');
     Route::post('/support/start', [ChatController::class, 'startSupport'])
         ->middleware('throttle:10,1')
@@ -248,7 +284,6 @@ Route::middleware('role:buyer')->group(function () {
     Route::delete('/favorites/{favorite}', [FavoriteController::class, 'remove'])
         ->name('favorites.remove');
     Route::view('/help', 'buyer.help.index')->name('help');
-    Route::view('/about', 'buyer.about.index')->name('about');
 
     // Мои отзывы
     Route::get('/my-reviews', [ReviewController::class, 'userReviews'])->name('reviews.index');
@@ -308,6 +343,7 @@ Route::middleware('role:buyer')->group(function () {
     */
     Route::get('/orders',        [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}',[OrderController::class, 'show'])->name('orders.show');
+    Route::get('/my-disputes', [OrderDisputeController::class, 'index'])->name('disputes.index');
 
 
     /*
@@ -339,6 +375,9 @@ Route::middleware('role:buyer')->group(function () {
     Route::post('/orders/{order}/request-cancellation',
         [OrderStatusController::class, 'requestCancellation']
     )->middleware('throttle:5,1')->name('orders.requestCancellation');
+    Route::post('/orders/{order}/disputes', [OrderDisputeController::class, 'store'])
+        ->middleware('throttle:5,10')
+        ->name('orders.disputes.store');
 
     /*
     |--------------------------------------------------------------------------
@@ -361,6 +400,9 @@ Route::middleware('role:buyer')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
+    Route::post('/products/{product}/report', [ProductReportController::class, 'store'])
+        ->middleware('throttle:5,10')
+        ->name('products.report');
 
 
     /*
@@ -511,6 +553,10 @@ Route::prefix('admin')
         [OrderStatusController::class, 'adminUpdate']
     )->name('orders.updateStatus');
 
+    Route::get('/disputes', [AdminOrderDisputeController::class, 'index'])->name('disputes.index');
+    Route::post('/disputes/{dispute}/resolve', [AdminOrderDisputeController::class, 'resolve'])->name('disputes.resolve');
+    Route::post('/disputes/{dispute}/close', [AdminOrderDisputeController::class, 'close'])->name('disputes.close');
+
     Route::get('/chats', [AdminChatController::class, 'index'])->name('chats.index');
     Route::get('/chats/{conversation}', [AdminChatController::class, 'show'])->name('chats.show');
     Route::delete('/chats/{conversation}', [AdminChatController::class, 'destroy'])->name('chats.destroy');
@@ -526,6 +572,7 @@ Route::prefix('admin')
 
     Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+    Route::view('/production-checklist', 'admin.production-checklist')->name('production-checklist');
 
     Route::resource('banners', BannerController::class)->except(['show']);
 
@@ -535,6 +582,12 @@ Route::prefix('admin')
     Route::post('/reviews/{review}/reject',  [AdminReviewController::class, 'reject'])->name('reviews.reject');
     Route::delete('/reviews/{review}',       [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
     Route::get('/reviews/{review}',          [AdminReviewController::class, 'show'])->name('reviews.show');
+
+    Route::get('/product-reports', [AdminProductReportController::class, 'index'])->name('product-reports.index');
+    Route::post('/product-reports/{report}/resolve', [AdminProductReportController::class, 'resolve'])->name('product-reports.resolve');
+    Route::post('/product-reports/{report}/hide-product', [AdminProductReportController::class, 'hideProduct'])->name('product-reports.hide-product');
+    Route::post('/product-reports/{report}/restore-product', [AdminProductReportController::class, 'restoreProduct'])->name('product-reports.restore-product');
+    Route::post('/product-reports/{report}/dismiss', [AdminProductReportController::class, 'dismiss'])->name('product-reports.dismiss');
 
 
 

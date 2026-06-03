@@ -29,7 +29,7 @@ public function rules(): array
         'latitude'    => ['nullable', 'numeric'],
         'longitude'   => ['nullable', 'numeric'],
         'description' => ['nullable', 'string'],
-        'status'      => ['required', 'in:active,draft'],
+        'status'      => ['required', Rule::in(\App\Models\Product::sellerEditableStatuses())],
         'image'       => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         'gallery.*'   => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
     ];

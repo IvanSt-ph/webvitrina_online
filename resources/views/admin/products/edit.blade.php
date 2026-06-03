@@ -6,6 +6,11 @@
 @php
     $gallery = is_array($product->gallery) ? $product->gallery : (json_decode($product->gallery, true) ?? []);
     $currentSellerProfile = $sellerPlanProfiles[$product->user_id] ?? null;
+    $statusMeta = [
+        'active' => ['label' => 'Опубликован', 'class' => 'bg-emerald-50 text-emerald-700'],
+        'draft' => ['label' => 'Черновик', 'class' => 'bg-amber-50 text-amber-700'],
+        'blocked' => ['label' => 'Заблокирован', 'class' => 'bg-rose-50 text-rose-700'],
+    ][$product->status] ?? ['label' => $product->status, 'class' => 'bg-slate-100 text-slate-600'];
 @endphp
 
 <div class="space-y-5">
@@ -18,8 +23,8 @@
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 <h1 class="truncate text-2xl font-bold text-slate-950">{{ $product->title }}</h1>
                 <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">ID {{ $product->id }}</span>
-                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $product->status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                    {{ $product->status === 'active' ? 'Опубликован' : 'Черновик' }}
+                <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $statusMeta['class'] }}">
+                    {{ $statusMeta['label'] }}
                 </span>
             </div>
             <p class="mt-1 text-sm text-slate-500">Проверьте карточку, медиа, продавца, категорию и координаты товара.</p>
@@ -185,7 +190,13 @@
                     <select name="status" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
                         <option value="active" {{ old('status', $product->status) === 'active' ? 'selected' : '' }}>Опубликован</option>
                         <option value="draft" {{ old('status', $product->status) === 'draft' ? 'selected' : '' }}>Черновик</option>
+                        <option value="blocked" {{ old('status', $product->status) === 'blocked' ? 'selected' : '' }}>Заблокирован администратором</option>
                     </select>
+                    @if($product->status === 'blocked')
+                        <p class="mt-2 rounded-lg bg-rose-50 p-3 text-xs leading-5 text-rose-700">
+                            Сейчас продавец не может вернуть товар на витрину. При смене статуса на “Опубликован” или “Черновик” продавцу уйдёт уведомление о возобновлении.
+                        </p>
+                    @endif
                 </label>
 
                 <label class="mt-4 block">

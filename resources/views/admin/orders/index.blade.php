@@ -38,8 +38,10 @@
     $activeCount = $summary['active'] ?? 0;
     $cancelRequestsCount = $summary['cancel_requests'] ?? 0;
     $stuckCount = $summary['stuck'] ?? 0;
+    $attentionCount = $summary['attention'] ?? 0;
 
     $focusLabels = [
+        'attention' => 'Требуют внимания',
         'active' => 'Активные процессы',
         'cancel_requests' => 'Запросы отмены',
         'stuck' => 'Зависшие заказы',
@@ -99,7 +101,7 @@
         </div>
     </section>
 
-    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between text-sm text-slate-500">
                 <span>Всего заказов</span>
@@ -108,6 +110,15 @@
             <div class="mt-2 text-2xl font-bold text-slate-950">{{ number_format($totalOrders, 0, ',', ' ') }}</div>
             <p class="mt-1 text-xs text-slate-400">Во всей системе</p>
         </div>
+        <a href="{{ route('admin.orders.index', array_merge($focusBaseFilters, ['focus' => 'attention'])) }}"
+           class="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div class="flex items-center justify-between text-sm text-rose-700">
+                <span>Требуют внимания</span>
+                <i class="ri-error-warning-line"></i>
+            </div>
+            <div class="mt-2 text-2xl font-bold text-rose-800">{{ number_format($attentionCount, 0, ',', ' ') }}</div>
+            <p class="mt-1 text-xs text-rose-700/70">Отмена или долго без движения</p>
+        </a>
         <a href="{{ route('admin.orders.index', array_merge($focusBaseFilters, ['focus' => 'active'])) }}"
            class="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="flex items-center justify-between text-sm text-sky-700">
@@ -149,11 +160,12 @@
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500">Админский фокус</h2>
-                <p class="mt-1 text-sm text-slate-500">Быстрые срезы для контроля, а не очередь ручной обработки заказа.</p>
+                <p class="mt-1 text-sm text-slate-500">Цифра в левом меню ведёт сюда: это не все новые заказы, а только отмены и зависшие процессы.</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 @foreach([
                     null => ['label' => 'Обычный список', 'icon' => 'ri-list-check'],
+                    'attention' => ['label' => 'Требуют внимания', 'icon' => 'ri-error-warning-line'],
                     'active' => ['label' => 'В процессе', 'icon' => 'ri-route-line'],
                     'cancel_requests' => ['label' => 'Запросы отмены', 'icon' => 'ri-question-answer-line'],
                     'stuck' => ['label' => 'Зависшие', 'icon' => 'ri-alarm-warning-line'],

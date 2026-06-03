@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use App\Models\Category;
 use App\Models\Message;
 use App\Models\Review;
+use App\Models\UserNotification;
 use App\Observers\MessageObserver;
 use App\Observers\ReviewObserver;
 
@@ -91,6 +92,7 @@ class AppServiceProvider extends ServiceProvider
             'layouts.mobile-bottom-nav',
             'layouts.seller',
             'layouts.mobile-bottom-seller-nav',
+            'layouts.navigation',
         ], function ($view) {
             $unreadChatsCount = auth()->check()
                 ? once(fn () => Message::whereHas('conversation', fn ($query) => $query
@@ -102,6 +104,20 @@ class AppServiceProvider extends ServiceProvider
                 : 0;
 
             $view->with('unreadChatsCount', $unreadChatsCount);
+        });
+
+        View::composer([
+            'layouts.buyer-layout',
+            'layouts.mobile-bottom-nav',
+            'layouts.seller',
+            'layouts.mobile-bottom-seller-nav',
+            'layouts.navigation',
+        ], function ($view) {
+            $unreadNotificationsCount = auth()->check()
+                ? once(fn () => UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count())
+                : 0;
+
+            $view->with('unreadNotificationsCount', $unreadNotificationsCount);
         });
 
         /*

@@ -10,6 +10,8 @@ use App\Models\Category;
 use App\Models\Banner;
 use App\Models\Conversation;
 use App\Models\Review;
+use App\Models\ProductReport;
+use App\Models\OrderDispute;
 use App\Models\SellerPlanRequest;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
@@ -94,8 +96,29 @@ public function index()
             ->take(5)
             ->get();
 
+        $attentionOrdersQuery = fn () => Order::where(function ($query) {
+            $query->where(function ($cancel) {
+                $cancel->whereNotNull('cancellation_requested_at')
+                    ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED]);
+            })->orWhere(function ($stuck) {
+                $stuck->where(function ($pending) {
+                    $pending->where('status', Order::STATUS_PENDING)
+                        ->where('created_at', '<=', now()->subDay());
+                })->orWhere(function ($processing) {
+                    $processing->where('status', Order::STATUS_PROCESSING)
+                        ->where(function ($dates) {
+                            $dates->where('accepted_at', '<=', now()->subDays(2))
+                                ->orWhere(function ($fallback) {
+                                    $fallback->whereNull('accepted_at')
+                                        ->where('created_at', '<=', now()->subDays(2));
+                                });
+                        });
+                });
+            });
+        });
+
         $workQueue = [
-            'orders' => Order::whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING])->count(),
+            'orders' => $attentionOrdersQuery()->count(),
             'chats' => Conversation::query()
                 ->whereNull('admin_deleted_at')
                 ->whereHas('messages', fn ($query) => $query
@@ -103,12 +126,14 @@ public function index()
                     ->whereNull('admin_read_at'))
                 ->count(),
             'reviews' => Review::where('status', Review::STATUS_PENDING)->count(),
+            'productReports' => ProductReport::where('status', ProductReport::STATUS_OPEN)->count(),
+            'disputes' => OrderDispute::where('status', OrderDispute::STATUS_OPEN)->count(),
             'plans' => SellerPlanRequest::where('status', SellerPlanRequest::STATUS_PENDING)->count(),
             'banners' => Banner::whereNull('image_mobile')->count(),
         ];
 
-        $attentionOrders = Order::with(['user', 'seller'])
-            ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING])
+        $attentionOrders = $attentionOrdersQuery()
+            ->with(['user', 'seller'])
             ->oldest()
             ->limit(5)
             ->get();
@@ -118,6 +143,39 @@ public function index()
             ->latest()
             ->limit(4)
             ->get();
+
+        $todayQueue = [
+            'productReports' => ProductReport::with(['product.seller', 'user'])
+                ->where('status', ProductReport::STATUS_OPEN)
+                ->whereDate('created_at', now()->toDateString())
+                ->latest()
+                ->limit(4)
+                ->get(),
+            'disputes' => OrderDispute::with(['order', 'user', 'seller'])
+                ->where('status', OrderDispute::STATUS_OPEN)
+                ->whereDate('created_at', now()->toDateString())
+                ->latest()
+                ->limit(4)
+                ->get(),
+            'reviews' => Review::with(['product', 'user'])
+                ->where('status', Review::STATUS_PENDING)
+                ->whereDate('created_at', now()->toDateString())
+                ->latest()
+                ->limit(4)
+                ->get(),
+            'plans' => SellerPlanRequest::with('user')
+                ->where('status', SellerPlanRequest::STATUS_PENDING)
+                ->whereDate('created_at', now()->toDateString())
+                ->latest()
+                ->limit(4)
+                ->get(),
+            'orders' => $attentionOrdersQuery()
+                ->with(['user', 'seller'])
+                ->whereDate('created_at', now()->toDateString())
+                ->latest()
+                ->limit(4)
+                ->get(),
+        ];
 
         // ✅ Возвращаем одним массивом
         return compact(
@@ -133,7 +191,8 @@ public function index()
             'topSellers',
             'workQueue',
             'attentionOrders',
-            'pendingPlans'
+            'pendingPlans',
+            'todayQueue'
         );
     });
 

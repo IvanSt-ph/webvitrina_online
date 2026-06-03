@@ -127,6 +127,16 @@ public function markAsPaid(): void
                     ->withTimestamps();
     }
 
+    public function disputes()
+    {
+        return $this->hasMany(OrderDispute::class);
+    }
+
+    public function openDispute()
+    {
+        return $this->hasOne(OrderDispute::class)->where('status', OrderDispute::STATUS_OPEN);
+    }
+
     /* -------------------------------------------------
      | 🏷 Аксессоры
      |--------------------------------------------------*/

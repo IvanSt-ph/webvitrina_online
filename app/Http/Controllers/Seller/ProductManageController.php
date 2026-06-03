@@ -46,7 +46,7 @@ class ProductManageController extends Controller
         $sort = in_array($request->get('sort'), ['new', 'cheap', 'expensive', 'popular'], true)
             ? $request->get('sort')
             : 'new';
-        $status = in_array($request->get('status'), ['active', 'draft'], true)
+        $status = in_array($request->get('status'), Product::statuses(), true)
             ? $request->get('status')
             : null;
         $stock = in_array($request->get('stock'), ['out', 'low'], true)
@@ -323,6 +323,9 @@ class ProductManageController extends Controller
 
         $data = $request->validated();
         $data['status'] = $data['status'] ?? 'draft';
+        if ($product->isBlocked()) {
+            $data['status'] = Product::STATUS_BLOCKED;
+        }
 
         $data['price']     = $request->price;
         $data['price_prb'] = $request->price_prb;

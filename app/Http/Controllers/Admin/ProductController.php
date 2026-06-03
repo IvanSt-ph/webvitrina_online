@@ -11,6 +11,7 @@ use App\Models\Country;
 use App\Models\City;
 use App\Models\Product;
 use App\Services\ProductService;
+use App\Services\UserNotificationService;
 use App\Services\SellerPlanService;
 use App\Repositories\ProductRepository;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class ProductController extends Controller
     {
         $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', Rule::in(['active', 'draft'])],
+            'status' => ['nullable', Rule::in(Product::statuses())],
             'stock' => ['nullable', Rule::in(['out', 'low', 'available'])],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'seller_id' => ['nullable', 'integer', 'exists:users,id'],
@@ -45,9 +46,10 @@ class ProductController extends Controller
         $sellers = User::where('role', 'seller')->orderBy('name')->get(['id', 'name']);
         $summary = [
             'total' => Product::count(),
-            'active' => Product::where('status', 'active')->count(),
-            'draft' => Product::where('status', 'draft')->count(),
-            'out_of_stock' => Product::where('status', 'active')->where('stock', 0)->count(),
+            'active' => Product::where('status', Product::STATUS_ACTIVE)->count(),
+            'draft' => Product::where('status', Product::STATUS_DRAFT)->count(),
+            'blocked' => Product::where('status', Product::STATUS_BLOCKED)->count(),
+            'out_of_stock' => Product::where('status', Product::STATUS_ACTIVE)->where('stock', 0)->count(),
         ];
 
         return view('admin.products.index', compact('products', 'categories', 'sellers', 'summary'));
@@ -112,6 +114,7 @@ class ProductController extends Controller
     /** 🔄 Обновление */
     public function update(ProductUpdateRequest $request, Product $product)
     {
+        $previousStatus = $product->status;
         $data = $request->validated();
 
         $sellerId = (int) ($data['user_id'] ?? $product->user_id);
@@ -138,6 +141,23 @@ class ProductController extends Controller
             galleryNew: $request->file('gallery', []),
             galleryToDelete: $galleryToDelete
         );
+
+        $product->refresh();
+
+        if ($previousStatus === Product::STATUS_BLOCKED && $product->status !== Product::STATUS_BLOCKED && $product->seller?->exists) {
+            app(UserNotificationService::class)->create(
+                $product->seller,
+                'product_unblocked_by_admin',
+                'Продажи товара возобновлены',
+                "Администратор проверил товар «{$product->title}» и вернул возможность публикации. Текущий статус: " . ($product->status === Product::STATUS_ACTIVE ? 'опубликован' : 'черновик') . '.',
+                route('seller.products.edit', $product, false),
+                [
+                    'product_id' => $product->id,
+                    'previous_status' => $previousStatus,
+                    'status' => $product->status,
+                ]
+            );
+        }
 
         return redirect()->route('admin.products.index')->with('success', '✅ Товар обновлён.');
     }
