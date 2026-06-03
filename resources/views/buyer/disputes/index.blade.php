@@ -9,10 +9,10 @@
     @endphp
 
     <div class="w-full max-w-none space-y-5 bg-white px-3 py-4 pb-24 sm:px-6 sm:py-8">
-        <header class="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm">
+        <header class="wv-panel">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+                    <span class="wv-eyebrow">
                         <i class="ri-scales-3-line"></i>
                         Поддержка заказов
                     </span>
@@ -22,7 +22,7 @@
                     </p>
                 </div>
                 <a href="{{ route('orders.index') }}"
-                   class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                   class="wv-btn-primary">
                     <i class="ri-shopping-bag-3-line"></i>
                     Мои заказы
                 </a>
@@ -39,16 +39,16 @@
             @endforeach
         </section>
 
-        <form method="GET" action="{{ route('disputes.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <form method="GET" action="{{ route('disputes.index') }}" class="wv-card p-4">
             <input type="hidden" name="status" value="{{ $status }}">
             <div class="grid gap-3 md:grid-cols-[1fr_auto]">
                 <label class="relative">
                     <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     <input name="q" value="{{ $q }}" type="search"
                            placeholder="Поиск по номеру заказа, продавцу или причине"
-                           class="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                           class="h-11 w-full wv-input pl-10 pr-3">
                 </label>
-                <button class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700">
+                <button class="wv-btn-primary">
                     <i class="ri-search-line"></i>
                     Найти
                 </button>
@@ -62,7 +62,7 @@
                     $badge = $statusMap[$dispute->status] ?? $statusMap[\App\Models\OrderDispute::STATUS_OPEN];
                 @endphp
 
-                <article class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <article class="wv-panel p-4">
                     <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">

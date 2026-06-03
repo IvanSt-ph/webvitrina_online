@@ -241,7 +241,7 @@
                          x-transition:leave-start="opacity-100 translate-y-0"
                          x-transition:leave-end="opacity-0 translate-y-1"
                          @click.away="open = false"
-                         class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-3xl border border-white/80 bg-white/95 py-2 shadow-2xl shadow-slate-950/15 ring-1 ring-slate-900/5 backdrop-blur-xl">
+                         class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 py-2 shadow-[0_18px_44px_rgba(15,23,42,0.12)] ring-1 ring-slate-900/5 backdrop-blur-xl">
                         
                         <!-- Шапка с навигацией -->
                         <div class="px-4 pb-2 border-b border-slate-100 flex items-center gap-2">
@@ -268,7 +268,7 @@
                                     <button @click="selectedCountry = null; selectedCity = null; applySelection()"
                                     class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                                             :class="{ 'bg-indigo-50 text-indigo-600': !selectedCountry }">
-                                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/>
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
                                                         d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
@@ -287,7 +287,7 @@
                                             <img :src="'{{ asset('flags') }}/' + country.slug + '.png'" 
                                                  class="w-5 h-5 rounded-md shadow-sm">
                                             <span class="text-sm font-medium" x-text="country.name"></span>
-                                            <span class="text-xs text-gray-400 ml-auto" x-text="country.cities.length + ' гор.'"></span>
+                                            <span class="ml-auto text-xs text-slate-400" x-text="country.cities.length + ' гор.'"></span>
                                         </button>
                                     </template>
                                 </div>
@@ -315,7 +315,7 @@
                                         <button @click="selectCity(city.id)"
                                                 class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors pl-12"
                                                 :class="{ 'bg-indigo-50 text-indigo-600': selectedCity === city.id }">
-                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                                       d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -326,7 +326,7 @@
                                     
                                     <!-- Сообщение если нет городов -->
                                     <div x-show="selectedCountryData.cities.length === 0" 
-                                         class="px-4 py-3 text-sm text-gray-500 text-center">
+                                         class="px-4 py-3 text-center text-sm text-slate-500">
                                         Нет доступных городов
                                     </div>
                                 </div>
@@ -337,7 +337,7 @@
                         <div x-show="selectedCountry || selectedCity" 
                              class="border-t border-slate-100 mt-2 pt-2 px-3">
                             <button @click="clearFilters()"
-                                    class="w-full px-3 py-1.5 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    class="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -412,7 +412,7 @@
                          x-show="open"
                          x-transition
                          @click.away="open = false"
-                         class="absolute right-0 z-50 mt-2 w-24 overflow-hidden rounded-2xl border border-white/80 bg-white/95 py-1 text-sm shadow-2xl shadow-slate-950/15 ring-1 ring-slate-900/5 backdrop-blur-xl">
+                         class="absolute right-0 z-50 mt-2 w-24 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 py-1 text-sm shadow-[0_18px_44px_rgba(15,23,42,0.12)] ring-1 ring-slate-900/5 backdrop-blur-xl">
                         <button @click="setCurrency('PRB')" class="block w-full px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">₽ RUB</button>
                         <button @click="setCurrency('MDL')" class="block w-full px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">MDL</button>
                         <button @click="setCurrency('UAH')" class="block w-full px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">₴ UAH</button>
@@ -451,7 +451,7 @@
                          x-show="open"
                          x-transition
                          @click.away="open = false"
-                         class="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-2xl border border-white/80 bg-white/95 py-1 text-sm shadow-2xl shadow-slate-950/15 ring-1 ring-slate-900/5 backdrop-blur-xl">
+                         class="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 py-1 text-sm shadow-[0_18px_44px_rgba(15,23,42,0.12)] ring-1 ring-slate-900/5 backdrop-blur-xl">
                         <button @click="setLang('ru')" class="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600">
                             <img src="{{ asset('flags/ru.png') }}" class="w-4 h-4 rounded-sm"> Русский
                         </button>

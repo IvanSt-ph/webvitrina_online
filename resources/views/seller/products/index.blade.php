@@ -42,7 +42,7 @@
 
     <div
         x-data="{ viewMode: localStorage.getItem('seller_view') || 'grid', showConfirm: false, productId: null, productTitle: '' }"
-        class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6"
+        class="min-h-screen bg-slate-50 px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6"
     >
         <template x-teleport="body">
             <div
@@ -157,7 +157,7 @@
             @endif
 
             <section class="hidden gap-3 sm:grid sm:grid-cols-2 xl:grid-cols-4">
-                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                <div class="wv-card p-4">
                     <div class="flex items-center justify-between text-sm text-slate-500">
                         <span>Всего товаров</span>
                         <i class="ri-stack-line text-indigo-500"></i>
@@ -168,7 +168,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
                     <div class="flex items-center justify-between text-sm text-indigo-700">
                         <span>Просмотры за период</span>
                         <i class="ri-eye-line"></i>
@@ -177,7 +177,7 @@
                     <div class="mt-1 text-xs {{ str_starts_with($viewsDelta, '+') ? 'text-emerald-700' : 'text-rose-700' }}">{{ $viewsDelta }} к прошлому периоду</div>
                 </div>
 
-                <div class="rounded-xl border {{ $sellerPlanProfile['class'] }} p-4">
+                <div class="rounded-2xl border {{ $sellerPlanProfile['class'] }} p-4 shadow-sm">
                     <div class="flex items-center justify-between text-sm text-slate-500">
                         <span>Статус продавца</span>
                         <i class="ri-vip-crown-line"></i>
@@ -189,7 +189,7 @@
                     <div class="mt-1 text-xs opacity-80">{{ $sellerPlanProfile['used'] }} из {{ $sellerPlanProfile['limit_label'] }} товаров</div>
                 </div>
 
-                <div class="rounded-xl border {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50' }} p-4">
+                <div class="rounded-2xl border {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50' }} p-4 shadow-sm">
                     <div class="flex items-center justify-between text-sm {{ ($productTotals->out_of_stock ?? 0) > 0 ? 'text-rose-700' : 'text-emerald-700' }}">
                         <span>Нет в наличии</span>
                         <i class="ri-alert-line"></i>
@@ -203,7 +203,7 @@
                 </div>
             </section>
 
-            <section class="rounded-xl border border-slate-200 bg-white">
+            <section class="wv-card overflow-hidden">
                 <div class="border-b border-slate-100 p-3 sm:p-4">
                     <form method="GET" action="{{ route('seller.products.index') }}" class="grid gap-3 xl:grid-cols-[1fr_180px_180px_220px_auto]">
                         <label class="relative block">
@@ -213,7 +213,7 @@
                                 name="q"
                                 value="{{ $search }}"
                                 placeholder="Поиск по названию или категории"
-                                class="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                                class="h-11 w-full wv-input pl-10 pr-3"
                             >
                         </label>
 

@@ -11,9 +11,9 @@
         $isAdminProductPreview = auth()->check() && auth()->user()->role === 'admin' && $adminChatId;
     @endphp
     
-    <div class="w-full max-w-[1440px] mx-auto pt-0 sm:pt-20 pb-10 px-3 sm:px-4 md:px-6 lg:px-8">
+    <div class="wv-page-shell max-w-[1440px] pb-10 pt-3 sm:pt-6">
         @if($isAdminProductPreview)
-            <div class="mb-3 rounded-2xl border border-indigo-100 bg-indigo-50/90 p-3 shadow-sm sm:mb-4 sm:p-4">
+            <div class="mb-3 rounded-2xl border border-indigo-100 bg-indigo-50/90 p-3 shadow-sm shadow-indigo-950/5 sm:mb-4 sm:p-4">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="min-w-0">
                         <div class="text-xs font-bold uppercase tracking-wide text-indigo-600">Админ-просмотр товара</div>
@@ -42,7 +42,7 @@
 
 
         {{-- Верхний блок: Галерея + Инфо + Цена --}}
-        <div class="grid gap-6 lg:grid-cols-12 bg-white border rounded-3xl p-6 shadow-sm">
+        <div class="wv-panel grid gap-6 p-4 sm:p-6 lg:grid-cols-12">
             <x-product.gallery :product="$product" />
             <x-product.info :product="$product" />
             <x-product.buy-box :product="$product" :isFav="$isFav" />
@@ -55,24 +55,27 @@
         {{-- Карта местоположения (раскрывающаяся) --}}
         <div 
             x-data="{ openMap: false }" 
-            class=" mt-6 bg-white border rounded-2xl shadow-sm">
+            class="wv-card mt-6 overflow-hidden">
 
             {{-- Заголовок + стрелка --}}
             <button 
                 @click="openMap = !openMap" 
-                class="w-full flex items-center justify-between p-4 text-lg font-medium">
-                <span>Местоположение продавца</span>
+                class="flex w-full items-center justify-between p-4 text-left text-base font-bold text-slate-950 sm:text-lg">
+                <span class="inline-flex items-center gap-2">
+                    <i class="ri-map-pin-line text-indigo-600"></i>
+                    Местоположение продавца
+                </span>
 
                 <svg 
                     :class="openMap ? 'rotate-90' : ''"
-                    class="w-6 h-6 text-gray-600 transition-transform duration-300"
+                    class="h-6 w-6 text-slate-400 transition-transform duration-300"
                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
             </button>
 
             {{-- Контейнер карты --}}
-                <div class="mt-0 mr-2 ml-2 p-4" x-show="openMap" x-collapse>
+                <div class="border-t border-slate-100 p-4" x-show="openMap" x-collapse>
                     <x-product.map :product="$product" />
                 </div>
 

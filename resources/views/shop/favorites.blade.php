@@ -26,11 +26,11 @@
         this.selected = [];
       }
     }"
-    class="favorites-mobile-safe w-full max-w-none space-y-5 overflow-x-hidden bg-white px-3 py-4 pb-[5.5rem] sm:px-6 sm:py-8 sm:pb-8">
+    class="favorites-mobile-safe wv-page-shell max-w-none overflow-x-hidden pb-[5.5rem] sm:pb-8">
 
-    <header class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+    <header class="wv-page-header">
       <div class="min-w-0">
-        <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-rose-600">
+        <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-rose-600 ring-1 ring-rose-100">
           <i class="ri-heart-3-line"></i>
           Избранное
         </span>
@@ -72,7 +72,7 @@
     </header>
 
     @if($items->isNotEmpty())
-      <section x-show="selectMode" x-cloak class="rounded-xl border border-indigo-100 bg-indigo-50 p-3 shadow-sm sm:p-4">
+      <section x-show="selectMode" x-cloak class="rounded-2xl border border-indigo-100 bg-indigo-50 p-3 shadow-sm shadow-indigo-950/5 sm:p-4">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p class="text-sm font-semibold text-indigo-950">
@@ -139,7 +139,7 @@
          description="{{ $unavailableItems->isNotEmpty() ? 'Недоступные позиции сохранены выше, пока вы сами их не удалите.' : 'Сохраняйте понравившиеся товары, чтобы быстро вернуться к ним.' }}"
       >
         <a href="{{ route('home') }}"
-           class="relative overflow-hidden group inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 backdrop-blur-sm border border-indigo-400/30">
+           class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:px-8">
           <span class="relative z-10 flex items-center gap-2">
             <i class="ri-arrow-left-s-line"></i>
             <span>В каталог</span>
@@ -164,7 +164,7 @@
             $itemCurrencySymbol = $currentPrice['symbol'] ?? $currencySymbol;
           @endphp
 
-          <div class="fav-card group relative min-w-0 overflow-hidden bg-white rounded-xl sm:rounded-2xl border border-gray-100 transition-all duration-200 hover:shadow-md hover:border-gray-200"
+          <div class="fav-card group relative min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-200 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-950/5"
                :class="selectMode && selected.includes('{{ $f->id }}') ? 'border-indigo-300 bg-indigo-50/60 shadow-md' : ''"
                data-fav-card data-id="{{ $p->id }}" data-favorite-id="{{ $f->id }}">
 

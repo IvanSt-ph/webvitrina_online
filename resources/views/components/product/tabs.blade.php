@@ -4,29 +4,30 @@
     $description = trim((string) $product->description);
     $descLength = mb_strlen(strip_tags($description));
 
-    $details = collect();
+    $serviceDetails = collect();
+    $attributeDetails = collect();
 
     if ($product->sku) {
-        $details->push(['label' => 'Артикул', 'value' => $product->sku]);
+        $serviceDetails->push(['label' => 'Артикул', 'value' => $product->sku]);
     }
 
     if ($product->category) {
-        $details->push(['label' => 'Категория', 'value' => $product->category->name]);
+        $serviceDetails->push(['label' => 'Категория', 'value' => $product->category->name]);
     }
 
     if ($product->seller?->name) {
-        $details->push(['label' => 'Продавец', 'value' => $product->seller->name]);
+        $serviceDetails->push(['label' => 'Продавец', 'value' => $product->seller->name]);
     }
 
     if ($product->city || $product->country) {
-        $details->push([
+        $serviceDetails->push([
             'label' => 'Местоположение',
             'value' => trim(($product->country->name ?? $product->city->country->name ?? '') . ($product->city ? ', ' . $product->city->name : ''), ', '),
         ]);
     }
 
     if ($product->stock !== null) {
-        $details->push(['label' => 'Наличие', 'value' => $product->stock > 0 ? $product->stock . ' шт.' : 'Нет в наличии']);
+        $serviceDetails->push(['label' => 'Наличие', 'value' => $product->stock > 0 ? $product->stock . ' шт.' : 'Нет в наличии']);
     }
 
     foreach (($product->attributes ?? collect()) as $attr) {
@@ -37,14 +38,14 @@
         }
 
         if (filled($value)) {
-            $details->push([
+            $attributeDetails->push([
                 'label' => $attr->name,
                 'value' => trim($value . ($attr->unit ? ' ' . $attr->unit : '')),
             ]);
         }
     }
 
-    $quickDetails = $details->take(5);
+    $details = $attributeDetails->concat($serviceDetails);
     $descriptionBullets = collect(preg_split('/\r\n|\r|\n/u', $description))
         ->map(fn ($line) => trim($line, " \t\n\r\0\x0B-•"))
         ->filter()
@@ -52,7 +53,7 @@
 @endphp
 
 <div
-    class="mt-12 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+    class="wv-panel mt-8 p-4 sm:p-6"
     x-data="{ tab: window.location.hash === '#reviews' ? 'reviews' : 'desc' }"
 >
     <div class="flex flex-wrap gap-2 border-b border-slate-100 pb-3 text-sm">
@@ -87,32 +88,7 @@
     <div class="mt-6">
         <section x-show="tab==='desc'" x-transition.opacity.duration.250ms>
             <div class="space-y-6">
-                <section class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
-                    <div class="mb-4 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2 text-base font-bold text-slate-950">
-                            <i class="ri-flashlight-line text-indigo-600"></i>
-                            Главное о товаре
-                        </div>
-                        <button
-                            type="button"
-                            @click="tab='details'"
-                            class="rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100 hover:bg-indigo-100"
-                        >
-                            Все детали
-                        </button>
-                    </div>
-
-                    <div class="grid gap-x-10 gap-y-3 text-sm sm:grid-cols-[220px_minmax(0,1fr)]">
-                        @forelse($quickDetails as $detail)
-                            <div class="font-bold leading-6 text-slate-800">{{ $detail['label'] }}</div>
-                            <div class="min-w-0 break-words leading-6 text-slate-700">{{ $detail['value'] }}</div>
-                        @empty
-                            <div class="sm:col-span-2 text-slate-500">Основные данные появятся после заполнения характеристик.</div>
-                        @endforelse
-                    </div>
-                </section>
-
-                <section x-data="{ expanded: false }" class="relative rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                <section x-data="{ expanded: false }" class="wv-soft-panel relative p-4 sm:p-5">
                     <div class="mb-4 flex items-center gap-2 text-base font-bold text-slate-950">
                         <i class="ri-file-text-line text-indigo-600"></i>
                         О товаре
@@ -175,34 +151,6 @@
                         </div>
                     @endif
                 </section>
-
-                @if($details->count() > $quickDetails->count())
-                    <section class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
-                        <div class="mb-4 flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-2 text-base font-bold text-slate-950">
-                                <i class="ri-list-check-3 text-indigo-600"></i>
-                                Детали товара
-                            </div>
-                        </div>
-
-                        <div class="divide-y divide-slate-100">
-                            @foreach($details->skip($quickDetails->count())->take(5) as $detail)
-                                <div class="grid gap-2 py-3 sm:grid-cols-[260px_minmax(0,1fr)]">
-                                    <div class="font-semibold text-slate-500">{{ $detail['label'] }}</div>
-                                    <div class="break-words text-slate-900">{{ $detail['value'] }}</div>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <button
-                            type="button"
-                            @click="tab='details'"
-                            class="mt-4 inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                        >
-                            Смотреть все характеристики
-                        </button>
-                    </section>
-                @endif
             </div>
         </section>
 
@@ -211,21 +159,44 @@
                 <div>
                     <h2 class="text-lg font-bold text-slate-950">Подробная информация о товаре</h2>
                     <p class="mt-1 max-w-2xl text-sm text-slate-500">
-                        Основные данные и характеристики товара в одном месте. Без лишних кнопок и дублей.
+                        Характеристики и служебные данные карточки отдельно от описания продавца.
                     </p>
                 </div>
             </div>
 
             @if($details->isNotEmpty())
-                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
-                    <dl class="grid gap-2">
-                        @foreach($details as $detail)
-                            <div class="grid gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-100 sm:grid-cols-[minmax(180px,260px)_minmax(0,1fr)] sm:items-start sm:px-5">
-                                <dt class="text-sm font-medium leading-6 text-slate-500">{{ $detail['label'] }}</dt>
-                                <dd class="min-w-0 break-words text-sm font-semibold leading-6 text-slate-900">{{ $detail['value'] }}</dd>
-                            </div>
-                        @endforeach
-                    </dl>
+                <div class="space-y-4">
+                    @if($attributeDetails->isNotEmpty())
+                        <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+                            <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-950">
+                                <i class="ri-list-check-3 text-indigo-600"></i>
+                                Характеристики товара
+                            </h3>
+                            <dl class="grid gap-2">
+                                @foreach($attributeDetails as $detail)
+                                    <div class="grid gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-100 sm:grid-cols-[minmax(180px,260px)_minmax(0,1fr)] sm:items-start sm:px-5">
+                                        <dt class="text-sm font-medium leading-6 text-slate-500">{{ $detail['label'] }}</dt>
+                                        <dd class="min-w-0 break-words text-sm font-semibold leading-6 text-slate-900">{{ $detail['value'] }}</dd>
+                                    </div>
+                                @endforeach
+                            </dl>
+                        </section>
+                    @endif
+
+                    <section class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+                        <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-950">
+                            <i class="ri-information-line text-indigo-600"></i>
+                            Данные карточки
+                        </h3>
+                        <dl class="grid gap-2">
+                            @foreach($serviceDetails as $detail)
+                                <div class="grid gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-100 sm:grid-cols-[minmax(180px,260px)_minmax(0,1fr)] sm:items-start sm:px-5">
+                                    <dt class="text-sm font-medium leading-6 text-slate-500">{{ $detail['label'] }}</dt>
+                                    <dd class="min-w-0 break-words text-sm font-semibold leading-6 text-slate-900">{{ $detail['value'] }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    </section>
                 </div>
             @else
                 <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center">
@@ -252,7 +223,7 @@
                         rating:  {{ $myReview->rating ?? 0 }},
                         hoverRating: 0
                     }"
-                    class="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm"
+                    class="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm shadow-slate-950/5"
                 >
                     <template x-if="!editing">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

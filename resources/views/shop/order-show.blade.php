@@ -52,7 +52,7 @@
 @endphp
 
 
-<div class="order-show-mobile-safe min-h-screen w-full max-w-full overflow-x-hidden bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6" style="max-width:100vw;">
+<div class="order-show-mobile-safe wv-page min-h-screen w-full max-w-full overflow-x-hidden pb-[5.5rem]" style="max-width:100vw;">
 <div class="mx-auto w-full max-w-[1500px] space-y-5 overflow-hidden sm:space-y-6">
 
     <!-- 🔙 Навигация -->
@@ -63,25 +63,25 @@
             ['label' => 'Заказ ' . $order->number],
         ]" />
 
-        <span class="min-w-0 truncate text-xs text-gray-400">
+        <span class="min-w-0 truncate text-xs text-slate-400">
             Создан: {{ $order->created_at->format('d.m.Y H:i') }}
         </span>
     </div>
 
 
     <!-- 🧾 Заголовок заказа -->
-    <div class="grid w-full max-w-full min-w-0 gap-4 overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex sm:flex-row sm:items-center sm:justify-between sm:rounded-2xl sm:p-6">
+    <div class="wv-page-header grid w-full max-w-full min-w-0 overflow-hidden sm:flex">
 
         <div class="flex min-w-0 items-start gap-3">
-            <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-xl text-white shadow-sm shadow-indigo-600/20">
                 <i class="ri-shopping-bag-3-line text-xl"></i>
             </div>
             <div class="min-w-0">
-            <h1 class="truncate text-2xl font-bold text-gray-900">
+            <h1 class="truncate text-2xl font-bold text-slate-950">
                 Заказ {{ $order->number }}
             </h1>
 
-            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-gray-500">
+            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-slate-500">
                 Статус:
                 <x-status-badge :status="$order->status" class="max-w-full truncate px-2 sm:px-3" />
             </div>
@@ -89,8 +89,8 @@
         </div>
 
         <div class="min-w-0 sm:shrink-0 sm:text-right">
-            <div class="text-sm text-gray-500">Итоговая сумма:</div>
-            <div class="mt-1 truncate text-2xl font-bold text-gray-900">
+            <div class="text-sm text-slate-500">Итоговая сумма:</div>
+            <div class="mt-1 truncate text-2xl font-bold text-slate-950">
                 {{ number_format($order->total_price, 2, ',', ' ') }} {{ $order->currency }}
             </div>
         </div>
@@ -98,7 +98,7 @@
 
 
     <!-- 🔵 Прогресс бар (6 шагов) -->
-    <div class="w-full max-w-full bg-white shadow-sm border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-8 overflow-hidden">
+    <div class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-8">
 
         <div class="sm:hidden space-y-3">
             @foreach($stepLabels as $step => $text)
@@ -152,28 +152,28 @@
     <div class="grid w-full min-w-0 gap-4 overflow-hidden sm:grid-cols-3 sm:gap-6">
 
 <!-- Магазин -->
-<div class="min-w-0 bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
-    <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+<div class="wv-card min-w-0 p-4 sm:p-6">
+    <h3 class="mb-3 flex items-center gap-2 font-semibold text-slate-950">
         <i class="ri-store-2-line text-indigo-500"></i>
         Продавец
     </h3>
 
     @if($order->seller)
-        <p class="break-words text-sm font-semibold text-gray-800">{{ $shop?->name ?? $order->seller->name }}</p>
+        <p class="break-words text-sm font-semibold text-slate-800">{{ $shop?->name ?? $order->seller->name }}</p>
         @if($shop)
             <a href="{{ route('seller.show', $shop->slug) }}" class="mt-2 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700">
                 Открыть магазин
             </a>
         @endif
     @else
-        <p class="text-sm text-gray-400 italic">Продавец не найден</p>
+        <p class="text-sm italic text-slate-400">Продавец не найден</p>
     @endif
 </div>
 
 
         <!-- Доставка -->
-        <div class="min-w-0 max-w-full overflow-hidden bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
-            <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div class="wv-card min-w-0 max-w-full overflow-hidden p-4 sm:p-6">
+            <h3 class="mb-3 flex items-center gap-2 font-semibold text-slate-950">
                 <i class="ri-truck-line text-indigo-500"></i>
                 Доставка
             </h3>
@@ -195,19 +195,19 @@
         </div>
 
         <!-- Оплата -->
-        <div class="min-w-0 max-w-full overflow-hidden bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
-            <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div class="wv-card min-w-0 max-w-full overflow-hidden p-4 sm:p-6">
+            <h3 class="mb-3 flex items-center gap-2 font-semibold text-slate-950">
                 <i class="ri-bank-card-line text-indigo-500"></i>
                 Оплата
             </h3>
-            <p class="break-words text-sm text-gray-700">
+            <p class="break-words text-sm text-slate-700">
                 {{ $paymentLabels[$order->payment_method] ?? ($order->payment_method ?: 'Не указан') }}
             </p>
 
             @if($order->paid_at)
                 <p class="text-sm text-green-600 mt-1">Оплачено в {{ $order->paid_at }}</p>
             @else
-                <p class="text-sm text-gray-400">Пока не оплачено</p>
+                <p class="text-sm text-slate-400">Пока не оплачено</p>
             @endif
         </div>
 
@@ -215,10 +215,10 @@
 
 
     <!-- 🛒 Состав заказа -->
-    <div class="w-full max-w-full bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+    <div class="wv-card w-full max-w-full overflow-hidden">
 
         <div class="px-4 sm:px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-gray-900">Товары в заказе</h3>
+            <h3 class="text-lg font-semibold text-slate-950">Товары в заказе</h3>
         </div>
 
         <div class="divide-y">
@@ -273,9 +273,9 @@
             @endforeach
         </div>
 
-        <div class="px-4 sm:px-6 py-4 bg-gray-50 border-t grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
-            <div class="text-sm text-gray-500">Итого:</div>
-            <div class="min-w-0 truncate text-right text-xl font-bold text-gray-900">
+        <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-6">
+            <div class="text-sm text-slate-500">Итого:</div>
+            <div class="min-w-0 truncate text-right text-xl font-bold text-slate-950">
                 {{ number_format($order->total_price, 2, ',', ' ') }} ₽
             </div>
         </div>
@@ -340,9 +340,9 @@
             @endif
         </section>
     @elseif($canRequestCancellation)
-        <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
-            <h3 class="font-semibold text-gray-900">Нужно отменить заказ?</h3>
-            <p class="mt-1 text-sm text-gray-500">Пока товар не отправлен, можно направить продавцу запрос на отмену.</p>
+        <section class="wv-card p-4 sm:p-6">
+            <h3 class="font-semibold text-slate-950">Нужно отменить заказ?</h3>
+            <p class="mt-1 text-sm text-slate-500">Пока товар не отправлен, можно направить продавцу запрос на отмену.</p>
             <form method="POST" action="{{ route('orders.requestCancellation', $order) }}" class="mt-4 max-w-xl space-y-3">
                 @csrf
                 <textarea name="cancellation_reason" rows="3" required maxlength="700"
@@ -423,9 +423,9 @@
     @endif
 
     @if($canReview)
-        <section class="w-full max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
-            <h3 class="font-semibold text-gray-900">Оставить отзыв о покупке</h3>
-            <p class="mt-1 text-sm text-gray-500">Выберите товар, чтобы оценить его на странице товара.</p>
+        <section class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-6">
+            <h3 class="font-semibold text-slate-950">Оставить отзыв о покупке</h3>
+            <p class="mt-1 text-sm text-slate-500">Выберите товар, чтобы оценить его на странице товара.</p>
             <div class="mt-4 flex flex-wrap gap-2">
                 @foreach($order->items as $item)
                     @if($item->product)

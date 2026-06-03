@@ -14,7 +14,7 @@
                 x-init="setTimeout(() => show = false, 5200)"
                 x-show="show"
                 x-transition
-                class="rounded-2xl border bg-white px-4 py-3 text-sm font-semibold shadow-2xl shadow-slate-900/10 {{ $message['type'] === 'success' ? 'border-emerald-200 text-emerald-800' : 'border-rose-200 text-rose-800' }}"
+                class="rounded-2xl border bg-white px-4 py-3 text-sm font-medium shadow-[0_14px_34px_rgba(15,23,42,0.10)] {{ $message['type'] === 'success' ? 'border-emerald-200 text-emerald-800' : 'border-rose-200 text-rose-800' }}"
             >
                 <div class="flex items-start gap-3">
                     <i class="{{ $message['type'] === 'success' ? 'ri-checkbox-circle-line text-emerald-500' : 'ri-error-warning-line text-rose-500' }} mt-0.5 text-lg"></i>

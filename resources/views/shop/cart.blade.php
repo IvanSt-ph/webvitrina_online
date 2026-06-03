@@ -7,11 +7,11 @@
     $freeShippingThreshold = 5000;
 @endphp
 
-<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe w-full max-w-none space-y-5 overflow-x-hidden bg-white px-3 py-4 sm:px-6 sm:py-8 {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
+<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe wv-page-shell max-w-none overflow-x-hidden {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
 
-    <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center sm:p-5">
+    <header class="wv-page-header grid lg:grid-cols-[minmax(0,1fr)_340px]">
         <div class="min-w-0">
-            <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+            <span class="wv-page-eyebrow">
                 <i class="ri-shopping-cart-2-line"></i>
                 Корзина
             </span>
@@ -21,7 +21,7 @@
             </p>
         </div>
 
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">В корзине</p>
@@ -113,7 +113,7 @@
             class="py-16 sm:py-24"
         >
             <a href="{{ route('home') }}"
-               class="relative overflow-hidden group inline-flex items-center justify-center gap-2 px-8 py-3 bg-indigo-500/90 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 backdrop-blur-sm border border-indigo-400/30">
+               class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
                 <span class="relative z-10 flex items-center gap-2">
                     <i class="ri-arrow-left-line"></i>
                     Перейти в каталог
@@ -125,7 +125,7 @@
     @else
 
     <!-- 📊 Прогресс бесплатной доставки -->
-    <div x-show="remainingForFree > 0" class="bg-indigo-50/70 rounded-xl sm:rounded-2xl p-4 mb-6 border border-indigo-100">
+    <div x-show="remainingForFree > 0" class="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
         <div class="flex items-start gap-3">
             <div class="w-10 h-10 rounded-xl bg-white text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
                 <i class="ri-truck-line text-xl"></i>
@@ -146,7 +146,7 @@
         </div>
     </div>
 
-    <div x-show="remainingForFree <= 0" x-cloak class="bg-emerald-50/80 rounded-xl sm:rounded-2xl p-4 mb-6 border border-emerald-100">
+    <div x-show="remainingForFree <= 0" x-cloak class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
         <div class="flex items-start gap-3">
             <div class="w-10 h-10 rounded-xl bg-white text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
                 <i class="ri-check-line text-xl"></i>
@@ -171,10 +171,10 @@
 
         <div 
             x-data="{ qty: {{ $i->qty }}, savedQty: {{ $i->qty }}, updating: false }"
-            class="cart-item group relative min-w-0 overflow-hidden bg-white rounded-xl sm:rounded-2xl border transition-all duration-200 hover:shadow-md"
+            class="cart-item group relative min-w-0 overflow-hidden rounded-2xl border bg-white transition-all duration-200 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-950/5"
             :class="{
                 'border-indigo-300 shadow-md bg-indigo-50/50': selectMode && selected.includes('{{ $i->id }}'),
-                'border-gray-100': !selectMode || !selected.includes('{{ $i->id }}')
+                'border-slate-200': !selectMode || !selected.includes('{{ $i->id }}')
             }"
             data-cart-id="{{ $i->id }}"
             data-cart-qty="{{ $i->qty }}"
@@ -335,7 +335,7 @@
     </div>
 
     <aside class="hidden lg:block sticky top-24">
-        <div class="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-5">
+        <div class="wv-card space-y-5 p-5">
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <h2 class="text-lg font-semibold text-gray-900">Сводка заказа</h2>
@@ -404,7 +404,7 @@
 
     <div x-show="!selectMode"
          x-transition
-         class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-200 shadow-2xl shadow-black/5"
+         class="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:hidden"
          style="padding-bottom: env(safe-area-inset-bottom, 0px);">
         <div class="w-full max-w-none px-3 py-3 sm:py-4 mb-12 sm:mb-0">
             <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
@@ -433,7 +433,7 @@
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform translate-y-full"
          x-transition:enter-end="opacity-100 transform translate-y-0"
-         class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-indigo-100 shadow-2xl shadow-black/5"
+         class="fixed bottom-0 left-0 right-0 z-50 border-t border-indigo-100 bg-white/95 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl"
          style="padding-bottom: env(safe-area-inset-bottom, 0px);">
         
         <div class="px-3 py-3 sm:py-4 mb-12 pb-10">
@@ -529,7 +529,7 @@
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             @foreach($crossSellProducts as $product)
-            <div class="min-w-0 bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
+            <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 transition-all duration-200 hover:border-indigo-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)] group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
                         <img src="{{ $product->image_thumb_url }}" 
@@ -571,7 +571,7 @@
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             @foreach($recommendedProducts as $product)
-            <div class="min-w-0 bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-all duration-200 group">
+            <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 transition-all duration-200 hover:border-indigo-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)] group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
                         <img src="{{ $product->image_thumb_url }}" 

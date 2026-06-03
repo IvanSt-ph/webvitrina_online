@@ -536,18 +536,18 @@
         linear-gradient(180deg, #f8fafc 0%, #ffffff 42%);
     }
     .seller-form-card {
-      border: 1px solid rgba(243, 244, 246, 0.9);
-      border-radius: 14px;
-      background: rgba(255,255,255,0.86);
+      border: 1px solid rgba(226, 232, 240, 0.82);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.88);
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
       padding: 22px;
       backdrop-filter: blur(8px);
-      transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
     }
     .seller-form-card:hover {
-      transform: translateY(-2px);
       background: #fff;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+      border-color: rgba(199, 210, 254, 0.72);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
     }
     .seller-section-head {
       display: flex;
@@ -560,13 +560,14 @@
       margin: 0 0 3px;
       color: #6366f1;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: .08em;
     }
     .seller-section-title {
       color: #0f172a;
       font-size: 18px;
-      font-weight: 700;
+      font-weight: 650;
     }
     .seller-section-hint {
       max-width: 300px;
@@ -578,8 +579,8 @@
     .seller-input {
       width: 100%;
       border-radius: 12px;
-      border-color: rgba(229, 231, 235, 0.9);
-      background-color: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      background-color: rgba(255, 255, 255, 0.86);
       padding: 12px 14px;
       color: #0f172a;
       transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;

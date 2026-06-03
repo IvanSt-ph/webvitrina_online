@@ -4,7 +4,7 @@
 <x-app-layout :title="$title ?? 'Личный кабинет'" :hideHeader="true" :flushMain="$flushContent || $chatMode">
     <div class="flex min-h-screen bg-neutral-50 text-gray-800">
         <!-- 🧭 Sidebar -->
-        <aside class="fixed bottom-0 left-0 top-0 hidden w-64 flex-col justify-between border-r border-gray-100 bg-white shadow-sm md:flex">
+        <aside class="fixed bottom-0 left-0 top-0 hidden w-64 flex-col justify-between border-r border-slate-200 wv-sidebar md:flex">
             <div>
                 <!-- Логотип -->
                 <div class="flex items-center gap-2 border-b border-gray-100 px-6 py-6">
@@ -14,11 +14,11 @@
 
                 <!-- Навигация -->
                 @php
-                    $active = 'bg-indigo-50 text-indigo-600 font-medium border-l-4 border-indigo-500';
-                    $link = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
+                    $active = 'wv-sidebar-link-active';
+                    $link = 'wv-sidebar-link';
                 @endphp
 
-                <nav class="mt-5 text-[16px] font-normal text-gray-700">
+                <nav class="mt-5 text-[16px] font-normal text-slate-700">
                     <div class="px-4 pb-5">
                         <a href="{{ route('home') }}"
                            class="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100">
@@ -34,7 +34,7 @@
                         Основное
                     </div>
 
-                    <div class="flex flex-col">
+                    <div class="flex flex-col gap-1">
                         <a href="{{ route('cabinet') }}" class="{{ request()->routeIs('cabinet') ? $active : '' }} {{ $link }}">
                             <i class="ri-home-5-line text-[22px]"></i>
                             <span>Кабинет</span>
@@ -97,7 +97,7 @@
                         Сервис
                     </div>
 
-                    <div class="flex flex-col">
+                    <div class="flex flex-col gap-1">
                         <a href="{{ route('reviews.index') }}" class="{{ request()->routeIs('reviews.index') ? $active : '' }} {{ $link }}">
                             <i class="ri-star-line text-[22px]"></i>
                             <span>Мои отзывы</span>

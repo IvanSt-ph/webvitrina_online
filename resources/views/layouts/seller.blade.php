@@ -3,10 +3,10 @@
 {{-- resources/views/layouts/seller.blade.php --}}
 <x-seller-base :title="$title ?? 'Панель продавца'">
 
-<div class="flex min-h-screen bg-neutral-50 text-gray-800 overflow-x-hidden overflow-y-auto">
+<div class="flex min-h-screen overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-800">
 
     <!-- Sidebar -->
-<aside class="hidden lg:flex flex-col w-64 bg-white border-r border-gray-100 fixed left-0 top-0 bottom-0 shadow-sm z-30">
+<aside class="fixed bottom-0 left-0 top-0 z-30 hidden w-64 flex-col border-r border-slate-200 wv-sidebar lg:flex">
 
     <!-- ВЕРХ -->
     <div class="flex-1 flex flex-col">
@@ -18,8 +18,8 @@
         </div>
 
         @php
-            $active = 'bg-indigo-50 text-indigo-600 font-medium border-l-4 border-indigo-500';
-            $link   = 'flex items-center gap-2 px-6 py-3 rounded-r-lg transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-600 hover:translate-x-[3px]';
+            $active = 'wv-sidebar-link-active';
+            $link   = 'wv-sidebar-link';
             $sellerMenu = [
                 'Работа' => [
                     ['route' => 'seller.cabinet', 'active' => 'seller.cabinet', 'icon' => 'ri-home-5-line', 'label' => 'Главная'],
@@ -42,7 +42,7 @@
             ];
         @endphp
 
-        <nav class="flex flex-col mt-5 text-[15px] font-normal text-gray-700">
+        <nav class="mt-5 flex flex-col text-[15px] font-normal text-slate-700">
             <div class="px-4 pb-5">
                 <a href="{{ route('home') }}"
                    class="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100">
@@ -98,7 +98,7 @@
 </aside>
 
             <!-- 🌤 Контент -->
-        <main class="flex flex-1 flex-col bg-neutral-50 overflow-hidden lg:ml-64 {{ $chatMode ? 'h-dvh p-0' : (($flushContent ? 'min-h-screen p-0' : 'min-h-screen px-3 sm:px-6 py-6')) }}">
+        <main class="flex flex-1 flex-col overflow-hidden bg-slate-50 lg:ml-64 {{ $chatMode ? 'h-dvh p-0' : (($flushContent ? 'min-h-screen p-0' : 'min-h-screen px-3 sm:px-6 py-6')) }}">
 
             <div class="{{ $chatMode ? 'min-h-0 flex-1' : 'flex-1' }}">
                 {{ $slot }}

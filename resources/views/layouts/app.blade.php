@@ -45,12 +45,12 @@
     {{-- ⚠️ ВАЖНО: Стили должны быть в HEAD --}}
     @stack('styles')
 </head>
-<body class="overflow-x-hidden font-sans antialiased"
+<body class="overflow-x-hidden bg-slate-50 font-sans antialiased"
       data-search-query="{{ request('q') }}"
       data-currency="{{ session('currency', 'PRB') }}">
 
 <div
-    class="min-h-screen overflow-x-hidden bg-white-100"
+    class="min-h-screen overflow-x-hidden bg-slate-50"
     x-data="appShell"
 >
 <x-toast-stack />
@@ -76,7 +76,7 @@
 </main>
 
 @unless($hideHeader)
-    <footer class="border-t border-slate-100 bg-white px-4 py-10 text-sm text-slate-500 sm:px-6 lg:px-8">
+    <footer class="border-t border-slate-200 bg-white/95 px-4 py-10 text-sm text-slate-500 shadow-[0_-10px_40px_rgba(15,23,42,0.03)] sm:px-6 lg:px-8">
         <div class="mx-auto grid max-w-7xl gap-8 sm:grid-cols-2 lg:grid-cols-5">
             <div class="sm:col-span-2 lg:col-span-1">
                 <div class="flex items-center gap-2 font-bold text-slate-900">

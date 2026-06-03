@@ -3,18 +3,26 @@
 @section('title', 'Добавить товар')
 
 @section('content')
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">➕ Добавить товар</h1>
+    <div class="wv-page-header mb-6">
+        <div>
+            <span class="wv-page-eyebrow">
+                <i class="ri-add-box-line"></i>
+                Каталог
+            </span>
+            <h1 class="mt-3 text-2xl font-bold text-slate-950">Добавить товар</h1>
+            <p class="mt-1 text-sm text-slate-500">Создайте карточку от имени продавца: данные, категория, локация и изображения.</p>
+        </div>
         <a href="{{ route('admin.products.index') }}"
-           class="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300">
-            ⬅ Назад к товарам
+           class="wv-btn-secondary">
+            <i class="ri-arrow-left-line"></i>
+            Назад к товарам
         </a>
     </div>
 
-    <div class="bg-white shadow rounded-lg p-6">
+    <div class="wv-panel p-4 sm:p-6">
         {{-- Ошибки --}}
         @if ($errors->any())
-            <div class="mb-4 p-4 rounded bg-red-100 text-red-700">
+            <div class="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
                 <strong>Ошибки при сохранении:</strong>
                 <ul class="list-disc ml-5 mt-2">
                     @foreach ($errors->all() as $error)
@@ -33,7 +41,7 @@
                     <label class="block text-sm font-medium text-gray-700">Название</label>
                     <input type="text" name="title" x-model="title"
                            value="{{ old('title') }}"
-                           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           class="wv-field mt-1"
                            required>
                 </div>
                 <div>
@@ -43,10 +51,10 @@
                     <div class="flex gap-2">
                         <input type="text" name="slug" x-model="slug"
                                value="{{ old('slug') }}"
-                               class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                               class="wv-field mt-1"
                                placeholder="авто">
                         <button type="button" @click="makeSlug()"
-                                class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
+                                class="mt-1 inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                             Сгенерировать
                         </button>
                     </div>
@@ -68,9 +76,9 @@
   <div class="flex gap-2">
     <input type="text" name="sku" id="sku" x-model="sku"
            placeholder="Напр. TV-43-SMART-2024"
-           class="w-full border-gray-300 rounded-lg text-sm px-3 py-2 focus:ring-indigo-200 focus:border-indigo-400">
+           class="wv-field">
     <button type="button" @click="generate()"
-            class="mt-1 px-3 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
+            class="mt-1 inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             x-show="!sku">
        Сгенерировать
     </button>
@@ -87,20 +95,20 @@
                     <label class="block text-sm font-medium text-gray-700">Цена</label>
                     <input type="number" step="0.01" name="price"
                            value="{{ old('price') }}"
-                           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           class="wv-field mt-1"
                            required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Количество на складе</label>
                     <input type="number" name="stock"
                            value="{{ old('stock', 0) }}"
-                           class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           class="wv-field mt-1"
                            required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Продавец</label>
                     <select name="user_id"
-                            class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            class="wv-field mt-1"
                             required>
                         <option value="">— Выберите продавца —</option>
                         @foreach($sellers as $seller)
@@ -118,7 +126,7 @@
                 <div id="category-selects" class="space-y-2">
                     <select @change="loadChildren($event, 0)"
                             name="categories[0]"
-                            class="w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            class="wv-field">
                         <option value="">— Выберите категорию —</option>
                         @foreach($categories as $parent)
                             <option value="{{ $parent->id }}">{{ $parent->name }}</option>
@@ -135,7 +143,7 @@
             >
                 <label class="block text-sm font-medium text-gray-700">Страна</label>
                 <select name="country_id" x-model="country" @change="loadCities()"
-                        class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="wv-field mt-1">
                     <option value="">— Выберите страну —</option>
                     @foreach($countries as $country)
                         <option value="{{ $country->id }}">{{ $country->name }}</option>
@@ -144,7 +152,7 @@
 
                 <label class="block text-sm font-medium text-gray-700 mt-4">Город</label>
                 <select name="city_id" x-model="city" :disabled="!country"
-                        class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="wv-field mt-1">
                     <option value="">
                         <span x-text="country ? '— Выберите город —' : '— Сначала выберите страну —'"></span>
                     </option>
@@ -158,12 +166,12 @@
 <div>
   <label class="block text-sm font-medium text-gray-700">Адрес (улица, дом)</label>
   <input id="address" name="address" type="text"
-         class="w-full border rounded-lg px-3 py-2"
+         class="wv-field"
          placeholder="Например: ул. Ленина, 2"
          value="{{ old('address') }}">
 
   <button type="button" id="searchAddress"
-          class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          class="mt-2 inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-indigo-700">
     Найти на карте
   </button>
 
@@ -172,7 +180,7 @@
 
 <div class="mt-4">
   <label class="block text-sm font-medium text-gray-700 mb-1">Местоположение на карте</label>
-  <div id="map" class="w-full h-64 rounded border"></div>
+  <div id="map" class="h-64 w-full rounded-2xl border border-slate-200"></div>
 
   <input type="hidden" id="latitude" name="latitude"
          value="{{ old('latitude') }}">
@@ -316,7 +324,7 @@ document.addEventListener("DOMContentLoaded", function() {
             <div>
                 <label class="block text-sm font-medium text-gray-700">Статус</label>
                 <select name="status"
-                        class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        class="wv-field mt-1">
                     <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Опубликован</option>
                     <option value="draft" {{ old('status') === 'draft' ? 'selected' : '' }}>Черновик</option>
                 </select>
@@ -327,7 +335,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 <div x-data="imagePreview()" class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Главное изображение</label>
                     <input type="file" name="image" @change="preview($event)" accept="image/*" class="mt-1 block w-full">
-                    <img x-show="src" :src="src" alt="preview" class="h-24 rounded border" x-cloak>
+                    <img x-show="src" :src="src" alt="preview" class="h-24 rounded-2xl border border-slate-200" x-cloak>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Галерея (несколько изображений)</label>
@@ -339,13 +347,13 @@ document.addEventListener("DOMContentLoaded", function() {
             <div>
                 <label class="block text-sm font-medium text-gray-700">Описание</label>
                 <textarea name="description" rows="4"
-                          class="mt-1 block w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500">{{ old('description') }}</textarea>
+                          class="wv-textarea mt-1">{{ old('description') }}</textarea>
             </div>
 
             {{-- Кнопки --}}
             <div class="flex justify-end gap-3">
                 <a href="{{ route('admin.products.index') }}"
-                   class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                   class="wv-btn-secondary">
                     Отмена
                 </a>
                 <button type="submit"
@@ -390,7 +398,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (data.length > 0) {
                         const select = document.createElement('select');
                         select.name = `categories[${level + 1}]`;
-                        select.className = 'w-full border rounded-lg px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500';
+                        select.className = 'wv-field';
                         select.add(new Option('— Выберите подкатегорию —', ''));
                         data.forEach(cat => {
                             select.add(new Option(cat.name, cat.id));

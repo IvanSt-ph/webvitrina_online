@@ -41,10 +41,10 @@
 @endphp
 
 <div class="space-y-5">
-    <header class="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm">
+    <header class="wv-panel">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
+                <div class="wv-eyebrow">
                     <i class="ri-rocket-line"></i>
                     Перед выпуском
                 </div>
@@ -53,7 +53,7 @@
                     Быстрая панель готовности: окружение, безопасность, очереди, почта, бэкапы и честные бизнес-ограничения текущего MVP.
                 </p>
             </div>
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+            <div class="wv-soft-panel text-center">
                 <div class="text-3xl font-black text-indigo-700">{{ $percent }}%</div>
                 <div class="mt-1 text-xs font-semibold text-slate-500">{{ $done }} из {{ $total }} пунктов</div>
             </div>
@@ -62,7 +62,7 @@
 
     <section class="grid gap-4 xl:grid-cols-3">
         @foreach($checks as $group)
-            <article class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <article class="wv-panel p-4">
                 <h2 class="text-lg font-bold text-slate-950">{{ $group['group'] }}</h2>
                 <div class="mt-4 space-y-3">
                     @foreach($group['items'] as $item)
@@ -84,7 +84,7 @@
         @endforeach
     </section>
 
-    <section class="rounded-3xl border border-rose-100 bg-rose-50 p-5 shadow-sm">
+    <section class="rounded-3xl border border-rose-100 bg-rose-50 p-5 shadow-sm ring-1 ring-rose-100">
         <h2 class="font-bold text-rose-950">Что сделать вручную перед публичным запуском</h2>
         <div class="mt-3 grid gap-3 text-sm text-rose-900 md:grid-cols-2">
             <div class="rounded-2xl bg-white/70 p-3">Проверить `.env` на сервере: debug, cookies, queue, mail, URL.</div>

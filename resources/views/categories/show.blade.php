@@ -1,8 +1,7 @@
 <x-app-layout :title="$category->name">
 
 {{-- 🧭 Хлебные крошки и фильтры закреплены --}}
-<div class="sticky z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm 
-     border-b border-gray-100 py-0.5 mb-4 sticky-breadcrumbs">
+<div class="sticky z-40 mb-4 border-b border-slate-100 bg-white/95 py-0.5 backdrop-blur supports-[backdrop-filter]:backdrop-blur-sm sticky-breadcrumbs">
 
 
   <div class="max-w-7xl mx-auto px-4 lg:px-6 mt-4">
@@ -11,13 +10,13 @@
 </div>
 
 
-<div class="max-w-7xl mx-auto px-1 sm:px-4 lg:px-6">
+<div class="mx-auto max-w-7xl px-1 sm:px-4 lg:px-6">
 
   {{-- 🌸 Панель фильтров --}}
   @include('partials.category-filters')
 
   {{-- 🔹 Заголовок --}}
-  <h1 class="text-2xl font-semibold text-gray-800 mb-6">
+  <h1 class="mb-6 text-2xl font-semibold text-slate-950">
     {{ $category->name }}
   </h1>
 
@@ -28,11 +27,11 @@
       @foreach($category->children as $child)
 
         <a href="{{ route('category.show', $child->slug) }}"
-           class="group block bg-white border border-gray-200 rounded-2xl
-                  overflow-hidden shadow-sm hover:shadow-md hover:border-indigo-300
+           class="group block overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]
+                  hover:border-indigo-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]
                   transition-all duration-300">
 
-          <div class="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+          <div class="flex aspect-square items-center justify-center overflow-hidden bg-slate-50">
 
               @if(!empty($child->image))
                   <img src="{{ asset('storage/'.$child->image) }}"
@@ -50,7 +49,7 @@
                        onerror="this.src='/images/no-image.webp'">
 
               @else
-                <svg class="w-10 h-10 text-gray-300 mx-auto" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v18H3z"/>
                 </svg>
               @endif
@@ -58,7 +57,7 @@
           </div>
 
           <div class="p-4 text-center">
-            <h2 class="text-sm font-medium text-gray-800 group-hover:text-indigo-600 transition">
+            <h2 class="text-sm font-medium text-slate-800 transition group-hover:text-indigo-600">
               {{ $child->name }}
             </h2>
           </div>
@@ -75,7 +74,7 @@
         @include('partials.products-grid', ['products' => $products])
     </div>
 @else
-    <p class="text-gray-500">В этой категории пока нет товаров.</p>
+    <p class="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">В этой категории пока нет товаров.</p>
 @endif
 
 

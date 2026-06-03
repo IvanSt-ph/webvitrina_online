@@ -3,14 +3,14 @@
 @section('title', 'Главная панель')
 
 @section('content')
-<div class="mb-5 flex flex-col gap-4 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+<div class="mb-5 flex flex-col gap-4 wv-panel sm:flex-row sm:items-center sm:justify-between">
   <div>
     <div class="text-xs font-bold uppercase text-indigo-600">Операционный центр</div>
     <h1 class="mt-1 text-2xl font-bold text-slate-950">Что требует внимания</h1>
     <p class="mt-1 text-sm text-slate-500">Сначала работа с обращениями и решениями, ниже - аналитика магазина.</p>
   </div>
   <a href="{{ route('admin.chats.index') }}"
-     class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white transition hover:bg-indigo-700">
+     class="wv-btn-primary">
     <i class="ri-message-3-line text-lg"></i> Открыть чаты
   </a>
 </div>
@@ -25,7 +25,7 @@
     ['value' => $workQueue['plans'] ?? 0, 'label' => 'Заявки на тариф', 'route' => route('admin.seller-plan-requests.index'), 'icon' => 'ri-vip-crown-line'],
     ['value' => $workQueue['banners'] ?? 0, 'label' => 'Баннеры без mobile', 'route' => route('admin.banners.index', ['status' => 'missing_mobile']), 'icon' => 'ri-smartphone-line'],
   ] as $task)
-    <a href="{{ $task['route'] }}" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50">
+    <a href="{{ $task['route'] }}" class="wv-card wv-card-hover p-4">
       <div class="flex items-center justify-between">
         <span class="text-2xl font-bold {{ $task['value'] > 0 ? 'text-indigo-700' : 'text-slate-400' }}">{{ $task['value'] }}</span>
         <i class="{{ $task['icon'] }} text-lg text-indigo-500"></i>
@@ -35,21 +35,21 @@
   @endforeach
 </section>
 
-<section class="mb-7 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
+<section class="mb-7 wv-panel">
   <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <div class="text-xs font-bold uppercase tracking-wide text-indigo-600">Сегодня</div>
       <h2 class="mt-1 text-xl font-bold text-slate-950">Конкретные задачи для проверки</h2>
       <p class="mt-1 text-sm text-slate-500">Не только счётчики: ниже последние объекты, куда админ должен зайти руками.</p>
     </div>
-    <a href="{{ route('admin.production-checklist') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+    <a href="{{ route('admin.production-checklist') }}" class="wv-btn-secondary h-10 border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
       <i class="ri-rocket-line"></i>
       Релиз-чеклист
     </a>
   </div>
 
   <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <article class="wv-soft-panel p-3">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-alarm-warning-line text-indigo-600"></i> Жалобы сегодня</div>
         <a href="{{ route('admin.product-reports.index', ['status' => \App\Models\ProductReport::STATUS_OPEN]) }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
@@ -66,7 +66,7 @@
       </div>
     </article>
 
-    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <article class="wv-soft-panel p-3">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-scales-3-line text-indigo-600"></i> Споры сегодня</div>
         <a href="{{ route('admin.disputes.index') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
@@ -83,7 +83,7 @@
       </div>
     </article>
 
-    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <article class="wv-soft-panel p-3">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-chat-check-line text-indigo-600"></i> Отзывы сегодня</div>
         <a href="{{ route('admin.reviews.index', ['status' => \App\Models\Review::STATUS_PENDING]) }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
@@ -100,7 +100,7 @@
       </div>
     </article>
 
-    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <article class="wv-soft-panel p-3">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-vip-crown-line text-indigo-600"></i> Заявки сегодня</div>
         <a href="{{ route('admin.seller-plan-requests.index') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
@@ -117,7 +117,7 @@
       </div>
     </article>
 
-    <article class="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+    <article class="wv-soft-panel p-3">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 font-bold text-slate-900"><i class="ri-shopping-bag-3-line text-indigo-600"></i> Заказы сегодня</div>
         <a href="{{ route('admin.orders.index', ['focus' => 'attention']) }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
@@ -136,13 +136,13 @@
   </div>
 </section>
 
-<section class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+<section class="mb-5 wv-card p-4">
   <form method="GET" action="{{ route('admin.orders.index') }}" class="grid gap-2 sm:grid-cols-[1fr_auto]">
     <label class="relative">
       <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-      <input name="q" type="search" placeholder="Поиск по заказам, пользователям, товарам" class="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+      <input name="q" type="search" placeholder="Поиск по заказам, пользователям, товарам" class="h-11 w-full wv-input pl-10 pr-3">
     </label>
-    <button class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+    <button class="wv-btn-primary">
       <i class="ri-search-line"></i>
       Найти
     </button>

@@ -62,7 +62,7 @@
       : 0;
 @endphp
 
-<body class="bg-gray-50 text-gray-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}" x-data="{ sidebarOpen: false }">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}" x-data="{ sidebarOpen: false }">
 
   <div class="flex min-h-screen overflow-hidden relative">
 
@@ -77,13 +77,13 @@
 
     <!-- ===== Sidebar ===== -->
     <aside 
-      class="fixed left-0 top-0 bottom-0 z-40 w-64 bg-white border-r border-gray-200 shadow-lg flex flex-col
+      class="fixed left-0 top-0 bottom-0 z-40 w-64 border-r border-slate-200 wv-sidebar flex flex-col
              -translate-x-full transform transition-transform duration-300 ease-in-out
              md:translate-x-0"
       :class="{ 'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen }">
 
       <!-- Header -->
-      <div class="p-4 flex items-center justify-between border-b border-gray-100">
+      <div class="p-4 flex items-center justify-between border-b border-slate-100">
         <div class="flex items-center gap-2">
           <i class="ri-store-3-line text-indigo-600 text-2xl"></i>
           <span class="text-xl font-bold text-indigo-600">WebVitrina</span>
@@ -125,10 +125,7 @@
           <div class="space-y-1">
           @foreach ($items as $item)
           <a href="{{ route($item['route'], $item['params'] ?? []) }}"
-             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
-                    {{ request()->routeIs($item['active'] ?? $item['route'].'*')
-                        ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-sm'
-                        : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50' }}">
+             class="wv-sidebar-link {{ request()->routeIs($item['active'] ?? $item['route'].'*') ? 'wv-sidebar-link-active' : '' }}">
             <i class="{{ $item['icon'] }} text-lg"></i>
             <span>{{ $item['label'] }}</span>
             @if(($item['badge'] ?? 0) > 0)
@@ -142,7 +139,7 @@
         @endforeach
       </nav>
 
-      <div class="p-4 border-t border-gray-100 text-xs text-gray-500 text-center">
+      <div class="p-4 border-t border-slate-100 text-xs text-slate-500 text-center">
         © {{ date('Y') }} WebVitrina<br><span class="text-gray-400">Admin Panel</span>
       </div>
     </aside>
@@ -151,7 +148,7 @@
     <div class="flex-1 flex flex-col w-full md:ml-[16rem] transition-all duration-300 {{ $adminFullHeight ? 'h-[100dvh] overflow-hidden' : '' }}">
 
       <!-- Topbar -->
-      <header class="sticky top-0 z-30 flex items-center justify-between border-b border-gray-200 bg-white/90 shadow-sm backdrop-blur-md {{ $adminFullHeight ? 'h-11 px-3 sm:h-14 sm:px-6' : 'h-14 px-4 sm:px-6' }}">
+      <header class="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-md {{ $adminFullHeight ? 'h-11 px-3 sm:h-14 sm:px-6' : 'h-14 px-4 sm:px-6' }}">
         <button @click="sidebarOpen = !sidebarOpen" class="text-gray-600 hover:text-indigo-600 text-2xl md:hidden">
           <i class="ri-menu-line"></i>
         </button>
@@ -174,7 +171,7 @@
       </header>
 
       <!-- Main content -->
-      <main class="flex-1 w-full bg-gray-50 {{ $adminFullHeight ? 'min-h-0 overflow-hidden p-2 sm:p-4 lg:p-5' : 'p-6 lg:p-10' }}">
+      <main class="flex-1 w-full bg-slate-50 {{ $adminFullHeight ? 'min-h-0 overflow-hidden p-2 sm:p-4 lg:p-5' : 'p-6 lg:p-10' }}">
         @yield('content')
       </main>
 

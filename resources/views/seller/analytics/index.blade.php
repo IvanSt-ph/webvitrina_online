@@ -1,6 +1,6 @@
 <x-seller-layout title="Аналитика продавца" :hideHeader="true">
 
-<div class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6 overflow-x-hidden">
+<div class="min-h-screen overflow-x-hidden bg-slate-50 px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6">
 <div class="w-full max-w-none space-y-5">
 
 @php
@@ -11,9 +11,9 @@
     }
 @endphp
 
-<header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[1fr_420px] lg:items-center">
+<header class="grid gap-4 wv-panel lg:grid-cols-[1fr_420px] lg:items-center">
     <div>
-        <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+        <div class="wv-eyebrow">
             <i class="ri-line-chart-line"></i>
             Аналитика продавца
         </div>
@@ -33,7 +33,7 @@
         </div>
     </div>
 
-    <form method="GET" class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <form method="GET" class="wv-soft-panel p-3">
         <div class="grid grid-cols-3 gap-2">
             @foreach([7,14,30] as $p)
                 <button
@@ -51,13 +51,13 @@
 
         <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
             <input type="date" name="from" value="{{ $from }}"
-                   class="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 sm:text-sm">
+                   class="h-10 min-w-0 wv-input px-2 text-xs sm:text-sm">
 
             <input type="date" name="to" value="{{ $to }}"
-                   class="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-xs outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 sm:text-sm">
+                   class="h-10 min-w-0 wv-input px-2 text-xs sm:text-sm">
 
             <button type="submit"
-                    class="h-10 rounded-lg bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-indigo-600 sm:text-sm">
+                    class="h-10 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-indigo-600 sm:text-sm">
                 Обновить
             </button>
         </div>
@@ -75,7 +75,7 @@
         $d = delta($totalNow, $totalPrev);
     @endphp
 
-    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div class="wv-card p-4">
         <p class="text-xs text-gray-500">Суммарная активность</p>
         <h2 class="text-2xl font-bold mt-1 text-gray-900">{{ $totalNow }}</h2>
         <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
@@ -86,7 +86,7 @@
 
     {{-- Просмотры --}}
     @php $d = delta($summary->views,$prev->views); @endphp
-    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div class="wv-card p-4">
         <p class="text-xs text-gray-500">Просмотры</p>
         <h2 class="text-2xl font-bold mt-1">{{ $summary->views }}</h2>
         <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
@@ -97,7 +97,7 @@
 
     {{-- Избранное --}}
     @php $d = delta($summary->favorites,$prev->favorites); @endphp
-    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div class="wv-card p-4">
         <p class="text-xs text-gray-500">Избранное</p>
         <h2 class="text-2xl font-bold mt-1">{{ $summary->favorites }}</h2>
         <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
@@ -108,7 +108,7 @@
 
     {{-- Корзины --}}
     @php $d = delta($summary->carts,$prev->carts); @endphp
-    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div class="wv-card p-4">
         <p class="text-xs text-gray-500">Корзины</p>
         <h2 class="text-2xl font-bold mt-1">{{ $summary->carts }}</h2>
         <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
@@ -120,26 +120,26 @@
 
 @if($sellerPlanProfile['analytics_enabled'] && $advanced)
     <section class="grid grid-cols-1 gap-4 mb-10 md:grid-cols-3">
-        <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4 shadow-sm">
+        <div class="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 shadow-sm">
             <p class="text-xs font-semibold text-cyan-700">Конверсия в избранное</p>
             <h2 class="mt-1 text-2xl font-bold text-cyan-950">{{ $advanced['favorite_rate'] }}%</h2>
             <p class="mt-1 text-xs text-cyan-700">Доля добавлений в избранное от просмотров</p>
         </div>
 
-        <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
+        <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
             <p class="text-xs font-semibold text-indigo-700">Конверсия в корзину</p>
             <h2 class="mt-1 text-2xl font-bold text-indigo-950">{{ $advanced['cart_rate'] }}%</h2>
             <p class="mt-1 text-xs text-indigo-700">Показывает товары с реальным покупательским интересом</p>
         </div>
 
-        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
             <p class="text-xs font-semibold text-amber-700">Без просмотров</p>
             <h2 class="mt-1 text-2xl font-bold text-amber-950">{{ $advanced['inactive_products'] }}</h2>
             <p class="mt-1 text-xs text-amber-700">{{ $advanced['products_with_cart_interest'] }} товаров попадали в корзину</p>
         </div>
     </section>
 @else
-    <section class="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <section class="mb-10 wv-soft-panel">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="font-semibold text-slate-900">Расширенная аналитика доступна с Pro</h2>
@@ -157,7 +157,7 @@
 <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
 
     {{-- Пончик --}}
-    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div class="wv-card p-4">
         <h2 class="text-base font-semibold mb-4">Распределение активности</h2>
 
         <div class="relative w-full overflow-x-hidden" style="min-height:240px;">
@@ -166,7 +166,7 @@
     </div>
 
     {{-- ТОП --}}
-    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm lg:col-span-2">
+    <div class="wv-card p-4 lg:col-span-2">
         <h2 class="text-base font-semibold mb-4">ТОП по просмотрам</h2>
 
         @if($topProducts->count())
@@ -183,7 +183,7 @@
 
 {{-- Таймлайн --}}
 <section>
-    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm mb-10">
+    <div class="wv-card mb-10 p-4">
         <div class="flex items-center justify-between mb-2">
             <h2 class="text-base font-semibold">Активность по дням</h2>
             <p class="text-xs text-gray-400">Клик по точке → детали дня</p>
