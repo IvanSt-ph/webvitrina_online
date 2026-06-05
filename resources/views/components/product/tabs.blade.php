@@ -1,4 +1,4 @@
-@props(['product', 'reviews', 'myReview'])
+@props(['product', 'reviews', 'myReview', 'reviewStats' => null])
 
 @php
     $description = trim((string) $product->description);
@@ -50,6 +50,11 @@
         ->map(fn ($line) => trim($line, " \t\n\r\0\x0B-•"))
         ->filter()
         ->values();
+    $reviewTotal = (int) ($reviewStats->total ?? $product->reviews_count ?? 0);
+    $reviewAverage = round((float) ($reviewStats->average ?? $product->reviews_avg_rating ?? 0), 1);
+    $reviewBreakdown = collect([5, 4, 3, 2, 1])->mapWithKeys(fn ($star) => [
+        $star => (int) ($reviewStats->{'star_' . $star} ?? 0),
+    ]);
 @endphp
 
 <div
@@ -315,6 +320,35 @@
                     </template>
                 </div>
             @endauth
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-5">
+                <div class="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-center">
+                    <div class="rounded-2xl bg-slate-50 p-4 text-center">
+                        <div class="text-4xl font-semibold text-slate-950">{{ number_format($reviewAverage, 1, ',', ' ') }}</div>
+                        <div class="mt-2 flex justify-center text-lg">
+                            @for ($i = 1; $i <= 5; $i++)
+                                <span class="{{ $i <= round($reviewAverage) ? 'text-yellow-400' : 'text-slate-300' }}">★</span>
+                            @endfor
+                        </div>
+                        <p class="mt-2 text-sm text-slate-500">
+                            {{ $reviewTotal > 0 ? $reviewTotal . ' отзывов' : 'Отзывов пока нет' }}
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach($reviewBreakdown as $star => $count)
+                            @php $percent = $reviewTotal > 0 ? round($count / $reviewTotal * 100) : 0; @endphp
+                            <div class="grid grid-cols-[58px_minmax(0,1fr)_44px] items-center gap-3 text-sm">
+                                <div class="font-medium text-slate-600">{{ $star }} ★</div>
+                                <div class="h-2 overflow-hidden rounded-full bg-slate-100">
+                                    <div class="h-full rounded-full bg-yellow-400" style="width: {{ $percent }}%"></div>
+                                </div>
+                                <div class="text-right text-slate-500">{{ $count }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
 
             <div class="space-y-4">
                 @forelse ($reviews as $r)

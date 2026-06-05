@@ -40,9 +40,10 @@ $gallery = array_map(function($img) {
 
     $currentPrice = $p->price_for_current_currency;
     $price   = $currentPrice['amount'] ?? ($p->price ?? 0);
-    $oldPrice = $p->old_price ?? null;
-    $hasDiscount = $oldPrice && $oldPrice > $price;
-    $discountPercent = $hasDiscount ? round(100 - ($price * 100 / $oldPrice)) : null;
+    $oldPriceData = $p->old_price_for_current_currency;
+    $oldPrice = $oldPriceData['amount'] ?? null;
+    $discountPercent = $p->discount_percent;
+    $hasDiscount = $discountPercent && $oldPrice && $oldPrice > $price;
 
     $reviewsCount = (int) ($p->reviews_count ?? 0);
     $avg = round((float) ($p->reviews_avg_rating ?? 0), 1);

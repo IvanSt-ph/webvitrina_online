@@ -1,3 +1,32 @@
+@php
+  $seoUrl = route('category.index');
+  $seoDescription = 'Каталог категорий WebVitrina: выберите раздел, найдите товары продавцов и уточните условия покупки, доставки и оплаты.';
+@endphp
+
+@push('meta')
+  <meta name="description" content="{{ $seoDescription }}">
+  <link rel="canonical" href="{{ $seoUrl }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Категории — {{ config('app.name') }}">
+  <meta property="og:description" content="{{ $seoDescription }}">
+  <meta property="og:url" content="{{ $seoUrl }}">
+  <meta property="og:image" content="{{ asset('images/icon.png') }}">
+  <script type="application/ld+json">
+    {!! json_encode([
+        '@context' => 'https://schema.org',
+        '@type' => 'CollectionPage',
+        'name' => 'Категории',
+        'description' => $seoDescription,
+        'url' => $seoUrl,
+        'isPartOf' => [
+            '@type' => 'WebSite',
+            'name' => config('app.name'),
+            'url' => url('/'),
+        ],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+  </script>
+@endpush
+
 <x-app-layout title="Категории">
 
 {{-- 🧭 Хлебные крошки и фильтры закреплены --}}

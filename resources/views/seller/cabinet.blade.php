@@ -104,6 +104,73 @@
       </form>
     </section>
 
+    @if(!empty($reputationProgress))
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-indigo-100 bg-indigo-50 text-indigo-600">
+                <i class="ri-shield-star-line text-lg"></i>
+              </span>
+              <div>
+                <h2 class="text-lg font-semibold text-slate-950">Уровень продавца</h2>
+                <p class="text-sm text-slate-500">Показывает покупателям публичные сигналы доверия: продажи, рейтинг и подтверждения.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+            <div class="text-xs font-semibold uppercase text-slate-400">Сейчас</div>
+            <div class="mt-1 font-bold text-slate-950">{{ $reputationProgress['current'] }}</div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-xl border border-slate-100 bg-white p-3">
+            <div class="text-xs font-semibold text-slate-400">Продажи</div>
+            <div class="mt-1 text-xl font-extrabold text-slate-950">{{ number_format($reputationProgress['sales'], 0, ',', ' ') }}</div>
+          </div>
+          <div class="rounded-xl border border-slate-100 bg-white p-3">
+            <div class="text-xs font-semibold text-slate-400">Рейтинг</div>
+            <div class="mt-1 text-xl font-extrabold text-slate-950">
+              {{ $reputationProgress['rating'] > 0 ? number_format($reputationProgress['rating'], 2, ',', ' ') . ' / 5' : '—' }}
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-100 bg-white p-3">
+            <div class="text-xs font-semibold text-slate-400">Следующий шаг</div>
+            <div class="mt-1 text-sm font-bold text-slate-950">
+              @if($reputationProgress['is_top'])
+                Максимальный уровень
+              @else
+                {{ $reputationProgress['next'] }}
+              @endif
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-900">
+          @if($reputationProgress['is_top'])
+            <div class="flex items-center gap-2 font-semibold">
+              <i class="ri-checkbox-circle-fill text-indigo-600"></i>
+              У вас максимальный публичный уровень продавца. Поддерживайте рейтинг и скорость обработки заказов.
+            </div>
+          @elseif(empty($reputationProgress['tasks']))
+            <div class="flex items-center gap-2 font-semibold">
+              <i class="ri-refresh-line text-indigo-600"></i>
+              Условия для следующего уровня уже выглядят выполненными. Уровень обновится после пересчёта репутации.
+            </div>
+          @else
+            <div class="font-semibold">До уровня “{{ $reputationProgress['next'] }}” нужно:</div>
+            <div class="mt-2 flex flex-wrap gap-2">
+              @foreach($reputationProgress['tasks'] as $task)
+                <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-100">{{ $task }}</span>
+              @endforeach
+            </div>
+          @endif
+        </div>
+      </section>
+    @endif
+
     @if(!empty($actionCards))
       <section class="space-y-4">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -114,7 +181,7 @@
           @if($pendingPlanRequest)
             <a href="{{ route('seller.plans.index') }}" class="inline-flex w-fit items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
               <i class="ri-vip-crown-line"></i>
-              Заявка на тариф в обработке
+              Заявка на уровень магазина в обработке
             </a>
           @endif
         </div>
@@ -183,7 +250,7 @@
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 class="text-lg font-semibold text-slate-950">Чеклист запуска магазина</h2>
-            <p class="mt-1 text-sm text-slate-500">Баннеры сайта настраивает админ. Продавцу важны контакты, товары и тариф.</p>
+            <p class="mt-1 text-sm text-slate-500">Баннеры сайта настраивает админ. Продавцу важны контакты, товары и уровень магазина.</p>
           </div>
           <span class="w-fit rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">{{ $doneCount }} / {{ $totalCount }}</span>
         </div>

@@ -20,7 +20,8 @@
                 ['label' => 'Почта настроена', 'ok' => config('mail.default') !== 'log', 'current' => config('mail.default'), 'hint' => 'Для уведомлений нужен рабочий SMTP/провайдер.'],
                 ['label' => 'Хранилище связано', 'ok' => is_link(public_path('storage')) || file_exists(public_path('storage')), 'current' => public_path('storage'), 'hint' => 'Проверьте php artisan storage:link на сервере.'],
                 ['label' => 'Sitemap доступен', 'ok' => route('sitemap', [], false) === '/sitemap.xml', 'current' => route('sitemap', [], false), 'hint' => 'После деплоя проверьте sitemap.xml и robots.txt по домену.'],
-                ['label' => 'Бэкапы БД', 'ok' => false, 'current' => 'проверяется вручную', 'hint' => 'Настройте ежедневный backup базы и файлов загрузок.'],
+                ['label' => 'Scheduler включён', 'ok' => false, 'current' => 'проверяется вручную', 'hint' => 'На сервере cron/systemd должен запускать php artisan schedule:run каждую минуту.'],
+                ['label' => 'Бэкапы БД и файлов', 'ok' => false, 'current' => 'проверяется вручную', 'hint' => 'Настройте ежедневный backup базы и storage/app/public, затем проверьте восстановление.'],
             ],
         ],
         [
@@ -89,6 +90,7 @@
         <div class="mt-3 grid gap-3 text-sm text-rose-900 md:grid-cols-2">
             <div class="rounded-2xl bg-white/70 p-3">Проверить `.env` на сервере: debug, cookies, queue, mail, URL.</div>
             <div class="rounded-2xl bg-white/70 p-3">Настроить cron для Laravel scheduler и регулярных бэкапов.</div>
+            <div class="rounded-2xl bg-white/70 p-3">Проверить restore backup на отдельной базе: архив без восстановления ещё не защита.</div>
             <div class="rounded-2xl bg-white/70 p-3">Прогнать smoke-test: регистрация, товар, корзина, заказ, чат, спор, жалоба.</div>
             <div class="rounded-2xl bg-white/70 p-3">Показать юридические страницы юристу и зафиксировать дату редакции.</div>
         </div>

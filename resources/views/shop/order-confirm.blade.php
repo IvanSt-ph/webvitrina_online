@@ -93,7 +93,7 @@
 
     @if($orderCount > 1)
         <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
-            Будет создано заказов: <strong>{{ $orderCount }}</strong>. Стоимость выбранной доставки начисляется для каждого магазина отдельно.
+            Будет создано заказов: <strong>{{ $orderCount }}</strong>. Условия передачи, доставки и оплаты согласуются отдельно с каждым продавцом.
         </div>
     @endif
 
@@ -126,21 +126,21 @@
             <div class="space-y-2">
                 <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
                     <input type="radio" name="delivery_method" value="courier" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" checked required>
-                    <span class="min-w-0 text-sm text-slate-800">🚚 Курьерская доставка</span>
+                    <span class="min-w-0 text-sm text-slate-800">🚚 Доставка продавцом по договорённости</span>
                 </label>
                 <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
                     <input type="radio" name="delivery_method" value="pickup" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-sm text-slate-800">🏪 Самовывоз</span>
+                    <span class="min-w-0 text-sm text-slate-800">🏪 Самовывоз по договорённости с продавцом</span>
                 </label>
                 <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
                     <input type="radio" name="delivery_method" value="post" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-sm text-slate-800">📮 Почта России</span>
+                    <span class="min-w-0 text-sm text-slate-800">📮 Отправка почтой по договорённости</span>
                 </label>
             </div>
         @endif
         
         <p class="mt-3 text-xs text-slate-500">
-            Доставка начисляется отдельно для каждого заказа продавцу.
+            Сайт фиксирует выбранный вариант, но доставку как услугу пока не выполняет. Стоимость и сроки продавец подтвердит в заказе или чате.
         </p>
     </div>
 
@@ -166,11 +166,11 @@
             <div class="space-y-2">
                 <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
                     <input type="radio" name="payment_method" value="cash" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" checked required>
-                    <span class="min-w-0 text-sm text-slate-800">💵 Наличными при получении</span>
+                    <span class="min-w-0 text-sm text-slate-800">💵 Наличными при получении или передаче товара</span>
                 </label>
                 <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
                     <input type="radio" name="payment_method" value="card" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-sm text-slate-800">💳 Картой при получении (онлайн-оплата пока недоступна)</span>
+                    <span class="min-w-0 text-sm text-slate-800">💳 Картой при получении (онлайн-оплата на сайте пока не выполняется)</span>
                 </label>
                 <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
                     <input type="radio" name="payment_method" value="bank_transfer" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
@@ -180,7 +180,7 @@
         @endif
         
         <p class="mt-3 text-xs text-slate-500">
-            Онлайн-платёж на сайте пока не выполняется. Условия оплаты фиксируются для связи с продавцом.
+            Онлайн-платёж на сайте пока не выполняется. Выбранный вариант нужен, чтобы продавец понимал ожидаемый способ расчёта.
         </p>
     </div>
 </div>
@@ -197,20 +197,16 @@
     </div>
 
     <div class="flex min-w-0 justify-between gap-3 text-sm text-slate-700">
-        <span>Доставка ({{ $orderCount }} {{ $orderCount === 1 ? 'заказ' : 'заказа' }}):</span>
-        <span id="delivery-cost" class="shrink-0 font-medium">
-            @if($totalDeliveryCost > 0)
-                {{ number_format($totalDeliveryCost, 2, ',', ' ') }} ₽
-            @else
-                Бесплатно
-            @endif
+        <span>Доставка:</span>
+        <span id="delivery-cost" class="shrink-0 text-right font-medium text-slate-500">
+            Согласуется с продавцом
         </span>
     </div>
 
     <hr class="border-slate-200">
 
     <div class="flex min-w-0 items-start justify-between gap-3">
-        <span class="min-w-0 text-base font-semibold text-slate-950 sm:text-lg">Итого к оплате</span>
+        <span class="min-w-0 text-base font-semibold text-slate-950 sm:text-lg">Итого за товары</span>
         <span id="total-with-delivery" class="shrink-0 text-xl font-semibold text-slate-950 sm:text-2xl">
             {{ number_format($totalWithDelivery, 2, ',', ' ') }} ₽
         </span>
@@ -277,8 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!radio) return;
 
         const price = Number(prices[radio.value] ?? 0) * orderCount;
-        deliveryEl.textContent = price > 0 ? format(price) : 'Бесплатно';
-        deliveryEl.className = price > 0 ? 'font-medium' : 'text-green-600 font-medium';
+        deliveryEl.textContent = price > 0 ? format(price) : 'Согласуется с продавцом';
+        deliveryEl.className = price > 0 ? 'font-medium' : 'shrink-0 text-right font-medium text-slate-500';
         totalEl.textContent = format(subtotal + price);
     }
 

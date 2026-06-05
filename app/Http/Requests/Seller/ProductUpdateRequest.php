@@ -19,13 +19,17 @@ class ProductUpdateRequest extends FormRequest
         return [
             'title'       => 'required|string|max:255',
             'price'       => 'required|numeric|min:0',
+            'old_price'   => 'nullable|numeric|min:0|gt:price',
             'stock'       => 'required|integer|min:0',
             'description' => 'nullable|string|max:3000',
             'status'      => ['nullable', Rule::in(\App\Models\Product::sellerEditableStatuses())],
             'currency_base' => 'nullable|in:PRB,MDL,UAH',
             'price_prb'   => 'nullable|numeric|min:0',
+            'old_price_prb' => 'nullable|numeric|min:0',
             'price_mdl'   => 'nullable|numeric|min:0',
+            'old_price_mdl' => 'nullable|numeric|min:0',
             'price_uah'   => 'nullable|numeric|min:0',
+            'old_price_uah' => 'nullable|numeric|min:0',
 
             'category_id' => 'required|exists:categories,id',
             'country_id'  => 'required|exists:countries,id',

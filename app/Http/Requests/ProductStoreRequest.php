@@ -20,6 +20,7 @@ public function rules(): array
         'slug'        => ['nullable', 'string', 'max:255'],
         'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku'],
         'price'       => ['required', 'numeric', 'min:0'],
+        'old_price'   => ['nullable', 'numeric', 'min:0', 'gt:price'],
         'stock'       => ['required', 'integer', 'min:0'],
         'user_id'     => ['required', Rule::exists('users', 'id')->where('role', 'seller')],
         'category_id' => ['required', 'exists:categories,id'],

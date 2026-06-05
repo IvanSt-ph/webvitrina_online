@@ -38,6 +38,7 @@ class ProductController extends Controller
             'stock' => ['nullable', Rule::in(['out', 'low', 'available'])],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'seller_id' => ['nullable', 'integer', 'exists:users,id'],
+            'discount' => ['nullable', 'boolean'],
             'sort' => ['nullable', Rule::in(['latest', 'oldest', 'price_asc', 'price_desc', 'stock_asc', 'views_desc'])],
         ]);
 
@@ -50,6 +51,7 @@ class ProductController extends Controller
             'draft' => Product::where('status', Product::STATUS_DRAFT)->count(),
             'blocked' => Product::where('status', Product::STATUS_BLOCKED)->count(),
             'out_of_stock' => Product::where('status', Product::STATUS_ACTIVE)->where('stock', 0)->count(),
+            'discount' => Product::onSale()->count(),
         ];
 
         return view('admin.products.index', compact('products', 'categories', 'sellers', 'summary'));

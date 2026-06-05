@@ -1,3 +1,56 @@
+@php
+    $seoDescription = \Illuminate\Support\Str::limit(
+        trim(strip_tags($product->description ?: 'Купить ' . $product->title . ' на WebVitrina. Уточните наличие, доставку и условия покупки у продавца.')),
+        160
+    );
+    $seoImage = $product->image_url;
+    $seoUrl = route('product.show', $product->slug);
+    $seoAvailability = ($product->stock ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
+@endphp
+
+@push('meta')
+    <meta name="description" content="{{ $seoDescription }}">
+    <link rel="canonical" href="{{ $seoUrl }}">
+    <meta property="og:type" content="product">
+    <meta property="og:title" content="{{ $product->title }}">
+    <meta property="og:description" content="{{ $seoDescription }}">
+    <meta property="og:url" content="{{ $seoUrl }}">
+    <meta property="og:image" content="{{ $seoImage }}">
+    <meta property="product:price:amount" content="{{ number_format((float) $product->price, 2, '.', '') }}">
+    <meta property="product:price:currency" content="{{ $product->currency ?? 'PRB' }}">
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'Product',
+            'name' => $product->title,
+            'description' => $seoDescription,
+            'image' => [$seoImage],
+            'sku' => $product->sku,
+            'category' => $product->category?->name,
+            'brand' => [
+                '@type' => 'Brand',
+                'name' => $product->seller?->shop?->name ?? config('app.name'),
+            ],
+            'offers' => [
+                '@type' => 'Offer',
+                'url' => $seoUrl,
+                'priceCurrency' => $product->currency ?? 'PRB',
+                'price' => number_format((float) $product->price, 2, '.', ''),
+                'availability' => $seoAvailability,
+                'seller' => [
+                    '@type' => 'Organization',
+                    'name' => $product->seller?->shop?->name ?? $product->seller?->name ?? config('app.name'),
+                ],
+            ],
+            'aggregateRating' => ($product->reviews_count ?? 0) > 0 ? [
+                '@type' => 'AggregateRating',
+                'ratingValue' => round((float) ($product->reviews_avg_rating ?? 0), 1),
+                'reviewCount' => (int) $product->reviews_count,
+            ] : null,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    </script>
+@endpush
+
 <x-app-layout :title="$product->title">
 
     <x-slot name="specs">
@@ -89,7 +142,7 @@
 
 
         {{-- Вкладки: описание, размеры, характеристики, отзывы --}}
-      <x-product.tabs :product="$product" :reviews="$reviews" :myReview="$myReview" />
+      <x-product.tabs :product="$product" :reviews="$reviews" :myReview="$myReview" :reviewStats="$reviewStats" />
 
         {{-- Похожие товары --}}
         <x-product.related :items="$related" />

@@ -1,22 +1,22 @@
-<x-seller-layout title="Тарифы продавца" :hideHeader="true">
+<x-seller-layout title="Уровень магазина" :hideHeader="true">
     <div class="min-h-screen bg-white px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6">
         <div class="w-full max-w-none space-y-5">
             <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[1fr_340px] lg:items-center">
                 <div>
                     <div class="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
                         <i class="ri-vip-crown-line"></i>
-                        Тариф продавца
+                        Уровень магазина: {{ $profile['label'] }}
                     </div>
                     <h1 class="mt-3 text-2xl font-bold text-slate-950 sm:text-3xl">Выберите уровень магазина</h1>
                     <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                        Тариф влияет на лимит товаров, продвижение и доступ к расширенной аналитике. Оплата пока оформляется через заявку и ручное одобрение администратором.
+                       Уровень магазина влияет на лимит товаров, продвижение и доступ к расширенной аналитике. Повышение уровня оформляется через заявку и ручное одобрение администратором.
                     </p>
                 </div>
 
                 <div class="rounded-xl border {{ $profile['class'] }} p-4">
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <div class="text-xs font-semibold uppercase text-slate-500">Текущий тариф</div>
+                            <div class="text-xs font-semibold uppercase text-slate-500">Текущий уровень магазина</div>
                             <div class="mt-1 text-2xl font-bold">{{ $profile['label'] }}</div>
                         </div>
                         <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/80 text-xl">
@@ -91,12 +91,12 @@
                         </ul>
 
                         @if($isCurrent)
-                            <button type="button" disabled class="mt-5 h-10 rounded-lg bg-slate-200 text-sm font-bold text-slate-500">Текущий тариф</button>
+                            <button type="button" disabled class="mt-5 h-10 rounded-lg bg-slate-200 text-sm font-bold text-slate-500">Текущий уровень</button>
                         @elseif($isDifferent)
                             <form method="POST" action="{{ route('seller.plans.request') }}" class="mt-5 space-y-2">
                                 @csrf
                                 <input type="hidden" name="requested_plan" value="{{ $key }}">
-                                <textarea name="message" rows="2" placeholder="{{ $isUpgrade ? 'Комментарий для администратора' : 'Причина понижения тарифа' }}" class="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"></textarea>
+                                <textarea name="message" rows="2" placeholder="{{ $isUpgrade ? 'Комментарий для администратора' : 'Причина изменения уровня' }}" class="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"></textarea>
                                 <button type="submit" @disabled($pendingRequest) class="h-10 w-full rounded-lg bg-indigo-600 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">
                                     Подать заявку
                                 </button>

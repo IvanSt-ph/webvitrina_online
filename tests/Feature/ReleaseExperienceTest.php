@@ -9,6 +9,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\Product;
 use App\Models\ProductReport;
+use App\Models\Shop;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Notifications\MarketplaceEventNotification;
@@ -418,6 +419,78 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('самостоятельно опубликовать нельзя');
     }
 
+    public function test_seller_and_admin_product_lists_can_filter_discounted_products(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $discounted = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Release discounted product',
+            'slug' => 'release-discounted-product',
+            'price' => 80,
+            'old_price' => 120,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Regular product without discount',
+            'slug' => 'regular-product-without-discount',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($seller)
+            ->get(route('seller.products.index', ['discount' => 1]))
+            ->assertOk()
+            ->assertSee('Со скидкой')
+            ->assertSee($discounted->title)
+            ->assertDontSee('Regular product without discount');
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.index', ['discount' => 1]))
+            ->assertOk()
+            ->assertSee('Со скидкой')
+            ->assertSee($discounted->title)
+            ->assertDontSee('Regular product without discount');
+    }
+
+    public function test_buyer_order_page_shows_one_clear_next_action(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Actionable order product',
+            'slug' => 'actionable-order-product',
+            'price' => 100,
+            'stock' => 3,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $order = Order::create([
+            'user_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'number' => 'ORD-NEXT-ACTION',
+            'status' => Order::STATUS_SHIPPED,
+            'total_price' => 100,
+            'currency' => 'PRB',
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Что делать дальше')
+            ->assertSee('Проверьте получение товара')
+            ->assertSee('Подтвердить получение');
+    }
+
     public function test_admin_orders_attention_focus_shows_only_actionable_orders(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -570,5 +643,125 @@ class ReleaseExperienceTest extends TestCase
             ->assertOk()
             ->assertSee('Связаться с WebVitrina')
             ->assertSee('+373 (777) 14272');
+    }
+
+    public function test_product_and_category_pages_include_seo_metadata(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'SEO Shop',
+            'description' => 'Shop for SEO checks',
+        ]);
+        $category = Category::factory()->create([
+            'name' => 'SEO Category',
+            'slug' => 'seo-category',
+        ]);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'category_id' => $category->id,
+            'title' => 'SEO Product',
+            'slug' => 'seo-product',
+            'description' => 'SEO product description for public metadata.',
+            'price' => 100,
+            'stock' => 2,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        $this->get(route('product.show', $product->slug))
+            ->assertOk()
+            ->assertSee('<meta name="description"', false)
+            ->assertSee('<link rel="canonical" href="' . route('product.show', $product->slug) . '"', false)
+            ->assertSee('<meta property="og:type" content="product"', false)
+            ->assertSee('"@type": "Product"', false);
+
+        $this->get(route('category.show', $category->slug))
+            ->assertOk()
+            ->assertSee('<meta name="description"', false)
+            ->assertSee('<link rel="canonical" href="' . route('category.show', $category->slug) . '"', false)
+            ->assertSee('<meta property="og:type" content="website"', false)
+            ->assertSee('"@type": "CollectionPage"', false);
+    }
+
+    public function test_public_seller_shop_filters_products(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Filter Shop',
+            'description' => 'Seller catalog',
+        ]);
+
+        $oldProduct = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Old regular item',
+            'slug' => 'old-regular-item',
+            'price' => 100,
+            'stock' => 3,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $oldProduct->forceFill([
+            'created_at' => now()->subDays(45),
+            'updated_at' => now()->subDays(45),
+        ])->save();
+
+        $newProduct = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Fresh new item',
+            'slug' => 'fresh-new-item',
+            'price' => 120,
+            'stock' => 4,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $newProduct->forceFill([
+            'created_at' => now()->subDays(2),
+            'updated_at' => now()->subDays(2),
+        ])->save();
+
+        $hitProduct = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Popular hit item',
+            'slug' => 'popular-hit-item',
+            'price' => 140,
+            'stock' => 2,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $hitProduct->forceFill([
+            'views_count' => 25,
+            'created_at' => now()->subDays(40),
+            'updated_at' => now()->subDays(40),
+        ])->save();
+
+        $saleProduct = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Discount sale item',
+            'slug' => 'discount-sale-item',
+            'price' => 90,
+            'old_price' => 120,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $saleProduct->forceFill([
+            'created_at' => now()->subDays(35),
+            'updated_at' => now()->subDays(35),
+        ])->save();
+
+        $this->get(route('seller.show', ['identifier' => $shop->slug, 'filter' => 'new']))
+            ->assertOk()
+            ->assertSee('Новинки магазина')
+            ->assertSee('Fresh new item')
+            ->assertDontSee('Old regular item');
+
+        $this->get(route('seller.show', ['identifier' => $shop->slug, 'filter' => 'hit']))
+            ->assertOk()
+            ->assertSee('Хиты магазина')
+            ->assertSee('Popular hit item')
+            ->assertDontSee('Old regular item');
+
+        $this->get(route('seller.show', ['identifier' => $shop->slug, 'filter' => 'sale']))
+            ->assertOk()
+            ->assertSee('Товары со скидкой')
+            ->assertSee('Discount sale item')
+            ->assertDontSee('Old regular item');
     }
 }

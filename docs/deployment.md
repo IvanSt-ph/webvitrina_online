@@ -62,6 +62,36 @@ php artisan queue:restart
 
 Так Laravel мягко перезапустит worker, и он подхватит новый код.
 
+## Scheduler и бэкапы
+
+На сервере должен быть включён Laravel scheduler. Для Linux cron:
+
+```cron
+* * * * * cd /var/www/webvitrina && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Даже если в приложении пока нет регулярных задач, scheduler нужен как стандартная часть продакшн-окружения: его проще включить сразу, чем вспоминать после добавления очередной фоновой задачи.
+
+Бэкапы должны покрывать:
+
+- базу данных;
+- `storage/app/public`, где лежат загруженные изображения;
+- файл `.env` отдельно в защищённом месте или систему секретов.
+
+Пример shell-скрипта лежит здесь:
+
+```text
+deploy/backup-webvitrina.sh.example
+```
+
+Минимальный cron для ежедневного backup в 03:15:
+
+```cron
+15 3 * * * DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh.example >> /var/log/webvitrina-backup.log 2>&1
+```
+
+Перед запуском на реальном сервере скопируй пример в отдельный файл, проверь `APP_DIR`, `BACKUP_DIR`, доступы MySQL и восстановление backup на тестовой базе.
+
 ## Команды после деплоя
 
 ```bash
@@ -85,6 +115,8 @@ composer audit
 npm audit --omit=dev
 php artisan test
 ```
+
+После первого backup обязательно проверь восстановление: backup считается рабочим только после успешного restore на отдельной базе или тестовом окружении.
 
 ## Логи
 

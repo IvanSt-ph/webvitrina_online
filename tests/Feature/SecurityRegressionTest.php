@@ -3504,7 +3504,7 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('Show Seller Shop')
             ->assertSee('1 подписчик')
             ->assertSee('Контакты и безопасность')
-            ->assertSee('Уровень доверия')
+            ->assertSee('Уровень продавца')
             ->assertSee('Бронзовый уровень')
             ->assertSee('Заказы магазина')
             ->assertSee('Последние заказы магазина')
@@ -3801,7 +3801,7 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($seller)
             ->post(route('seller.plans.request'), [
                 'requested_plan' => 'basic',
-                'message' => 'Хочу перейти на тариф ниже.',
+                'message' => 'Хочу перейти на уровень ниже.',
             ])
             ->assertRedirect();
 
@@ -3815,7 +3815,7 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.users.index'))
             ->assertOk()
-            ->assertSee('Тарифы')
+            ->assertSee('Уровни магазинов')
             ->assertSee('1', false);
     }
 

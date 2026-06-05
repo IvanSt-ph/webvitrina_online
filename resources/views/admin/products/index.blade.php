@@ -9,6 +9,7 @@
     $currentStock = request('stock');
     $currentCategory = request('category_id');
     $currentSeller = request('seller_id');
+    $currentDiscount = request()->boolean('discount');
     $currentSort = request('sort', 'latest');
 
     $tabs = [
@@ -41,6 +42,7 @@
         'stock' => $currentStock,
         'category_id' => $currentCategory,
         'seller_id' => $currentSeller,
+        'discount' => $currentDiscount ? 1 : null,
         'sort' => $currentSort !== 'latest' ? $currentSort : null,
     ], fn ($value) => filled($value));
 
@@ -48,6 +50,7 @@
         || filled($currentStock)
         || filled($currentCategory)
         || filled($currentSeller)
+        || $currentDiscount
         || $currentSort !== 'latest';
 @endphp
 
@@ -244,7 +247,7 @@
 
     <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div x-cloak x-show="filterOpen" x-transition class="border-b border-slate-100 bg-slate-50/40 p-3 sm:p-4">
-            <form method="GET" action="{{ route('admin.products.index') }}" class="grid gap-3 xl:grid-cols-[minmax(220px,1fr)_160px_170px_190px_190px_190px_auto]">
+            <form method="GET" action="{{ route('admin.products.index') }}" class="grid gap-3 xl:grid-cols-[minmax(220px,1fr)_150px_160px_170px_170px_150px_180px_auto]">
                 <label class="relative block">
                     <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     <input type="search"
@@ -282,6 +285,11 @@
                     @endforeach
                 </select>
 
+                <label class="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                    <input type="checkbox" name="discount" value="1" @checked($currentDiscount) class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span>Со скидкой</span>
+                </label>
+
                 <select name="sort" class="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
                     <option value="latest" @selected($currentSort === 'latest')>Сначала новые</option>
                     <option value="oldest" @selected($currentSort === 'oldest')>Сначала старые</option>
@@ -297,7 +305,7 @@
                 </button>
             </form>
 
-            @if($search || $currentStatus || $currentStock || $currentCategory || $currentSeller || $currentSort !== 'latest')
+            @if($search || $currentStatus || $currentStock || $currentCategory || $currentSeller || $currentDiscount || $currentSort !== 'latest')
                 <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     <span class="font-semibold uppercase tracking-wide text-slate-400">Фильтр:</span>
                     @if($search)
@@ -314,6 +322,9 @@
                     @endif
                     @if($currentSeller)
                         <span class="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">Продавец выбран</span>
+                    @endif
+                    @if($currentDiscount)
+                        <span class="rounded-full bg-red-50 px-2.5 py-1 text-red-700">Со скидкой</span>
                     @endif
                     <a href="{{ route('admin.products.index') }}" class="rounded-full border border-slate-200 px-2.5 py-1 font-semibold text-slate-500 transition hover:border-indigo-200 hover:text-indigo-700">
                         Сбросить
@@ -376,6 +387,12 @@
                         <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ number_format($count, 0, ',', ' ') }}</span>
                     </a>
                 @endforeach
+                <a href="{{ route('admin.products.index', array_merge($baseFilters, ['discount' => 1])) }}"
+                   class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition {{ $currentDiscount ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50' }}">
+                    <i class="ri-price-tag-3-line"></i>
+                    <span>Со скидкой</span>
+                    <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ number_format($summary['discount'] ?? 0, 0, ',', ' ') }}</span>
+                </a>
             </div>
             <div class="flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-1" aria-label="Вид каталога">
                 <button type="button"
@@ -447,6 +464,12 @@
                             <td class="px-4 py-4 text-slate-600">{{ $product->category?->name ?: 'Без категории' }}</td>
                             <td class="px-4 py-4">
                                 <div class="font-bold text-slate-950">{{ number_format((float) $product->price, 2, ',', ' ') }} ₽</div>
+                                @if($product->discount_percent)
+                                    <div class="mt-1 flex flex-wrap items-center gap-1">
+                                        <span class="text-xs text-slate-400 line-through">{{ number_format((float) $product->old_price, 2, ',', ' ') }} ₽</span>
+                                        <span class="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700">-{{ $product->discount_percent }}%</span>
+                                    </div>
+                                @endif
                                 <span class="mt-2 inline-flex rounded-full border px-2 py-1 text-xs font-semibold {{ $stockClass }}">
                                     {{ $product->stock }} шт.
                                 </span>
@@ -487,7 +510,11 @@
                             <td colspan="6" class="px-6 py-16 text-center">
                                 <i class="ri-box-3-line text-4xl text-slate-300"></i>
                                 <p class="mt-3 font-semibold text-slate-700">Товары не найдены</p>
-                                <p class="mt-1 text-sm text-slate-400">Измените фильтры или добавьте новый товар.</p>
+                                <p class="mt-1 text-sm text-slate-400">По текущим условиям ничего не подходит. Сбросьте фильтры или создайте товар вручную.</p>
+                                <div class="mt-4 flex justify-center gap-2">
+                                    <a href="{{ route('admin.products.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Сбросить</a>
+                                    <a href="{{ route('admin.products.create') }}" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">Добавить товар</a>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
@@ -522,11 +549,21 @@
                                 {{ $product->stock === 0 ? 'Нет в наличии' : 'Осталось ' . $product->stock }}
                             </span>
                         @endif
+                        @if($product->discount_percent)
+                            <span class="absolute right-1.5 top-1.5 rounded-md bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                                -{{ $product->discount_percent }}%
+                            </span>
+                        @endif
                     </div>
                     <div class="p-2">
                         <h2 class="truncate text-[11px] font-bold leading-4 text-slate-950" title="{{ $product->title }}">{{ $product->title }}</h2>
                         <div class="mt-1 flex items-center justify-between gap-1">
-                            <span class="truncate text-xs font-bold text-indigo-700">{{ number_format((float) $product->price, 0, ',', ' ') }} ₽</span>
+                            <span class="truncate text-xs font-bold text-indigo-700">
+                                {{ number_format((float) $product->price, 0, ',', ' ') }} ₽
+                                @if($product->discount_percent)
+                                    <span class="ml-1 text-[9px] font-medium text-slate-400 line-through">{{ number_format((float) $product->old_price, 0, ',', ' ') }} ₽</span>
+                                @endif
+                            </span>
                             <span class="inline-flex shrink-0 items-center gap-1 text-[9px] text-slate-400">
                                 <span class="h-1.5 w-1.5 rounded-full {{ $isActive ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
                                 {{ $isActive ? 'В продаже' : $statusLabel }}
@@ -560,7 +597,11 @@
                 <div class="col-span-full px-6 py-14 text-center">
                     <i class="ri-box-3-line text-4xl text-slate-300"></i>
                     <p class="mt-3 font-semibold text-slate-700">Товары не найдены</p>
-                    <p class="mt-1 text-sm text-slate-400">Измените фильтры или добавьте новый товар.</p>
+                    <p class="mt-1 text-sm text-slate-400">По текущим условиям ничего не подходит. Сбросьте фильтры или создайте товар вручную.</p>
+                    <div class="mt-4 flex justify-center gap-2">
+                        <a href="{{ route('admin.products.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Сбросить</a>
+                        <a href="{{ route('admin.products.create') }}" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">Добавить товар</a>
+                    </div>
                 </div>
             @endforelse
         </div>
@@ -588,6 +629,9 @@
                                     {{ $statusLabel }}
                                 </span>
                                 <span class="rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $stockClass }}">{{ $product->stock }} шт.</span>
+                                @if($product->discount_percent)
+                                    <span class="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700">-{{ $product->discount_percent }}%</span>
+                                @endif
                             </div>
                             <h2 class="mt-2 line-clamp-2 text-sm font-bold text-slate-950">{{ $product->title }}</h2>
                             <p class="mt-1 text-xs text-slate-400">ID {{ $product->id }} · SKU {{ $product->sku ?: 'не задан' }}</p>
@@ -597,6 +641,9 @@
                         <div>
                             <div class="text-xs text-slate-400">Цена</div>
                             <div class="mt-1 font-bold text-slate-950">{{ number_format((float) $product->price, 2, ',', ' ') }} ₽</div>
+                            @if($product->discount_percent)
+                                <div class="mt-0.5 text-xs text-slate-400 line-through">{{ number_format((float) $product->old_price, 2, ',', ' ') }} ₽</div>
+                            @endif
                         </div>
                         <div>
                             <div class="text-xs text-slate-400">Продавец</div>
@@ -642,7 +689,11 @@
                 <div class="px-6 py-14 text-center">
                     <i class="ri-box-3-line text-4xl text-slate-300"></i>
                     <p class="mt-3 font-semibold text-slate-700">Товары не найдены</p>
-                    <p class="mt-1 text-sm text-slate-400">Измените фильтры или добавьте новый товар.</p>
+                    <p class="mt-1 text-sm text-slate-400">По текущим условиям ничего не подходит. Сбросьте фильтры или создайте товар вручную.</p>
+                    <div class="mt-4 flex justify-center gap-2">
+                        <a href="{{ route('admin.products.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Сбросить</a>
+                        <a href="{{ route('admin.products.create') }}" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">Добавить товар</a>
+                    </div>
                 </div>
             @endforelse
         </div>

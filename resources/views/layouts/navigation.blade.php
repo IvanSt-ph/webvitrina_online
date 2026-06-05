@@ -46,11 +46,48 @@
                 
                 <!-- Поле поиска с крестиком очистки -->
                 <form action="{{ route('home') }}" method="GET" class="w-full max-w-3xl m-0"
-                    x-data="{ search: '{{ request('q') }}' }">
+                    x-data="{
+                        search: @js(request('q', '')),
+                        open: false,
+                        loading: false,
+                        results: { products: [], categories: [], shops: [] },
+                        timer: null,
+                        get hasResults() {
+                            return this.results.products.length || this.results.categories.length || this.results.shops.length;
+                        },
+                        fetchSuggestions() {
+                            clearTimeout(this.timer);
+
+                            if (this.search.trim().length < 2) {
+                                this.results = { products: [], categories: [], shops: [] };
+                                this.open = false;
+                                return;
+                            }
+
+                            this.timer = setTimeout(async () => {
+                                this.loading = true;
+                                try {
+                                    const url = new URL(@js(route('search.suggest')), window.location.origin);
+                                    url.searchParams.set('q', this.search.trim());
+                                    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                                    this.results = response.ok ? await response.json() : { products: [], categories: [], shops: [] };
+                                    this.open = true;
+                                } catch (error) {
+                                    this.results = { products: [], categories: [], shops: [] };
+                                    this.open = false;
+                                } finally {
+                                    this.loading = false;
+                                }
+                            }, 220);
+                        }
+                    }"
+                    @click.outside="open = false">
                     <div class="group relative">
                         <input type="text" 
                             name="q" 
                             x-model="search"
+                            @input="fetchSuggestions"
+                            @focus="if (search.trim().length >= 2) { fetchSuggestions(); open = true }"
                             placeholder="Искать товары..."
                             class="h-11 w-full rounded-2xl border-slate-200 bg-slate-50/80 pl-4 pr-20 text-sm text-slate-800 shadow-inner shadow-slate-200/50 transition-all duration-200 placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100" />
                         
@@ -85,6 +122,66 @@
                                 </svg>
                             </div>
                         </button>
+
+                        <div
+                            x-cloak
+                            x-show="open && (hasResults || loading)"
+                            x-transition.opacity.duration.150ms
+                            class="absolute left-0 right-0 top-full z-[70] mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/10"
+                        >
+                            <div x-show="loading" class="px-4 py-3 text-sm text-slate-500">Ищем...</div>
+
+                            <template x-if="!loading && hasResults">
+                                <div class="max-h-[420px] overflow-y-auto p-2">
+                                    <template x-for="product in results.products" :key="'product-' + product.url">
+                                        <a :href="product.url" class="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-indigo-50">
+                                            <img :src="product.image" :alt="product.title" class="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100">
+                                            <span class="min-w-0">
+                                                <span class="block truncate text-sm font-semibold text-slate-900" x-text="product.title"></span>
+                                                <span class="block truncate text-xs text-slate-500" x-text="product.subtitle"></span>
+                                            </span>
+                                        </a>
+                                    </template>
+
+                                    <template x-if="results.categories.length">
+                                        <div class="mt-1 border-t border-slate-100 pt-1">
+                                            <template x-for="category in results.categories" :key="'category-' + category.url">
+                                                <a :href="category.url" class="flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition hover:bg-slate-50">
+                                                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                                                        <i class="ri-folder-3-line"></i>
+                                                    </span>
+                                                    <span class="min-w-0">
+                                                        <span class="block truncate font-semibold text-slate-900" x-text="category.title"></span>
+                                                        <span class="block text-xs text-slate-500" x-text="category.subtitle"></span>
+                                                    </span>
+                                                </a>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="results.shops.length">
+                                        <div class="mt-1 border-t border-slate-100 pt-1">
+                                            <template x-for="shop in results.shops" :key="'shop-' + shop.url">
+                                                <a :href="shop.url" class="flex items-center gap-3 rounded-xl px-2 py-2 text-sm transition hover:bg-slate-50">
+                                                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                                                        <i class="ri-store-2-line"></i>
+                                                    </span>
+                                                    <span class="min-w-0">
+                                                        <span class="block truncate font-semibold text-slate-900" x-text="shop.title"></span>
+                                                        <span class="block truncate text-xs text-slate-500" x-text="shop.subtitle"></span>
+                                                    </span>
+                                                </a>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <a :href="'{{ route('home') }}?q=' + encodeURIComponent(search.trim())" class="mt-1 flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">
+                                        <span>Показать все результаты</span>
+                                        <i class="ri-arrow-right-line"></i>
+                                    </a>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </form>
 

@@ -40,7 +40,7 @@
                 <div class="mt-1 text-slate-500">остаток</div>
             </div>
             <div class="rounded-lg border {{ $currentSellerProfile['class'] ?? 'border-slate-200 bg-slate-50 text-slate-700' }} p-3">
-                <div class="font-bold">{{ $currentSellerProfile['label'] ?? 'Тариф' }}</div>
+                <div class="font-bold">{{ $currentSellerProfile['label'] ?? 'Уровень магазина' }}</div>
                 <div class="mt-1 opacity-75">{{ $currentSellerProfile ? $currentSellerProfile['used'].'/'.$currentSellerProfile['limit_label'] : 'продавец' }}</div>
             </div>
         </div>
@@ -90,7 +90,7 @@
                     </label>
                 </div>
 
-                <div class="mt-4 grid gap-4 md:grid-cols-3" x-data="{ sku: @js(old('sku', $product->sku)), generate() { this.sku = 'PRD-' + (Math.floor(Math.random() * 90000) + 10000); } }">
+                <div class="mt-4 grid gap-4 md:grid-cols-4" x-data="{ sku: @js(old('sku', $product->sku)), generate() { this.sku = 'PRD-' + (Math.floor(Math.random() * 90000) + 10000); } }">
                     <label class="block">
                         <span class="mb-2 block text-sm font-bold text-slate-800">Артикул</span>
                         <div class="flex gap-2">
@@ -101,6 +101,11 @@
                     <label class="block">
                         <span class="mb-2 block text-sm font-bold text-slate-800">Цена</span>
                         <input type="number" step="0.01" name="price" value="{{ old('price', $product->price) }}" required class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                    </label>
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-bold text-slate-800">Старая цена</span>
+                        <input type="number" step="0.01" name="old_price" value="{{ old('old_price', $product->old_price) }}" placeholder="Если есть скидка" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <span class="mt-1 block text-xs text-slate-400">Должна быть выше текущей цены.</span>
                     </label>
                     <label class="block">
                         <span class="mb-2 block text-sm font-bold text-slate-800">Количество</span>

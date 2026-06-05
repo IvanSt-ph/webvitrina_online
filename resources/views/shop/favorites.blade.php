@@ -161,6 +161,9 @@
             $shortProductTitle = Str::limit($p->title, 18);
             $currentPrice = $p->price_for_current_currency;
             $price = $currentPrice['amount'] ?? $p->price;
+            $oldPriceData = $p->old_price_for_current_currency;
+            $oldPrice = $oldPriceData['amount'] ?? null;
+            $discountPercent = $p->discount_percent;
             $itemCurrencySymbol = $currentPrice['symbol'] ?? $currencySymbol;
           @endphp
 
@@ -210,9 +213,9 @@
                       {{ $shortProductTitle }}
                     </a>
                     <div class="mt-1">
-                      @if(isset($p->old_price) && $p->old_price)
+                      @if($oldPrice && $oldPrice > $price)
                         <span class="text-[9px] text-gray-400 line-through mr-1">
-                          {{ number_format($p->old_price, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
+                          {{ number_format($oldPrice, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
                         </span>
                       @endif
                       <span class="text-sm font-bold text-gray-900">
@@ -224,10 +227,10 @@
                   </div>
 
                   {{-- Discount badge если есть --}}
-                  @if(isset($p->discount_percent) && $p->discount_percent)
+                  @if($discountPercent)
                     <div class="flex-shrink-0">
                       <span class="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                        -{{ $p->discount_percent }}%
+                        -{{ $discountPercent }}%
                       </span>
                     </div>
                   @endif
@@ -294,9 +297,9 @@
                   </div>
                 @endif
 
-                @if(isset($p->discount_percent) && $p->discount_percent)
+                @if($discountPercent)
                   <div class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
-                    -{{ $p->discount_percent }}%
+                    -{{ $discountPercent }}%
                   </div>
                 @endif
               </a>
@@ -316,9 +319,9 @@
                 @endif
 
                 <div class="mt-1">
-                  @if(isset($p->old_price) && $p->old_price)
+                  @if($oldPrice && $oldPrice > $price)
                     <span class="text-xs text-gray-400 line-through mr-1.5">
-                      {{ number_format($p->old_price, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
+                      {{ number_format($oldPrice, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
                     </span>
                   @endif
                   <span class="text-xl font-bold text-gray-900">

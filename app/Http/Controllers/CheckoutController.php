@@ -15,23 +15,23 @@ use Illuminate\Validation\ValidationException;
 class CheckoutController extends Controller
 {
     private const PAYMENT_METHODS = [
-        'cash' => '💵 Наличными при получении',
-        'card' => '💳 Картой при получении (онлайн-оплата пока недоступна)',
+        'cash' => '💵 Наличными при получении или передаче товара',
+        'card' => '💳 Картой при получении (онлайн-оплата на сайте пока не выполняется)',
         'bank_transfer' => '🏦 Перевод по согласованию с продавцом',
     ];
 
     private const DELIVERY_METHODS = [
-        'courier' => '🚚 Курьерская доставка (Доставка курьером 1-2 дня (до 10 кг) )',
-        'pickup' => '🏪 Самовывоз из пункта выдачи (Магазин продавца)',
-        'post' => '📮 Почта ПМР (Время доставки зависит от загруженности почтового отделения)',
-        'express' => '⚡ Экспресс-доставка (Доставка по таксометру +50 руб до 15 кг)',
+        'courier' => '🚚 Доставка продавцом по договорённости',
+        'pickup' => '🏪 Самовывоз по договорённости с продавцом',
+        'post' => '📮 Отправка почтой по договорённости',
+        'express' => '⚡ Экспресс-доставка/такси по договорённости',
     ];
 
     private const DELIVERY_PRICES = [
         'courier' => 155,
         'pickup' => 0,
-        'post' => 80,
-        'express' => 175,
+        'post' => 15,
+        'express' => 25,
     ];
 
     private const DELIVERY_METHODS_WITHOUT_ADDRESS = ['pickup'];

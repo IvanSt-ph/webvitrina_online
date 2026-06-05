@@ -23,43 +23,43 @@
               ->whereNull('admin_read_at'))
           ->count()
       : 0;
-  $pendingSellerPlanRequests = auth()->check()
-      ? \App\Models\SellerPlanRequest::where('status', \App\Models\SellerPlanRequest::STATUS_PENDING)->count()
-      : 0;
-  $pendingReviews = auth()->check()
-      ? \App\Models\Review::where('status', \App\Models\Review::STATUS_PENDING)->count()
-      : 0;
-  $openProductReports = auth()->check()
-      ? \App\Models\ProductReport::where('status', \App\Models\ProductReport::STATUS_OPEN)->count()
-      : 0;
-  $openDisputes = auth()->check()
-      ? \App\Models\OrderDispute::where('status', \App\Models\OrderDispute::STATUS_OPEN)->count()
-      : 0;
-  $attentionOrders = auth()->check()
-      ? \App\Models\Order::where(function ($query) {
-          $query->where(function ($cancel) {
-              $cancel->whereNotNull('cancellation_requested_at')
-                  ->whereNotIn('status', [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED]);
-          })->orWhere(function ($stuck) {
-              $stuck->where(function ($pending) {
-                  $pending->where('status', \App\Models\Order::STATUS_PENDING)
-                      ->where('created_at', '<=', now()->subDay());
-              })->orWhere(function ($processing) {
-                  $processing->where('status', \App\Models\Order::STATUS_PROCESSING)
-                      ->where(function ($dates) {
-                          $dates->where('accepted_at', '<=', now()->subDays(2))
-                              ->orWhere(function ($fallback) {
-                                  $fallback->whereNull('accepted_at')
-                                      ->where('created_at', '<=', now()->subDays(2));
+  $adminMenuCounters = auth()->check()
+      ? \Illuminate\Support\Facades\Cache::remember('admin_menu_counters:' . auth()->id(), 30, function () {
+          return [
+              'pending_seller_plan_requests' => \App\Models\SellerPlanRequest::where('status', \App\Models\SellerPlanRequest::STATUS_PENDING)->count(),
+              'pending_reviews' => \App\Models\Review::where('status', \App\Models\Review::STATUS_PENDING)->count(),
+              'open_product_reports' => \App\Models\ProductReport::where('status', \App\Models\ProductReport::STATUS_OPEN)->count(),
+              'open_disputes' => \App\Models\OrderDispute::where('status', \App\Models\OrderDispute::STATUS_OPEN)->count(),
+              'attention_orders' => \App\Models\Order::where(function ($query) {
+                  $query->where(function ($cancel) {
+                      $cancel->whereNotNull('cancellation_requested_at')
+                          ->whereNotIn('status', [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED]);
+                  })->orWhere(function ($stuck) {
+                      $stuck->where(function ($pending) {
+                          $pending->where('status', \App\Models\Order::STATUS_PENDING)
+                              ->where('created_at', '<=', now()->subDay());
+                      })->orWhere(function ($processing) {
+                          $processing->where('status', \App\Models\Order::STATUS_PROCESSING)
+                              ->where(function ($dates) {
+                                  $dates->where('accepted_at', '<=', now()->subDays(2))
+                                      ->orWhere(function ($fallback) {
+                                          $fallback->whereNull('accepted_at')
+                                              ->where('created_at', '<=', now()->subDays(2));
+                                      });
                               });
                       });
-              });
-          });
-      })->count()
-      : 0;
-  $missingMobileBanners = auth()->check()
-      ? \App\Models\Banner::whereNull('image_mobile')->count()
-      : 0;
+                  });
+              })->count(),
+              'missing_mobile_banners' => \App\Models\Banner::whereNull('image_mobile')->count(),
+          ];
+      })
+      : [];
+  $pendingSellerPlanRequests = $adminMenuCounters['pending_seller_plan_requests'] ?? 0;
+  $pendingReviews = $adminMenuCounters['pending_reviews'] ?? 0;
+  $openProductReports = $adminMenuCounters['open_product_reports'] ?? 0;
+  $openDisputes = $adminMenuCounters['open_disputes'] ?? 0;
+  $attentionOrders = $adminMenuCounters['attention_orders'] ?? 0;
+  $missingMobileBanners = $adminMenuCounters['missing_mobile_banners'] ?? 0;
 @endphp
 
 <body class="bg-slate-50 text-slate-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}" x-data="{ sidebarOpen: false }">
@@ -111,7 +111,7 @@
             ['route'=>'admin.banners.index','icon'=>'ri-image-line','label'=>'Баннеры','badge'=>$missingMobileBanners],
           ],
           'Управление' => [
-            ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Тарифы','badge'=>$pendingSellerPlanRequests],
+            ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Уровни магазинов','badge'=>$pendingSellerPlanRequests],
             ['route'=>'admin.production-checklist','icon'=>'ri-rocket-line','label'=>'Релиз-чеклист'],
             ['route'=>'admin.activity.index','active'=>'admin.activity.*','icon'=>'ri-history-line','label'=>'Журнал'],
             ['route'=>'admin.profile','icon'=>'ri-settings-3-line','label'=>'Настройки'],

@@ -643,10 +643,11 @@ public function redirectToRoleProfile()
         ->unique()
         ->toArray();
 
-        $products = Product::whereIn('category_id', $categoryIds)
+        $products = Product::active()
+            ->whereIn('category_id', $categoryIds)
             ->whereNotIn('id', $shownIds)
             ->where('user_id', '!=', $user->id)
-            ->inRandomOrder()
+            ->latest('id')
             ->limit(8)
             ->get();
 

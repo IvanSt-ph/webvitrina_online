@@ -52,6 +52,7 @@ class ProductManageController extends Controller
         $stock = in_array($request->get('stock'), ['out', 'low'], true)
             ? $request->get('stock')
             : null;
+        $discount = $request->boolean('discount');
 
         /* =========================
          | СВОДКА ЗА ПЕРИОД
@@ -108,6 +109,7 @@ class ProductManageController extends Controller
                 SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END) as out_of_stock
             ')
             ->first();
+        $discountProductsCount = Product::where('user_id', Auth::id())->onSale()->count();
         $sellerPlanProfile = $this->sellerPlans->profileFor($request->user());
 
         /* 🔍 ПОИСК */
@@ -128,6 +130,10 @@ class ProductManageController extends Controller
             $productsQuery->where('stock', '<=', 0);
         } elseif ($stock === 'low') {
             $productsQuery->whereBetween('stock', [1, 3]);
+        }
+
+        if ($discount) {
+            $productsQuery->onSale();
         }
 
         /* 🔃 СОРТИРОВКА */
@@ -182,6 +188,8 @@ class ProductManageController extends Controller
             'sort',
             'status',
             'stock',
+            'discount',
+            'discountProductsCount',
             'statusCounts',
             'sellerPlanProfile'
         ));
@@ -291,6 +299,7 @@ class ProductManageController extends Controller
         $data['currency_base'] = $currencyBase === 'RUB' ? 'PRB' : $currencyBase;
 
         $data['price']     = $request->price;
+        $data['old_price'] = $request->filled('old_price') ? $request->old_price : null;
         $data['price_prb'] = $request->price_prb;
         $data['price_mdl'] = $request->price_mdl;
         $data['price_uah'] = $request->price_uah;
@@ -303,6 +312,12 @@ class ProductManageController extends Controller
                     $code
                 );
             }
+        }
+
+        foreach (['PRB'=>'old_price_prb','MDL'=>'old_price_mdl','UAH'=>'old_price_uah'] as $code => $field) {
+            $data[$field] = $data['old_price']
+                ? $this->currency->convert((float) $data['old_price'], $data['currency_base'], $code)
+                : null;
         }
 
         $image   = $request->file('image');
@@ -328,9 +343,18 @@ class ProductManageController extends Controller
         }
 
         $data['price']     = $request->price;
+        $data['old_price'] = $request->filled('old_price') ? $request->old_price : null;
         $data['price_prb'] = $request->price_prb;
         $data['price_mdl'] = $request->price_mdl;
         $data['price_uah'] = $request->price_uah;
+
+        $currencyBase = strtoupper($data['currency_base'] ?? $product->currency_base ?? 'MDL');
+        $currencyBase = $currencyBase === 'RUB' ? 'PRB' : $currencyBase;
+        foreach (['PRB'=>'old_price_prb','MDL'=>'old_price_mdl','UAH'=>'old_price_uah'] as $code => $field) {
+            $data[$field] = $data['old_price']
+                ? $this->currency->convert((float) $data['old_price'], $currencyBase, $code)
+                : null;
+        }
 
         $image           = $request->file('image');
         $galleryNew      = $request->file('gallery', []);

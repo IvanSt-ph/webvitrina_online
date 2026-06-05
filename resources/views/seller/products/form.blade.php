@@ -5,6 +5,54 @@
      data-country="{{ old('country_id', optional($product->city)->country_id) }}"
      data-city="{{ old('city_id', $product->city_id) }}">
 
+    @php
+      $qualityTitle = trim((string) old('title', $product->title));
+      $qualityDescription = trim(strip_tags((string) old('description', $product->description)));
+      $qualityGalleryCount = count($product->gallery_images ?? []);
+      $qualityHasImage = filled($product->image) || $qualityGalleryCount > 0;
+      $qualityAttributeCount = $product->exists ? $product->attributes()->count() : 0;
+      $qualityChecks = collect([
+        [
+          'label' => 'Название понятно покупателю',
+          'hint' => 'Минимум 8 символов, без лишнего шума.',
+          'done' => mb_strlen($qualityTitle) >= 8,
+        ],
+        [
+          'label' => 'Выбрана точная категория',
+          'hint' => 'От неё зависят характеристики и фильтры.',
+          'done' => filled(old('category_id', $product->category_id)),
+        ],
+        [
+          'label' => 'Описание помогает купить',
+          'hint' => 'Лучше от 120 символов: состояние, комплект, нюансы.',
+          'done' => mb_strlen($qualityDescription) >= 120,
+        ],
+        [
+          'label' => 'Заполнены характеристики',
+          'hint' => 'Покупатель сможет сравнить товар и найти его через фильтры.',
+          'done' => $qualityAttributeCount > 0,
+        ],
+        [
+          'label' => 'Есть фото товара',
+          'hint' => 'Главное фото должно показывать товар крупно и понятно.',
+          'done' => $qualityHasImage,
+        ],
+        [
+          'label' => 'Цена и остаток указаны',
+          'hint' => 'Цена больше нуля, остаток не пустой.',
+          'done' => (float) old('price', $product->price) > 0 && old('stock', $product->stock) !== null,
+        ],
+        [
+          'label' => 'Город заполнен',
+          'hint' => 'Покупатель сразу понимает, где находится товар.',
+          'done' => filled(old('city_id', $product->city_id)),
+        ],
+      ]);
+      $qualityDone = $qualityChecks->where('done', true)->count();
+      $qualityTotal = $qualityChecks->count();
+      $qualityPercent = $qualityTotal > 0 ? round($qualityDone / $qualityTotal * 100) : 0;
+    @endphp
+
 
     {{-- ===== Заголовок ===== --}}
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -272,7 +320,7 @@
           <p class="seller-section-hint">Цена пересчитается в остальные валюты автоматически.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
 <input id="base-price" name="price" type="number" step="0.01" min="0" max="1000000"
@@ -281,6 +329,15 @@
        class="seller-input text-lg font-semibold">
 
             <p class="text-sm text-gray-500 mt-1">Введите цену в валюте своей страны.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Старая цена</label>
+            <input id="old-price" name="old_price" type="number" step="0.01" min="0" max="1000000"
+                   value="{{ old('old_price', $product->old_price) }}"
+                   oninput="if(this.value.length > 10) this.value=this.value.slice(0,10)"
+                   class="seller-input text-lg font-semibold">
+            <p class="text-sm text-gray-500 mt-1">Только если была цена выше текущей.</p>
           </div>
 
           <div>
@@ -304,18 +361,21 @@
             <input id="price_prb" name="price_prb" type="number" step="0.01"
                    value="{{ old('price_prb',$product->price_prb) }}"
                    class="seller-input bg-gray-50 text-gray-600" readonly>
+            <input name="old_price_prb" type="hidden" value="{{ old('old_price_prb', $product->old_price_prb) }}">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">L Молдова</label>
             <input id="price_mdl" name="price_mdl" type="number" step="0.01"
                    value="{{ old('price_mdl',$product->price_mdl) }}"
                    class="seller-input bg-gray-50 text-gray-600" readonly>
+            <input name="old_price_mdl" type="hidden" value="{{ old('old_price_mdl', $product->old_price_mdl) }}">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">₴ Украина</label>
             <input id="price_uah" name="price_uah" type="number" step="0.01"
                    value="{{ old('price_uah',$product->price_uah) }}"
                    class="seller-input bg-gray-50 text-gray-600" readonly>
+            <input name="old_price_uah" type="hidden" value="{{ old('old_price_uah', $product->old_price_uah) }}">
           </div>
         </div>
       </section>
@@ -463,14 +523,33 @@
         <div class="seller-section-head mb-3">
           <div>
             <p class="seller-section-kicker">Проверка</p>
-            <h2 class="seller-section-title">Перед сохранением</h2>
+            <h2 class="seller-section-title">Качество карточки</h2>
+          </div>
+          <div class="shrink-0 text-right">
+            <div class="text-lg font-semibold text-slate-950">{{ $qualityDone }}/{{ $qualityTotal }}</div>
+            <div class="text-xs text-slate-500">готово</div>
           </div>
         </div>
-        <ul class="space-y-2 text-sm text-gray-600">
-          <li class="flex gap-2"><i class="ri-checkbox-circle-line text-emerald-600"></i><span>Название понятно покупателю.</span></li>
-          <li class="flex gap-2"><i class="ri-checkbox-circle-line text-emerald-600"></i><span>Выбрана точная категория.</span></li>
-          <li class="flex gap-2"><i class="ri-checkbox-circle-line text-emerald-600"></i><span>Цена, город и остаток заполнены.</span></li>
-          <li class="flex gap-2"><i class="ri-checkbox-circle-line text-emerald-600"></i><span>Главное фото хорошо показывает товар.</span></li>
+        <div class="mb-4">
+          <div class="h-2 overflow-hidden rounded-full bg-slate-100">
+            <div class="h-full rounded-full {{ $qualityPercent >= 80 ? 'bg-emerald-500' : ($qualityPercent >= 50 ? 'bg-amber-500' : 'bg-indigo-500') }}" style="width: {{ $qualityPercent }}%"></div>
+          </div>
+          <p class="mt-2 text-xs text-slate-500">
+            {{ $qualityPercent >= 80 ? 'Карточка выглядит уверенно.' : 'Заполните недостающие пункты, чтобы товар выглядел убедительнее.' }}
+          </p>
+        </div>
+        <ul class="space-y-2 text-sm text-slate-600">
+          @foreach($qualityChecks as $check)
+            <li class="rounded-xl border {{ $check['done'] ? 'border-emerald-100 bg-emerald-50/70' : 'border-slate-200 bg-white' }} px-3 py-2">
+              <div class="flex gap-2">
+                <i class="{{ $check['done'] ? 'ri-checkbox-circle-fill text-emerald-600' : 'ri-circle-line text-slate-300' }} mt-0.5"></i>
+                <div>
+                  <div class="font-medium {{ $check['done'] ? 'text-emerald-800' : 'text-slate-800' }}">{{ $check['label'] }}</div>
+                  <div class="mt-0.5 text-xs {{ $check['done'] ? 'text-emerald-700' : 'text-slate-500' }}">{{ $check['hint'] }}</div>
+                </div>
+              </div>
+            </li>
+          @endforeach
         </ul>
       </section>
 

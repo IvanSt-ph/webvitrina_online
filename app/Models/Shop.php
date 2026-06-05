@@ -137,12 +137,24 @@ public function incrementSales(int $amount = 1): void
 public function getReputationLabelAttribute(): string
 {
     return match($this->seller_reputation) {
-        'top' => '🏆 Топ продавец',
-        'trusted' => '⭐ Надёжный продавец',
-        'verified' => '✔ Проверенный продавец',
-        'new' => 'Новый продавец',
-        'low_rating' => '⚠ Низкий рейтинг',
-        default => 'Продавец'
+        'top' => 'Платиновый уровень',
+        'trusted' => 'Золотой уровень',
+        'verified' => 'Серебряный уровень',
+        'new' => 'Бронзовый уровень',
+        'low_rating' => 'Требует внимания',
+        default => 'Уровень продавца',
+    };
+}
+
+public function getReputationDescriptionAttribute(): string
+{
+    return match($this->seller_reputation) {
+        'top' => 'Высший уровень доверия и качества',
+        'trusted' => 'Много продаж, высокий рейтинг',
+        'verified' => 'Проверенный временем, хорошие отзывы',
+        'new' => 'Надёжный базовый уровень',
+        'low_rating' => 'Рейтинг ниже обычного, проверьте отзывы перед заказом',
+        default => 'Публичный уровень продавца',
     };
 }
 

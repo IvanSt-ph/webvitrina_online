@@ -127,16 +127,28 @@ class ProductService
     protected function prepareData(array $data, bool $updating = false): array
     {
         $allowed = [
-            'title', 'slug', 'sku', 'price', 'stock', 'description',
+            'title', 'slug', 'sku', 'price', 'old_price', 'stock', 'description',
             'category_id', 'city_id', 'country_id', 'address',
             'latitude', 'longitude', 'status', 'active', 'user_id',
-            'currency_base', 'price_prb', 'price_mdl', 'price_uah'
+            'currency_base', 'price_prb', 'old_price_prb', 'price_mdl', 'old_price_mdl', 'price_uah', 'old_price_uah'
         ];
 
-        $payload = array_filter(
-            array_intersect_key($data, array_flip($allowed)),
-            fn($v) => !$updating || ($v !== null && $v !== '')
-        );
+        $payload = array_intersect_key($data, array_flip($allowed));
+        $clearable = ['old_price', 'old_price_prb', 'old_price_mdl', 'old_price_uah'];
+
+        foreach ($clearable as $field) {
+            if (array_key_exists($field, $payload) && $payload[$field] === '') {
+                $payload[$field] = null;
+            }
+        }
+
+        if ($updating) {
+            $payload = array_filter(
+                $payload,
+                fn($v, $key) => in_array($key, $clearable, true) || ($v !== null && $v !== ''),
+                ARRAY_FILTER_USE_BOTH
+            );
+        }
 
         return $payload;
     }

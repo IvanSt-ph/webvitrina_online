@@ -1,12 +1,12 @@
 @extends('admin.layout')
 
-@section('title', 'Заявки на тарифы')
+@section('title', 'Заявки на уровень магазина')
 
 @section('content')
     <div class="space-y-5">
         <header class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-slate-950">Заявки на изменение тарифа</h1>
+                <h1 class="text-2xl font-bold text-slate-950">Заявки на изменение уровня магазина</h1>
                 <p class="mt-1 text-sm text-slate-500">Повышение и понижение проверяются вручную: при понижении каталог должен помещаться в новый лимит.</p>
             </div>
             <div class="flex flex-wrap gap-2">

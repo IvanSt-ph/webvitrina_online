@@ -43,6 +43,10 @@ class ProductRepository
             default => null,
         };
 
+        if ($request->boolean('discount')) {
+            $query->onSale();
+        }
+
         match ($request->get('sort', 'latest')) {
             'oldest' => $query->oldest('id'),
             'price_asc' => $query->orderBy('price')->orderByDesc('id'),
@@ -161,10 +165,9 @@ class ProductRepository
             return;
         }
         
-        // Получаем количество товаров (кешируем на 1 час)
-        $totalProducts = Cache::remember('products_total_count', 3600, function() {
-            return Product::count();
-        });
+        // Счётчик нужен для выбора стратегии поиска. Держим его живым, чтобы поиск не
+        // уходил в неверную ветку после массовых изменений каталога.
+        $totalProducts = Product::count();
         
         $query->where(function ($q) use ($search, $escapedSearch, $totalProducts) {
             
@@ -383,6 +386,5 @@ class ProductRepository
         Cache::forget("related:{$product->id}");
         Cache::forget("product_page:{$product->id}");
         Cache::forget("product_by_id:{$product->id}");
-        Cache::forget('products_total_count');
     }
 }

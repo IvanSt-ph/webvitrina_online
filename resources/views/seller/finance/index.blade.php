@@ -1,29 +1,4 @@
 <x-seller-layout title="Финансы продавца">
-  @php
-    $sellerId = auth()->id();
-    $ordersQuery = \App\Models\Order::query()->where('seller_id', $sellerId);
-    $completedTotal = (clone $ordersQuery)
-        ->whereIn('status', [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED])
-        ->sum('total_price');
-    $inProgressTotal = (clone $ordersQuery)
-        ->whereIn('status', [
-            \App\Models\Order::STATUS_PENDING,
-            \App\Models\Order::STATUS_PROCESSING,
-            \App\Models\Order::STATUS_PAID,
-            \App\Models\Order::STATUS_SHIPPED,
-        ])
-        ->sum('total_price');
-    $canceledTotal = (clone $ordersQuery)
-        ->where('status', \App\Models\Order::STATUS_CANCELED)
-        ->sum('total_price');
-    $recentOrders = (clone $ordersQuery)
-        ->with('user')
-        ->latest()
-        ->limit(8)
-        ->get();
-    $currency = $recentOrders->first()?->currency ?? 'RUB';
-  @endphp
-
   <div class="space-y-5 px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-6">
     <section class="rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm sm:p-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

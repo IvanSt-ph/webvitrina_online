@@ -39,6 +39,7 @@ use App\Http\Controllers\Seller\ProductManageController as SellerProducts;
 use App\Http\Controllers\Seller\{
     CabinetController,
     AnalyticsController,
+    FinanceController,
     PlanController as SellerPlanController,
     HelpController as SellerHelpController,
     CategoryController as SellerCategoryController,
@@ -117,6 +118,7 @@ Route::get('/internal/currency/agroprombank', [
 
 // 🏠 Главная
 Route::get('/', [ProductController::class, 'index'])->name('home');
+Route::get('/search/suggest', [ProductController::class, 'suggest'])->name('search.suggest');
 Route::get('/search', [ProductController::class, 'index'])->name('search');
 Route::view('/about', 'legal.about')->name('about');
 Route::view('/contacts', 'legal.contacts')->name('contacts');
@@ -455,7 +457,7 @@ Route::middleware('role:buyer')->group(function () {
             ->name('orders.updateStatus');
 
         // Финансы
-        Route::view('/finance', 'seller.finance.index')->name('finance.index');
+        Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');
 
         // Аналитика
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

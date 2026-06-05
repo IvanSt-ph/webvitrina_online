@@ -12,8 +12,8 @@
             'chat.locked' => ['Чат заблокирован', 'ri-lock-line'],
             'chat.unlocked' => ['Чат разблокирован', 'ri-lock-unlock-line'],
             'chat.hidden' => ['Чат скрыт', 'ri-eye-off-line'],
-            'seller_plan_request.approved' => ['Тариф одобрен', 'ri-vip-crown-line'],
-            'seller_plan_request.rejected' => ['Тариф отклонён', 'ri-close-circle-line'],
+            'seller_plan_request.approved' => ['Уровень магазина одобрен', 'ri-vip-crown-line'],
+            'seller_plan_request.rejected' => ['Уровень магазина отклонён', 'ri-close-circle-line'],
             'profile.updated' => ['Профиль админа', 'ri-settings-3-line'],
             'review.approved' => ['Отзыв одобрен', 'ri-chat-check-line'],
             'review.rejected' => ['Отзыв отклонён', 'ri-chat-delete-line'],
@@ -26,7 +26,7 @@
     <div class="space-y-5">
         <header class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h1 class="text-2xl font-bold text-slate-950">Журнал действий администратора</h1>
-            <p class="mt-1 text-sm text-slate-500">Кто менял тарифы, пользователей, чаты и другие чувствительные данные.</p>
+            <p class="mt-1 text-sm text-slate-500">Кто менял уровни магазинов, пользователей, чаты и другие чувствительные данные.</p>
 
             <form method="GET" class="mt-4 grid gap-2 lg:grid-cols-[minmax(220px,1fr)_210px_180px_150px_150px_auto]">
                 <label class="relative flex-1">
@@ -73,7 +73,7 @@
                                     @foreach($log->meta as $key => $value)
                                         @if(! is_array($value) && filled($value))
                                             <span class="rounded-lg bg-slate-50 px-2.5 py-1 text-slate-600">
-                                                <span class="font-semibold">{{ ['from' => 'Было', 'to' => 'Стало', 'reason' => 'Причина', 'user_id' => 'User ID', 'requested_plan' => 'Тариф', 'review_id' => 'Review ID', 'count' => 'Количество'][$key] ?? $key }}:</span>
+                                                <span class="font-semibold">{{ ['from' => 'Было', 'to' => 'Стало', 'reason' => 'Причина', 'user_id' => 'User ID', 'requested_plan' => 'Уровень магазина', 'review_id' => 'Review ID', 'count' => 'Количество'][$key] ?? $key }}:</span>
                                                 {{ $value }}
                                             </span>
                                         @endif

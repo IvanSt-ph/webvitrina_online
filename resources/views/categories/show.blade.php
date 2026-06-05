@@ -1,3 +1,35 @@
+@php
+  $seoUrl = route('category.show', $category->slug);
+  $seoDescription = 'Товары в категории “' . $category->name . '” на WebVitrina: предложения продавцов, цены, наличие, доставка и связь с продавцом.';
+  $seoImage = $category->image
+      ? asset('storage/' . $category->image)
+      : ($category->icon ? asset('storage/' . $category->icon) : asset('images/icon.png'));
+@endphp
+
+@push('meta')
+  <meta name="description" content="{{ $seoDescription }}">
+  <link rel="canonical" href="{{ $seoUrl }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ $category->name }} — {{ config('app.name') }}">
+  <meta property="og:description" content="{{ $seoDescription }}">
+  <meta property="og:url" content="{{ $seoUrl }}">
+  <meta property="og:image" content="{{ $seoImage }}">
+  <script type="application/ld+json">
+    {!! json_encode([
+        '@context' => 'https://schema.org',
+        '@type' => 'CollectionPage',
+        'name' => $category->name,
+        'description' => $seoDescription,
+        'url' => $seoUrl,
+        'isPartOf' => [
+            '@type' => 'WebSite',
+            'name' => config('app.name'),
+            'url' => url('/'),
+        ],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+  </script>
+@endpush
+
 <x-app-layout :title="$category->name">
 
 {{-- 🧭 Хлебные крошки и фильтры закреплены --}}

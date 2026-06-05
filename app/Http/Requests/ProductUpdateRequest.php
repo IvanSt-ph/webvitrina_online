@@ -21,6 +21,7 @@ class ProductUpdateRequest extends FormRequest
         'slug'        => ['nullable', 'string', 'max:255'],
         'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku,' . $productId],
         'price'       => ['sometimes', 'required', 'numeric', 'min:0'],
+        'old_price'   => ['nullable', 'numeric', 'min:0', 'gt:price'],
         'stock'       => ['sometimes', 'required', 'integer', 'min:0'],
         'user_id'     => ['sometimes', Rule::exists('users', 'id')->where('role', 'seller')],
         'category_id' => ['sometimes', 'exists:categories,id'],

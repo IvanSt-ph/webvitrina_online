@@ -86,13 +86,13 @@ class SellerPlanRequestController extends Controller
             'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
         ]);
 
-        $this->activity->log('seller_plan_request.approved', $planRequest, 'Одобрено изменение тарифа продавца.', [
+        $this->activity->log('seller_plan_request.approved', $planRequest, 'Одобрено изменение уровня магазина.', [
             'user_id' => $user->id,
             'from' => $oldPlan,
             'to' => $planRequest->requested_plan,
         ]);
 
-        return back()->with('success', 'Тариф продавца изменён.');
+        return back()->with('success', 'Уровень магазина изменён.');
     }
 
     public function reject(Request $request, SellerPlanRequest $planRequest)
@@ -110,7 +110,7 @@ class SellerPlanRequestController extends Controller
             'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
         ]);
 
-        $this->activity->log('seller_plan_request.rejected', $planRequest, 'Отклонена заявка на изменение тарифа.', [
+        $this->activity->log('seller_plan_request.rejected', $planRequest, 'Отклонена заявка на изменение уровня магазина.', [
             'user_id' => $planRequest->user_id,
             'requested_plan' => $planRequest->requested_plan,
         ]);

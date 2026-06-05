@@ -34,7 +34,7 @@
                 'Финансы и рост' => [
                     ['route' => 'seller.finance.index', 'active' => 'seller.finance.*', 'icon' => 'ri-cash-line', 'label' => 'Финансы'],
                     ['route' => 'seller.analytics.index', 'active' => 'seller.analytics.*', 'icon' => 'ri-line-chart-line', 'label' => 'Аналитика'],
-                    ['route' => 'seller.plans.index', 'active' => 'seller.plans.*', 'icon' => 'ri-vip-crown-line', 'label' => 'Тарифы'],
+                    ['route' => 'seller.plans.index', 'active' => 'seller.plans.*', 'icon' => 'ri-vip-crown-line', 'label' => 'Уровень магазина'],
                 ],
                 'Управление' => [
                     ['route' => 'profile.edit', 'active' => 'profile.*', 'icon' => 'ri-user-3-line', 'label' => 'Профиль'],

@@ -303,8 +303,8 @@
                                 <div class="font-bold text-slate-950">#{{ $order->number }}</div>
                                 <div class="mt-1 text-xs text-slate-400">ID {{ $order->id }} · {{ $order->created_at?->format('d.m.Y H:i') }}</div>
                                 <div class="mt-2 flex flex-wrap gap-1.5">
-                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{{ $order->delivery_method ?? 'Доставка не указана' }}</span>
-                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{{ $order->payment_method ?? 'Оплата не указана' }}</span>
+                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{{ $order->delivery_method_label }}</span>
+                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">{{ $order->payment_method_label }}</span>
                                 </div>
                             </td>
                             <td class="px-4 py-4">

@@ -20,8 +20,8 @@ class SellerPlanService
                 'label' => 'Starter',
                 'limit' => 10,
                 'class' => 'border-slate-200 bg-slate-50 text-slate-700',
-                'description' => 'Бесплатно: базовые функции и стартовый лимит товаров.',
-                'price' => 'Бесплатно',
+                'description' => 'Базовые функции и стартовый лимит товаров.',
+                'price' => 'Базовый уровень',
                 'features' => [
                     'До 10 товаров',
                     'Базовая карточка магазина',
@@ -33,7 +33,7 @@ class SellerPlanService
                 'limit' => 25,
                 'class' => 'border-amber-200 bg-amber-50 text-amber-800',
                 'description' => 'Больше доверия и немного продвижения для растущего магазина.',
-                'price' => 'По заявке',
+                'price' => 'Доступ по заявке',
                 'features' => [
                     'До 25 товаров',
                     'Больше доверия в профиле',
@@ -45,7 +45,7 @@ class SellerPlanService
                 'limit' => 50,
                 'class' => 'border-cyan-200 bg-cyan-50 text-cyan-800',
                 'description' => 'Приоритет в поиске и аналитика для активного продавца.',
-                'price' => 'По заявке',
+                'price' => 'Доступ по заявке',
                 'features' => [
                     'До 50 товаров',
                     'Приоритет в поиске',
@@ -57,7 +57,7 @@ class SellerPlanService
                 'limit' => 100,
                 'class' => 'border-violet-200 bg-violet-50 text-violet-800',
                 'description' => 'Выделение магазина и рекламные возможности.',
-                'price' => 'По заявке',
+                'price' => 'Доступ по заявке',
                 'features' => [
                     'До 100 товаров',
                     'Выделение магазина',
@@ -70,7 +70,7 @@ class SellerPlanService
                 'limit' => null,
                 'class' => 'border-indigo-200 bg-indigo-50 text-indigo-800',
                 'description' => 'Unlimited: персональные условия, API, менеджер и премиум поддержка.',
-                'price' => 'Персонально',
+                'price' => 'Индивидуальное согласование',
                 'features' => [
                     'Без лимита товаров',
                     'Персональные условия',
@@ -131,14 +131,14 @@ class SellerPlanService
         $used = Product::where('user_id', $seller->id)->count();
         $limit = $plan['limit'] === null ? 'unlimited' : (string) $plan['limit'];
 
-        return "Нельзя назначить тариф {$plan['label']}: у продавца {$used} товаров при лимите {$limit}. Сначала сократите каталог или выберите более высокий тариф.";
+        return "Нельзя назначить уровень магазина {$plan['label']}: у продавца {$used} товаров при лимите {$limit}. Сначала сократите каталог или выберите более высокий уровень магазина.";
     }
 
     public function limitMessage(User $seller): string
     {
         $profile = $this->profileFor($seller);
 
-        return "Лимит статуса {$profile['label']} исчерпан: {$profile['used']} из {$profile['limit_label']} товаров. Обратитесь в поддержку или к администратору для повышения статуса.";
+        return "Лимит уровня магазина {$profile['label']} исчерпан: {$profile['used']} из {$profile['limit_label']} товаров. Обратитесь в поддержку или к администратору для повышения уровня магазина.";
     }
 
     public function rank(string $key): int

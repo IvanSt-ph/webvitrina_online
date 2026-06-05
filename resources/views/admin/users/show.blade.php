@@ -166,7 +166,7 @@
                     @endif
                     @if($sellerPlanProfile && $sellerPlanProfile['near_limit'] && ! $pendingPlanRequest)
                         <a href="{{ route('admin.users.edit', $user) }}" class="rounded-lg border border-amber-200 bg-white/80 px-3 py-2 text-amber-800">
-                            Близко к лимиту тарифа
+                            Близко к лимиту уровня магазина
                         </a>
                     @endif
                 </div>
@@ -410,7 +410,7 @@
                 <div class="mb-4 flex items-center justify-between gap-3">
                     <div>
                         <h2 class="text-base font-bold text-slate-950">Журнал действий по пользователю</h2>
-                        <p class="text-xs text-slate-500">Изменения профиля и решения по тарифу.</p>
+                        <p class="text-xs text-slate-500">Изменения профиля и решения по уровню магазина.</p>
                     </div>
                     <a href="{{ route('admin.activity.index') }}" class="text-xs font-semibold text-indigo-600">Общий журнал</a>
                 </div>
@@ -437,9 +437,11 @@
             <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <div class="text-xs font-bold uppercase text-slate-400">Уровень доверия</div>
+                        <div class="text-xs font-bold uppercase text-slate-400">Уровень продавца</div>
                         <div class="mt-1 flex items-center gap-2 text-base font-bold text-slate-950">
-                            <span>{{ $trustProfile['icon'] }}</span>
+                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full {{ $trustProfile['class'] }}">
+                                <i class="{{ $trustProfile['icon'] }}"></i>
+                            </span>
                             {{ $trustProfile['label'] }}
                         </div>
                     </div>
@@ -465,7 +467,7 @@
                 <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <div class="text-xs font-bold uppercase text-slate-400">Тариф продавца</div>
+                            <div class="text-xs font-bold uppercase text-slate-400">Уровень магазина</div>
                             <div class="mt-1 font-bold text-slate-950">{{ $sellerPlanProfile['label'] }}</div>
                         </div>
                         <span class="rounded-full px-2.5 py-1 text-xs font-extrabold {{ $sellerPlanProfile['class'] }}">

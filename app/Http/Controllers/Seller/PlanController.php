@@ -45,7 +45,7 @@ class PlanController extends Controller
 
         if ($currentPlan === $data['requested_plan']) {
             throw ValidationException::withMessages([
-                'requested_plan' => 'Выберите тариф, который отличается от текущего.',
+                'requested_plan' => 'Выберите уровень магазина, который отличается от текущего.',
             ]);
         }
 
@@ -56,7 +56,7 @@ class PlanController extends Controller
 
         if ($hasPending) {
             throw ValidationException::withMessages([
-                'requested_plan' => 'У вас уже есть заявка на повышение тарифа. Дождитесь решения администратора.',
+                'requested_plan' => 'У вас уже есть заявка на изменение уровня магазина. Дождитесь решения администратора.',
             ]);
         }
 
@@ -67,6 +67,6 @@ class PlanController extends Controller
             'message' => trim((string) ($data['message'] ?? '')) ?: null,
         ]);
 
-        return back()->with('success', 'Заявка на изменение тарифа отправлена администратору.');
+        return back()->with('success', 'Заявка на изменение уровня магазина отправлена администратору.');
     }
 }

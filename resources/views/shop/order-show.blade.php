@@ -39,16 +39,30 @@
         \App\Models\Order::STATUS_DELIVERED,
         \App\Models\Order::STATUS_COMPLETED,
     ], true);
-    $paymentLabels = [
-        'cash' => 'Наличными при получении',
-        'card' => 'Картой при получении (онлайн-оплата не выполнялась)',
-        'bank_transfer' => 'Перевод по согласованию с продавцом',
-    ];
     $chatProducts = $order->items
         ->pluck('product')
         ->filter(fn ($product) => $product && ! $product->trashed())
         ->unique('id')
         ->values();
+    $primaryChatProduct = $chatProducts->first();
+    $nextActionTitle = [
+        \App\Models\Order::STATUS_PENDING => 'Ожидайте подтверждения продавца',
+        \App\Models\Order::STATUS_PROCESSING => 'Договоритесь с продавцом о передаче',
+        \App\Models\Order::STATUS_PAID => 'Ожидайте отправки заказа',
+        \App\Models\Order::STATUS_SHIPPED => 'Проверьте получение товара',
+        \App\Models\Order::STATUS_DELIVERED => 'Оставьте отзыв о покупке',
+        \App\Models\Order::STATUS_COMPLETED => 'Заказ завершён',
+        \App\Models\Order::STATUS_CANCELED => 'Заказ отменён',
+    ][$order->status] ?? 'Следите за статусом заказа';
+    $nextActionHint = [
+        \App\Models\Order::STATUS_PENDING => 'Продавец должен принять заказ. Если нужно уточнить детали, напишите ему в чат.',
+        \App\Models\Order::STATUS_PROCESSING => 'Согласуйте срок, место передачи, доставку и оплату. Все договорённости лучше держать в чате.',
+        \App\Models\Order::STATUS_PAID => 'Продавец готовит заказ к передаче или доставке. При вопросах напишите ему.',
+        \App\Models\Order::STATUS_SHIPPED => 'Когда товар будет у вас, подтвердите получение. Если что-то не так, сначала напишите продавцу или откройте спор.',
+        \App\Models\Order::STATUS_DELIVERED => 'Покупка доставлена. Можно оценить товар и продавца.',
+        \App\Models\Order::STATUS_COMPLETED => 'Все основные действия по заказу выполнены.',
+        \App\Models\Order::STATUS_CANCELED => 'Если отмена ошибочная или нужен возврат, обратитесь в поддержку.',
+    ][$order->status] ?? 'Проверяйте обновления и сообщения по заказу.';
 @endphp
 
 
@@ -147,6 +161,50 @@
 
     <x-order-timeline :order="$order" />
 
+    <section class="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/60 p-4 shadow-sm sm:p-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Что делать дальше</p>
+                <h2 class="mt-1 text-xl font-bold text-slate-950">{{ $nextActionTitle }}</h2>
+                <p class="mt-2 max-w-3xl text-sm text-slate-600">{{ $nextActionHint }}</p>
+            </div>
+
+            <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+                @if($canConfirmDelivery)
+                    <form method="POST" action="{{ route('orders.confirmDelivery', $order) }}" class="w-full sm:w-auto">
+                        @csrf
+                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:w-auto">
+                            <i class="ri-checkbox-circle-line"></i>
+                            Подтвердить получение
+                        </button>
+                    </form>
+                @elseif($canReview)
+                    <a href="{{ $order->items->first()?->product ? route('product.show', $order->items->first()->product->slug) . '#reviews' : route('orders.index') }}"
+                       class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+                        <i class="ri-star-line"></i>
+                        Оставить отзыв
+                    </a>
+                @elseif($primaryChatProduct)
+                    <form method="POST" action="{{ route('orders.chat.product', [$order, $primaryChatProduct]) }}" class="w-full sm:w-auto">
+                        @csrf
+                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto">
+                            <i class="ri-chat-3-line"></i>
+                            Написать продавцу
+                        </button>
+                    </form>
+                @else
+                    <form method="POST" action="{{ route('orders.support', $order) }}" class="w-full sm:w-auto">
+                        @csrf
+                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto">
+                            <i class="ri-customer-service-2-line"></i>
+                            Поддержка
+                        </button>
+                    </form>
+                @endif
+            </div>
+        </div>
+    </section>
+
 
     <!-- ℹ Информация магазина / доставка / оплата -->
     <div class="grid w-full min-w-0 gap-4 overflow-hidden sm:grid-cols-3 sm:gap-6">
@@ -179,6 +237,9 @@
             </h3>
 
             @if($addressParts->isNotEmpty())
+                <p class="mb-2 text-sm font-semibold text-slate-800">
+                    {{ $order->delivery_method_label }}
+                </p>
                 <p class="break-words text-sm text-gray-700">
                     {{ $addressParts->join(', ') }}
                 </p>
@@ -190,8 +251,10 @@
                     </p>
                 @endif
             @else
-                <p class="text-sm text-gray-400">Адрес не указан</p>
+                <p class="text-sm font-semibold text-slate-800">{{ $order->delivery_method_label }}</p>
+                <p class="mt-1 text-sm text-gray-400">Адрес не указан</p>
             @endif
+            <p class="mt-3 text-xs text-slate-500">Стоимость и сроки подтверждает продавец.</p>
         </div>
 
         <!-- Оплата -->
@@ -201,13 +264,13 @@
                 Оплата
             </h3>
             <p class="break-words text-sm text-slate-700">
-                {{ $paymentLabels[$order->payment_method] ?? ($order->payment_method ?: 'Не указан') }}
+                {{ $order->payment_method_label }}
             </p>
 
             @if($order->paid_at)
                 <p class="text-sm text-green-600 mt-1">Оплачено в {{ $order->paid_at }}</p>
             @else
-                <p class="text-sm text-slate-400">Пока не оплачено</p>
+                <p class="text-sm text-slate-400">Онлайн-платёж на сайте не выполнялся</p>
             @endif
         </div>
 

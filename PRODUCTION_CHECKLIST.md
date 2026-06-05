@@ -21,9 +21,12 @@
 - Все секреты из локального `.env`, которые когда-либо могли попасть в чужие руки, ротированы
 - Права на сервере настроены без `chmod -R 777`: запись только в `storage/` и `bootstrap/cache/`
 - Supervisor/systemd worker для очереди настроен по примеру `deploy/supervisor-webvitrina-worker.conf.example`
+- Cron/systemd timer для Laravel scheduler настроен: `php artisan schedule:run` каждую минуту
+- Ежедневный backup БД и `storage/app/public` настроен по примеру `deploy/backup-webvitrina.sh.example`
+- Restore backup проверен на тестовой базе, не только создание архива
 - Выполнены `php artisan migrate --force`, `php artisan storage:link`
 - После деплоя выполнены `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`, `php artisan queue:restart`
 - Веб-сервер отдаёт сайт только по HTTPS, а приложение возвращает HSTS-заголовок в production
-- `composer audit` не показывает high/critical advisories
+- `composer audit` не показывает advisories
 - `npm audit --omit=dev` не показывает production vulnerabilities
 - `php artisan test` проходит

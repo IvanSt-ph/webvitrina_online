@@ -124,7 +124,7 @@
       <li>
         <a href="{{ route('seller.plans.index') }}" class="flex items-center gap-2 hover:text-indigo-600">
           <i class="ri-vip-crown-line text-lg"></i>
-          Тарифы
+          Уровень магазина
         </a>
       </li>
       

@@ -14,6 +14,9 @@
                 @php
                     $currentPrice = $item->price_for_current_currency;
                     $price = $currentPrice['amount'] ?? $item->price;
+                    $oldPriceData = $item->old_price_for_current_currency;
+                    $oldPrice = $oldPriceData['amount'] ?? null;
+                    $discount = $item->discount_percent;
                     $currencySymbol = $currentPrice['symbol'] ?? '₽';
                 @endphp
                 <a href="{{ route('product.show', $item->slug) }}"
@@ -34,10 +37,7 @@
                         @endif
                         
                         {{-- Бейдж скидки --}}
-                        @if(isset($item->old_price) && $item->old_price > $item->price)
-                            @php
-                                $discount = round((1 - $item->price / $item->old_price) * 100);
-                            @endphp
+                        @if($discount)
                             <div class="absolute top-2 left-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full">
                                 -{{ $discount }}%
                             </div>
@@ -77,9 +77,9 @@
                             <span class="text-sm sm:text-base font-bold text-indigo-600">
                                 {{ number_format($price, 0, ',', ' ') }} {{ $currencySymbol }}
                             </span>
-                            @if(isset($item->old_price) && $item->old_price > $item->price)
+                            @if($oldPrice && $oldPrice > $price)
                                 <span class="text-[10px] text-gray-400 line-through">
-                                    {{ number_format($item->old_price, 0, ',', ' ') }} {{ $currencySymbol }}
+                                    {{ number_format($oldPrice, 0, ',', ' ') }} {{ $currencySymbol }}
                                 </span>
                             @endif
                         </div>

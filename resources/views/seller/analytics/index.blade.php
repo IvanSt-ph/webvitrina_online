@@ -146,7 +146,7 @@
                 <p class="mt-1 text-sm text-slate-500">Конверсия в корзину, товары без просмотров и дополнительные сигналы помогают быстрее понимать, что улучшать.</p>
             </div>
             <a href="{{ route('seller.plans.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
-                Посмотреть тарифы
+                Посмотреть уровни магазина
             </a>
         </div>
     </section>

@@ -35,6 +35,8 @@
         'out' => 'Нет в наличии',
         'low' => 'Мало остатков',
     ];
+
+    $discount = $discount ?? false;
 @endphp
 
 <x-seller-layout title="Мои товары" :hideHeader="true">
@@ -131,12 +133,12 @@
             @if($sellerPlanProfile['near_limit'] && $sellerPlanProfile['can_create'])
                 <div class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <div class="font-bold">Вы близко к лимиту тарифа {{ $sellerPlanProfile['label'] }}</div>
+                        <div class="font-bold">Вы близко к лимиту уровня магазина {{ $sellerPlanProfile['label'] }}</div>
                         <p class="mt-1 text-amber-800">Осталось {{ $sellerPlanProfile['remaining'] }} мест для товаров. Лучше заранее оставить заявку на повышение.</p>
                     </div>
                     <a href="{{ route('seller.plans.index') }}" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white hover:bg-indigo-700">
                         <i class="ri-vip-crown-line"></i>
-                        Тарифы
+                        Уровень магазина
                     </a>
                 </div>
             @endif
@@ -205,7 +207,7 @@
 
             <section class="wv-card overflow-hidden">
                 <div class="border-b border-slate-100 p-3 sm:p-4">
-                    <form method="GET" action="{{ route('seller.products.index') }}" class="grid gap-3 xl:grid-cols-[1fr_180px_180px_220px_auto]">
+                    <form method="GET" action="{{ route('seller.products.index') }}" class="grid gap-3 xl:grid-cols-[1fr_180px_180px_170px_220px_auto]">
                         <label class="relative block">
                             <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input
@@ -231,6 +233,11 @@
                             @endforeach
                         </select>
 
+                        <label class="flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                            <input type="checkbox" name="discount" value="1" @checked($discount) class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            <span>Со скидкой</span>
+                        </label>
+
                         <select name="sort" class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
                             @foreach($sortLabels as $key => $label)
                                 <option value="{{ $key }}" @selected($sort === $key)>{{ $label }}</option>
@@ -247,7 +254,7 @@
                 <div class="flex flex-col gap-3 border-b border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex min-w-0 gap-2 overflow-x-auto">
                         @php
-                            $filterBase = array_filter(['q' => $search, 'sort' => $sort, 'stock' => $stock ?? null]);
+                            $filterBase = array_filter(['q' => $search, 'sort' => $sort, 'stock' => $stock ?? null, 'discount' => $discount ? 1 : null]);
                             $allCount = $productTotals->total ?? 0;
                         @endphp
                         <a href="{{ route('seller.products.index', $filterBase) }}"
@@ -263,11 +270,16 @@
                             </a>
                         @endforeach
                         @foreach($stockLabels as $key => $label)
-                            <a href="{{ route('seller.products.index', array_merge(array_filter(['q' => $search, 'sort' => $sort, 'status' => $status]), ['stock' => $key])) }}"
+                            <a href="{{ route('seller.products.index', array_merge(array_filter(['q' => $search, 'sort' => $sort, 'status' => $status, 'discount' => $discount ? 1 : null]), ['stock' => $key])) }}"
                                class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ ($stock ?? null) === $key ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
                                 {{ $label }}
                             </a>
                         @endforeach
+                        <a href="{{ route('seller.products.index', array_merge(array_filter(['q' => $search, 'sort' => $sort, 'status' => $status, 'stock' => $stock ?? null]), ['discount' => 1])) }}"
+                           class="inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ $discount ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
+                            Со скидкой
+                            <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $discountProductsCount ?? 0 }}</span>
+                        </a>
                     </div>
 
                     <div class="inline-flex w-fit overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -313,6 +325,9 @@
                                         @if($p->stock <= 0)
                                             <span class="rounded-full border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700">Нет в наличии</span>
                                         @endif
+                                        @if($p->discount_percent)
+                                            <span class="rounded-full border border-red-200 bg-red-500 px-2 py-1 text-xs font-bold text-white">-{{ $p->discount_percent }}%</span>
+                                        @endif
                                     </div>
                                 </div>
 
@@ -338,6 +353,9 @@
                                     <div class="flex items-end justify-between gap-3">
                                         <div>
                                             <div class="text-base font-bold text-slate-950">{{ number_format($p->price, 0, ',', ' ') }} ₽</div>
+                                            @if($p->old_price && $p->old_price > $p->price)
+                                                <div class="text-xs text-slate-400 line-through">{{ number_format($p->old_price, 0, ',', ' ') }} ₽</div>
+                                            @endif
                                             <div class="text-xs text-slate-500">Остаток: {{ $p->stock }}</div>
                                         </div>
                                         <div class="text-right text-xs text-slate-500">
@@ -384,6 +402,9 @@
                                         <div class="flex min-w-0 flex-wrap items-center gap-2">
                                             <h3 class="truncate text-sm font-semibold text-slate-950">{{ $p->title }}</h3>
                                             <span class="rounded-full border {{ $statusClass }} px-2 py-0.5 text-xs font-medium">{{ $statusLabel }}</span>
+                                            @if($p->discount_percent)
+                                                <span class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">-{{ $p->discount_percent }}%</span>
+                                            @endif
                                         </div>
                                         <div class="mt-1 truncate text-xs text-slate-500">
                                             {{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }} · {{ $p->created_at->format('d.m.Y') }}
@@ -406,6 +427,9 @@
 
                                 <div class="text-sm text-slate-600">
                                     <span class="font-semibold text-slate-950">{{ number_format($p->price, 0, ',', ' ') }} ₽</span>
+                                    @if($p->old_price && $p->old_price > $p->price)
+                                        <span class="ml-1 text-xs text-slate-400 line-through">{{ number_format($p->old_price, 0, ',', ' ') }} ₽</span>
+                                    @endif
                                 </div>
 
                                 <div class="text-sm {{ $p->stock > 0 ? 'text-slate-600' : 'text-rose-600' }}">
@@ -440,7 +464,11 @@
                             <i class="ri-store-2-line"></i>
                         </div>
                         <h2 class="mt-4 text-lg font-semibold text-slate-900">Товары не найдены</h2>
-                        <p class="mt-1 text-sm text-slate-500">Попробуйте изменить фильтр или добавить новый товар.</p>
+                        <p class="mt-1 text-sm text-slate-500">По текущим условиям ничего не подходит. Сбросьте фильтры или создайте карточку, если товара ещё нет в каталоге.</p>
+                        <a href="{{ route('seller.products.index') }}" class="mt-5 mr-2 inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                            <i class="ri-close-circle-line"></i>
+                            Сбросить фильтры
+                        </a>
                         <a href="{{ route('seller.products.create') }}" class="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
                             <i class="ri-add-line"></i>
                             Добавить товар

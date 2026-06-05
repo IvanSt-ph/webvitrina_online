@@ -85,14 +85,65 @@ class CabinetController extends Controller
             ->get();
 
 // 🔹 5. Средний рейтинг продавца
-$reviews = Review::whereIn('product_id', $productIds)
+$avgRatingRaw = Review::whereIn('product_id', $productIds)
     ->where('status', Review::STATUS_APPROVED)
-    ->pluck('rating');
+    ->avg('rating');
+$avgRating = $avgRatingRaw ? round((float) $avgRatingRaw, 2) : 0.00;
 
-$avgRatingRaw = $reviews->count() > 0
-    ? $reviews->sum() / $reviews->count()
-    : 0;
-$avgRating = $avgRatingRaw ? round($avgRatingRaw, 2) : 0.00;
+        $shop = $user->shop;
+        $salesCount = (int) ($shop?->sales_count ?? 0);
+        $currentReputation = $shop?->seller_reputation ?? 'new';
+        $reputationLabels = [
+            'top' => 'Платиновый уровень',
+            'trusted' => 'Золотой уровень',
+            'verified' => 'Серебряный уровень',
+            'new' => 'Бронзовый уровень',
+            'low_rating' => 'Требует внимания',
+        ];
+        $nextReputationTarget = match ($currentReputation) {
+            'low_rating' => [
+                'label' => 'Бронзовый уровень',
+                'sales' => 0,
+                'rating' => 3.0,
+            ],
+            'new' => [
+                'label' => 'Серебряный уровень',
+                'sales' => 10,
+                'rating' => 4.2,
+            ],
+            'verified' => [
+                'label' => 'Золотой уровень',
+                'sales' => 30,
+                'rating' => 4.4,
+            ],
+            'trusted' => [
+                'label' => 'Платиновый уровень',
+                'sales' => 80,
+                'rating' => 4.6,
+            ],
+            default => null,
+        };
+        $reputationTasks = [];
+
+        if ($nextReputationTarget) {
+            $missingSales = max(0, $nextReputationTarget['sales'] - $salesCount);
+            if ($missingSales > 0) {
+                $reputationTasks[] = "ещё {$missingSales} завершённых продаж";
+            }
+
+            if ($avgRating < $nextReputationTarget['rating']) {
+                $reputationTasks[] = 'рейтинг от ' . number_format($nextReputationTarget['rating'], 1, ',', ' ') . '/5';
+            }
+        }
+
+        $reputationProgress = [
+            'current' => $reputationLabels[$currentReputation] ?? $reputationLabels['new'],
+            'next' => $nextReputationTarget['label'] ?? null,
+            'sales' => $salesCount,
+            'rating' => $avgRating,
+            'tasks' => $reputationTasks,
+            'is_top' => $nextReputationTarget === null && $currentReputation === 'top',
+        ];
 
 
 
@@ -200,12 +251,12 @@ $avgRating = $avgRatingRaw ? round($avgRatingRaw, 2) : 0.00;
                 'href' => route('seller.products.create'),
             ],
             [
-                'label' => 'Выбрать тариф',
+                'label' => 'Выбрать свой уровень',
                 'done' => filled($user->seller_plan ?? null) || filled($user->plan ?? null) || $pendingPlanRequest,
                 'href' => route('seller.plans.index'),
             ],
         ];
 
-        return view('seller.cabinet', compact('stats', 'actionCards', 'actionOrders', 'pendingPlanRequest', 'setupChecklist'));
+        return view('seller.cabinet', compact('stats', 'actionCards', 'actionOrders', 'pendingPlanRequest', 'setupChecklist', 'reputationProgress'));
     }
 }

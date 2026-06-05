@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
 use App\Models\Category;
+use App\Models\CartItem;
+use App\Models\Favorite;
 use App\Models\Message;
 use App\Models\Review;
 use App\Models\UserNotification;
@@ -118,6 +120,23 @@ class AppServiceProvider extends ServiceProvider
                 : 0;
 
             $view->with('unreadNotificationsCount', $unreadNotificationsCount);
+        });
+
+        View::composer([
+            'layouts.mobile-bottom-nav',
+            'components.nav',
+        ], function ($view) {
+            $buyerNavCounts = auth()->check()
+                ? once(fn () => [
+                    'favorites' => Favorite::where('user_id', auth()->id())->count(),
+                    'cart' => (int) CartItem::where('user_id', auth()->id())->sum('qty'),
+                ])
+                : ['favorites' => 0, 'cart' => 0];
+
+            $view->with([
+                'favoritesCount' => $buyerNavCounts['favorites'],
+                'cartCount' => $buyerNavCounts['cart'],
+            ]);
         });
 
         /*

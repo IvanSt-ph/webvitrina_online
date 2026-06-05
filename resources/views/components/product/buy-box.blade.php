@@ -2,6 +2,9 @@
     @php
         $currentPrice = $product->price_for_current_currency;
         $price = $currentPrice['amount'] ?? $product->price;
+        $oldPriceData = $product->old_price_for_current_currency;
+        $oldPrice = $oldPriceData['amount'] ?? null;
+        $discountPercent = $product->discount_percent;
         $currencySymbol = $currentPrice['symbol'] ?? '₽';
     @endphp
 
@@ -14,24 +17,24 @@
                     {{ number_format($price, 0, ',', ' ') }} {{ $currencySymbol }}
                 </div>
 
-                @if ($product->old_price)
+                @if ($oldPrice && $oldPrice > $price)
                     <div class="text-sm text-gray-400 line-through">
-                        {{ number_format($product->old_price, 0, ',', ' ') }} {{ $currencySymbol }}
+                        {{ number_format($oldPrice, 0, ',', ' ') }} {{ $currencySymbol }}
                     </div>
                 @endif
             </div>
 
-            @if ($product->old_price > $product->price)
+            @if ($discountPercent)
                 <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-700 border border-pink-200 mt-1">
-                    -{{ round(100 - $product->price / $product->old_price * 100) }}% выгода
+                    -{{ $discountPercent }}% выгода
                 </div>
             @endif
         </div>
 
         {{-- Доставка --}}
         <div class="mt-3 space-y-1 text-xs text-gray-600">
-            <div class="flex items-center gap-2">🚚 Доставка: уточняется</div>
-            <div class="flex items-center gap-2">↩️ 14 дней на возврат</div>
+            <div class="flex items-center gap-2">🚚 Доставка: по договорённости с продавцом</div>
+            <div class="flex items-center gap-2">↩️ Возврат: по правилам площадки и условиям заказа</div>
         </div>
 
         {{-- Кнопки --}}

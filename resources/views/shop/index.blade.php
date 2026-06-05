@@ -2,17 +2,6 @@
 {{-- Главная / Каталог с баннерами и сортировкой --}}
 
 @php
-use App\Models\Banner;
-
-/**
- * ✅ Кэш баннеров на 1 час (3600 сек)
- */
-$bannerItems = cache()->remember('slides_home', 3600, function () {
-    return Banner::where('active', true)
-        ->orderBy('sort_order')
-        ->get(['image_desktop', 'image_tablet', 'image_mobile', 'link']);
-});
-
 /**
  * ✅ Локальный helper для получения URL баннера.
  */

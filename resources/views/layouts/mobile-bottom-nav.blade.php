@@ -41,17 +41,8 @@
                     <x-icon name="heart" 
                             class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('favorites.*') ? 'text-indigo-600 drop-shadow-sm' : 'text-gray-500 group-hover:text-indigo-500 group-hover:scale-110' }}"/>
                     
-                    {{-- Подсчет избранного --}}
-                    @php
-                        try {
-                            $favoritesCount = auth()->check() ? (\App\Models\Favorite::where('user_id', auth()->id())->count() ?? 0) : 0;
-                        } catch (\Exception $e) {
-                            $favoritesCount = 0;
-                        }
-                    @endphp
-                    
                     {{-- Компактный бейдж --}}
-                    @if($favoritesCount > 0)
+                    @if(($favoritesCount ?? 0) > 0)
                         <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-sm">
                             {{ min($favoritesCount, 99) }}
                         </span>
@@ -109,19 +100,8 @@
                             d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
                     </svg>
                     
-                    {{-- Cart count calculation --}}
-                    @php
-                        try {
-                            $cartCount = auth()->check()
-                                ? (int) \App\Models\CartItem::where('user_id', auth()->id())->sum('qty')
-                                : 0;
-                        } catch (\Exception $e) {
-                            $cartCount = 0;
-                        }
-                    @endphp
-                    
                     {{-- Badge with pulse animation (СИНИЙ) --}}
-                    @if($cartCount > 0)
+                    @if(($cartCount ?? 0) > 0)
                         {{-- Pulse ring --}}
                         <span class="absolute -top-1 -right-1 inline-flex h-3.5 w-3.5 animate-ping rounded-full bg-indigo-400 opacity-75"></span>
                         {{-- Badge count --}}

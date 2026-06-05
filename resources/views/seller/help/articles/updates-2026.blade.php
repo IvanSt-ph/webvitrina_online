@@ -71,7 +71,7 @@
       </x-help-section>
 
       <x-help-note color="indigo" icon="ri-gift-line">
-        Первые 30 дней на тарифе “Продвинутый” — бесплатно для всех новых продавцов.
+        Первые 30 дней уровня “Продвинутый” доступны всем новым продавцам.
       </x-help-note>
 
       <x-help-section icon="ri-global-line" title="Расширение географии">

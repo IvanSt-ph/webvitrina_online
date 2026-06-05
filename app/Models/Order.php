@@ -35,6 +35,25 @@ class Order extends Model
         ];
     }
 
+    public static function paymentMethodLabels(): array
+    {
+        return [
+            'cash' => 'Наличными при получении или передаче товара',
+            'card' => 'Картой при получении (онлайн-оплата на сайте пока не выполняется)',
+            'bank_transfer' => 'Перевод по согласованию с продавцом',
+        ];
+    }
+
+    public static function deliveryMethodLabels(): array
+    {
+        return [
+            'courier' => 'Доставка продавцом по договорённости',
+            'pickup' => 'Самовывоз по договорённости с продавцом',
+            'post' => 'Отправка почтой по договорённости',
+            'express' => 'Экспресс-доставка/такси по договорённости',
+        ];
+    }
+
     public static function generateNumber(): string
     {
         return 'ORD-' . Str::ulid();
@@ -158,6 +177,16 @@ public function markAsPaid(): void
     public function getFormattedTotalPriceAttribute()
     {
         return number_format($this->total_price, 2, ',', ' ') . ' ' . $this->currency;
+    }
+
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        return self::paymentMethodLabels()[$this->payment_method] ?? ($this->payment_method ?: 'Не указано');
+    }
+
+    public function getDeliveryMethodLabelAttribute(): string
+    {
+        return self::deliveryMethodLabels()[$this->delivery_method] ?? ($this->delivery_method ?: 'Не указано');
     }
 
     /* -------------------------------------------------

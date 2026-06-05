@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Repositories\ProductRepository;
+use App\Models\Banner;
+use App\Models\Category;
 use App\Models\ProductStat;
+use App\Models\Product;
+use App\Models\Shop;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Models\Conversation;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -21,7 +26,72 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = $this->products->getFilteredProducts($request);
-        return view('shop.index', compact('products'));
+        $bannerItems = Cache::remember('slides_home', 3600, function () {
+            return Banner::where('active', true)
+                ->orderBy('sort_order')
+                ->get(['image_desktop', 'image_tablet', 'image_mobile', 'link']);
+        });
+
+        return view('shop.index', compact('products', 'bannerItems'));
+    }
+
+    public function suggest(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json([
+                'products' => [],
+                'categories' => [],
+                'shops' => [],
+            ]);
+        }
+
+        $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
+
+        $products = Product::query()
+            ->active()
+            ->with(['category:id,name,slug'])
+            ->where(function ($query) use ($like, $q) {
+                $query->where('title', 'like', $like);
+
+                if (ctype_digit($q)) {
+                    $query->orWhere('id', (int) $q);
+                }
+            })
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(fn (Product $product) => [
+                'title' => $product->title,
+                'subtitle' => $product->category?->name ?? 'Товар',
+                'url' => route('product.show', $product->slug),
+                'image' => $product->image_thumb_url,
+            ]);
+
+        $categories = Category::query()
+            ->where('name', 'like', $like)
+            ->orderBy('name')
+            ->limit(4)
+            ->get(['name', 'slug'])
+            ->map(fn (Category $category) => [
+                'title' => $category->name,
+                'subtitle' => 'Категория',
+                'url' => route('category.show', $category->slug),
+            ]);
+
+        $shops = Shop::query()
+            ->where('name', 'like', $like)
+            ->orderBy('name')
+            ->limit(4)
+            ->get(['name', 'slug', 'description'])
+            ->map(fn (Shop $shop) => [
+                'title' => $shop->name,
+                'subtitle' => Str::limit(strip_tags($shop->description ?: 'Магазин продавца'), 48),
+                'url' => route('seller.show', $shop->slug),
+            ]);
+
+        return response()->json(compact('products', 'categories', 'shops'));
     }
 
     /* ============================================================
@@ -89,6 +159,17 @@ $reviews = $product->reviews()
     ->with(['user:id,name', 'images:id,review_id,path'])
     ->latest()
     ->paginate(10);
+
+$reviewStats = $product->reviews()
+    ->where('status', 'approved')
+    ->selectRaw('COUNT(*) as total')
+    ->selectRaw('COALESCE(AVG(rating), 0) as average')
+    ->selectRaw('SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as star_5')
+    ->selectRaw('SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as star_4')
+    ->selectRaw('SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as star_3')
+    ->selectRaw('SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as star_2')
+    ->selectRaw('SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as star_1')
+    ->first();
 
 /* --------------------------------------
  | 👤 Мой отзыв (отдельный запрос)
@@ -162,6 +243,7 @@ if (auth()->check()) {
             'product'     => $product,
             'related'     => $related,
             'reviews'     => $reviews,
+            'reviewStats'  => $reviewStats,
             'myReview'    => $myReview,  // ← мой отзыв
             'breadcrumbs' => $breadcrumbs,
             'chatConversation' => $chatConversation,

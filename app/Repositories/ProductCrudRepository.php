@@ -62,6 +62,5 @@ class ProductCrudRepository
         Cache::forget("product_page:{$product->id}");
         Cache::forget("related:{$product->id}");
         Cache::forget("product_by_id:{$product->id}");
-        Cache::forget('products_total_count');
     }
 }

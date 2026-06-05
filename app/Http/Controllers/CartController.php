@@ -38,7 +38,31 @@ class CartController extends Controller
             }
         }
 
-        return view('shop.cart', compact('items', 'unavailableItems', 'total'));
+        $currentProductIds = $items->pluck('product.id')->filter()->values();
+        $categoryIds = $items->pluck('product.category_id')->unique()->filter()->values();
+
+        $crossSellProducts = Product::query()
+            ->active()
+            ->whereNotIn('id', $currentProductIds)
+            ->whereIn('category_id', $categoryIds)
+            ->latest('id')
+            ->limit(4)
+            ->get();
+
+        $recommendedProducts = Product::query()
+            ->active()
+            ->whereNotIn('id', $currentProductIds)
+            ->latest('id')
+            ->limit(4)
+            ->get();
+
+        return view('shop.cart', compact(
+            'items',
+            'unavailableItems',
+            'total',
+            'crossSellProducts',
+            'recommendedProducts'
+        ));
     }
 
     public function add(Product $product, Request $request)

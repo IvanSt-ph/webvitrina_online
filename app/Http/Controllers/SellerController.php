@@ -6,12 +6,13 @@ use App\Models\Shop;
 use App\Models\User;
 use App\Models\Review;
 use App\Models\Conversation;
+use Illuminate\Http\Request;
 
 class SellerController extends Controller
 {
     private const RECENT_MESSAGES_LIMIT = 50;
 
-    public function show(string $identifier)
+    public function show(string $identifier, Request $request)
     {
         if (ctype_digit($identifier)) {
             $user = User::findOrFail((int) $identifier);
@@ -33,8 +34,13 @@ class SellerController extends Controller
             ? $shop->isFollowedBy(auth()->user())
             : false;
 
+        $filter = $request->query('filter', 'all');
+        if (! in_array($filter, ['all', 'new', 'sale', 'hit'], true)) {
+            $filter = 'all';
+        }
+
         // Товары продавца
-        $productsQuery = $user->products()
+        $baseProductsQuery = $user->products()
             ->active()
             ->with(['category', 'seller.shop', 'city.country'])
             ->withCount([
@@ -45,7 +51,7 @@ class SellerController extends Controller
             ], 'rating');
 
         if (auth()->check()) {
-            $productsQuery
+            $baseProductsQuery
                 ->withSum([
                     'cartItems as cart_quantity' => fn($q) => $q->where('user_id', auth()->id()),
                 ], 'qty')
@@ -54,9 +60,43 @@ class SellerController extends Controller
                 ]);
         }
 
+        $filterCounts = [
+            'all' => (clone $baseProductsQuery)->count(),
+            'new' => (clone $baseProductsQuery)->where('created_at', '>=', now()->subDays(30))->count(),
+            'sale' => (clone $baseProductsQuery)->whereColumn('old_price', '>', 'price')->count(),
+            'hit' => (clone $baseProductsQuery)
+                ->where(function ($query) {
+                    $query->where('views_count', '>=', 20)
+                        ->orWhereHas('reviews', fn ($reviews) => $reviews->where('status', 'approved'));
+                })
+                ->count(),
+        ];
+
+        $productsQuery = clone $baseProductsQuery;
+
+        $productsQuery
+            ->when($filter === 'new', fn ($query) => $query->where('created_at', '>=', now()->subDays(30)))
+            ->when($filter === 'sale', fn ($query) => $query->whereColumn('old_price', '>', 'price'))
+            ->when($filter === 'hit', function ($query) {
+                $query->where(function ($inner) {
+                    $inner->where('views_count', '>=', 20)
+                        ->orWhereHas('reviews', fn ($reviews) => $reviews->where('status', 'approved'));
+                });
+            });
+
         $products = $productsQuery
-            ->latest()
+            ->when($filter === 'sale', fn ($query) => $query->orderByDesc('created_at'))
+            ->when($filter === 'hit', fn ($query) => $query->orderByDesc('views_count')->orderByDesc('reviews_count'))
+            ->when(! in_array($filter, ['sale', 'hit'], true), fn ($query) => $query->latest())
             ->paginate(12);
+        $products->appends(['filter' => $filter]);
+
+        $recommendedProducts = (clone $baseProductsQuery)
+            ->orderByDesc('views_count')
+            ->orderByDesc('reviews_count')
+            ->latest()
+            ->limit(10)
+            ->get();
 
         // Отзывы по товарам продавца
         $reviews = Review::whereHas('product', function ($q) use ($user) {
@@ -104,7 +144,8 @@ class SellerController extends Controller
             'chatOldestMessageId',
             'chatLatestMessageId',
             'chatLatestReadOutgoingMessageId',
-            'isFollowingShop'
-        ));
+            'isFollowingShop',
+            'recommendedProducts'
+        ) + compact('filter', 'filterCounts'));
     }
 }

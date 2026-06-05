@@ -36,7 +36,7 @@ class UserTrustService
             $score >= 90 => [
                 'label' => 'Платиновый уровень',
                 'short_label' => 'Платина',
-                'icon' => '💎',
+                'icon' => 'ri-vip-crown-line',
                 'class' => 'border-cyan-200 bg-cyan-50 text-cyan-800',
                 'bar' => 'bg-cyan-500',
                 'description' => 'Очень сильный профиль с подтверждениями и активностью.',
@@ -44,7 +44,7 @@ class UserTrustService
             $score >= 75 => [
                 'label' => 'Золотой уровень',
                 'short_label' => 'Золото',
-                'icon' => '🥇',
+                'icon' => 'ri-award-line',
                 'class' => 'border-amber-200 bg-amber-50 text-amber-800',
                 'bar' => 'bg-amber-500',
                 'description' => 'Высокий уровень доверия и хорошая активность.',
@@ -52,7 +52,7 @@ class UserTrustService
             $score >= 60 => [
                 'label' => 'Серебряный уровень',
                 'short_label' => 'Серебро',
-                'icon' => '🥈',
+                'icon' => 'ri-shield-check-line',
                 'class' => 'border-slate-200 bg-slate-50 text-slate-700',
                 'bar' => 'bg-slate-500',
                 'description' => 'Надёжный профиль с базовыми подтверждениями.',
@@ -60,7 +60,7 @@ class UserTrustService
             $score >= 40 => [
                 'label' => 'Бронзовый уровень',
                 'short_label' => 'Бронза',
-                'icon' => '🥉',
+                'icon' => 'ri-medal-line',
                 'class' => 'border-orange-200 bg-orange-50 text-orange-800',
                 'bar' => 'bg-orange-500',
                 'description' => 'Базовый уровень доверия, профиль ещё набирает историю.',
@@ -68,7 +68,7 @@ class UserTrustService
             default => [
                 'label' => 'Новый уровень',
                 'short_label' => 'Новый',
-                'icon' => '●',
+                'icon' => 'ri-seedling-line',
                 'class' => 'border-indigo-200 bg-indigo-50 text-indigo-800',
                 'bar' => 'bg-indigo-500',
                 'description' => 'Мало публичных сигналов, стоит проверить профиль вручную.',

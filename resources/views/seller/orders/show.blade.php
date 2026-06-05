@@ -305,17 +305,8 @@
         Доставка
     </h2>
 
-    @php
-        $deliveryLabels = [
-            'courier' => '🚚 Курьерская доставка(1-2дня)',
-            'pickup' => '🏪 Самовывоз из пункта выдачи',
-            'post' => '📮 Почта ПМР',
-            'express' => '⚡ Экспресс-доставка',
-        ];
-    @endphp
-    
     <div class="text-sm text-gray-900">
-        {{ $deliveryLabels[$order->delivery_method] ?? $order->delivery_method ?? 'Способ не указан' }}
+        {{ $order->delivery_method_label }}
     </div>
 
     <div class="break-words text-xs text-gray-500 mt-2">
@@ -327,6 +318,9 @@
             Адрес не указан
         @endif
     </div>
+    <div class="mt-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+        Подтвердите покупателю стоимость, срок и способ передачи товара в чате или при обработке заказа.
+    </div>
 </div>
 
             {{-- Оплата --}}
@@ -336,7 +330,7 @@
                 </h2>
 
                 <div class="text-sm text-gray-900">
-                    {{ $order->payment_method ?? 'Не указано' }}
+                    {{ $order->payment_method_label }}
                 </div>
 
                 <div class="text-xs text-gray-500 mt-2 space-y-1">

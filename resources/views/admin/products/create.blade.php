@@ -90,13 +90,21 @@
 
 
             {{-- Цена + Количество + Продавец --}}
-            <div class="grid md:grid-cols-3 gap-4">
+            <div class="grid md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Цена</label>
                     <input type="number" step="0.01" name="price"
                            value="{{ old('price') }}"
                            class="wv-field mt-1"
                            required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Старая цена</label>
+                    <input type="number" step="0.01" name="old_price"
+                           value="{{ old('old_price') }}"
+                           class="wv-field mt-1"
+                           placeholder="Если есть скидка">
+                    <p class="mt-1 text-xs text-gray-400">Должна быть выше текущей цены.</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Количество на складе</label>

@@ -22,7 +22,7 @@
     ['value' => $workQueue['disputes'] ?? 0, 'label' => 'Споры по заказам', 'route' => route('admin.disputes.index'), 'icon' => 'ri-scales-3-line'],
     ['value' => $workQueue['reviews'] ?? 0, 'label' => 'Отзывы на проверке', 'route' => route('admin.reviews.index', ['status' => 'pending']), 'icon' => 'ri-chat-check-line'],
     ['value' => $workQueue['productReports'] ?? 0, 'label' => 'Жалобы на товары', 'route' => route('admin.product-reports.index'), 'icon' => 'ri-alarm-warning-line'],
-    ['value' => $workQueue['plans'] ?? 0, 'label' => 'Заявки на тариф', 'route' => route('admin.seller-plan-requests.index'), 'icon' => 'ri-vip-crown-line'],
+    ['value' => $workQueue['plans'] ?? 0, 'label' => 'Заявки на уровень магазина', 'route' => route('admin.seller-plan-requests.index'), 'icon' => 'ri-vip-crown-line'],
     ['value' => $workQueue['banners'] ?? 0, 'label' => 'Баннеры без mobile', 'route' => route('admin.banners.index', ['status' => 'missing_mobile']), 'icon' => 'ri-smartphone-line'],
   ] as $task)
     <a href="{{ $task['route'] }}" class="wv-card wv-card-hover p-4">
@@ -112,7 +112,7 @@
             <div class="mt-1 truncate text-xs text-slate-500">{{ ucfirst($planRequest->current_plan) }} -> {{ ucfirst($planRequest->requested_plan) }}</div>
           </a>
         @empty
-          <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Новых заявок на тариф сегодня нет.</div>
+          <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Новых заявок на уровень магазина сегодня нет.</div>
         @endforelse
       </div>
     </article>
@@ -183,7 +183,7 @@
 
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
     <div class="flex items-center justify-between gap-3">
-      <h2 class="font-bold text-slate-900">Изменение тарифов</h2>
+      <h2 class="font-bold text-slate-900">Изменение уровней магазинов</h2>
       <a href="{{ route('admin.seller-plan-requests.index') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Все</a>
     </div>
     <div class="mt-3 space-y-2">

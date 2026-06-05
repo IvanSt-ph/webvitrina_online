@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -44,6 +46,33 @@ class ProductSearchTest extends TestCase
         $this->get(route('home', ['q' => 'SKU-EXACT-2026']))
             ->assertOk()
             ->assertSee($product->title);
+    }
+
+    public function test_search_suggestions_return_products_categories_and_shops(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $category = Category::factory()->create([
+            'name' => 'Needle Tools',
+            'slug' => 'needle-tools',
+        ]);
+        Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Needle Shop',
+            'slug' => 'needle-shop',
+            'description' => 'Special tools store',
+        ]);
+        $product = $this->createProduct($seller, [
+            'category_id' => $category->id,
+            'title' => 'Needle product',
+            'slug' => 'needle-product',
+        ]);
+
+        $this->getJson(route('search.suggest', ['q' => 'needle']))
+            ->assertOk()
+            ->assertJsonPath('products.0.title', $product->title)
+            ->assertJsonPath('categories.0.title', 'Needle Tools')
+            ->assertJsonPath('shops.0.title', 'Needle Shop')
+            ->assertJsonPath('products.0.url', route('product.show', $product->slug));
     }
 
     private function createProduct(User $seller, array $overrides = []): Product

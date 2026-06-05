@@ -124,36 +124,17 @@
 
     @else
 
-    <!-- 📊 Прогресс бесплатной доставки -->
-    <div x-show="remainingForFree > 0" class="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
+    <!-- 🚚 Текущий режим доставки -->
+    <div class="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
         <div class="flex items-start gap-3">
             <div class="w-10 h-10 rounded-xl bg-white text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
                 <i class="ri-truck-line text-xl"></i>
             </div>
             <div class="flex-1">
-                <div class="text-sm text-indigo-900 mb-2 font-medium">
-                    Добавьте товаров на <strong class="text-indigo-700" x-text="formatPrice(remainingForFree) + ' ₽'"></strong> для бесплатной доставки
+                <div class="text-sm font-semibold text-indigo-900">Доставка согласуется с продавцом</div>
+                <div class="mt-1 text-xs leading-5 text-indigo-700">
+                    Сейчас сайт не выполняет доставку как отдельную услугу. При оформлении заказа вы выберете удобный вариант, а продавец подтвердит стоимость, срок и способ передачи товара.
                 </div>
-                <div class="h-2 bg-indigo-200 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500" 
-                         :style="`width: ${freeShippingProgress}%`"></div>
-                </div>
-                <div class="flex justify-between text-xs text-indigo-600 mt-1">
-                    <span>0 ₽</span>
-                    <span>{{ number_format($freeShippingThreshold, 0, ',', ' ') }} ₽</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div x-show="remainingForFree <= 0" x-cloak class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
-        <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl bg-white text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
-                <i class="ri-check-line text-xl"></i>
-            </div>
-            <div>
-                <div class="text-sm text-emerald-900 font-semibold">Бесплатная доставка доступна</div>
-                <div class="text-xs text-emerald-700 mt-1">Сумма корзины уже выше порога {{ number_format($freeShippingThreshold, 0, ',', ' ') }} ₽.</div>
             </div>
         </div>
     </div>
@@ -166,6 +147,9 @@
         @php
             $p = $i->product;
             $shortProductTitle = $p ? Str::limit($p->title, 18) : '';
+            $oldPriceData = $p?->old_price_for_current_currency;
+            $oldPrice = $oldPriceData['amount'] ?? null;
+            $discountPercent = $p?->discount_percent;
         @endphp
         @continue(! $p)
 
@@ -219,8 +203,8 @@
                         @if(isset($p->is_new) && $p->is_new)
                             <span class="bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium shadow-sm">New</span>
                         @endif
-                        @if(isset($p->discount_percent) && $p->discount_percent)
-                            <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium shadow-sm">-{{ $p->discount_percent }}%</span>
+                        @if($discountPercent)
+                            <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium shadow-sm">-{{ $discountPercent }}%</span>
                         @endif
                     </div>
                 </div>
@@ -254,9 +238,9 @@
 
                         <!-- Цена -->
                         <div class="min-w-0 flex-shrink-0 sm:text-right">
-                            @if(isset($p->old_price) && $p->old_price)
+                            @if($oldPrice && $oldPrice > $p->price)
                                 <div class="text-sm text-gray-400 line-through sm:text-right">
-                                    {{ number_format($p->old_price, 0, ',', ' ') }} ₽
+                                    {{ number_format($oldPrice, 0, ',', ' ') }} ₽
                                 </div>
                             @endif
                             <div class="text-xl sm:text-2xl font-semibold text-gray-900">
@@ -265,9 +249,9 @@
                             <div class="text-xs text-gray-400 sm:text-right mt-0.5">
                                 {{ number_format($p->price, 2, ',', ' ') }} ₽ за шт.
                             </div>
-                            @if(isset($p->old_price) && $p->old_price)
+                            @if($oldPrice && $oldPrice > $p->price)
                                 <div class="text-xs text-green-600 sm:text-right">
-                                    Экономия: {{ number_format($p->old_price - $p->price, 0, ',', ' ') }} ₽
+                                    Экономия: {{ number_format($oldPrice - $p->price, 0, ',', ' ') }} ₽
                                 </div>
                             @endif
                         </div>
@@ -361,10 +345,7 @@
                 </div>
                 <div class="flex items-start justify-between gap-3 text-gray-600">
                     <span>Доставка</span>
-                    <span class="text-right font-semibold" :class="remainingForFree <= 0 ? 'text-emerald-600' : 'text-gray-900'">
-                        <span x-show="remainingForFree <= 0">Бесплатно</span>
-                        <span x-show="remainingForFree > 0">рассчитается позже</span>
-                    </span>
+                    <span class="text-right font-semibold text-gray-900">согласуется с продавцом</span>
                 </div>
             </div>
 
@@ -376,14 +357,8 @@
                     </div>
                 </div>
 
-                <div class="mt-3 rounded-xl border p-3 text-xs"
-                     :class="remainingForFree <= 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-indigo-50 border-indigo-100 text-indigo-700'">
-                    <span x-show="remainingForFree > 0">
-                        До бесплатной доставки осталось <strong x-text="formatPrice(remainingForFree) + ' ₽'"></strong>
-                    </span>
-                    <span x-show="remainingForFree <= 0">
-                        Бесплатная доставка уже доступна для этого заказа.
-                    </span>
+                <div class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-700">
+                    В итог ниже входит только стоимость товаров. Доставка и способ оплаты подтверждаются после создания заказа.
                 </div>
             </div>
 
@@ -510,14 +485,6 @@
     </div>
 
     <!-- С этим также покупают (Кросс-сейл) -->
-    @php
-        $categoryIds = $items->pluck('product.category_id')->unique()->filter();
-        $crossSellProducts = \App\Models\Product::whereNotIn('id', $items->pluck('product.id'))
-            ->whereIn('category_id', $categoryIds)
-            ->limit(4)
-            ->get();
-    @endphp
-    
     @if($crossSellProducts->isNotEmpty())
     <div class="mt-12 min-w-0">
         <div class="flex min-w-0 items-center justify-between gap-3 mb-4">
@@ -553,13 +520,6 @@
     @endif
 
     <!-- Рекомендации для вас -->
-    @php
-        $recommendedProducts = \App\Models\Product::whereNotIn('id', $items->pluck('product.id'))
-            ->inRandomOrder()
-            ->limit(4)
-            ->get();
-    @endphp
-    
     @if($recommendedProducts->isNotEmpty())
     <div class="mt-8 min-w-0">
         <div class="flex min-w-0 items-center justify-between gap-3 mb-4">

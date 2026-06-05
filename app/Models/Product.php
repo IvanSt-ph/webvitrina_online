@@ -40,16 +40,20 @@ class Product extends Model
     }
 
     protected $fillable = [
-        'user_id','category_id','title','slug','sku','price','stock','image',
+        'user_id','category_id','title','slug','sku','price','old_price','stock','image',
         'description','city_id','gallery','status','address','latitude','longitude',
-        'currency_base','price_prb','price_mdl','price_uah',
+        'currency_base','price_prb','old_price_prb','price_mdl','old_price_mdl','price_uah','old_price_uah',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'old_price' => 'decimal:2',
         'price_prb' => 'decimal:2',
+        'old_price_prb' => 'decimal:2',
         'price_mdl' => 'decimal:2',
+        'old_price_mdl' => 'decimal:2',
         'price_uah' => 'decimal:2',
+        'old_price_uah' => 'decimal:2',
         'gallery' => 'array',
         'latitude' => 'decimal:6',
         'longitude' => 'decimal:6',
@@ -178,6 +182,42 @@ class Product extends Model
             'code'   => $code,
             'symbol' => self::currencySymbol($code),
         ];
+    }
+
+    public function getOldPriceForCurrentCurrencyAttribute(): ?array
+    {
+        $code = self::normalizeCurrencyCode(session('currency', $this->currency_base ?: 'MDL'));
+
+        $map = [
+            'PRB' => $this->old_price_prb,
+            'MDL' => $this->old_price_mdl,
+            'UAH' => $this->old_price_uah,
+        ];
+
+        $amount = $map[$code] ?? null;
+        $amount = $amount ?? $this->old_price;
+
+        if (! $amount || (float) $amount <= 0) {
+            return null;
+        }
+
+        return [
+            'amount' => (float) $amount,
+            'code'   => $code,
+            'symbol' => self::currencySymbol($code),
+        ];
+    }
+
+    public function getDiscountPercentAttribute(): ?int
+    {
+        $price = (float) ($this->price_for_current_currency['amount'] ?? $this->price ?? 0);
+        $oldPrice = (float) ($this->old_price_for_current_currency['amount'] ?? $this->old_price ?? 0);
+
+        if ($price <= 0 || $oldPrice <= $price) {
+            return null;
+        }
+
+        return max(1, min(99, (int) round(100 - ($price * 100 / $oldPrice))));
     }
 
     public function getPriceFormattedAttribute(): string
@@ -327,6 +367,12 @@ class Product extends Model
     public function scopeBlocked($q)
     {
         return $q->where('status', self::STATUS_BLOCKED);
+    }
+
+    public function scopeOnSale($q)
+    {
+        return $q->whereNotNull('old_price')
+            ->whereColumn('old_price', '>', 'price');
     }
 
     public function scopeByCategory($q, $id)
