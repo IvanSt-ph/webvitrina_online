@@ -303,26 +303,33 @@ return redirect()
             }
         }
 
-        // Определяем address_id
-        $addressId = null;
-        if ($user->addresses->count()) {
-            $requestedId = $request->input('address_id');
-            if ($requestedId && $user->addresses->contains('id', $requestedId)) {
-                $addressId = $requestedId;
-            } else {
-                $addressId = $user->addresses->firstWhere('is_default', 1)?->id
-                    ?? $user->addresses->first()?->id;
-            }
-        }
-
         $checkoutData = $request->validate([
             'payment_method' => ['required', 'in:' . implode(',', array_keys(self::PAYMENT_METHODS))],
             'delivery_method' => ['required', 'in:' . implode(',', array_keys(self::DELIVERY_METHODS))],
+            'address_id' => ['nullable', 'integer'],
         ]);
 
         // ✅ Получаем способы оплаты и доставки из формы
         $paymentMethod = $checkoutData['payment_method'];
         $deliveryMethod = $checkoutData['delivery_method'];
+
+        // Определяем address_id и не позволяем подставить чужой адрес.
+        $addressId = null;
+        $requestedId = $checkoutData['address_id'] ?? null;
+        if ($requestedId !== null) {
+            $requestedId = (int) $requestedId;
+
+            if (! $user->addresses->contains('id', $requestedId)) {
+                throw ValidationException::withMessages([
+                    'address_id' => 'Выберите адрес из своего профиля.',
+                ]);
+            }
+
+            $addressId = $requestedId;
+        } elseif ($user->addresses->count()) {
+            $addressId = $user->addresses->firstWhere('is_default', 1)?->id
+                ?? $user->addresses->first()?->id;
+        }
 
         if (!$addressId && !in_array($deliveryMethod, self::DELIVERY_METHODS_WITHOUT_ADDRESS, true)) {
             throw ValidationException::withMessages([

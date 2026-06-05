@@ -441,7 +441,7 @@
                         <tr class="align-top transition hover:bg-indigo-50/25">
                             <td class="px-4 py-4">
                                 <div class="flex gap-3">
-                                    <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('images/no-image.png') }}"
+                                    <img src="{{ $product->image_thumb_url }}"
                                          class="h-14 w-14 rounded-lg border border-slate-200 object-cover"
                                          alt="{{ $product->title }}">
                                     <div class="min-w-0 max-w-xs">
@@ -536,7 +536,7 @@
                 @endphp
                 <article class="group min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:-translate-y-px hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-950/5">
                     <div class="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                        <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('images/no-image.png') }}"
+                        <img src="{{ $product->image_thumb_url }}"
                              class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                              alt="{{ $product->title }}">
                         @if(! $isActive)
@@ -620,7 +620,7 @@
                 @endphp
                 <article class="p-4">
                     <div class="flex gap-3">
-                        <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('images/no-image.png') }}"
+                        <img src="{{ $product->image_thumb_url }}"
                              class="h-16 w-16 shrink-0 rounded-xl border border-slate-200 object-cover"
                              alt="{{ $product->title }}">
                         <div class="min-w-0 flex-1">

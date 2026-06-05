@@ -104,7 +104,7 @@
           <div class="flex justify-between items-center mb-2">
             <span class="text-xs text-gray-400 font-medium">#{{ $loop->iteration }}</span>
             @if($cat->icon)
-              <img src="{{ asset('storage/' . $cat->icon) }}" alt="{{ $cat->name }}"
+              <img src="{{ $cat->icon_url }}" alt="{{ $cat->name }}"
                    class="w-8 h-8 object-contain rounded bg-white border border-gray-100 shadow-sm">
             @else
               <div class="p-1.5 bg-gray-50 border border-gray-100 rounded-md">

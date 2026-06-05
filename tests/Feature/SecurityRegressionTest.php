@@ -210,6 +210,55 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_checkout_rejects_address_that_does_not_belong_to_buyer(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $otherBuyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+
+        UserAddress::create([
+            'user_id' => $buyer->id,
+            'country' => 'MD',
+            'city' => 'Chisinau',
+            'street' => 'Own street',
+            'house' => '1',
+            'is_default' => true,
+        ]);
+        $foreignAddress = UserAddress::create([
+            'user_id' => $otherBuyer->id,
+            'country' => 'MD',
+            'city' => 'Chisinau',
+            'street' => 'Foreign street',
+            'house' => '9',
+            'is_default' => true,
+        ]);
+
+        $this->actingAs($buyer)
+            ->withSession([
+                'checkout_cart' => [[
+                    'cart_id' => null,
+                    'product_id' => $product->id,
+                    'title' => $product->title,
+                    'price' => 100,
+                    'qty' => 1,
+                    'image' => $product->image,
+                ]],
+            ])
+            ->postJson(route('checkout.create'), [
+                'address_id' => $foreignAddress->id,
+                'payment_method' => 'cash',
+                'delivery_method' => 'courier',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('address_id');
+
+        $this->assertDatabaseMissing('orders', [
+            'user_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+    }
+
     public function test_checkout_confirm_uses_mobile_safe_layout_for_long_titles(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -2063,6 +2112,21 @@ class SecurityRegressionTest extends TestCase
             ->assertSessionHasErrors('phone');
 
         $this->assertNull($buyer->fresh()->phone);
+    }
+
+    public function test_profile_avatar_rejects_gif_upload(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+
+        $this->actingAs($buyer)
+            ->patch(route('buyer.profile.update'), [
+                'profile_section' => 'personal',
+                'name' => $buyer->name,
+                'avatar' => UploadedFile::fake()->image('avatar.gif', 320, 320),
+            ])
+            ->assertSessionHasErrors('avatar');
+
+        $this->assertNull($buyer->fresh()->avatar);
     }
 
     public function test_admin_views_public_user_profile_inside_admin_panel(): void

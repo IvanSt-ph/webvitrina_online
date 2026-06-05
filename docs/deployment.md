@@ -62,6 +62,25 @@ php artisan queue:restart
 
 Так Laravel мягко перезапустит worker, и он подхватит новый код.
 
+После настройки worker проверь, что он действительно обрабатывает задачи:
+
+```bash
+php artisan queue:health-check --timeout=15
+```
+
+Команда кладёт маленькую проверочную job в очередь и ждёт, пока worker её выполнит. Если `QUEUE_CONNECTION=sync`, команда специально падает: `sync` не проверяет настоящий worker.
+
+Минимальная проверка очереди перед релизом:
+
+```bash
+php artisan migrate --force
+php artisan queue:restart
+php artisan queue:health-check --timeout=15
+php artisan queue:failed
+```
+
+`queue:failed` должен быть пустым или содержать только разобранные старые ошибки.
+
 ## Scheduler и бэкапы
 
 На сервере должен быть включён Laravel scheduler. Для Linux cron:
@@ -87,10 +106,10 @@ deploy/backup-webvitrina.sh.example
 Минимальный cron для ежедневного backup в 03:15:
 
 ```cron
-15 3 * * * DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh.example >> /var/log/webvitrina-backup.log 2>&1
+15 3 * * * BACKUP_DIR='/var/backups/webvitrina' DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh.example >> /var/log/webvitrina-backup.log 2>&1
 ```
 
-Перед запуском на реальном сервере скопируй пример в отдельный файл, проверь `APP_DIR`, `BACKUP_DIR`, доступы MySQL и восстановление backup на тестовой базе.
+Перед запуском на реальном сервере скопируй пример в отдельный файл, проверь `APP_DIR`, `BACKUP_DIR`, доступы MySQL и восстановление backup на тестовой базе. Укажи те же `BACKUP_DIR` и `BACKUP_MAX_AGE_HOURS` в `.env`, чтобы админский release checklist показывал свежесть последней копии. В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz` и `SHA256SUMS`.
 
 ## Команды после деплоя
 

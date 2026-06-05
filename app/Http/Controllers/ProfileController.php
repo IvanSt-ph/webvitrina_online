@@ -39,7 +39,7 @@ class ProfileController extends Controller
 
         if ($request->ajax() && $request->hasFile('avatar')) {
             $request->validate([
-                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+                'avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048'
             ]);
 
             if ($user->avatar) {
@@ -60,7 +60,7 @@ class ProfileController extends Controller
         if ($section === 'personal') {
             $data = $request->validate([
                 'name' => 'required|string|max:255',
-                'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             ]);
 
             if ($request->hasFile('avatar')) {
@@ -197,7 +197,7 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name'   => 'required|string|max:255',
             'email'  => 'required|email|max:255|unique:users,email,' . $user->id,
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'phone'  => 'nullable|string|max:50',
             'phone_full' => 'nullable|string|max:50',
         ]);

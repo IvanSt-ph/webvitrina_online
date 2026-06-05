@@ -168,7 +168,7 @@
                         <div class="mt-2 flex gap-1.5">
                             @foreach($review->images->take(4) as $image)
                                 <button type="button" class="h-9 w-9 overflow-hidden rounded-md border border-gray-200" @click.stop="openImage('{{ asset('storage/' . $image->path) }}')">
-                                    <img src="{{ asset('storage/' . $image->path) }}" alt="Фото отзыва" class="h-full w-full object-cover">
+                                    <img src="{{ $image->thumb_url }}" alt="Фото отзыва" class="h-full w-full object-cover">
                                 </button>
                             @endforeach
                         </div>

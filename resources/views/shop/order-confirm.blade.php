@@ -58,7 +58,7 @@
                             $shortItemTitle = Str::limit($itemTitle, 18);
                         @endphp
                         <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-center sm:gap-4 sm:p-5">
-                            <img src="{{ asset('storage/'.$item['image']) }}"
+                            <img src="{{ \App\Models\Product::storageThumbUrl($item['image'] ?? null) }}"
                                  class="h-16 w-16 rounded-xl border border-slate-200 object-cover sm:h-20 sm:w-20"
                                  alt="{{ $itemTitle }}">
 

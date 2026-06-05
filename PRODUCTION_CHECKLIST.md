@@ -21,8 +21,12 @@
 - Все секреты из локального `.env`, которые когда-либо могли попасть в чужие руки, ротированы
 - Права на сервере настроены без `chmod -R 777`: запись только в `storage/` и `bootstrap/cache/`
 - Supervisor/systemd worker для очереди настроен по примеру `deploy/supervisor-webvitrina-worker.conf.example`
+- `php artisan queue:health-check --timeout=15` успешно подтверждает, что worker обрабатывает job
+- `php artisan queue:failed` не показывает неразобранные production-ошибки
 - Cron/systemd timer для Laravel scheduler настроен: `php artisan schedule:run` каждую минуту
 - Ежедневный backup БД и `storage/app/public` настроен по примеру `deploy/backup-webvitrina.sh.example`
+- `BACKUP_DIR` и `BACKUP_MAX_AGE_HOURS` заданы так, чтобы админский релиз-чеклист видел свежий backup
+- В backup есть `database.sql.gz`, `storage-public.tar.gz` и `SHA256SUMS`
 - Restore backup проверен на тестовой базе, не только создание архива
 - Выполнены `php artisan migrate --force`, `php artisan storage:link`
 - После деплоя выполнены `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`, `php artisan queue:restart`

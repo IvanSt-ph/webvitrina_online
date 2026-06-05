@@ -9,3 +9,6 @@ numprocs=1
 redirect_stderr=true
 stdout_logfile=/var/www/webvitrina/storage/logs/worker.log
 stopwaitsecs=3600
+
+; After installing/reloading Supervisor, verify the worker:
+; php /var/www/webvitrina/artisan queue:health-check --timeout=15

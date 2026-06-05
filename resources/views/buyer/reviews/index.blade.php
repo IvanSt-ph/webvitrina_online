@@ -215,7 +215,7 @@
                                 <div class="flex flex-wrap gap-2">
                                     @foreach($review->images as $image)
                                         <a href="{{ asset('storage/' . $image->path) }}" target="_blank" rel="noopener noreferrer" class="block">
-                                            <img src="{{ asset('storage/' . $image->path) }}"
+                                            <img src="{{ $image->thumb_url }}"
                                                  alt="Фото из вашего отзыва"
                                                  class="h-14 w-14 rounded-lg border border-gray-200 object-cover hover:border-indigo-300 transition">
                                         </a>

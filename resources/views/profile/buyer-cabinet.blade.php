@@ -231,7 +231,7 @@
                                 @foreach($order->items->take(4) as $item)
                                     <div class="w-11 h-11 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
                                         @if($item->product?->image)
-                                            <img src="{{ asset('storage/'.$item->product->image) }}" class="w-full h-full object-cover" alt="{{ $item->product->title }}">
+                                            <img src="{{ $item->product->image_thumb_url }}" class="w-full h-full object-cover" alt="{{ $item->product->title }}">
                                         @else
                                             <div class="w-full h-full flex items-center justify-center text-gray-300">
                                                 <i class="ri-image-line"></i>
@@ -320,7 +320,7 @@
                             <a href="{{ $item['link'] ?? '#' }}" class="group block border border-gray-100 rounded-xl p-2 hover:shadow-md hover:border-indigo-100 transition">
                                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
                                     @if(!empty($item['image']))
-                                        <img src="{{ asset('storage/'.$item['image']) }}" alt="{{ $item['title'] ?? 'Товар' }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                        <img src="{{ \App\Models\Product::storageThumbUrl($item['image']) }}" alt="{{ $item['title'] ?? 'Товар' }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                     @else
                                         <i class="ri-image-2-line text-3xl text-gray-300"></i>
                                     @endif

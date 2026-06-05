@@ -392,12 +392,51 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('Конкретные задачи для проверки')
             ->assertSee('Релиз-чеклист');
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->get(route('admin.production-checklist'))
             ->assertOk()
             ->assertSee('Production checklist')
             ->assertSee('APP_DEBUG=false')
-            ->assertSee('Бэкапы БД');
+            ->assertSee('требует внимания')
+            ->assertSee('Бэкапы БД')
+            ->assertSee('База данных')
+            ->assertSee('Диск')
+            ->assertSee('Свободно')
+            ->assertSee('laravel.log')
+            ->assertSee('Размер')
+            ->assertSee('Storage')
+            ->assertSee('SMTP')
+            ->assertSee('Robots')
+            ->assertSee('Ошибки 24ч')
+            ->assertSee('Финальный контроль')
+            ->assertSee('href="#release-infrastructure"', false)
+            ->assertSee('href="' . route('sitemap') . '"', false)
+            ->assertSee('href="' . route('robots') . '"', false);
+
+        $publicStorage = public_path('storage');
+        if (file_exists($publicStorage) && (is_link($publicStorage) || @readlink($publicStorage) !== false)) {
+            $response
+                ->assertSee('linked')
+                ->assertDontSee('Сейчас: нет ссылки');
+        }
+    }
+
+    public function test_queue_health_check_rejects_sync_without_explicit_local_override(): void
+    {
+        config(['queue.default' => 'sync']);
+
+        $this->artisan('queue:health-check')
+            ->expectsOutput('QUEUE_CONNECTION=sync. This does not verify a real worker.')
+            ->assertFailed();
+    }
+
+    public function test_queue_health_check_can_run_with_explicit_sync_override_for_local_debugging(): void
+    {
+        config(['queue.default' => 'sync']);
+
+        $this->artisan('queue:health-check --allow-sync --timeout=1')
+            ->expectsOutput('Queue worker processed the health-check job.')
+            ->assertSuccessful();
     }
 
     public function test_seller_products_index_explains_admin_blocked_products(): void

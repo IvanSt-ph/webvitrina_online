@@ -32,6 +32,11 @@ mysqldump \
 
 tar -czf "${TARGET_DIR}/storage-public.tar.gz" -C "${APP_DIR}/storage/app" public
 
+(
+  cd "${TARGET_DIR}"
+  sha256sum database.sql.gz storage-public.tar.gz > SHA256SUMS
+)
+
 find "${BACKUP_DIR}" -mindepth 1 -maxdepth 1 -type d -mtime "+${KEEP_DAYS}" -exec rm -rf {} +
 
 echo "Backup created: ${TARGET_DIR}"

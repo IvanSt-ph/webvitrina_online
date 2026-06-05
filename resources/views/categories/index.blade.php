@@ -64,9 +64,9 @@
 
               @if(!empty($cat->image))
                 <picture>
-                    <source srcset="{{ asset('storage/'.$cat->image) }}" type="image/webp">
+                    <source srcset="{{ $cat->image_thumb_url }}" type="image/webp">
                     <img
-                        src="{{ asset('storage/'.$cat->image) }}"
+                        src="{{ $cat->image_thumb_url }}"
                         alt="{{ $cat->name }}"
                         class="w-full h-full object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-105"
                         loading="lazy"
@@ -76,7 +76,7 @@
                 </picture>
 
               @elseif(!empty($cat->icon))
-                <img src="{{ asset('storage/'.$cat->icon) }}"
+                <img src="{{ $cat->icon_url }}"
                      alt="{{ $cat->name }}"
                      class="w-20 h-20 object-contain opacity-60 transition-transform duration-500 group-hover:scale-110"
                      loading="lazy"

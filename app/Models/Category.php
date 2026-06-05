@@ -136,6 +136,20 @@ class Category extends Model
         return asset('storage/categories/icons/' . $this->icon);
     }
 
+    public function getImageUrlAttribute(): string
+    {
+        if ($this->image) {
+            return asset('storage/' . $this->image);
+        }
+
+        return $this->icon_url;
+    }
+
+    public function getImageThumbUrlAttribute(): string
+    {
+        return $this->image_url;
+    }
+
     /* ============================================================
      | ⚙️ ХУКИ
      ============================================================ */

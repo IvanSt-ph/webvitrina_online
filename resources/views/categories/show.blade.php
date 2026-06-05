@@ -1,9 +1,7 @@
 @php
   $seoUrl = route('category.show', $category->slug);
   $seoDescription = 'Товары в категории “' . $category->name . '” на WebVitrina: предложения продавцов, цены, наличие, доставка и связь с продавцом.';
-  $seoImage = $category->image
-      ? asset('storage/' . $category->image)
-      : ($category->icon ? asset('storage/' . $category->icon) : asset('images/icon.png'));
+  $seoImage = $category->image_url;
 @endphp
 
 @push('meta')
@@ -66,7 +64,7 @@
           <div class="flex aspect-square items-center justify-center overflow-hidden bg-slate-50">
 
               @if(!empty($child->image))
-                  <img src="{{ asset('storage/'.$child->image) }}"
+                  <img src="{{ $child->image_thumb_url }}"
                        alt="{{ $child->name }}"
                        class="w-full h-full object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-105"
                        loading="lazy"
@@ -74,7 +72,7 @@
                        onerror="this.src='/images/no-image.webp'">
 
               @elseif(!empty($child->icon))
-                  <img src="{{ asset('storage/'.$child->icon) }}"
+                  <img src="{{ $child->icon_url }}"
                        alt="{{ $child->name }}"
                        class="w-20 h-20 object-contain opacity-60 transition-transform duration-500 group-hover:scale-110"
                        loading="lazy"

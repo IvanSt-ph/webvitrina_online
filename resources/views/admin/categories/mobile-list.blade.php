@@ -15,10 +15,10 @@
   <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
     <div class="flex items-start gap-3">
       @if($category->image)
-        <img src="{{ asset('storage/'.$category->image) }}" class="h-14 w-14 rounded-xl object-cover" alt="">
+        <img src="{{ $category->image_thumb_url }}" class="h-14 w-14 rounded-xl object-cover" alt="">
       @elseif($category->icon)
         <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-50">
-          <img src="{{ asset('storage/'.$category->icon) }}" class="h-10 w-10 object-contain" alt="">
+          <img src="{{ $category->icon_url }}" class="h-10 w-10 object-contain" alt="">
         </div>
       @else
         <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-50 text-xl text-slate-400">
