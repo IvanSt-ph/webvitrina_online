@@ -54,16 +54,13 @@
     @endphp
 
     <div x-data="{ expanded: {} }" class="w-full max-w-none space-y-5 bg-white px-3 py-4 sm:space-y-6 sm:px-6 sm:py-8">
-        <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center sm:p-5">
+        <header class="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center">
             <div class="min-w-0">
-                <span class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-600">
-                    <i class="ri-star-smile-line"></i>
-                    Отзывы
-                </span>
-                <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Мои отзывы</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                    Следите за модерацией отзывов, открывайте товар и быстро возвращайтесь к оценкам после покупки.
-                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Мои отзывы</h1>
+                    <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-600">{{ $counters['all'] }} всего</span>
+                </div>
+                <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">Статус модерации, оценка и фото по вашим отзывам.</p>
             </div>
 
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -151,8 +148,8 @@
                     $productUrl = $product ? route('product.show', $product->slug ?? $product->id) : null;
                 @endphp
 
-                <article class="grid gap-3 border-b border-gray-100 p-4 last:border-b-0 sm:grid-cols-[84px_minmax(0,1fr)_auto] sm:gap-4 sm:p-5 hover:bg-gray-50/70 transition">
-                    <div class="h-[84px] w-[84px] overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <article class="grid grid-cols-[72px_minmax(0,1fr)] gap-3 border-b border-gray-100 p-3 last:border-b-0 transition hover:bg-gray-50/70 sm:grid-cols-[84px_minmax(0,1fr)_auto] sm:gap-4 sm:p-4">
+                    <div class="h-[72px] w-[72px] overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:h-[84px] sm:w-[84px]">
                         @if($product)
                             <img src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
                         @else
@@ -166,7 +163,7 @@
                         @if($productUrl)
                             <a href="{{ $productUrl }}"
                                title="{{ $product->title }}"
-                               class="max-w-full break-words text-base font-semibold leading-6 text-gray-900 hover:text-indigo-600"
+                               class="max-w-full break-words text-sm font-semibold leading-5 text-gray-900 hover:text-indigo-600 sm:text-base sm:leading-6"
                                style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
                                 {{ $product->title }}
                             </a>
@@ -194,10 +191,10 @@
                             </div>
                         @endif
 
-                        <div class="mt-3">
-                            <div class="mb-1 text-xs font-semibold uppercase text-gray-400">Ваш отзыв:</div>
+                        <div class="mt-2">
                             <p class="break-words text-sm leading-6 text-gray-700"
                                :style="expanded[{{ $review->id }}] ? '' : 'display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;'">
+                                <span class="font-semibold text-slate-500">Ваш отзыв:</span>
                                 {{ $body !== '' ? $body : 'Без текстового комментария.' }}
                             </p>
 
@@ -210,14 +207,14 @@
                         </div>
 
                         @if($review->images->isNotEmpty())
-                            <div class="mt-3">
-                                <div class="mb-2 text-xs font-semibold uppercase text-gray-400">Ваше фото из отзыва:</div>
+                            <div class="mt-2">
                                 <div class="flex flex-wrap gap-2">
                                     @foreach($review->images as $image)
                                         <a href="{{ asset('storage/' . $image->path) }}" target="_blank" rel="noopener noreferrer" class="block">
                                             <img src="{{ $image->thumb_url }}"
                                                  alt="Фото из вашего отзыва"
-                                                 class="h-14 w-14 rounded-lg border border-gray-200 object-cover hover:border-indigo-300 transition">
+                                                 class="h-12 w-12 rounded-lg border border-gray-200 object-cover transition hover:border-indigo-300"
+                                                 title="Фото из вашего отзыва">
                                         </a>
                                     @endforeach
                                 </div>
@@ -225,7 +222,7 @@
                         @endif
                     </div>
 
-                    <div class="flex flex-wrap items-start justify-end gap-2 sm:w-32">
+                    <div class="col-span-2 flex flex-wrap items-start justify-end gap-2 sm:col-span-1 sm:w-32">
                         @if($productUrl)
                             <a href="{{ $productUrl }}" class="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-600 hover:border-indigo-200 hover:text-indigo-600">
                                 <i class="ri-external-link-line"></i>

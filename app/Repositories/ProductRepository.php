@@ -189,10 +189,13 @@ class ProductRepository
                     $cat->where('name', 'like', '%' . $escapedSearch . '%');
                 });
                 
-                // Поиск по продавцу
-                $q->orWhereHas('seller', function ($seller) use ($escapedSearch) {
-                    $seller->where('name', 'like', '%' . $escapedSearch . '%');
-                });
+                // Поиск по продавцу подключаем только для более явного запроса,
+                // иначе короткие слова случайно совпадают с именем продавца и размывают товарную выдачу.
+                if (mb_strlen($search) > 3) {
+                    $q->orWhereHas('seller', function ($seller) use ($escapedSearch) {
+                        $seller->where('name', 'like', '%' . $escapedSearch . '%');
+                    });
+                }
             } 
             // Если товаров МНОГО - умное ограничение
             else {

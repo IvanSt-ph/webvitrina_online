@@ -407,6 +407,18 @@ class Product extends Model
                 $product->slug = $slug;
             }
         });
+
+        static::saved(function (): void {
+            cache()->forget('ads.home');
+            cache()->forget('products.home.high_rating_recommendations');
+            cache()->forget('products.home.catalog_recommendations');
+        });
+
+        static::deleted(function (): void {
+            cache()->forget('ads.home');
+            cache()->forget('products.home.high_rating_recommendations');
+            cache()->forget('products.home.catalog_recommendations');
+        });
     }
     
 }

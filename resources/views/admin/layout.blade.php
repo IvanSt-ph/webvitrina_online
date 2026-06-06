@@ -109,6 +109,7 @@
             ['route'=>'admin.products.index','icon'=>'ri-box-3-line','label'=>'Товары'],
             ['route'=>'admin.categories.index','icon'=>'ri-folder-3-line','label'=>'Категории'],
             ['route'=>'admin.banners.index','icon'=>'ri-image-line','label'=>'Баннеры','badge'=>$missingMobileBanners],
+            ['route'=>'admin.ads.index','active'=>'admin.ads.*','icon'=>'ri-megaphone-line','label'=>'Реклама'],
           ],
           'Управление' => [
             ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Уровни магазинов','badge'=>$pendingSellerPlanRequests],

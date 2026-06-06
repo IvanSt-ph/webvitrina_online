@@ -14,7 +14,7 @@
         $hideMobileBottomNav
     );
 
-    $mainTopPadding = $hideHeader ? 'pt-0' : 'pt-0 lg:pt-4';
+    $mainTopPadding = $hideHeader ? 'pt-0' : 'pt-0';
 @endphp
 
 <!DOCTYPE html>
@@ -50,7 +50,7 @@
       data-currency="{{ session('currency', 'PRB') }}">
 
 <div
-    class="min-h-screen overflow-x-hidden bg-slate-50"
+    class="flex min-h-screen flex-col overflow-x-hidden bg-slate-50"
     x-data="appShell"
 >
 <x-toast-stack />
@@ -59,6 +59,7 @@
 @unless($hideHeader)
     @include('layouts.navigation')
     @include('layouts.mobile-topbar')
+    <div class="hidden h-16 lg:block" aria-hidden="true"></div>
 @endunless
 
 {{-- Заголовок --}}
@@ -71,7 +72,7 @@
 @endisset
 
 {{-- Контент --}}
-<main class="w-full overflow-x-hidden {{ $mainTopPadding }} {{ $flushMain ? 'px-0 pb-0' : (($showBuyerMobileBottomNav || $showSellerMobileBottomNav) ? 'pb-12' : 'pb-0') . ' px-0 sm:px-4 lg:px-6' }}">
+<main class="w-full flex-1 overflow-x-hidden {{ $mainTopPadding }} {{ $flushMain ? 'px-0 pb-0' : (($showBuyerMobileBottomNav || $showSellerMobileBottomNav) ? 'pb-12' : 'pb-0') . ' px-0 sm:px-4 lg:px-6' }}">
     {{ $slot }}
 </main>
 

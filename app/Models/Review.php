@@ -66,6 +66,9 @@ class Review extends Model
         if ($review->product) {
             \App\Repositories\ProductRepository::clearProductCache($review->product);
         }
+
+        cache()->forget('products.home.high_rating_recommendations');
+        cache()->forget('products.home.catalog_recommendations');
     });
 
     static::deleting(function ($review) {
@@ -81,6 +84,9 @@ class Review extends Model
         if ($review->product) {
             \App\Repositories\ProductRepository::clearProductCache($review->product);
         }
+
+        cache()->forget('products.home.high_rating_recommendations');
+        cache()->forget('products.home.catalog_recommendations');
     });
 }
 

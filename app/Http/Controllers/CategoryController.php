@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Attribute;
+use App\Models\AdCampaign;
+use App\Models\AdSlot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
@@ -173,12 +175,35 @@ class CategoryController extends Controller
             return $query->paginate(20)->withQueryString();
         })();
 
+        $categoryAdCampaigns = AdCampaign::query()
+            ->live()
+            ->whereHas('slot', fn ($query) => $query->where('key', AdSlot::CATEGORY_FEATURED_PRODUCTS))
+            ->where(function ($query) use ($categoryIds) {
+                $query->whereNull('category_id')
+                    ->orWhereIn('category_id', $categoryIds);
+            })
+            ->with([
+                'product' => fn ($query) => $query
+                    ->active()
+                    ->with(['seller.shop', 'city.country', 'category'])
+                    ->withAvg('reviews as reviews_avg_rating', 'rating')
+                    ->withCount('reviews'),
+                'shop:id,name,slug,banner,description',
+            ])
+            ->orderBy('sort_order')
+            ->latest()
+            ->limit(6)
+            ->get()
+            ->filter(fn (AdCampaign $campaign) => $campaign->target_type !== AdCampaign::TYPE_PRODUCT || $campaign->product)
+            ->filter(fn (AdCampaign $campaign) => $campaign->target_type !== AdCampaign::TYPE_SHOP || $campaign->shop);
+
             return view('categories.show', [
                 'category' => $category,
                 'products' => $products,
                 'breadcrumbs' => $breadcrumbs,
                 'activeCategoryId' => $category->id,
                 'activeFilters' => request('filters', []), // ← вот ЭТО
+                'categoryAdCampaigns' => $categoryAdCampaigns,
             ]);
 
 

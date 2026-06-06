@@ -67,7 +67,7 @@
 
 
 <div class="order-show-mobile-safe wv-page min-h-screen w-full max-w-full overflow-x-hidden pb-[5.5rem]" style="max-width:100vw;">
-<div class="mx-auto w-full max-w-[1500px] space-y-5 overflow-hidden sm:space-y-6">
+<div class="w-full max-w-none space-y-5 overflow-hidden sm:space-y-6">
 
     <!-- 🔙 Навигация -->
     <div class="grid w-full min-w-0 gap-2 sm:flex sm:items-center sm:justify-between">
@@ -112,24 +112,21 @@
 
 
     <!-- 🔵 Прогресс бар (6 шагов) -->
-    <div class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-8">
+    <div class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-5">
 
-        <div class="sm:hidden space-y-3">
-            @foreach($stepLabels as $step => $text)
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
-                        {{ $step <= $active ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400' }}">
-                        @if($step < $active)
-                            <i class="ri-check-line"></i>
-                        @else
-                            {{ $step }}
-                        @endif
-                    </div>
-                    <div class="text-sm {{ $step === $active ? 'font-semibold text-gray-900' : ($step < $active ? 'text-gray-700' : 'text-gray-400') }}">
-                        {{ $text }}
-                    </div>
+        <div class="sm:hidden">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Статус заказа</div>
+                    <div class="mt-1 text-base font-bold text-slate-950">{{ $stepLabels[$active] ?? $order->status_ru }}</div>
                 </div>
-            @endforeach
+                <div class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">{{ $active }}/6</div>
+            </div>
+            <div class="mt-4 grid grid-cols-6 gap-1">
+                @foreach($stepLabels as $step => $text)
+                    <div class="h-2 rounded-full {{ $step <= $active ? 'bg-indigo-600' : 'bg-slate-200' }}"></div>
+                @endforeach
+            </div>
         </div>
 
         <div class="hidden sm:grid grid-cols-6 gap-4 text-center text-xs font-medium text-gray-600">

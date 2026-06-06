@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\OrderDispute;
+use App\Models\AdCampaign;
+use App\Models\AdSlot;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Product;
 use App\Models\ProductReport;
+use App\Models\Review;
 use App\Models\Shop;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -887,5 +890,282 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('Товары со скидкой')
             ->assertSee('Discount sale item')
             ->assertDontSee('Old regular item');
+    }
+
+    public function test_admin_can_create_manual_retail_media_campaign(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Promo Shop']);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Promo product',
+            'slug' => 'promo-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $slot = AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail();
+
+        $this->actingAs($admin)
+            ->get(route('admin.ads.index'))
+            ->assertOk()
+            ->assertSee('Реклама / Продвижение')
+            ->assertSee('Обзор')
+            ->assertSee('Кампании')
+            ->assertSee('Статистика')
+            ->assertSee('Где показывается реклама')
+            ->assertSee('Популярное в категории')
+            ->assertSee('Добавить кампанию');
+
+        $this->actingAs($admin)
+            ->post(route('admin.ads.store'), [
+                'ad_slot_id' => $slot->id,
+                'target_type' => AdCampaign::TYPE_PRODUCT,
+                'product_id' => $product->id,
+                'title' => 'Promo campaign',
+                'label' => 'Продвигается',
+                'sort_order' => 10,
+                'max_impressions' => 500,
+                'is_active' => '1',
+            ])
+            ->assertRedirect(route('admin.ads.index'));
+
+        $this->assertDatabaseHas('ad_campaigns', [
+            'ad_slot_id' => $slot->id,
+            'product_id' => $product->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'Promo campaign',
+            'label' => 'Продвигается',
+            'is_active' => true,
+            'max_impressions' => 500,
+            'created_by' => $admin->id,
+        ]);
+    }
+
+    public function test_home_page_shows_promoted_campaigns_with_visible_label(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Visible Promo Shop']);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Visible promoted product',
+            'slug' => 'visible-promoted-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        AdCampaign::create([
+            'ad_slot_id' => AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail()->id,
+            'product_id' => $product->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'Visible campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        cache()->forget('ads.home');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Рекомендуемые товары')
+            ->assertSee('Продвигается')
+            ->assertSee('Visible promoted product');
+    }
+
+    public function test_home_page_fills_recommended_products_with_high_rated_items(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Rated Seller Shop']);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Highly rated fallback product',
+            'slug' => 'highly-rated-fallback-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        foreach ([5, 5, 4] as $index => $rating) {
+            Review::create([
+                'user_id' => User::factory()->create(['role' => 'buyer'])->id,
+                'product_id' => $product->id,
+                'rating' => $rating,
+                'body' => 'Approved rating ' . $index,
+                'status' => Review::STATUS_APPROVED,
+            ]);
+        }
+
+        cache()->forget('ads.home');
+        cache()->forget('products.home.high_rating_recommendations');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Рекомендуемые товары')
+            ->assertSee('Высокий рейтинг')
+            ->assertSee('Highly rated fallback product');
+    }
+
+    public function test_home_page_fills_recommended_products_with_catalog_items_when_reviews_are_missing(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Catalog Seller Shop']);
+
+        foreach (range(1, 4) as $number) {
+            Product::create([
+                'user_id' => $seller->id,
+                'title' => 'Catalog fallback product ' . $number,
+                'slug' => 'catalog-fallback-product-' . $number,
+                'price' => 100 + $number,
+                'stock' => 5,
+                'status' => Product::STATUS_ACTIVE,
+            ]);
+        }
+
+        cache()->forget('ads.home');
+        cache()->forget('products.home.high_rating_recommendations');
+        cache()->forget('products.home.catalog_recommendations');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Рекомендуемые товары')
+            ->assertSee('Catalog fallback product 4')
+            ->assertSee('Catalog fallback product 3');
+    }
+
+    public function test_admin_ad_form_searches_products_and_shops(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Needle Search Shop',
+            'slug' => 'needle-search-shop',
+        ]);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Needle Search Product',
+            'slug' => 'needle-search-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.ads.search.products', ['q' => 'Needle Search Product']))
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $product->id,
+                'title' => '#' . $product->id . ' · Needle Search Product',
+            ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.ads.search.shops', ['q' => 'Needle Search Shop']))
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $shop->id,
+                'title' => '#' . $shop->id . ' · Needle Search Shop',
+            ]);
+    }
+
+    public function test_category_page_shows_featured_ad_slot_with_visible_label(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Category Promo Shop']);
+        $category = Category::factory()->create([
+            'name' => 'Ad Category',
+            'slug' => 'ad-category',
+        ]);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'category_id' => $category->id,
+            'title' => 'Category promoted product',
+            'slug' => 'category-promoted-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        AdCampaign::create([
+            'ad_slot_id' => AdSlot::where('key', AdSlot::CATEGORY_FEATURED_PRODUCTS)->firstOrFail()->id,
+            'product_id' => $product->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'Category visible campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        cache()->forget('ads.category.featured');
+
+        $this->get(route('category.show', $category->slug))
+            ->assertOk()
+            ->assertSee('Популярное в категории')
+            ->assertSee('Продвигается')
+            ->assertSee('Category promoted product');
+    }
+
+    public function test_category_ad_campaign_can_be_limited_to_one_category(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Limited Promo Shop']);
+        $visibleCategory = Category::factory()->create([
+            'name' => 'Visible Ad Category',
+            'slug' => 'visible-ad-category',
+        ]);
+        $otherCategory = Category::factory()->create([
+            'name' => 'Other Ad Category',
+            'slug' => 'other-ad-category',
+        ]);
+        $product = Product::create([
+            'user_id' => $seller->id,
+            'category_id' => $visibleCategory->id,
+            'title' => 'Only visible here product',
+            'slug' => 'only-visible-here-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        AdCampaign::create([
+            'ad_slot_id' => AdSlot::where('key', AdSlot::CATEGORY_FEATURED_PRODUCTS)->firstOrFail()->id,
+            'category_id' => $visibleCategory->id,
+            'product_id' => $product->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'Limited category campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+
+        $this->get(route('category.show', $visibleCategory->slug))
+            ->assertOk()
+            ->assertSee('Only visible here product');
+
+        $this->get(route('category.show', $otherCategory->slug))
+            ->assertOk()
+            ->assertDontSee('Only visible here product');
+    }
+
+    public function test_parent_category_page_shows_subcategories_without_product_filters(): void
+    {
+        $parent = Category::factory()->create([
+            'name' => 'Parent visual category',
+            'slug' => 'parent-visual-category',
+        ]);
+        Category::factory()->create([
+            'name' => 'Child visual category',
+            'slug' => 'child-visual-category',
+            'parent_id' => $parent->id,
+        ]);
+
+        $this->get(route('category.show', $parent->slug))
+            ->assertOk()
+            ->assertSee('Child visual category')
+            ->assertSee('Выберите раздел')
+            ->assertSee('aria-label="Breadcrumbs"', false)
+            ->assertSee('hidden h-16 lg:block', false)
+            ->assertDontSee('Панель фильтров')
+            ->assertDontSee('Популярное в категории');
     }
 }

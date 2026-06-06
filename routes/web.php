@@ -55,6 +55,7 @@ use App\Http\Controllers\Admin\{
     AdminProfileController,
     ActivityLogController,
     BannerController,
+    AdCampaignController,
     ReviewController as AdminReviewController,
     ProductReportController as AdminProductReportController,
     OrderDisputeController as AdminOrderDisputeController,
@@ -577,6 +578,9 @@ Route::prefix('admin')
     Route::view('/production-checklist', 'admin.production-checklist')->name('production-checklist');
 
     Route::resource('banners', BannerController::class)->except(['show']);
+    Route::get('/ads/search/products', [AdCampaignController::class, 'searchProducts'])->name('ads.search.products');
+    Route::get('/ads/search/shops', [AdCampaignController::class, 'searchShops'])->name('ads.search.shops');
+    Route::resource('ads', AdCampaignController::class)->except(['show'])->parameters(['ads' => 'ad']);
 
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
     Route::post('/reviews/bulk', [AdminReviewController::class, 'bulk'])->name('reviews.bulk');

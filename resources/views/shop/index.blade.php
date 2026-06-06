@@ -200,6 +200,89 @@ $firstImage = $bannerImageUrl($firstBanner);
 
   {{-- 📦 Основной контент --}}
   <div class="max-w-[90rem] mx-auto px-2 sm:px-4 lg:px-6 mt-6 mb-12">
+    @php
+      $featuredProductAds = ($homeAdCampaigns ?? collect())->get(\App\Models\AdSlot::HOME_FEATURED_PRODUCTS, collect());
+      $weeklyShopAds = ($homeAdCampaigns ?? collect())->get(\App\Models\AdSlot::HOME_WEEKLY_SHOPS, collect());
+      $recommendedFallbackProducts = $recommendedFallbackProducts ?? collect();
+      $recommendedCatalogProducts = $recommendedCatalogProducts ?? collect();
+      $hasRecommendedProducts = $featuredProductAds->isNotEmpty() || $recommendedFallbackProducts->isNotEmpty() || $recommendedCatalogProducts->isNotEmpty();
+    @endphp
+
+    @if($hasRecommendedProducts || $weeklyShopAds->isNotEmpty())
+      <section class="mb-8 space-y-6">
+        @if($hasRecommendedProducts)
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-bold text-slate-950 sm:text-xl">Рекомендуемые товары</h2>
+                <p class="text-sm text-slate-500">Подборка WebVitrina и товары с высоким рейтингом</p>
+              </div>
+              <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Подборка</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
+              @foreach($featuredProductAds->take(6) as $campaign)
+                @if($campaign->product)
+                  <x-product-card :p="$campaign->product" :promoted="true" :promotion-label="$campaign->label" />
+                @elseif($campaign->target_type === \App\Models\AdCampaign::TYPE_CUSTOM)
+                  <a href="{{ $campaign->resolved_url }}" class="group flex min-h-[220px] flex-col justify-between rounded-2xl border border-indigo-100 bg-indigo-50 p-4 transition hover:border-indigo-200 hover:bg-indigo-100">
+                    <span class="w-fit rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">{{ $campaign->label }}</span>
+                    <span class="mt-6 text-base font-bold text-slate-950">{{ $campaign->title }}</span>
+                    @if($campaign->description)
+                      <span class="mt-2 text-sm text-slate-600">{{ \Illuminate\Support\Str::limit($campaign->description, 90) }}</span>
+                    @endif
+                    <span class="mt-5 inline-flex items-center gap-1 text-sm font-bold text-indigo-700">Открыть <i class="ri-arrow-right-line"></i></span>
+                  </a>
+                @endif
+              @endforeach
+              @foreach($recommendedFallbackProducts as $product)
+                <x-product-card :p="$product" :promoted="true" promotion-label="Высокий рейтинг" />
+              @endforeach
+              @foreach($recommendedCatalogProducts as $product)
+                <x-product-card :p="$product" />
+              @endforeach
+            </div>
+          </div>
+        @endif
+
+        @if($weeklyShopAds->isNotEmpty())
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-bold text-slate-950 sm:text-xl">Магазины недели</h2>
+                <p class="text-sm text-slate-500">Партнёрский блок с прозрачной меткой</p>
+              </div>
+              <span class="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">Партнёрский блок</span>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              @foreach($weeklyShopAds->take(3) as $campaign)
+                @php
+                  $shop = $campaign->shop;
+                @endphp
+                @if($shop)
+                  <a href="{{ $campaign->resolved_url }}" class="group grid grid-cols-[88px_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+                    <img src="{{ $shop->banner_url }}" alt="{{ $shop->name }}" class="h-20 w-20 rounded-xl object-cover">
+                    <span class="min-w-0">
+                      <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">{{ $campaign->label }}</span>
+                      <span class="mt-2 block truncate text-base font-bold text-slate-950 group-hover:text-indigo-700">{{ $shop->name }}</span>
+                      <span class="mt-1 block text-sm text-slate-500">{{ \Illuminate\Support\Str::limit(strip_tags($shop->description ?: $campaign->description ?: 'Магазин продавца WebVitrina'), 76) }}</span>
+                      <span class="mt-2 inline-flex items-center gap-1 text-sm font-bold text-indigo-700">В магазин <i class="ri-arrow-right-line"></i></span>
+                    </span>
+                  </a>
+                @elseif($campaign->target_type === \App\Models\AdCampaign::TYPE_CUSTOM)
+                  <a href="{{ $campaign->resolved_url }}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-200 hover:shadow-md">
+                    <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">{{ $campaign->label }}</span>
+                    <span class="mt-3 block text-base font-bold text-slate-950">{{ $campaign->title }}</span>
+                    <span class="mt-2 block text-sm text-slate-500">{{ \Illuminate\Support\Str::limit($campaign->description ?: 'Партнёрский блок WebVitrina', 90) }}</span>
+                  </a>
+                @endif
+              @endforeach
+            </div>
+          </div>
+        @endif
+      </section>
+    @endif
     
     {{-- 🎯 Сетка карточек — 6 колонок максимум (чтобы карточки не были слишком узкими) --}}
     <div id="products-grid" 

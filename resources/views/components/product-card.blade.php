@@ -1,4 +1,4 @@
-@props(['p', 'showDescription' => false])
+@props(['p', 'showDescription' => false, 'promoted' => false, 'promotionLabel' => 'Продвигается'])
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/product-card.css') }}">
@@ -142,6 +142,12 @@ x-data="{
 
     @if($hasDiscount)
         <div class="pc-badge">−{{ $discountPercent }}%</div>
+    @endif
+
+    @if($promoted)
+        <div class="absolute left-2 z-20 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-indigo-700 shadow-sm ring-1 ring-indigo-100 {{ $hasDiscount ? 'top-9' : 'top-2' }}">
+            {{ $promotionLabel }}
+        </div>
     @endif
 
     {{-- Image --}}

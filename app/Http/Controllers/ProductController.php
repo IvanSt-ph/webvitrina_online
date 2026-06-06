@@ -8,7 +8,10 @@ use App\Models\Banner;
 use App\Models\Category;
 use App\Models\ProductStat;
 use App\Models\Product;
+use App\Models\Review;
 use App\Models\Shop;
+use App\Models\AdCampaign;
+use App\Models\AdSlot;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Models\Conversation;
@@ -31,8 +34,98 @@ class ProductController extends Controller
                 ->orderBy('sort_order')
                 ->get(['image_desktop', 'image_tablet', 'image_mobile', 'link']);
         });
+        $showHomeRecommendations = collect($request->query())
+            ->except('sort')
+            ->filter(fn ($value) => is_array($value) ? ! empty(array_filter($value)) : filled($value))
+            ->isEmpty();
 
-        return view('shop.index', compact('products', 'bannerItems'));
+        $homeAdCampaigns = collect();
+
+        if ($showHomeRecommendations) {
+            $homeAdCampaigns = Cache::remember('ads.home', 300, function () {
+                return AdCampaign::query()
+                    ->live()
+                    ->whereHas('slot', fn ($query) => $query->whereIn('key', [
+                        AdSlot::HOME_FEATURED_PRODUCTS,
+                        AdSlot::HOME_WEEKLY_SHOPS,
+                    ]))
+                    ->with([
+                        'slot:id,key,name',
+                        'product' => fn ($query) => $query
+                            ->active()
+                            ->with(['seller.shop', 'city.country', 'category'])
+                            ->withAvg('reviews as reviews_avg_rating', 'rating')
+                            ->withCount('reviews'),
+                        'shop:id,name,slug,banner,description,seller_reputation,rating,sales_count',
+                    ])
+                    ->orderBy('sort_order')
+                    ->latest()
+                    ->limit(12)
+                    ->get()
+                    ->filter(fn (AdCampaign $campaign) => $campaign->target_type !== AdCampaign::TYPE_PRODUCT || $campaign->product)
+                    ->filter(fn (AdCampaign $campaign) => $campaign->target_type !== AdCampaign::TYPE_SHOP || $campaign->shop)
+                    ->groupBy(fn (AdCampaign $campaign) => $campaign->slot?->key);
+            });
+        }
+
+        $featuredProductIds = $homeAdCampaigns
+            ->get(AdSlot::HOME_FEATURED_PRODUCTS, collect())
+            ->pluck('product_id')
+            ->filter()
+            ->values()
+            ->all();
+
+        $recommendedFallbackProducts = collect();
+        $recommendedCatalogProducts = collect();
+        $fallbackLimit = $showHomeRecommendations ? max(0, 6 - count($featuredProductIds)) : 0;
+
+        if ($fallbackLimit > 0) {
+            $recommendedFallbackProducts = Cache::remember('products.home.high_rating_recommendations', 300, function () {
+                return Product::query()
+                    ->active()
+                    ->with(['seller.shop', 'city.country', 'category'])
+                    ->withCount([
+                        'reviews as reviews_count' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+                    ])
+                    ->withAvg([
+                        'reviews as reviews_avg_rating' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+                    ], 'rating')
+                    ->having('reviews_count', '>=', 3)
+                    ->orderByDesc('reviews_avg_rating')
+                    ->orderByDesc('reviews_count')
+                    ->latest()
+                    ->limit(12)
+                    ->get();
+            })
+                ->reject(fn (Product $product) => in_array($product->id, $featuredProductIds, true))
+                ->take($fallbackLimit)
+                ->values();
+
+            $usedProductIds = array_merge($featuredProductIds, $recommendedFallbackProducts->pluck('id')->all());
+            $catalogLimit = max(0, $fallbackLimit - $recommendedFallbackProducts->count());
+
+            if ($catalogLimit > 0) {
+                $recommendedCatalogProducts = Cache::remember('products.home.catalog_recommendations', 300, function () {
+                    return Product::query()
+                        ->active()
+                        ->with(['seller.shop', 'city.country', 'category'])
+                        ->withCount([
+                            'reviews as reviews_count' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+                        ])
+                        ->withAvg([
+                            'reviews as reviews_avg_rating' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+                        ], 'rating')
+                        ->latest()
+                        ->limit(24)
+                        ->get();
+                })
+                    ->reject(fn (Product $product) => in_array($product->id, $usedProductIds, true))
+                    ->take($catalogLimit)
+                    ->values();
+            }
+        }
+
+        return view('shop.index', compact('products', 'bannerItems', 'homeAdCampaigns', 'recommendedFallbackProducts', 'recommendedCatalogProducts'));
     }
 
     public function suggest(Request $request)

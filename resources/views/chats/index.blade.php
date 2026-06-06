@@ -4,7 +4,7 @@
 
 <x-dynamic-component :component="$chatLayout" title="Чаты" :chat-mode="true">
     <div class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-6 lg:pb-6">
-        <div class="sticky top-0 z-20 mb-4 shrink-0 border-b border-slate-100 bg-neutral-50/95 pb-4 backdrop-blur sm:mb-5 sm:border-0 sm:bg-transparent sm:pb-0">
+        <div class="sticky top-0 z-20 mb-3 shrink-0 border-b border-slate-100 bg-neutral-50/95 pb-3 backdrop-blur sm:mb-4 sm:border-0 sm:bg-transparent sm:pb-0">
             @if(auth()->user()->isSeller())
                 <a href="{{ route('seller.cabinet') }}"
                    class="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-indigo-600 lg:hidden">
@@ -12,11 +12,13 @@
                     Назад в кабинет
                 </a>
             @endif
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p class="text-sm font-medium text-indigo-600">Сообщения</p>
-                    <h1 class="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Чаты</h1>
-                    <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Обсуждайте детали покупки напрямую внутри WebVitrina.</p>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                    <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Чаты</h1>
+                        <span class="hidden text-sm text-slate-400 sm:inline">•</span>
+                        <p class="min-w-0 truncate text-sm text-slate-500 sm:max-w-xl">Сообщения по товарам, заказам и поддержке</p>
+                    </div>
                 </div>
 
                 @if($conversations->isNotEmpty())
