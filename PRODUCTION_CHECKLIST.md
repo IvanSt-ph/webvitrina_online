@@ -26,7 +26,9 @@
 - Cron/systemd timer для Laravel scheduler настроен: `php artisan schedule:run` каждую минуту
 - Ежедневный backup БД и `storage/app/public` настроен по примеру `deploy/backup-webvitrina.sh.example`
 - `BACKUP_DIR` и `BACKUP_MAX_AGE_HOURS` заданы так, чтобы админский релиз-чеклист видел свежий backup
+- Если backup запускается через Laravel scheduler, задан `BACKUP_COMMAND` и включён cron `php artisan schedule:run`
 - В backup есть `database.sql.gz`, `storage-public.tar.gz` и `SHA256SUMS`
+- `php artisan backup:health-check --max-age-hours=30` проходит без ошибок
 - Restore backup проверен на тестовой базе, не только создание архива
 - Выполнены `php artisan migrate --force`, `php artisan storage:link`
 - После деплоя выполнены `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`, `php artisan queue:restart`

@@ -1,5 +1,5 @@
 @php
-    $updatedAt = '03.06.2026';
+    $updatedAt = '06.06.2026';
     $sections = [
         [
             'id' => 'general',
@@ -113,7 +113,7 @@
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Документы WebVitrina</p>
-                    <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Правила площадки</h1>
+                    <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Правила площадки WebVitrina</h1>
                     <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
                         Это пользовательское соглашение и базовые правила работы маркетплейса. Документ описывает отношения между пользователями, продавцами и WebVitrina, а также порядок заказов, общения, модерации, жалоб и споров.
                     </p>

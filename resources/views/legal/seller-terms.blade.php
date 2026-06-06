@@ -1,5 +1,5 @@
 @php
-    $updatedAt = '03.06.2026';
+    $updatedAt = '06.06.2026';
     $sections = [
         [
             'id' => 'general',
@@ -108,8 +108,8 @@
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Продавцам</p>
-                    <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Условия для продавцов</h1>
+                    <p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Документы WebVitrina</p>
+                    <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Условия для продавцов WebVitrina</h1>
                     <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
                         Документ описывает правила работы продавца на WebVitrina: магазин, товары, заказы, чаты, отзывы, жалобы, уровни магазина, финансы и модерацию.
                     </p>
@@ -117,7 +117,7 @@
                 <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
                     <div class="font-semibold text-slate-900">Дата редакции</div>
                     <div class="mt-1">{{ $updatedAt }}</div>
-                    <div class="mt-3 text-xs leading-5">Финальный текст стоит сверить с фактической моделью работы продавцов.</div>
+                    <div class="mt-3 text-xs leading-5">Перед публичным запуском условия рекомендуется согласовать с юристом.</div>
                 </div>
             </div>
 

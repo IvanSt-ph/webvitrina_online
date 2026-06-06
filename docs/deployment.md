@@ -109,7 +109,22 @@ deploy/backup-webvitrina.sh.example
 15 3 * * * BACKUP_DIR='/var/backups/webvitrina' DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh.example >> /var/log/webvitrina-backup.log 2>&1
 ```
 
+Можно запускать этот же скрипт через Laravel scheduler. Для этого в `.env` укажи:
+
+```env
+BACKUP_COMMAND="BACKUP_DIR='/var/backups/webvitrina' DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh"
+BACKUP_DAILY_AT=03:15
+```
+
 Перед запуском на реальном сервере скопируй пример в отдельный файл, проверь `APP_DIR`, `BACKUP_DIR`, доступы MySQL и восстановление backup на тестовой базе. Укажи те же `BACKUP_DIR` и `BACKUP_MAX_AGE_HOURS` в `.env`, чтобы админский release checklist показывал свежесть последней копии. В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz` и `SHA256SUMS`.
+
+Проверка свежести, обязательных файлов и SHA256:
+
+```bash
+php artisan backup:health-check --max-age-hours=30
+```
+
+Если команда падает, backup нельзя считать рабочим. Исправь проблему и проверь ещё раз.
 
 ## Команды после деплоя
 
@@ -136,6 +151,17 @@ php artisan test
 ```
 
 После первого backup обязательно проверь восстановление: backup считается рабочим только после успешного restore на отдельной базе или тестовом окружении.
+
+Минимальный restore-аудит:
+
+```bash
+mkdir -p /tmp/webvitrina-restore-check
+tar -tzf /var/backups/webvitrina/LATEST/storage-public.tar.gz | head
+gunzip -t /var/backups/webvitrina/LATEST/database.sql.gz
+mysql --host=127.0.0.1 --user=restore_user --password restore_test_db < <(gunzip -c /var/backups/webvitrina/LATEST/database.sql.gz)
+```
+
+`LATEST` замени на имя последней папки backup. Тестовая база должна быть отдельной от production.
 
 ## Логи
 

@@ -5,21 +5,24 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Notifications\MarketplaceEventNotification;
+use App\Support\SafeRedirect;
 
 class UserNotificationService
 {
     public function create(User $user, string $type, string $title, ?string $body = null, ?string $url = null, array $data = []): UserNotification
     {
+        $safeUrl = SafeRedirect::internalPath($url);
+
         $notification = $user->notifications()->create([
             'type' => $type,
             'title' => $title,
             'body' => $body,
-            'url' => $url,
+            'url' => $safeUrl,
             'data' => $data ?: null,
         ]);
 
         if ($this->shouldSendEmail($user, $type)) {
-            $user->notify(new MarketplaceEventNotification($title, $body, $url));
+            $user->notify(new MarketplaceEventNotification($title, $body, $safeUrl));
         }
 
         return $notification;

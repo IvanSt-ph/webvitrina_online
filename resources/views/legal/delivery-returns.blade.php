@@ -1,5 +1,5 @@
 @php
-    $updatedAt = '03.06.2026';
+    $updatedAt = '06.06.2026';
     $sections = [
         [
             'id' => 'current-mode',
@@ -90,8 +90,8 @@
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Покупателям</p>
-                    <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Доставка, отмены и возвраты</h1>
+                    <p class="text-xs font-bold uppercase tracking-wide text-indigo-600">Документы WebVitrina</p>
+                    <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Доставка, отмены и возвраты WebVitrina</h1>
                     <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
                         Документ описывает порядок доставки, оплаты по договорённости, отмены заказа, возврата товара, открытия спора и обращения в поддержку.
                     </p>

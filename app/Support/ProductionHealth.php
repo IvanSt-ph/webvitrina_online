@@ -91,31 +91,14 @@ class ProductionHealth
 
     private static function backup(): array
     {
-        $backupPath = config('backup.path');
-        $maxAgeHours = max(1, (int) config('backup.max_age_hours', 30));
-        $dirs = is_dir($backupPath) && is_readable($backupPath)
-            ? collect(scandir($backupPath))
-                ->reject(fn ($entry) => in_array($entry, ['.', '..'], true))
-                ->map(fn ($entry) => rtrim($backupPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $entry)
-                ->filter(fn ($path) => is_dir($path))
-                ->sortByDesc(fn ($path) => filemtime($path) ?: 0)
-                ->values()
-            : collect();
-
-        $latest = $dirs->first();
-        $ageHours = $latest ? round((time() - (filemtime($latest) ?: time())) / 3600, 1) : null;
-        $hasDatabase = $latest && file_exists($latest . DIRECTORY_SEPARATOR . 'database.sql.gz');
-        $hasStorage = $latest && file_exists($latest . DIRECTORY_SEPARATOR . 'storage-public.tar.gz');
-        $hasChecksums = $latest && file_exists($latest . DIRECTORY_SEPARATOR . 'SHA256SUMS');
-        $ok = $latest && $ageHours !== null && $ageHours <= $maxAgeHours && $hasDatabase && $hasStorage && $hasChecksums;
-        $backupTime = $latest ? date('d.m.Y H:i', filemtime($latest) ?: time()) : null;
+        $backup = BackupHealth::latest();
 
         return [
-            'ok' => (bool) $ok,
-            'value' => $backupTime ? 'Последний: ' . $backupTime : 'не найден',
-            'detail' => $latest
-                ? 'Папка: ' . basename($latest) . '. Возраст: ' . $ageHours . ' ч. Нужны database.sql.gz, storage-public.tar.gz и SHA256SUMS.'
-                : 'Папка бэкапов: ' . $backupPath,
+            'ok' => $backup['ok'],
+            'value' => $backup['value'],
+            'detail' => $backup['ok'] || $backup['latest'] === null
+                ? $backup['detail']
+                : $backup['detail'] . ' Проблемы: ' . implode(' ', $backup['issues']),
             'icon' => 'ri-database-2-line',
         ];
     }

@@ -10,9 +10,9 @@ use App\Models\Message;
 use App\Models\User;
 use App\Services\ChatImageService;
 use App\Services\UserNotificationService;
+use App\Support\SafeRedirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ChatController extends Controller
@@ -387,8 +387,8 @@ class ChatController extends Controller
 
         $redirectTo = $request->string('redirect_to')->toString();
 
-        if ($this->isSafeRedirectTarget($redirectTo)) {
-            return redirect($redirectTo)->with('success', 'Сообщение отправлено.');
+        if ($safeRedirectTo = SafeRedirect::internalPath($redirectTo)) {
+            return redirect($safeRedirectTo)->with('success', 'Сообщение отправлено.');
         }
 
         return redirect()
@@ -603,25 +603,4 @@ class ChatController extends Controller
         $this->restoreForUser($conversation, $other);
     }
 
-    private function isSafeRedirectTarget(string $redirectTo): bool
-    {
-        if ($redirectTo === '') {
-            return false;
-        }
-
-        if (Str::startsWith($redirectTo, ['/']) && ! Str::startsWith($redirectTo, ['//'])) {
-            return true;
-        }
-
-        $target = parse_url($redirectTo);
-        $app = parse_url(config('app.url'));
-
-        if (! $target || ! $app) {
-            return false;
-        }
-
-        return ($target['scheme'] ?? null) === ($app['scheme'] ?? null)
-            && ($target['host'] ?? null) === ($app['host'] ?? null)
-            && ($target['port'] ?? null) === ($app['port'] ?? null);
-    }
 }

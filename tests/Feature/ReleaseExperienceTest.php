@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Notifications\MarketplaceEventNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -71,6 +72,42 @@ class ReleaseExperienceTest extends TestCase
             ->assertRedirect();
 
         $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+    public function test_notification_redirects_only_to_internal_urls(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $external = UserNotification::create([
+            'user_id' => $buyer->id,
+            'type' => 'test',
+            'title' => 'External',
+            'url' => 'https://evil.example/phishing',
+        ]);
+        $internal = app(\App\Services\UserNotificationService::class)->create(
+            $buyer,
+            'test',
+            'Internal',
+            null,
+            route('orders.index')
+        );
+        $stripped = app(\App\Services\UserNotificationService::class)->create(
+            $buyer,
+            'test',
+            'External stripped',
+            null,
+            'https://evil.example/phishing'
+        );
+
+        $this->actingAs($buyer)
+            ->from(route('notifications.index'))
+            ->post(route('notifications.read', $external))
+            ->assertRedirect(route('notifications.index'));
+
+        $this->actingAs($buyer)
+            ->post(route('notifications.read', $internal))
+            ->assertRedirect(route('orders.index', [], false));
+
+        $this->assertNull($stripped->fresh()->url);
     }
 
     public function test_buyer_can_open_order_dispute_and_notify_seller(): void
@@ -439,6 +476,54 @@ class ReleaseExperienceTest extends TestCase
             ->assertSuccessful();
     }
 
+    public function test_backup_health_check_accepts_fresh_complete_backup_with_checksums(): void
+    {
+        $backupRoot = storage_path('framework/testing/backups-ok');
+        $backupDir = $backupRoot . DIRECTORY_SEPARATOR . '20260605-030000';
+
+        File::deleteDirectory($backupRoot);
+        File::ensureDirectoryExists($backupDir);
+
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz') . ' database.sql.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+        ]));
+
+        try {
+            $this->artisan('backup:health-check --path=' . str_replace('\\', '/', $backupRoot) . ' --max-age-hours=48')
+                ->expectsOutput('Backup health-check passed.')
+                ->assertSuccessful();
+        } finally {
+            File::deleteDirectory($backupRoot);
+        }
+    }
+
+    public function test_backup_health_check_rejects_broken_checksums(): void
+    {
+        $backupRoot = storage_path('framework/testing/backups-broken');
+        $backupDir = $backupRoot . DIRECTORY_SEPARATOR . '20260605-030000';
+
+        File::deleteDirectory($backupRoot);
+        File::ensureDirectoryExists($backupDir);
+
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
+            str_repeat('0', 64) . ' database.sql.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+        ]));
+
+        try {
+            $this->artisan('backup:health-check --path=' . str_replace('\\', '/', $backupRoot) . ' --max-age-hours=48')
+                ->expectsOutput('Backup health-check failed.')
+                ->assertFailed();
+        } finally {
+            File::deleteDirectory($backupRoot);
+        }
+    }
+
     public function test_seller_products_index_explains_admin_blocked_products(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);
@@ -667,7 +752,7 @@ class ReleaseExperienceTest extends TestCase
                 ->assertOk()
                 ->assertSee($document['text'])
                 ->assertSee('Дата редакции')
-                ->assertSee('03.06.2026');
+                ->assertSee('06.06.2026');
         }
     }
 
@@ -681,7 +766,7 @@ class ReleaseExperienceTest extends TestCase
         $this->get(route('contacts'))
             ->assertOk()
             ->assertSee('Связаться с WebVitrina')
-            ->assertSee('+373 (777) 14272');
+            ->assertSee('+373 (778) 64495');
     }
 
     public function test_product_and_category_pages_include_seo_metadata(): void

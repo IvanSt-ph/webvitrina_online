@@ -19,12 +19,12 @@
                 <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                     <i class="ri-phone-line text-2xl text-indigo-600"></i>
                     <h2 class="mt-3 font-bold text-slate-950">Телефон</h2>
-                    <p class="mt-2 text-sm text-slate-600">+373 (777) 14272</p>
+                    <p class="mt-2 text-sm text-slate-600">+373 (778) 64495</p>
                 </article>
                 <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                     <i class="ri-time-line text-2xl text-indigo-600"></i>
                     <h2 class="mt-3 font-bold text-slate-950">График</h2>
-                    <p class="mt-2 text-sm text-slate-600">Пн-Вс: 9.00 - 18.00</p>
+                    <p class="mt-2 text-sm text-slate-600">Пн-Вс: 9:00 - 18:00</p>
                 </article>
             </div>
 

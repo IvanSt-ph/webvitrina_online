@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\UserNotification;
+use App\Support\SafeRedirect;
 use Illuminate\Http\Request;
 
 class UserNotificationController extends Controller
@@ -22,8 +23,10 @@ class UserNotificationController extends Controller
 
         $notification->update(['read_at' => now()]);
 
-        return $notification->url
-            ? redirect($notification->url)
+        $redirectTo = SafeRedirect::internalPath($notification->url);
+
+        return $redirectTo
+            ? redirect($redirectTo)
             : back()->with('success', 'Уведомление отмечено как прочитанное.');
     }
 
