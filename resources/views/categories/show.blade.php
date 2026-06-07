@@ -85,7 +85,7 @@
           </a>
         @elseif($campaign->shop)
           <a href="{{ $campaign->resolved_url }}" class="group grid min-w-0 grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5 transition hover:border-indigo-200 hover:bg-indigo-50">
-            <img src="{{ $campaign->shop->banner_url }}" alt="{{ $campaign->shop->name }}" class="h-[72px] w-[72px] rounded-lg object-cover">
+            <img src="{{ $campaign->shop->card_image_url }}" alt="{{ $campaign->shop->name }}" class="h-[72px] w-[72px] rounded-lg object-cover">
             <span class="min-w-0">
               <span class="inline-flex rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-indigo-700">{{ $campaign->label }}</span>
               <span class="mt-1 block truncate text-sm font-bold text-slate-950 group-hover:text-indigo-700">{{ $campaign->shop->name }}</span>

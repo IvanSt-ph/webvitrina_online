@@ -119,6 +119,7 @@ Route::get('/internal/currency/agroprombank', [
 
 // 🏠 Главная
 Route::get('/', [ProductController::class, 'index'])->name('home');
+Route::get('/recommendations', [ProductController::class, 'recommendations'])->name('recommendations.index');
 Route::get('/search/suggest', [ProductController::class, 'suggest'])->name('search.suggest');
 Route::get('/search', [ProductController::class, 'index'])->name('search');
 Route::view('/about', 'legal.about')->name('about');

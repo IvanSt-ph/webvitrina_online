@@ -458,15 +458,19 @@
                     <h2 class="mb-4 text-lg font-semibold text-slate-950 sm:text-xl">{{ $filterTitles[$filter] ?? 'Товары магазина' }}</h2>
 
                     @if($products->count())
-                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
-                            @foreach($products as $product)
-                                {{-- Используем тот же компонент, что и на главной --}}
-                                <x-product-card :p="$product" />
-                            @endforeach
-                        </div>
+                        <div data-load-more-root="seller-products">
+                            <div data-load-more-grid class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
+                                @foreach($products as $product)
+                                    {{-- Используем тот же компонент, что и на главной --}}
+                                    <div data-load-more-item>
+                                        <x-product-card :p="$product" />
+                                    </div>
+                                @endforeach
+                            </div>
 
-                        <div class="mt-6 flex justify-center" data-shop-pagination>
-                            {{ $products->links('vendor.pagination.tailwind') }}
+                            <div data-shop-pagination>
+                                @include('partials.load-more', ['paginator' => $products])
+                            </div>
                         </div>
                     @else
                         <div class="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center">
@@ -587,18 +591,6 @@
                 @endif
             </div>
         </section>
-
-        <!-- 🔹 Плюшки: доставка, гарантии, акции -->
-        <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4 mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="text-gray-700 text-sm md:text-base flex flex-col md:flex-row md:gap-6 gap-2">
-                <span class="flex items-center gap-1"><i class="ri-truck-line text-indigo-600"></i> Быстрая доставка</span>
-                <span class="flex items-center gap-1"><i class="ri-shield-check-line text-indigo-600"></i> Гарантия качества</span>
-                <span class="flex items-center gap-1"><i class="ri-star-line text-indigo-500"></i> Топ продавцов</span>
-            </div>
-            <a href="{{ route('seller.show', $shop->slug) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
-                Смотреть товары магазина
-            </a>
-        </div>
 
     </div>
 

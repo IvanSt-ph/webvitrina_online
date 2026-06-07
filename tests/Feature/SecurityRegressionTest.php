@@ -100,7 +100,7 @@ class SecurityRegressionTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('Мониторинг заказов')
-            ->assertSee('Админский фокус')
+            ->assertSee('Что смотреть в первую очередь')
             ->assertSee('Сумма по фильтру')
             ->assertSee('Rare admin searchable product')
             ->assertSee('ORD-ADMIN-FILTER')

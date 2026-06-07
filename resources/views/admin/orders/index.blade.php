@@ -36,15 +36,13 @@
     $totalOrders = $statusCounts->sum();
     $filteredTotal = $summary['total'] ?? $orders->total();
     $activeCount = $summary['active'] ?? 0;
-    $cancelRequestsCount = $summary['cancel_requests'] ?? 0;
     $stuckCount = $summary['stuck'] ?? 0;
     $attentionCount = $summary['attention'] ?? 0;
 
     $focusLabels = [
-        'attention' => 'Требуют внимания',
+        'attention' => 'Запросы отмены',
         'active' => 'Активные процессы',
-        'cancel_requests' => 'Запросы отмены',
-        'stuck' => 'Зависшие заказы',
+        'stuck' => 'Долго без движения',
     ];
 
     $baseFilters = array_filter([
@@ -88,7 +86,7 @@
                 </div>
                 <h1 class="mt-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Заказы</h1>
                 <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                    Общая картина по заказам: статусы, деньги, участники и сигналы риска. Админ не ведёт заказ вместо продавца, а видит, где нужна проверка или поддержка.
+                    Рабочий список заказов: статусы, участники, состав и ситуации, где нужна помощь администратора. Красный бейдж в меню показывает только реальные запросы отмены.
                 </p>
             </div>
 
@@ -101,7 +99,7 @@
         </div>
     </section>
 
-    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between text-sm text-slate-500">
                 <span>Всего заказов</span>
@@ -113,11 +111,11 @@
         <a href="{{ route('admin.orders.index', array_merge($focusBaseFilters, ['focus' => 'attention'])) }}"
            class="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div class="flex items-center justify-between text-sm text-rose-700">
-                <span>Требуют внимания</span>
-                <i class="ri-error-warning-line"></i>
+                <span>Запросы отмены</span>
+                <i class="ri-question-answer-line"></i>
             </div>
             <div class="mt-2 text-2xl font-bold text-rose-800">{{ number_format($attentionCount, 0, ',', ' ') }}</div>
-            <p class="mt-1 text-xs text-rose-700/70">Отмена или долго без движения</p>
+            <p class="mt-1 text-xs text-rose-700/70">Требуют решения продавца или поддержки</p>
         </a>
         <a href="{{ route('admin.orders.index', array_merge($focusBaseFilters, ['focus' => 'active'])) }}"
            class="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -128,23 +126,14 @@
             <div class="mt-2 text-2xl font-bold text-sky-800">{{ number_format($activeCount, 0, ',', ' ') }}</div>
             <p class="mt-1 text-xs text-sky-700/70">Не завершены и не отменены</p>
         </a>
-        <a href="{{ route('admin.orders.index', array_merge($focusBaseFilters, ['focus' => 'cancel_requests'])) }}"
-           class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div class="flex items-center justify-between text-sm text-amber-700">
-                <span>Запросы отмены</span>
-                <i class="ri-question-answer-line"></i>
-            </div>
-            <div class="mt-2 text-2xl font-bold text-amber-800">{{ number_format($cancelRequestsCount, 0, ',', ' ') }}</div>
-            <p class="mt-1 text-xs text-amber-700/70">Где нужен контроль причины</p>
-        </a>
         <a href="{{ route('admin.orders.index', array_merge($focusBaseFilters, ['focus' => 'stuck'])) }}"
-           class="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div class="flex items-center justify-between text-sm text-rose-700">
-                <span>Зависшие</span>
+           class="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div class="flex items-center justify-between text-sm text-slate-700">
+                <span>Долго без движения</span>
                 <i class="ri-alarm-warning-line"></i>
             </div>
-            <div class="mt-2 text-2xl font-bold text-rose-800">{{ number_format($stuckCount, 0, ',', ' ') }}</div>
-            <p class="mt-1 text-xs text-rose-700/70">Долго без движения</p>
+            <div class="mt-2 text-2xl font-bold text-slate-900">{{ number_format($stuckCount, 0, ',', ' ') }}</div>
+            <p class="mt-1 text-xs text-slate-500">Мягкий контроль, не аварийный бейдж</p>
         </a>
         <div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 shadow-sm">
             <div class="flex items-center justify-between text-sm text-indigo-700">
@@ -159,16 +148,14 @@
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500">Админский фокус</h2>
-                <p class="mt-1 text-sm text-slate-500">Цифра в левом меню ведёт сюда: это не все новые заказы, а только отмены и зависшие процессы.</p>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500">Что смотреть в первую очередь</h2>
+                <p class="mt-1 text-sm text-slate-500">Красная карточка и цифра в левом меню показывают запросы отмены. Здесь можно быстро переключиться на обычный список или мягкий контроль ожидания.</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 @foreach([
                     null => ['label' => 'Обычный список', 'icon' => 'ri-list-check'],
-                    'attention' => ['label' => 'Требуют внимания', 'icon' => 'ri-error-warning-line'],
                     'active' => ['label' => 'В процессе', 'icon' => 'ri-route-line'],
-                    'cancel_requests' => ['label' => 'Запросы отмены', 'icon' => 'ri-question-answer-line'],
-                    'stuck' => ['label' => 'Зависшие', 'icon' => 'ri-alarm-warning-line'],
+                    'stuck' => ['label' => 'Долго без движения', 'icon' => 'ri-alarm-warning-line'],
                 ] as $focusKey => $focus)
                     @php
                         $isFocusActive = ($currentFocus === null && $focusKey === null) || ((string) $currentFocus === (string) $focusKey);
@@ -295,8 +282,8 @@
                             $statusClass = $statusColors[$order->status] ?? 'border-slate-200 bg-slate-50 text-slate-700';
                             $sellerShopUrl = $order->seller?->shop?->slug ? route('seller.show', $order->seller->shop->slug) : null;
                             $hasCancelRequest = $order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true);
-                            $isStuck = ($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDay()))
-                                || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(2))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(2)))));
+                            $isStuck = ($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDays(3)))
+                                || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(5))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(5)))));
                         @endphp
                         <tr class="align-top transition hover:bg-indigo-50/25">
                             <td class="px-4 py-4">
@@ -367,7 +354,7 @@
                                             <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">запрос отмены</span>
                                         @endif
                                         @if($isStuck)
-                                            <span class="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">завис</span>
+                                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">долго без движения</span>
                                         @endif
                                     </div>
                                 @endif
@@ -402,8 +389,8 @@
                     $firstItem = $order->items->first();
                     $statusClass = $statusColors[$order->status] ?? 'border-slate-200 bg-slate-50 text-slate-700';
                     $hasCancelRequest = $order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true);
-                    $isStuck = ($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDay()))
-                        || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(2))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(2)))));
+                    $isStuck = ($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDays(3)))
+                        || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(5))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(5)))));
                 @endphp
                 <article class="p-4">
                     <div class="flex items-start justify-between gap-3">
@@ -423,7 +410,7 @@
                                 <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Запрос отмены</span>
                             @endif
                             @if($isStuck)
-                                <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">Долго без движения</span>
+                                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Долго без движения</span>
                             @endif
                         </div>
                     @endif

@@ -12,6 +12,7 @@ use App\Models\Review;
 use App\Models\Shop;
 use App\Models\AdCampaign;
 use App\Models\AdSlot;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Models\Conversation;
@@ -56,11 +57,12 @@ class ProductController extends Controller
                             ->with(['seller.shop', 'city.country', 'category'])
                             ->withAvg('reviews as reviews_avg_rating', 'rating')
                             ->withCount('reviews'),
-                        'shop:id,name,slug,banner,description,seller_reputation,rating,sales_count',
+                        'shop:id,user_id,name,slug,banner,description,seller_reputation,rating,sales_count',
+                        'shop.user:id,name,avatar',
                     ])
-                    ->orderBy('sort_order')
+                    ->orderByDesc('sort_order')
                     ->latest()
-                    ->limit(12)
+                    ->limit(32)
                     ->get()
                     ->filter(fn (AdCampaign $campaign) => $campaign->target_type !== AdCampaign::TYPE_PRODUCT || $campaign->product)
                     ->filter(fn (AdCampaign $campaign) => $campaign->target_type !== AdCampaign::TYPE_SHOP || $campaign->shop)
@@ -77,7 +79,10 @@ class ProductController extends Controller
 
         $recommendedFallbackProducts = collect();
         $recommendedCatalogProducts = collect();
-        $fallbackLimit = $showHomeRecommendations ? max(0, 6 - count($featuredProductIds)) : 0;
+        $recommendedProductLimit = 16;
+        $fallbackLimit = $showHomeRecommendations
+            ? max(0, $recommendedProductLimit - min(count($featuredProductIds), $recommendedProductLimit))
+            : 0;
 
         if ($fallbackLimit > 0) {
             $recommendedFallbackProducts = Cache::remember('products.home.high_rating_recommendations', 300, function () {
@@ -125,7 +130,97 @@ class ProductController extends Controller
             }
         }
 
-        return view('shop.index', compact('products', 'bannerItems', 'homeAdCampaigns', 'recommendedFallbackProducts', 'recommendedCatalogProducts'));
+        return view('shop.index', compact('products', 'bannerItems', 'homeAdCampaigns', 'recommendedFallbackProducts', 'recommendedCatalogProducts', 'recommendedProductLimit'));
+    }
+
+    public function recommendations(Request $request)
+    {
+        $perPage = 20;
+        $page = max(1, (int) $request->query('page', 1));
+
+        $promotedProducts = AdCampaign::query()
+            ->live()
+            ->whereHas('slot', fn ($query) => $query->where('key', AdSlot::HOME_FEATURED_PRODUCTS))
+            ->where('target_type', AdCampaign::TYPE_PRODUCT)
+            ->whereNotNull('product_id')
+            ->with([
+                'product' => fn ($query) => $query
+                    ->active()
+                    ->with(['seller.shop', 'city.country', 'category'])
+                    ->withAvg('reviews as reviews_avg_rating', 'rating')
+                    ->withCount('reviews'),
+            ])
+            ->orderByDesc('sort_order')
+            ->latest()
+            ->limit(80)
+            ->get()
+            ->pluck('product')
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        $usedIds = $promotedProducts->pluck('id')->all();
+
+        $highRatedProducts = Product::query()
+            ->active()
+            ->with(['seller.shop', 'city.country', 'category'])
+            ->withCount([
+                'reviews as reviews_count' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+            ])
+            ->withAvg([
+                'reviews as reviews_avg_rating' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+            ], 'rating')
+            ->when($usedIds, fn ($query) => $query->whereNotIn('id', $usedIds))
+            ->having('reviews_count', '>=', 3)
+            ->orderByDesc('reviews_avg_rating')
+            ->orderByDesc('reviews_count')
+            ->latest()
+            ->limit(120)
+            ->get();
+
+        $recommendedProducts = $promotedProducts
+            ->concat($highRatedProducts)
+            ->unique('id')
+            ->values();
+
+        if ($recommendedProducts->count() < 40) {
+            $fillIds = $recommendedProducts->pluck('id')->all();
+            $catalogProducts = Product::query()
+                ->active()
+                ->with(['seller.shop', 'city.country', 'category'])
+                ->withCount([
+                    'reviews as reviews_count' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+                ])
+                ->withAvg([
+                    'reviews as reviews_avg_rating' => fn ($query) => $query->where('status', Review::STATUS_APPROVED),
+                ], 'rating')
+                ->when($fillIds, fn ($query) => $query->whereNotIn('id', $fillIds))
+                ->latest()
+                ->limit(80)
+                ->get();
+
+            $recommendedProducts = $recommendedProducts
+                ->concat($catalogProducts)
+                ->unique('id')
+                ->values();
+        }
+
+        $items = $recommendedProducts
+            ->slice(($page - 1) * $perPage, $perPage)
+            ->values();
+
+        $products = new LengthAwarePaginator(
+            $items,
+            $recommendedProducts->count(),
+            $perPage,
+            $page,
+            [
+                'path' => route('recommendations.index'),
+                'query' => $request->query(),
+            ]
+        );
+
+        return view('shop.recommendations', compact('products'));
     }
 
     public function suggest(Request $request)

@@ -30,26 +30,9 @@
               'pending_reviews' => \App\Models\Review::where('status', \App\Models\Review::STATUS_PENDING)->count(),
               'open_product_reports' => \App\Models\ProductReport::where('status', \App\Models\ProductReport::STATUS_OPEN)->count(),
               'open_disputes' => \App\Models\OrderDispute::where('status', \App\Models\OrderDispute::STATUS_OPEN)->count(),
-              'attention_orders' => \App\Models\Order::where(function ($query) {
-                  $query->where(function ($cancel) {
-                      $cancel->whereNotNull('cancellation_requested_at')
-                          ->whereNotIn('status', [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED]);
-                  })->orWhere(function ($stuck) {
-                      $stuck->where(function ($pending) {
-                          $pending->where('status', \App\Models\Order::STATUS_PENDING)
-                              ->where('created_at', '<=', now()->subDay());
-                      })->orWhere(function ($processing) {
-                          $processing->where('status', \App\Models\Order::STATUS_PROCESSING)
-                              ->where(function ($dates) {
-                                  $dates->where('accepted_at', '<=', now()->subDays(2))
-                                      ->orWhere(function ($fallback) {
-                                          $fallback->whereNull('accepted_at')
-                                              ->where('created_at', '<=', now()->subDays(2));
-                                      });
-                              });
-                      });
-                  });
-              })->count(),
+              'attention_orders' => \App\Models\Order::whereNotNull('cancellation_requested_at')
+                  ->whereNotIn('status', [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED])
+                  ->count(),
               'missing_mobile_banners' => \App\Models\Banner::whereNull('image_mobile')->count(),
           ];
       })
@@ -98,7 +81,7 @@
         $menu = [
           'Работа' => [
             ['route'=>'admin.dashboard','icon'=>'ri-home-5-line','label'=>'Главная'],
-            ['route'=>'admin.orders.index','params'=>['focus'=>'attention'],'icon'=>'ri-shopping-bag-3-line','label'=>'Заказы','badge'=>$attentionOrders,'badgeTitle'=>'Требуют внимания: отмена или долго без движения'],
+            ['route'=>'admin.orders.index','params'=>['focus'=>'attention'],'icon'=>'ri-shopping-bag-3-line','label'=>'Заказы','badge'=>$attentionOrders,'badgeTitle'=>'Запросы отмены по заказам'],
             ['route'=>'admin.chats.index','active'=>'admin.chats.*','icon'=>'ri-message-3-line','label'=>'Чаты','badge'=>$adminUnreadChats],
             ['route'=>'admin.disputes.index','active'=>'admin.disputes.*','icon'=>'ri-scales-3-line','label'=>'Споры','badge'=>$openDisputes],
             ['route'=>'admin.reviews.index','icon'=>'ri-chat-3-line','label'=>'Отзывы','badge'=>$pendingReviews],

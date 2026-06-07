@@ -16,10 +16,8 @@
     ];
     $tabs = [
         'overview' => ['label' => 'Обзор', 'icon' => 'ri-dashboard-line'],
-        'slots' => ['label' => 'Слоты', 'icon' => 'ri-layout-grid-line'],
         'campaigns' => ['label' => 'Кампании', 'icon' => 'ri-megaphone-line'],
         'stats' => ['label' => 'Статистика', 'icon' => 'ri-bar-chart-2-line'],
-        'settings' => ['label' => 'Настройки', 'icon' => 'ri-settings-3-line'],
     ];
 @endphp
 
@@ -106,68 +104,45 @@
     </section>
     @endif
 
-    @if(in_array($section, ['overview', 'slots'], true))
-    <details class="rounded-2xl border border-slate-200 bg-white shadow-sm" @if($section === 'slots') open @endif>
-        <summary class="flex cursor-pointer list-none flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <span class="min-w-0">
-                <span class="flex items-center gap-2 text-lg font-bold text-slate-950">
+    @if($section === 'overview')
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <h2 class="flex items-center gap-2 text-lg font-bold text-slate-950">
                     <i class="ri-layout-grid-line text-indigo-600"></i>
-                    Где показывается реклама
-                </span>
-                <span class="mt-1 block text-sm text-slate-500">Краткий справочник по слотам. На обзоре он свёрнут, во вкладке “Слоты” открыт полностью.</span>
-            </span>
-            <span class="flex items-center gap-2">
-                <span class="hidden rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 sm:inline-flex">
-                    {{ collect($slotGuide)->where('enabled', true)->count() }} выводится
-                </span>
-                <span class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700">
-                    <i class="ri-arrow-down-s-line"></i>
-                    Показать
-                </span>
-            </span>
-        </summary>
-
-        <div class="border-t border-slate-100 p-4 sm:p-5">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <p class="max-w-3xl text-sm leading-6 text-slate-500">
-                    Слот отвечает за место на сайте, тип цели отвечает за переход: товар, магазин или своя ссылка. Если слот “подготовлен”, он есть в базе, но публичный вывод ещё не подключён.
-                </p>
-                <a href="{{ route('admin.ads.create') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 text-sm font-bold text-indigo-700 transition hover:bg-indigo-100">
-                    <i class="ri-add-line"></i>
-                    Создать
-                </a>
+                    Рекламные места
+                </h2>
+                <p class="mt-1 text-sm text-slate-500">Справка прямо на обзоре: где видно блок и что лучше выбирать.</p>
             </div>
-
-            <div class="mt-4 grid gap-3 lg:grid-cols-2">
-                @foreach($slots as $slot)
-                    @php
-                        $guide = $slotGuide[$slot->key] ?? null;
-                    @endphp
-                    <div class="rounded-2xl border {{ ($guide['enabled'] ?? false) ? 'border-emerald-100 bg-emerald-50/40' : 'border-slate-200 bg-slate-50' }} p-4">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="font-bold text-slate-950">{{ $slot->name }}</h3>
-                                    @if($guide['enabled'] ?? false)
-                                        <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">Выводится</span>
-                                    @else
-                                        <span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">Подготовлен</span>
-                                    @endif
-                                </div>
-                                <p class="mt-1 text-sm text-slate-600">{{ $guide['where'] ?? $slot->description }}</p>
-                                <p class="mt-2 text-xs font-semibold text-slate-500">Что выбирать: {{ $guide['target'] ?? 'Товар, магазин или свою ссылку.' }}</p>
-                            </div>
-                            @if($guide['url'] ?? null)
-                                <a href="{{ $guide['url'] }}" target="_blank" rel="noopener" class="shrink-0 rounded-xl bg-white px-3 py-2 text-xs font-bold text-indigo-700 shadow-sm ring-1 ring-indigo-100 hover:bg-indigo-50">
-                                    Открыть
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-            </div>
+            <a href="{{ route('admin.ads.create') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 text-sm font-bold text-indigo-700 transition hover:bg-indigo-100">
+                <i class="ri-add-line"></i>
+                Новая кампания
+            </a>
         </div>
-    </details>
+
+        <div class="mt-4 grid gap-3 xl:grid-cols-4">
+            @foreach($slots as $slot)
+                @php
+                    $guide = $slotGuide[$slot->key] ?? null;
+                @endphp
+                <div class="rounded-2xl border {{ ($guide['enabled'] ?? false) ? 'border-emerald-100 bg-emerald-50/40' : 'border-slate-200 bg-slate-50' }} p-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="truncate text-sm font-bold text-slate-950">{{ $slot->name }}</h3>
+                        <span class="shrink-0 rounded-full {{ ($guide['enabled'] ?? false) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' }} px-2 py-0.5 text-[11px] font-bold">
+                            {{ ($guide['enabled'] ?? false) ? 'видно' : 'заготовка' }}
+                        </span>
+                    </div>
+                    <p class="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{{ $guide['where'] ?? $slot->description }}</p>
+                    <p class="mt-2 line-clamp-2 text-xs font-semibold text-slate-600">{{ $guide['target'] ?? 'Товар, магазин или своя ссылка.' }}</p>
+                    @if($guide['url'] ?? null)
+                        <a href="{{ $guide['url'] }}" target="_blank" rel="noopener" class="mt-2 inline-flex text-xs font-bold text-indigo-600 hover:text-indigo-800">
+                            Открыть место
+                        </a>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </section>
     @endif
 
     @if(in_array($section, ['overview', 'campaigns'], true))
@@ -423,7 +398,7 @@
                                 Порядок показа
                             </div>
                             <p class="mt-2 text-sm leading-6 text-slate-600">
-                                Меньший приоритет показывается выше. Например, приоритет 10 будет выше, чем 100. Если дата финиша прошла, кампания считается завершённой.
+                                Больший приоритет показывается выше. Например, приоритет 100 будет выше, чем 10. Если дата финиша прошла, кампания считается завершённой.
                             </p>
                         </div>
 

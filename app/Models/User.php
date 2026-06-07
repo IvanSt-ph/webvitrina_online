@@ -24,6 +24,15 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
+    protected static function booted(): void
+    {
+        static::saved(function (User $user): void {
+            if ($user->wasChanged(['name', 'avatar'])) {
+                Shop::clearRetailMediaCache();
+            }
+        });
+    }
+
     /*
     |--------------------------------------------------------------------------
     | 🔐 FILLABLE

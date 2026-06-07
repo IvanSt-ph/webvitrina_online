@@ -26,7 +26,9 @@ class AdCampaignController extends Controller
             'section' => ['nullable', 'in:overview,slots,campaigns,stats,settings'],
         ]);
 
-        $section = $request->query('section', 'overview');
+        $section = in_array($request->query('section'), ['campaigns', 'stats'], true)
+            ? $request->query('section')
+            : 'overview';
         $totalImpressions = AdImpression::count();
         $totalClicks = AdClick::count();
         $summary = [
@@ -41,7 +43,7 @@ class AdCampaignController extends Controller
         ];
 
         $campaigns = AdCampaign::query()
-            ->with(['slot:id,key,name,placement', 'product:id,title,slug,image,status,user_id', 'product.seller:id,name', 'product.seller.shop:id,user_id,name,slug', 'shop:id,name,slug,banner', 'category:id,name,slug'])
+            ->with(['slot:id,key,name,placement', 'product:id,title,slug,image,status,user_id', 'product.seller:id,name', 'product.seller.shop:id,user_id,name,slug', 'shop:id,user_id,name,slug,banner', 'shop.user:id,name,avatar', 'category:id,name,slug'])
             ->withCount(['impressions', 'clicks'])
             ->when($request->filled('q'), function ($query) use ($request) {
                 $search = trim((string) $request->query('q'));
@@ -65,7 +67,7 @@ class AdCampaignController extends Controller
             ->when($request->query('status') === 'hidden', fn ($query) => $query->where('is_active', false))
             ->when($request->query('status') === 'scheduled', fn ($query) => $query->where('is_active', true)->where('starts_at', '>', now()))
             ->when($request->query('status') === 'expired', fn ($query) => $query->whereNotNull('ends_at')->where('ends_at', '<', now()))
-            ->orderBy('sort_order')
+            ->orderByDesc('sort_order')
             ->latest()
             ->paginate(15)
             ->withQueryString();
@@ -139,6 +141,7 @@ class AdCampaignController extends Controller
         $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search) . '%';
 
         $shops = Shop::query()
+            ->with('user:id,name,avatar')
             ->whereNotNull('slug')
             ->where(function ($query) use ($like, $search) {
                 $query->where('name', 'like', $like);
@@ -149,14 +152,14 @@ class AdCampaignController extends Controller
             })
             ->orderBy('name')
             ->limit(20)
-            ->get(['id', 'name', 'slug', 'banner', 'city']);
+            ->get(['id', 'user_id', 'name', 'slug', 'banner', 'city']);
 
         return response()->json([
             'results' => $shops->map(fn (Shop $shop) => [
                 'id' => $shop->id,
                 'title' => '#' . $shop->id . ' · ' . $shop->name,
                 'subtitle' => $shop->city ?: 'Магазин продавца',
-                'image' => $shop->banner_url,
+                'image' => $shop->card_image_url,
             ])->values(),
         ]);
     }

@@ -17,8 +17,10 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Notifications\MarketplaceEventNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ReleaseExperienceTest extends TestCase
@@ -618,41 +620,43 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('Подтвердить получение');
     }
 
-    public function test_admin_orders_attention_focus_shows_only_actionable_orders(): void
+    public function test_admin_orders_attention_focus_shows_only_cancellation_requests(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
 
-        $stuckOrder = Order::create([
+        $cancelRequestOrder = Order::create([
             'user_id' => $buyer->id,
             'seller_id' => $seller->id,
-            'number' => 'ORD-STUCK-UX',
+            'number' => 'ORD-CANCEL-REQUEST-UX',
             'status' => Order::STATUS_PENDING,
             'total_price' => 100,
             'currency' => 'PRB',
+            'cancellation_requested_at' => now(),
+            'cancellation_reason' => 'Покупатель передумал.',
         ]);
-        $stuckOrder->forceFill([
-            'created_at' => now()->subDays(2),
-            'updated_at' => now()->subDays(2),
-        ])->save();
 
-        $normalOrder = Order::create([
+        $slowOrder = Order::create([
             'user_id' => $buyer->id,
             'seller_id' => $seller->id,
-            'number' => 'ORD-NORMAL-UX',
+            'number' => 'ORD-SLOW-BUT-NOT-URGENT-UX',
             'status' => Order::STATUS_PENDING,
             'total_price' => 100,
             'currency' => 'PRB',
         ]);
+        $slowOrder->forceFill([
+            'created_at' => now()->subDays(4),
+            'updated_at' => now()->subDays(4),
+        ])->save();
 
         $this->actingAs($admin)
             ->get(route('admin.orders.index', ['focus' => 'attention']))
             ->assertOk()
-            ->assertSee('Требуют внимания')
-            ->assertSee('Цифра в левом меню ведёт сюда')
-            ->assertSee($stuckOrder->number)
-            ->assertDontSee($normalOrder->number);
+            ->assertSee('Запросы отмены')
+            ->assertSee('Красная карточка и цифра в левом меню показывают запросы отмены')
+            ->assertSee($cancelRequestOrder->number)
+            ->assertDontSee($slowOrder->number);
     }
 
     public function test_admin_can_resolve_order_disputes(): void
@@ -810,6 +814,116 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('"@type": "CollectionPage"', false);
     }
 
+    public function test_home_catalog_uses_load_more_button_for_public_products(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Home Load More Shop',
+            'slug' => 'home-load-more-shop',
+        ]);
+
+        foreach (range(1, 21) as $number) {
+            Product::create([
+                'user_id' => $seller->id,
+                'title' => 'Home load more product ' . $number,
+                'slug' => 'home-load-more-product-' . $number,
+                'price' => 100 + $number,
+                'stock' => 5,
+                'status' => Product::STATUS_ACTIVE,
+            ]);
+        }
+
+        cache()->forget('ads.home');
+        cache()->forget('products.home.high_rating_recommendations');
+        cache()->forget('products.home.catalog_recommendations');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('data-load-more-root="home-products"', false)
+            ->assertSee('data-load-more-button', false)
+            ->assertSee('Показать ещё')
+            ->assertDontSee('Показано');
+    }
+
+    public function test_category_catalog_uses_load_more_button_for_public_products(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Category Load More Shop',
+            'slug' => 'category-load-more-shop',
+        ]);
+        $category = Category::factory()->create([
+            'name' => 'Load More Category',
+            'slug' => 'load-more-category',
+        ]);
+
+        foreach (range(1, 21) as $number) {
+            Product::create([
+                'user_id' => $seller->id,
+                'category_id' => $category->id,
+                'title' => 'Category load more product ' . $number,
+                'slug' => 'category-load-more-product-' . $number,
+                'price' => 100 + $number,
+                'stock' => 5,
+                'status' => Product::STATUS_ACTIVE,
+            ]);
+        }
+
+        cache()->forget('ads.category.featured');
+
+        $this->get(route('category.show', $category->slug))
+            ->assertOk()
+            ->assertSee('data-load-more-root="category-products"', false)
+            ->assertSee('data-load-more-button', false)
+            ->assertSee('Показать ещё')
+            ->assertDontSee('Показано');
+    }
+
+    public function test_category_index_has_compact_category_cards_without_product_sorting(): void
+    {
+        Category::factory()->create([
+            'name' => 'Compact Category',
+            'slug' => 'compact-category',
+        ]);
+
+        $this->get(route('category.index'))
+            ->assertOk()
+            ->assertSee('Все категории')
+            ->assertSee('Compact Category')
+            ->assertSee('data-category-media', false)
+            ->assertDontSee('По популярности');
+    }
+
+    public function test_public_seller_shop_uses_load_more_button_for_products(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Seller Load More Shop',
+            'slug' => 'seller-load-more-shop',
+        ]);
+
+        foreach (range(1, 21) as $number) {
+            Product::create([
+                'user_id' => $seller->id,
+                'title' => 'Seller load more product ' . $number,
+                'slug' => 'seller-load-more-product-' . $number,
+                'price' => 100 + $number,
+                'stock' => 5,
+                'status' => Product::STATUS_ACTIVE,
+            ]);
+        }
+
+        $this->get(route('seller.show', $shop->slug))
+            ->assertOk()
+            ->assertSee('data-load-more-root="seller-products"', false)
+            ->assertSee('data-load-more-button', false)
+            ->assertSee('Показать ещё')
+            ->assertDontSee('Показано');
+    }
+
     public function test_public_seller_shop_filters_products(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);
@@ -892,6 +1006,32 @@ class ReleaseExperienceTest extends TestCase
             ->assertDontSee('Old regular item');
     }
 
+    public function test_public_seller_shop_does_not_show_generic_marketing_footer(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Clean Seller Footer Shop',
+            'slug' => 'clean-seller-footer-shop',
+        ]);
+
+        Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Clean footer product',
+            'slug' => 'clean-footer-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        $this->get(route('seller.show', $shop->slug))
+            ->assertOk()
+            ->assertDontSee('Быстрая доставка')
+            ->assertDontSee('Гарантия качества')
+            ->assertDontSee('Топ продавцов')
+            ->assertDontSee('Смотреть товары магазина');
+    }
+
     public function test_admin_can_create_manual_retail_media_campaign(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -914,7 +1054,8 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('Обзор')
             ->assertSee('Кампании')
             ->assertSee('Статистика')
-            ->assertSee('Где показывается реклама')
+            ->assertDontSee('Слоты')
+            ->assertSee('Рекламные места')
             ->assertSee('Популярное в категории')
             ->assertSee('Добавить кампанию');
 
@@ -972,6 +1113,101 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('Рекомендуемые товары')
             ->assertSee('Продвигается')
             ->assertSee('Visible promoted product');
+    }
+
+    public function test_home_promoted_products_use_higher_priority_first(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Priority Promo Shop']);
+        $slot = AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail();
+
+        $lowPriorityProduct = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'Low priority promoted product',
+            'slug' => 'low-priority-promoted-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $highPriorityProduct = Product::create([
+            'user_id' => $seller->id,
+            'title' => 'High priority promoted product',
+            'slug' => 'high-priority-promoted-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        AdCampaign::create([
+            'ad_slot_id' => $slot->id,
+            'product_id' => $lowPriorityProduct->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'Low priority campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        AdCampaign::create([
+            'ad_slot_id' => $slot->id,
+            'product_id' => $highPriorityProduct->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'High priority campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 200,
+            'is_active' => true,
+        ]);
+        cache()->forget('ads.home');
+
+        $content = $this->get(route('home'))
+            ->assertOk()
+            ->getContent();
+
+        $highPosition = strpos($content, 'High priority promoted product');
+        $lowPosition = strpos($content, 'Low priority promoted product');
+
+        $this->assertNotFalse($highPosition);
+        $this->assertNotFalse($lowPosition);
+        $this->assertLessThan($lowPosition, $highPosition);
+    }
+
+    public function test_home_recommendations_link_to_dedicated_page_when_many_items_exist(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Many Recommendations Shop']);
+        $slot = AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail();
+
+        foreach (range(1, 7) as $number) {
+            $product = Product::create([
+                'user_id' => $seller->id,
+                'title' => 'Many recommendation product ' . $number,
+                'slug' => 'many-recommendation-product-' . $number,
+                'price' => 100 + $number,
+                'stock' => 5,
+                'status' => Product::STATUS_ACTIVE,
+            ]);
+
+            AdCampaign::create([
+                'ad_slot_id' => $slot->id,
+                'product_id' => $product->id,
+                'target_type' => AdCampaign::TYPE_PRODUCT,
+                'title' => 'Many recommendation campaign ' . $number,
+                'label' => 'Продвигается',
+                'sort_order' => 100 - $number,
+                'is_active' => true,
+            ]);
+        }
+        cache()->forget('ads.home');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Рекомендуемые товары')
+            ->assertSee('Все рекомендации')
+            ->assertSee(route('recommendations.index'), false);
+
+        $this->get(route('recommendations.index'))
+            ->assertOk()
+            ->assertSee('Рекомендованные товары')
+            ->assertSee('Many recommendation product 7');
     }
 
     public function test_home_page_fills_recommended_products_with_high_rated_items(): void
@@ -1069,6 +1305,139 @@ class ReleaseExperienceTest extends TestCase
             ]);
     }
 
+    public function test_shop_banner_url_falls_back_when_file_is_missing(): void
+    {
+        Storage::fake('public');
+
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Missing Banner Shop',
+            'slug' => 'missing-banner-shop',
+            'banner' => 'banners/medium/missing.webp',
+        ]);
+
+        $this->assertSame(asset('images/default-shop-banner.jpg'), $shop->banner_url);
+    }
+
+    public function test_shop_update_clears_retail_media_cache(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Cached Banner Shop',
+            'slug' => 'cached-banner-shop',
+            'banner' => 'banners/medium/old.webp',
+        ]);
+
+        Cache::put('ads.home', collect(['stale']), 300);
+        Cache::put('ads.category.featured', collect(['stale']), 300);
+
+        $shop->update(['banner' => 'banners/medium/new.webp']);
+
+        $this->assertFalse(Cache::has('ads.home'));
+        $this->assertFalse(Cache::has('ads.category.featured'));
+    }
+
+    public function test_single_weekly_shop_ad_uses_shop_banner_as_wide_card(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('avatars/medium/seller.webp', 'avatar');
+        Storage::disk('public')->put('banners/medium/shop.webp', 'banner');
+
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'name' => 'Avatar Seller',
+            'avatar' => 'avatars/medium/seller.webp',
+        ]);
+        $shop = Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Avatar Promo Shop',
+            'slug' => 'avatar-promo-shop',
+            'banner' => 'banners/medium/shop.webp',
+        ]);
+
+        AdCampaign::create([
+            'ad_slot_id' => AdSlot::where('key', AdSlot::HOME_WEEKLY_SHOPS)->firstOrFail()->id,
+            'shop_id' => $shop->id,
+            'target_type' => AdCampaign::TYPE_SHOP,
+            'title' => 'Weekly shop campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        cache()->forget('ads.home');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Магазины недели')
+            ->assertSee(Storage::url('banners/medium/shop.webp'), false)
+            ->assertDontSee(Storage::url('avatars/medium/seller.webp'), false);
+    }
+
+    public function test_weekly_shop_carousel_uses_seller_avatar_not_shop_banner(): void
+    {
+        Storage::fake('public');
+
+        foreach (range(1, 3) as $number) {
+            Storage::disk('public')->put("avatars/medium/seller-{$number}.webp", 'avatar');
+            Storage::disk('public')->put("banners/medium/shop-{$number}.webp", 'banner');
+
+            $seller = User::factory()->create([
+                'role' => 'seller',
+                'name' => 'Carousel Seller ' . $number,
+                'avatar' => "avatars/medium/seller-{$number}.webp",
+            ]);
+            $shop = Shop::create([
+                'user_id' => $seller->id,
+                'name' => 'Carousel Promo Shop ' . $number,
+                'slug' => 'carousel-promo-shop-' . $number,
+                'banner' => "banners/medium/shop-{$number}.webp",
+            ]);
+
+            AdCampaign::create([
+                'ad_slot_id' => AdSlot::where('key', AdSlot::HOME_WEEKLY_SHOPS)->firstOrFail()->id,
+                'shop_id' => $shop->id,
+                'target_type' => AdCampaign::TYPE_SHOP,
+                'title' => 'Weekly shop carousel campaign ' . $number,
+                'label' => 'Продвигается',
+                'sort_order' => $number,
+                'is_active' => true,
+            ]);
+        }
+
+        cache()->forget('ads.home');
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('weekly-shop-track', false)
+            ->assertSee('weekly-shop-marquee', false)
+            ->assertDontSee('aria-label="Следующий магазин"', false)
+            ->assertSee(Storage::url('avatars/medium/seller-1.webp'), false)
+            ->assertDontSee(Storage::url('banners/medium/shop-1.webp'), false);
+    }
+
+    public function test_seller_avatar_update_clears_retail_media_cache(): void
+    {
+        $seller = User::factory()->create([
+            'role' => 'seller',
+            'avatar' => 'avatars/medium/old.webp',
+        ]);
+        Shop::create([
+            'user_id' => $seller->id,
+            'name' => 'Avatar Cache Shop',
+            'slug' => 'avatar-cache-shop',
+        ]);
+
+        Cache::put('ads.home', collect(['stale']), 300);
+        Cache::put('ads.category.featured', collect(['stale']), 300);
+
+        $seller->update(['avatar' => 'avatars/medium/new.webp']);
+
+        $this->assertFalse(Cache::has('ads.home'));
+        $this->assertFalse(Cache::has('ads.category.featured'));
+    }
+
     public function test_category_page_shows_featured_ad_slot_with_visible_label(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);
@@ -1103,6 +1472,68 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('Популярное в категории')
             ->assertSee('Продвигается')
             ->assertSee('Category promoted product');
+    }
+
+    public function test_category_promoted_products_use_higher_priority_first(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        Shop::create(['user_id' => $seller->id, 'name' => 'Category Priority Shop']);
+        $category = Category::factory()->create([
+            'name' => 'Category Priority',
+            'slug' => 'category-priority',
+        ]);
+        $slot = AdSlot::where('key', AdSlot::CATEGORY_FEATURED_PRODUCTS)->firstOrFail();
+
+        $lowPriorityProduct = Product::create([
+            'user_id' => $seller->id,
+            'category_id' => $category->id,
+            'title' => 'Category low priority product',
+            'slug' => 'category-low-priority-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+        $highPriorityProduct = Product::create([
+            'user_id' => $seller->id,
+            'category_id' => $category->id,
+            'title' => 'Category high priority product',
+            'slug' => 'category-high-priority-product',
+            'price' => 100,
+            'stock' => 5,
+            'status' => Product::STATUS_ACTIVE,
+        ]);
+
+        AdCampaign::create([
+            'ad_slot_id' => $slot->id,
+            'category_id' => $category->id,
+            'product_id' => $lowPriorityProduct->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'Category low priority campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        AdCampaign::create([
+            'ad_slot_id' => $slot->id,
+            'category_id' => $category->id,
+            'product_id' => $highPriorityProduct->id,
+            'target_type' => AdCampaign::TYPE_PRODUCT,
+            'title' => 'Category high priority campaign',
+            'label' => 'Продвигается',
+            'sort_order' => 200,
+            'is_active' => true,
+        ]);
+
+        $content = $this->get(route('category.show', $category->slug))
+            ->assertOk()
+            ->getContent();
+
+        $highPosition = strpos($content, 'Category high priority product');
+        $lowPosition = strpos($content, 'Category low priority product');
+
+        $this->assertNotFalse($highPosition);
+        $this->assertNotFalse($lowPosition);
+        $this->assertLessThan($lowPosition, $highPosition);
     }
 
     public function test_category_ad_campaign_can_be_limited_to_one_category(): void

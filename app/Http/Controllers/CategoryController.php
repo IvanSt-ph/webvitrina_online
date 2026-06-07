@@ -188,9 +188,10 @@ class CategoryController extends Controller
                     ->with(['seller.shop', 'city.country', 'category'])
                     ->withAvg('reviews as reviews_avg_rating', 'rating')
                     ->withCount('reviews'),
-                'shop:id,name,slug,banner,description',
+                'shop:id,user_id,name,slug,banner,description',
+                'shop.user:id,name,avatar',
             ])
-            ->orderBy('sort_order')
+            ->orderByDesc('sort_order')
             ->latest()
             ->limit(6)
             ->get()

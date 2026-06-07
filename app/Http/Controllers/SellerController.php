@@ -88,7 +88,7 @@ class SellerController extends Controller
             ->when($filter === 'sale', fn ($query) => $query->orderByDesc('created_at'))
             ->when($filter === 'hit', fn ($query) => $query->orderByDesc('views_count')->orderByDesc('reviews_count'))
             ->when(! in_array($filter, ['sale', 'hit'], true), fn ($query) => $query->latest())
-            ->paginate(12);
+            ->paginate(20);
         $products->appends(['filter' => $filter]);
 
         $recommendedProducts = (clone $baseProductsQuery)

@@ -263,8 +263,8 @@
 }
 
 @media (max-width: 640px) {
-    .pc-body { 
-        padding: 5px 2px 5px;     
+    .pc-body {
+        padding: 7px 8px 8px;
     }
 }
 .pc-shop-name:hover { color: #4f46e5; }
@@ -304,8 +304,8 @@
 .pc-actions { display: flex; flex-direction: row; gap: 6px; margin-top: auto; align-items: stretch; }
 /* Мобильные устройства */
 @media (max-width: 640px) {
-    .pc-actions { 
-        gap: 2px; 
+    .pc-actions {
+        gap: 5px;
     }
 }
 .pc-form-buy { flex: 1; }
@@ -366,6 +366,128 @@
     box-shadow: 0 5px 16px rgba(79,70,229,0.45);
 }
 .pc-btn--buy:hover { background: #4f46e5; box-shadow: 0 5px 16px rgba(79,70,229,0.45); }
+
+@media (max-width: 640px) {
+    .pc-card {
+        border-radius: 16px;
+    }
+
+    .pc-image-wrap {
+        aspect-ratio: 1 / 0.92;
+    }
+
+    .pc-fav-btn {
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+    }
+
+    .pc-fav-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    .pc-badge {
+        top: 8px;
+        left: 8px;
+        padding: 2px 7px;
+        font-size: 10px;
+    }
+
+    .pc-qv-mobile {
+        width: 30px;
+        height: 30px;
+        right: 8px;
+        bottom: 8px;
+    }
+
+    .pc-title {
+        font-size: 13px;
+        line-height: 1.28;
+        margin-bottom: 5px;
+    }
+
+    .pc-shop-name {
+        font-size: 10px;
+    }
+
+    .pc-rating {
+        gap: 1px;
+        margin-bottom: 5px;
+        min-width: 0;
+    }
+
+    .pc-star {
+        width: 10px;
+        height: 10px;
+    }
+
+    .pc-rating-empty,
+    .pc-rating-count,
+    .pc-rating-text {
+        font-size: 9px;
+    }
+
+    .pc-price-row {
+        gap: 5px;
+        margin-bottom: 7px;
+        min-width: 0;
+    }
+
+    .pc-price {
+        font-size: 16px;
+        letter-spacing: 0;
+    }
+
+    .pc-old-price {
+        font-size: 10px;
+    }
+
+    .pc-btn--cart {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
+
+    .pc-btn--buy {
+        height: 34px;
+        min-width: 0;
+        padding: 0 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        box-shadow: 0 3px 10px rgba(79,70,229,0.28);
+    }
+}
+
+@media (max-width: 380px) {
+    .pc-body {
+        padding: 6px 7px 8px;
+    }
+
+    .pc-actions {
+        gap: 4px;
+    }
+
+    .pc-title {
+        font-size: 12px;
+    }
+
+    .pc-price {
+        font-size: 15px;
+    }
+
+    .pc-btn--cart {
+        width: 32px;
+        height: 32px;
+    }
+
+    .pc-btn--buy {
+        height: 32px;
+        padding: 0 6px;
+        font-size: 11px;
+    }
+}
 
 /* Loading spinner */
 .pc-spin {

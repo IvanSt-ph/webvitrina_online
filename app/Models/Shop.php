@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -43,6 +44,17 @@ class Shop extends Model
                 $shop->slug = self::generateUniqueSlug($shop);
             }
         });
+
+        static::saved(fn (): bool => self::clearRetailMediaCache());
+        static::deleted(fn (): bool => self::clearRetailMediaCache());
+    }
+
+    public static function clearRetailMediaCache(): bool
+    {
+        Cache::forget('ads.home');
+        Cache::forget('ads.category.featured');
+
+        return true;
     }
 
     public static function generateUniqueSlug(Shop $shop): string
@@ -201,8 +213,24 @@ public function getReputationDescriptionAttribute(): string
 
     public function getBannerUrlAttribute(): string
     {
-        return $this->banner
-            ? Storage::url($this->banner)
+        if (blank($this->banner)) {
+            return asset('images/default-shop-banner.jpg');
+        }
+
+        if (Str::startsWith($this->banner, ['http://', 'https://'])) {
+            return $this->banner;
+        }
+
+        $path = ltrim(str_replace(['storage/', '/storage/'], '', $this->banner), '/');
+
+        return Storage::disk('public')->exists($path)
+            ? Storage::url($path)
             : asset('images/default-shop-banner.jpg');
+    }
+
+    public function getCardImageUrlAttribute(): string
+    {
+        return $this->user?->avatar_url
+            ?: 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }
 }

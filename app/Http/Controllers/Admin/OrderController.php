@@ -77,7 +77,8 @@ class OrderController extends Controller
                 'cancel_requests' => $query->whereNotNull('cancellation_requested_at')
                     ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED]),
                 'stuck' => $this->applyStuckOrderFilter($query),
-                'attention' => $this->applyAttentionOrderFilter($query),
+                'attention' => $query->whereNotNull('cancellation_requested_at')
+                    ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED]),
                 default => null,
             };
         }
@@ -103,7 +104,10 @@ class OrderController extends Controller
                 ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED])
                 ->count(),
             'stuck' => tap(clone $filtered, fn ($query) => $this->applyStuckOrderFilter($query))->count(),
-            'attention' => tap(clone $filtered, fn ($query) => $this->applyAttentionOrderFilter($query))->count(),
+            'attention' => (clone $filtered)
+                ->whereNotNull('cancellation_requested_at')
+                ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED])
+                ->count(),
             'today' => Order::query()
                 ->whereDate('created_at', today())
                 ->count(),
@@ -127,28 +131,16 @@ class OrderController extends Controller
         $query->where(function ($stuck) {
             $stuck->where(function ($pending) {
                 $pending->where('status', Order::STATUS_PENDING)
-                    ->where('created_at', '<=', now()->subDay());
+                    ->where('created_at', '<=', now()->subDays(3));
             })->orWhere(function ($processing) {
                 $processing->where('status', Order::STATUS_PROCESSING)
                     ->where(function ($dates) {
-                        $dates->where('accepted_at', '<=', now()->subDays(2))
+                        $dates->where('accepted_at', '<=', now()->subDays(5))
                             ->orWhere(function ($fallback) {
                                 $fallback->whereNull('accepted_at')
-                                    ->where('created_at', '<=', now()->subDays(2));
+                                    ->where('created_at', '<=', now()->subDays(5));
                             });
                     });
-            });
-        });
-    }
-
-    private function applyAttentionOrderFilter($query): void
-    {
-        $query->where(function ($attention) {
-            $attention->where(function ($cancel) {
-                $cancel->whereNotNull('cancellation_requested_at')
-                    ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED]);
-            })->orWhere(function ($stuck) {
-                $this->applyStuckOrderFilter($stuck);
             });
         });
     }

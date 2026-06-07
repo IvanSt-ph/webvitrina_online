@@ -228,7 +228,7 @@
                            min="0"
                            max="999999"
                            class="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
-                    <span class="mt-1 block text-xs text-slate-400">Меньшее число показывается выше. Например 10 выше, чем 100.</span>
+                    <span class="mt-1 block text-xs text-slate-400">Большее число показывается выше. Например 100 выше, чем 10.</span>
                 </label>
 
                 <label class="mt-4 block">
