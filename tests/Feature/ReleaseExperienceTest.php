@@ -896,6 +896,39 @@ class ReleaseExperienceTest extends TestCase
             ->assertDontSee('По популярности');
     }
 
+    public function test_header_category_drawer_shows_root_categories_and_children(): void
+    {
+        $parent = Category::factory()->create([
+            'name' => 'Drawer Parent Category',
+            'slug' => 'drawer-parent-category',
+        ]);
+        Category::factory()->create([
+            'name' => 'Drawer Child Category',
+            'slug' => 'drawer-child-category',
+            'parent_id' => $parent->id,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Быстрый переход по разделам WebVitrina')
+            ->assertSee(route('category.index'), false)
+            ->assertSee('Drawer Parent Category')
+            ->assertSee('Drawer Child Category')
+            ->assertSee('Перейти в категорию Drawer Parent Category')
+            ->assertSee('1 подразделов')
+            ->assertSee('category-menu-close', false);
+    }
+
+    public function test_admin_sees_public_mobile_bottom_nav_on_marketplace_pages(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('home'))
+            ->assertOk()
+            ->assertSee('data-mobile-bottom-nav', false);
+    }
+
     public function test_public_seller_shop_uses_load_more_button_for_products(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);

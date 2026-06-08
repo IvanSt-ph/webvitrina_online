@@ -29,14 +29,10 @@
 
                 <!-- Кнопка категорий -->
                 <button @click="open = true"
-                        class="group flex h-10 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 text-slate-700 shadow-sm shadow-slate-900/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-md hover:shadow-indigo-900/5">
-                    <div class="flex h-6 w-6 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-900/5 transition group-hover:text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" 
-                             viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M4 6h16M4 12h16M4 18h16"/>
-                        </svg>
-                    </div>
+                        class="group flex h-10 items-center gap-2 rounded-2xl px-2.5 text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-50 hover:text-indigo-600">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-white/90 text-slate-500 shadow-sm shadow-slate-900/5 transition-all duration-200 group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:shadow-md group-hover:shadow-indigo-900/5">
+                        <i class="ri-apps-2-line text-lg"></i>
+                    </span>
                     <span class="text-sm font-semibold">Категории</span>
                 </button>
             </div>
