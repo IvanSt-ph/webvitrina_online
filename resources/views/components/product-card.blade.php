@@ -155,7 +155,7 @@ x-data="{
         <div class="pc-skeleton" aria-hidden="true"></div>
 
         @if($image)
-            <img src="{{ $image }}" alt="{{ $p->title }}" loading="lazy"
+            <img src="{{ $image }}" alt="{{ $p->title }}" loading="lazy" decoding="async"
                  class="pc-image"
                  onload="this.classList.add('pc-image--loaded'); this.closest('.pc-image-wrap').querySelector('.pc-skeleton').style.display='none'"/>
         @else
@@ -362,7 +362,8 @@ x-data="{
                                          alt="{{ $p->title }}"
                                          class="pm-image"
                                          :class="current === idx ? 'pm-image--active' : ''"
-                                         loading="lazy"/>
+                                         loading="lazy"
+                                         decoding="async"/>
                                 </template>
                             @else
                                 <div class="pm-no-image">
@@ -441,7 +442,7 @@ x-data="{
                                         <button @click.stop="current = {{ $idx }}; $nextTick(() => { if ($refs.thumbnails) { const thumb = $refs.thumbnails.children[{{ $idx }}]; if (thumb) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } })"
                                                 class="pm-thumb"
                                                 :class="current === {{ $idx }} ? 'pm-thumb--active' : ''">
-                                            <img src="{{ $src }}" alt="" loading="lazy"/>
+                                            <img src="{{ $src }}" alt="" loading="lazy" decoding="async"/>
                                         </button>
                                     @endforeach
                                 </div>

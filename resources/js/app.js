@@ -14,6 +14,7 @@ Alpine.data('appShell', () => ({
     const url = new URL(window.location.href)
     url.searchParams.delete('country_id')
     url.searchParams.delete('city_id')
+    url.searchParams.set('clear_location', '1')
     window.location.href = url.toString()
   },
 }))

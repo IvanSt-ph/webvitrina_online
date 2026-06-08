@@ -130,7 +130,7 @@
                 </div>
             </nav>
         </div>
-        <div class="mx-auto mt-8 flex max-w-7xl flex-col gap-2 border-t border-slate-100 pt-5 text-xs leading-5 text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+        <div class="mx-auto mt-8 flex max-w-7xl flex-col gap-2 border-t border-slate-100 pt-5 pb-8 text-xs leading-5 text-slate-400 sm:flex-row sm:items-center sm:justify-between">
             <p>© {{ date('Y') }} WebVitrina. Все права защищены.</p>
             <p>Информация на сайте не является публичной офертой, если иное прямо не указано в карточке товара или условиях заказа.</p>
         </div>

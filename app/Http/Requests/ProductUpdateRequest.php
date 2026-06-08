@@ -32,6 +32,8 @@ class ProductUpdateRequest extends FormRequest
         'longitude'   => ['nullable', 'numeric'],
         'description' => ['nullable', 'string'],
         'status'      => ['sometimes', 'required', Rule::in(\App\Models\Product::statuses())],
+        'attributes'  => ['nullable', 'array'],
+        'attributes.*'=> ['nullable'],
         'image'       => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         'gallery.*'   => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
     ];

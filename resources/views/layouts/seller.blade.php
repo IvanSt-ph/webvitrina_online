@@ -77,9 +77,18 @@
     <!-- НИЗ (ПРИЖАТ К НИЗУ) -->
     <div class="px-6 py-4 border-t border-gray-100">
         <div class="flex items-center gap-3">
-            <img
-                src="{{ auth()->user()->avatar ? asset('storage/'.auth()->user()->avatar) : 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name ?? 'U') }}"
-                class="w-9 h-9 rounded-full border border-gray-200" alt="avatar">
+            @if(auth()->user()->avatar)
+                <img
+                    src="{{ auth()->user()->avatar_url }}"
+                    class="w-9 h-9 rounded-full border border-gray-200 object-cover"
+                    alt="avatar"
+                    loading="lazy"
+                    decoding="async">
+            @else
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-indigo-50 text-sm font-semibold text-indigo-700">
+                    {{ mb_substr(auth()->user()->name ?? 'U', 0, 1) }}
+                </div>
+            @endif
 
             <div class="text-sm">
                 <div class="font-semibold text-gray-800">{{ auth()->user()->name ?? 'Продавец' }}</div>

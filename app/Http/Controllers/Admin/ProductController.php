@@ -11,6 +11,7 @@ use App\Models\Country;
 use App\Models\City;
 use App\Models\Product;
 use App\Services\ProductService;
+use App\Services\AttributeService;
 use App\Services\UserNotificationService;
 use App\Services\SellerPlanService;
 use App\Repositories\ProductRepository;
@@ -23,7 +24,12 @@ class ProductController extends Controller
     private ProductService $productService;
     private ProductRepository $productRepository;
 
-    public function __construct(ProductService $productService, ProductRepository $productRepository, private readonly SellerPlanService $sellerPlans)
+    public function __construct(
+        ProductService $productService,
+        ProductRepository $productRepository,
+        private readonly SellerPlanService $sellerPlans,
+        private readonly AttributeService $attributes,
+    )
     {
         $this->productService = $productService;
         $this->productRepository = $productRepository;
@@ -65,8 +71,11 @@ class ProductController extends Controller
         $countries = Country::orderBy('name')->get();
         $cities = collect();
         $product = new Product();
+        $attributes = old('category_id')
+            ? $this->attributes->getByCategory((int) old('category_id'))
+            : collect();
 
-        return view('admin.products.create', compact('categories', 'sellers', 'countries', 'cities', 'product'));
+        return view('admin.products.create', compact('categories', 'sellers', 'countries', 'cities', 'product', 'attributes'));
     }
 
     /** 💾 Сохранение */
@@ -84,7 +93,8 @@ class ProductController extends Controller
         $this->productService->create(
             data: $data,
             image: $request->file('image'),
-            gallery: $request->file('gallery', [])
+            gallery: $request->file('gallery', []),
+            attrs: $request->input('attributes', [])
         );
 
         return redirect()
@@ -107,9 +117,10 @@ class ProductController extends Controller
         $sellerPlanProfiles = $sellers->mapWithKeys(fn (User $seller) => [
             $seller->id => $this->sellerPlans->profileFor($seller),
         ]);
+        $attributes = $this->attributes->getForProduct($product);
 
         return view('admin.products.edit', compact(
-            'product', 'categories', 'sellers', 'countries', 'cities', 'sellerPlanProfiles'
+            'product', 'categories', 'sellers', 'countries', 'cities', 'sellerPlanProfiles', 'attributes'
         ));
     }
 
@@ -141,7 +152,8 @@ class ProductController extends Controller
             data: $data,
             image: $request->file('image'),
             galleryNew: $request->file('gallery', []),
-            galleryToDelete: $galleryToDelete
+            galleryToDelete: $galleryToDelete,
+            attrs: $request->input('attributes', [])
         );
 
         $product->refresh();
@@ -162,6 +174,15 @@ class ProductController extends Controller
         }
 
         return redirect()->route('admin.products.index')->with('success', '✅ Товар обновлён.');
+    }
+
+    public function attributes(Category $category, ?Product $product = null)
+    {
+        $attributes = $product && (int) $product->category_id === (int) $category->id
+            ? $this->attributes->getForProduct($product)
+            : $this->attributes->getByCategory($category->id);
+
+        return view('admin.products.partials.attributes', compact('attributes', 'product'));
     }
 
     /** 🗑 Удаление */

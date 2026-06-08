@@ -129,7 +129,7 @@
             </div>
 
             {{-- Каскадные категории --}}
-            <div x-data="categorySelect()" class="space-y-2">
+            <div x-data="categorySelect(null, {{ (int) old('category_id') ?: 'null' }})" x-init="init()" class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">Категория</label>
                 <div id="category-selects" class="space-y-2">
                     <select @change="loadChildren($event, 0)"
@@ -142,6 +142,10 @@
                     </select>
                 </div>
                 <input type="hidden" name="category_id" x-model="finalCategory" value="{{ old('category_id') }}">
+            </div>
+
+            <div id="admin-attributes-wrapper">
+                @include('admin.products.partials.attributes', ['attributes' => $attributes, 'product' => $product])
             </div>
 
             {{-- Страна и город --}}
@@ -390,12 +394,17 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
 
-        function categorySelect() {
+        function categorySelect(productId = null, initialCategory = null) {
             return {
-                finalCategory: {{ (int) old('category_id') ?: 'null' }},
+                productId,
+                finalCategory: initialCategory,
+                async init() {
+                    if (this.finalCategory) await this.loadAttributes(this.finalCategory);
+                },
                 async loadChildren(event, level) {
                     const parentId = event.target.value;
                     this.finalCategory = parentId;
+                    await this.loadAttributes(parentId);
                     document.querySelectorAll('#category-selects select').forEach((el, i) => {
                         if (i > level) el.remove();
                     });
@@ -414,6 +423,21 @@ document.addEventListener("DOMContentLoaded", function() {
                         select.addEventListener('change', (e) => this.loadChildren(e, level + 1));
                         document.getElementById('category-selects').appendChild(select);
                     }
+                },
+                async loadAttributes(categoryId) {
+                    const wrapper = document.getElementById('admin-attributes-wrapper');
+                    if (!wrapper) return;
+
+                    if (!categoryId) {
+                        wrapper.innerHTML = @json(view('admin.products.partials.attributes', ['attributes' => collect(), 'product' => $product])->render());
+                        return;
+                    }
+
+                    const suffix = this.productId ? `/${this.productId}` : '';
+                    const res = await fetch(`/admin/product-categories/${categoryId}/attributes${suffix}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    wrapper.innerHTML = await res.text();
                 }
             }
         }

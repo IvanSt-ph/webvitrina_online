@@ -192,7 +192,15 @@
                     );
                     $currentCountry = request('country_id', session('country_id'));
                     $currentCity = request('city_id', session('city_id'));
+                    $currentCountry = filter_var($currentCountry, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
+                    $currentCity = filter_var($currentCity, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
                     $selectedCountry = $countries->firstWhere('id', $currentCountry);
+                    if (! $selectedCountry) {
+                        $currentCountry = null;
+                        $currentCity = null;
+                    } elseif ($currentCity && ! $selectedCountry->cities->contains('id', $currentCity)) {
+                        $currentCity = null;
+                    }
                 @endphp
 
                 <div x-data="{ 
@@ -212,12 +220,12 @@
                         })) }},
                         
                         get selectedCountryData() {
-                            return this.countries.find(c => c.id === this.selectedCountry) || null;
+                            return this.countries.find(c => Number(c.id) === Number(this.selectedCountry)) || null;
                         },
                         
                         get selectedCityName() {
                             if (!this.selectedCountryData || !this.selectedCity) return null;
-                            const city = this.selectedCountryData.cities.find(c => c.id === this.selectedCity);
+                            const city = this.selectedCountryData.cities.find(c => Number(c.id) === Number(this.selectedCity));
                             return city ? city.name : null;
                         },
                         
@@ -232,19 +240,19 @@
                         },
                         
                         selectCountry(countryId) {
-                            this.selectedCountry = countryId;
+                            this.selectedCountry = Number(countryId);
                             this.selectedCity = null;
                             this.step = 'city'; // Переходим к выбору города
                             
                             // Если у страны нет городов, сразу применяем
-                            const country = this.countries.find(c => c.id === countryId);
+                            const country = this.countries.find(c => Number(c.id) === Number(countryId));
                             if (!country.cities.length) {
                                 this.applySelection();
                             }
                         },
                         
                         selectCity(cityId) {
-                            this.selectedCity = cityId;
+                            this.selectedCity = Number(cityId);
                             this.applySelection();
                         },
                         
@@ -254,6 +262,7 @@
                             
                             // Обновляем URL
                             let url = new URL(window.location.href);
+                            url.searchParams.delete('clear_location');
                             if (this.selectedCountry) {
                                 url.searchParams.set('country_id', this.selectedCountry);
                             } else {
@@ -264,6 +273,10 @@
                                 url.searchParams.set('city_id', this.selectedCity);
                             } else {
                                 url.searchParams.delete('city_id');
+                            }
+
+                            if (!this.selectedCountry && !this.selectedCity) {
+                                url.searchParams.set('clear_location', '1');
                             }
                             
                             window.location.href = url.toString();
@@ -283,6 +296,7 @@
                             let url = new URL(window.location.href);
                             url.searchParams.delete('country_id');
                             url.searchParams.delete('city_id');
+                            url.searchParams.set('clear_location', '1');
                             window.location.href = url.toString();
                         }
                     }" class="relative flex-shrink-0">
@@ -376,7 +390,7 @@
                                     <template x-for="country in countries" :key="country.id">
                                         <button @click="selectCountry(country.id)"
                                                 class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors"
-                                                :class="{ 'bg-indigo-50 text-indigo-600': selectedCountry === country.id && !selectedCity }">
+                                                :class="{ 'bg-indigo-50 text-indigo-600': Number(selectedCountry) === Number(country.id) && !selectedCity }">
                                             <img :src="'{{ asset('flags') }}/' + country.slug + '.png'" 
                                                  class="w-5 h-5 rounded-md shadow-sm">
                                             <span class="text-sm font-medium" x-text="country.name"></span>
@@ -407,7 +421,7 @@
                                     <template x-for="city in selectedCountryData.cities" :key="city.id">
                                         <button @click="selectCity(city.id)"
                                                 class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors pl-12"
-                                                :class="{ 'bg-indigo-50 text-indigo-600': selectedCity === city.id }">
+                                                :class="{ 'bg-indigo-50 text-indigo-600': Number(selectedCity) === Number(city.id) }">
                                             <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                                       d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -578,9 +592,10 @@
                                 
                                 <!-- Если есть аватарка - показываем её, если нет - градиент -->
                                 @if(auth()->user()->avatar)
-                                    <img src="{{ asset('storage/' . auth()->user()->avatar) }}"
+                                    <img src="{{ auth()->user()->avatar_url }}"
                                         alt="{{ auth()->user()->name }}"
-                                        class="h-9 w-9 rounded-2xl object-cover border-2 border-white shadow-sm group-hover:shadow-md transition-shadow">
+                                        class="h-9 w-9 rounded-2xl object-cover border-2 border-white shadow-sm group-hover:shadow-md transition-shadow"
+                                        loading="lazy" decoding="async">
                                 @else
                                     <div class="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 group-hover:shadow-md transition-shadow">
                                         {{ substr(auth()->user()->name, 0, 1) }}
@@ -641,9 +656,10 @@
                                 <div class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-indigo-200/35 blur-2xl"></div>
                                 <div class="relative flex items-start gap-3">
                                     @if(auth()->user()->avatar)
-                                        <img src="{{ asset('storage/' . auth()->user()->avatar) }}"
+                                        <img src="{{ auth()->user()->avatar_url }}"
                                              alt="{{ auth()->user()->name }}"
-                                             class="h-11 w-11 rounded-2xl object-cover ring-2 ring-white shadow-sm">
+                                             class="h-11 w-11 rounded-2xl object-cover ring-2 ring-white shadow-sm"
+                                             loading="lazy" decoding="async">
                                     @else
                                         <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20">
                                             {{ substr(auth()->user()->name, 0, 1) }}

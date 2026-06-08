@@ -19,6 +19,7 @@ use App\Models\{
 
 use App\Notifications\VerifyEmail;
 use App\Notifications\ResetPasswordNotification;
+use App\Services\ImageService;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -180,8 +181,17 @@ class User extends Authenticatable implements MustVerifyEmail
     */
     public function getAvatarUrlAttribute()
     {
-        if ($this->avatar && Storage::disk('public')->exists($this->avatar)) {
-            return Storage::url($this->avatar);
+        if ($this->avatar) {
+            $path = ltrim(str_replace(['storage/', '/storage/'], '', $this->avatar), '/');
+            $thumb = ImageService::thumbPath($path);
+
+            if (Storage::disk('public')->exists($thumb)) {
+                return Storage::url($thumb);
+            }
+
+            if (Storage::disk('public')->exists($path)) {
+                return Storage::url($path);
+            }
         }
         
         // Аватар по умолчанию на основе имени

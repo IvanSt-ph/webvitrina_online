@@ -129,9 +129,11 @@
                     @php $avatar = auth()->user()->avatar ?? null @endphp
                     
                     @if($avatar && Storage::disk('public')->exists($avatar))
-                        <img src="{{ Storage::url($avatar) }}"
+                        <img src="{{ auth()->user()->avatar_url }}"
                              class="relative h-5 w-5 rounded-full object-cover border-2 transition-all duration-300 {{ request()->routeIs('cabinet') ? 'border-indigo-500 scale-105 shadow-md' : 'border-gray-200 group-hover:border-indigo-400 group-hover:scale-110' }}"
-                             alt="Аватар">
+                             alt="Аватар"
+                             loading="lazy"
+                             decoding="async">
                     @else
                         <x-icon name="user" 
                                 class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('cabinet') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}"/>

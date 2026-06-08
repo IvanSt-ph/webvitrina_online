@@ -78,22 +78,25 @@ class SecurityHeaders
             );
         }
 
-        $response->headers->set(
-            'Content-Security-Policy',
-            implode('; ', [
-                "default-src 'self'",
-                "base-uri 'self'",
-                "object-src 'none'",
-                "frame-ancestors 'self'",
-                "form-action 'self'",
-                'img-src ' . implode(' ', $imageSources),
-                'font-src ' . implode(' ', $fontSources),
-                'style-src ' . implode(' ', $styleSources),
-                'script-src ' . implode(' ', $scriptSources),
-                'connect-src ' . implode(' ', $connectSources),
-                'frame-src ' . implode(' ', $frameSources),
-            ])
-        );
+        $csp = [
+            "default-src 'self'",
+            "base-uri 'self'",
+            "object-src 'none'",
+            "frame-ancestors 'self'",
+            "form-action 'self'",
+            'img-src ' . implode(' ', $imageSources),
+            'font-src ' . implode(' ', $fontSources),
+            'style-src ' . implode(' ', $styleSources),
+            'script-src ' . implode(' ', $scriptSources),
+            'connect-src ' . implode(' ', $connectSources),
+            'frame-src ' . implode(' ', $frameSources),
+        ];
+
+        if (app()->environment('production')) {
+            $csp[] = 'upgrade-insecure-requests';
+        }
+
+        $response->headers->set('Content-Security-Policy', implode('; ', $csp));
 
         return $response;
     }

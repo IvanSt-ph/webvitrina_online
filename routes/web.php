@@ -543,6 +543,8 @@ Route::prefix('admin')
 
     Route::get('/products/search', [AdminProductController::class, 'search'])
         ->name('products.search');
+    Route::get('/product-categories/{category}/attributes/{product?}', [AdminProductController::class, 'attributes'])
+        ->name('products.category-attributes');
 
     Route::resource('products', AdminProductController::class)->except(['show']);
 

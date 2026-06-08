@@ -31,6 +31,8 @@ public function rules(): array
         'longitude'   => ['nullable', 'numeric'],
         'description' => ['nullable', 'string'],
         'status'      => ['required', Rule::in(\App\Models\Product::sellerEditableStatuses())],
+        'attributes'  => ['nullable', 'array'],
+        'attributes.*'=> ['nullable'],
         'image'       => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         'gallery.*'   => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
     ];

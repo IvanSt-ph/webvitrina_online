@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\SellerPlanRequest;
 use App\Services\SellerPlanService;
 use App\Services\AdminActivityLogger;
+use App\Services\ImageService;
 use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,8 @@ class UserController extends Controller
     public function __construct(
         private readonly UserTrustService $trustService,
         private readonly SellerPlanService $sellerPlans,
-        private readonly AdminActivityLogger $activity
+        private readonly AdminActivityLogger $activity,
+        private readonly ImageService $images
     ) {
     }
 
@@ -252,7 +254,11 @@ class UserController extends Controller
         }
 
         if ($request->hasFile('avatar')) {
-            $userData['avatar'] = $request->file('avatar')->store('avatars', 'public');
+            if ($user->avatar) {
+                $this->images->delete($user->avatar);
+            }
+
+            $userData['avatar'] = $this->images->upload($request->file('avatar'), 'avatars');
         }
 
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
@@ -339,7 +345,7 @@ class UserController extends Controller
             ];
 
             if ($request->hasFile('avatar')) {
-                $userData['avatar'] = $request->file('avatar')->store('avatars', 'public');
+                $userData['avatar'] = $this->images->upload($request->file('avatar'), 'avatars');
             }
 
             // Создание пользователя

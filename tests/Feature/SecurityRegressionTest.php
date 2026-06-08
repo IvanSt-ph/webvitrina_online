@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\UserAddress;
 use App\Repositories\ProductCrudRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -37,6 +38,63 @@ class SecurityRegressionTest extends TestCase
 
         $this->assertStringStartsWith('ORD-', $first);
         $this->assertNotSame($first, $second);
+    }
+
+    public function test_remembered_location_accepts_only_positive_integer_ids(): void
+    {
+        Route::middleware('web')->get('/_security/location-echo', function (Request $request) {
+            return response()->json([
+                'country_id' => $request->input('country_id'),
+                'city_id' => $request->input('city_id'),
+            ]);
+        });
+
+        $this->get('/_security/location-echo?country_id=<script>&city_id=2')
+            ->assertOk()
+            ->assertJson([
+                'country_id' => null,
+                'city_id' => 2,
+            ])
+            ->assertSessionMissing('country_id')
+            ->assertSessionHas('city_id', 2);
+
+        $this->get('/_security/location-echo')
+            ->assertOk()
+            ->assertJson([
+                'country_id' => null,
+                'city_id' => 2,
+            ]);
+
+        $this->get('/_security/location-echo?clear_location=1&city_id=3')
+            ->assertOk()
+            ->assertJson([
+                'country_id' => null,
+                'city_id' => null,
+            ])
+            ->assertSessionMissing('city_id');
+    }
+
+    public function test_production_security_headers_upgrade_insecure_requests(): void
+    {
+        app()->detectEnvironment(fn () => 'production');
+
+        Route::middleware('web')->get('/_security/headers', fn () => response('ok'));
+
+        $response = $this->get('/_security/headers');
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'upgrade-insecure-requests',
+            (string) $response->headers->get('Content-Security-Policy')
+        );
+    }
+
+    public function test_queue_health_check_accepts_allow_sync_local_alias(): void
+    {
+        config(['queue.default' => 'sync']);
+
+        $this->artisan('queue:health-check --timeout=1 --allow-sync-local')
+            ->assertSuccessful();
     }
 
     public function test_non_admin_cannot_update_order_status_through_admin_route(): void
@@ -2354,6 +2412,72 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('Категория и локация')
             ->assertSee('Публикация')
             ->assertSee('Pro');
+    }
+
+    public function test_admin_product_form_renders_and_saves_category_attributes(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $category = Category::factory()->create(['name' => 'Attribute category']);
+        $country = \App\Models\Country::create(['name' => 'Attribute country']);
+        $city = \App\Models\City::create([
+            'country_id' => $country->id,
+            'name' => 'Attribute city',
+        ]);
+        $attribute = \App\Models\Attribute::create([
+            'name' => 'Марка',
+            'type' => 'text',
+        ]);
+        $category->attributes()->attach($attribute->id);
+        $product = $this->createProduct($seller, [
+            'title' => 'Admin attribute product',
+            'category_id' => $category->id,
+            'city_id' => $city->id,
+        ]);
+        $product->attributeValues()->create([
+            'attribute_id' => $attribute->id,
+            'value' => 'Старая марка',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.edit', $product))
+            ->assertOk()
+            ->assertSee('Характеристики товара')
+            ->assertSee('Марка')
+            ->assertSee('value="Старая марка"', false);
+
+        $token = csrf_token();
+
+        $this->actingAs($admin)
+            ->put(route('admin.products.update', $product), [
+                '_token' => $token,
+                'title' => 'Admin attribute product updated',
+                'slug' => $product->slug,
+                'sku' => $product->sku,
+                'price' => 150,
+                'stock' => 7,
+                'user_id' => $seller->id,
+                'category_id' => $category->id,
+                'country_id' => $country->id,
+                'city_id' => $city->id,
+                'description' => 'Updated by admin',
+                'status' => 'active',
+                'attributes' => [
+                    $attribute->id => 'Новая марка',
+                ],
+            ])
+            ->assertRedirect(route('admin.products.index'));
+
+        $this->assertDatabaseHas('attribute_values', [
+            'product_id' => $product->id,
+            'attribute_id' => $attribute->id,
+            'value' => 'Новая марка',
+        ]);
+        $this->assertDatabaseMissing('attribute_values', [
+            'product_id' => $product->id,
+            'attribute_id' => $attribute->id,
+            'value' => 'Старая марка',
+        ]);
     }
 
     public function test_admin_product_live_search_escapes_highlighted_product_text(): void

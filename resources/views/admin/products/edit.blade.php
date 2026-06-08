@@ -125,7 +125,7 @@
                     <h2 class="font-bold text-slate-950">Категория и локация</h2>
                 </div>
 
-                <div x-data="categorySelect()" x-init="init()" class="space-y-2">
+                <div x-data="categorySelect({{ $product->id }}, {{ (int) old('category_id', $product->category_id) ?: 'null' }})" x-init="init()" class="space-y-2">
                     <label class="block text-sm font-bold text-slate-800">Категория</label>
                     <div id="category-selects" class="space-y-2">
                         <select @change="loadChildren($event, 0)" name="categories[0]" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
@@ -136,6 +136,10 @@
                         </select>
                     </div>
                     <input type="hidden" name="category_id" x-model="finalCategory" value="{{ old('category_id', $product->category_id) }}">
+                </div>
+
+                <div id="admin-attributes-wrapper" class="mt-4">
+                    @include('admin.products.partials.attributes', ['attributes' => $attributes, 'product' => $product])
                 </div>
 
                 <div class="mt-4 grid gap-4 md:grid-cols-2" x-data="cityPicker()" x-init="init(@js(old('country_id', optional($product->city)->country_id)), @js(old('city_id', $product->city_id)))">
@@ -409,15 +413,18 @@ function slugHelper() {
     };
 }
 
-function categorySelect() {
+function categorySelect(productId = null, initialCategory = null) {
     return {
-        finalCategory: {{ (int) old('category_id', $product->category_id) ?: 'null' }},
+        productId,
+        finalCategory: initialCategory,
         async init() {
             if (this.finalCategory) await this.loadChain(this.finalCategory);
+            if (this.finalCategory) await this.loadAttributes(this.finalCategory);
         },
         async loadChildren(event, level) {
             const parentId = event.target.value;
             this.finalCategory = parentId;
+            await this.loadAttributes(parentId);
             document.querySelectorAll('#category-selects select').forEach((el, i) => { if (i > level) el.remove(); });
             if (!parentId) return;
 
@@ -459,7 +466,23 @@ function categorySelect() {
             if (lastSelect) {
                 lastSelect.value = categoryId;
                 this.finalCategory = categoryId;
+                await this.loadAttributes(categoryId);
             }
+        },
+        async loadAttributes(categoryId) {
+            const wrapper = document.getElementById('admin-attributes-wrapper');
+            if (!wrapper) return;
+
+            if (!categoryId) {
+                wrapper.innerHTML = @json(view('admin.products.partials.attributes', ['attributes' => collect(), 'product' => $product])->render());
+                return;
+            }
+
+            const suffix = this.productId ? `/${this.productId}` : '';
+            const res = await fetch(`/admin/product-categories/${categoryId}/attributes${suffix}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            wrapper.innerHTML = await res.text();
         }
     };
 }

@@ -90,7 +90,7 @@
             <div class="flex items-center gap-4 min-w-0">
                 <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
                     @if($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar))
-                        <img src="{{ asset('storage/'.$user->avatar) }}" class="object-cover w-full h-full" alt="{{ $user->name }}">
+                        <img src="{{ $user->avatar_url }}" class="object-cover w-full h-full" alt="{{ $user->name }}" loading="lazy" decoding="async">
                     @else
                         <span class="text-2xl sm:text-3xl font-bold">{{ strtoupper(mb_substr($user->name, 0, 1)) }}</span>
                     @endif

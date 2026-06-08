@@ -9,7 +9,10 @@ use Illuminate\Support\Str;
 
 class QueueHealthCheck extends Command
 {
-    protected $signature = 'queue:health-check {--timeout=10 : Seconds to wait for the worker} {--allow-sync : Allow sync queue for local debugging}';
+    protected $signature = 'queue:health-check
+        {--timeout=10 : Seconds to wait for the worker}
+        {--allow-sync : Allow sync queue for local debugging}
+        {--allow-sync-local : Alias for --allow-sync used in local checks}';
 
     protected $description = 'Dispatch a small queue job and verify that a worker processes it.';
 
@@ -18,7 +21,7 @@ class QueueHealthCheck extends Command
         $connection = (string) config('queue.default');
         $timeout = max(1, (int) $this->option('timeout'));
 
-        if ($connection === 'sync' && ! $this->option('allow-sync')) {
+        if ($connection === 'sync' && ! ($this->option('allow-sync') || $this->option('allow-sync-local'))) {
             $this->error('QUEUE_CONNECTION=sync. This does not verify a real worker.');
             $this->line('Set QUEUE_CONNECTION=database and run php artisan queue:work database --sleep=3 --tries=3 --timeout=90.');
 
