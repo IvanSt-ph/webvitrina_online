@@ -25,11 +25,8 @@ class Kernel extends ConsoleKernel
         // Удаляем товары старше 90 дней каждый день в 03:30
         $schedule->command('products:purge-old')->dailyAt('03:30');
 
-        if ($backupCommand = config('backup.command')) {
-            $schedule->exec($backupCommand)
-                ->dailyAt((string) config('backup.daily_at', '03:15'))
-                ->withoutOverlapping()
-                ->runInBackground();
-        }
+        $schedule->command('backup:run')
+            ->dailyAt((string) config('backup.daily_at', '03:15'))
+            ->withoutOverlapping();
     }
 }

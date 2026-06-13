@@ -54,6 +54,7 @@ use App\Http\Controllers\Admin\{
     OrderController as AdminOrderController,
     AdminProfileController,
     ActivityLogController,
+    BackupController,
     BannerController,
     AdCampaignController,
     ReviewController as AdminReviewController,
@@ -506,6 +507,8 @@ Route::prefix('admin')
     ->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
+    Route::post('/backup/run', [BackupController::class, 'run'])->name('backup.run');
 
     Route::resource('colors', ColorController::class)->except(['show', 'create', 'edit']);
     // Очистка старых товаров из корзины

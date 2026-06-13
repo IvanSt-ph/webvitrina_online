@@ -9,6 +9,7 @@ class BackupHealth
     public const REQUIRED_FILES = [
         'database.sql.gz',
         'storage-public.tar.gz',
+        'manifest.json',
         'SHA256SUMS',
     ];
 
@@ -65,6 +66,7 @@ class BackupHealth
             'detail' => 'Папка: ' . basename($latest) . '. Возраст: ' . $ageHours . ' ч. Проверяются database.sql.gz, storage-public.tar.gz и SHA256SUMS.',
             'issues' => $issues,
             'files' => $files,
+            'manifest' => self::manifest($latest),
         ];
     }
 
@@ -76,6 +78,7 @@ class BackupHealth
 
         return collect(scandir($backupPath) ?: [])
             ->reject(fn ($entry) => in_array($entry, ['.', '..'], true))
+            ->reject(fn ($entry) => str_ends_with($entry, '.tmp'))
             ->map(fn ($entry) => rtrim($backupPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $entry)
             ->filter(fn ($path) => is_dir($path))
             ->sortByDesc(fn ($path) => filemtime($path) ?: 0)
@@ -127,13 +130,26 @@ class BackupHealth
             }
         }
 
-        foreach (['database.sql.gz', 'storage-public.tar.gz'] as $file) {
+        foreach (['database.sql.gz', 'storage-public.tar.gz', 'manifest.json'] as $file) {
             if (! in_array($file, $seen, true)) {
                 $issues[] = 'В SHA256SUMS нет записи для ' . $file . '.';
             }
         }
 
         return $issues;
+    }
+
+    private static function manifest(string $directory): ?array
+    {
+        $path = $directory . DIRECTORY_SEPARATOR . 'manifest.json';
+
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        $data = json_decode((string) file_get_contents($path), true);
+
+        return is_array($data) ? $data : null;
     }
 
     private static function formatBytes(float|int $bytes): string

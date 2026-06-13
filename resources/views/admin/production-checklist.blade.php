@@ -34,6 +34,13 @@
 @endphp
 
 <div class="space-y-6">
+    @if(session('success') || session('error'))
+        <div class="rounded-2xl border p-4 text-sm font-semibold {{ session('success') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800' }}">
+            <i class="{{ session('success') ? 'ri-check-line' : 'ri-error-warning-line' }}"></i>
+            {{ session('success') ?? session('error') }}
+        </div>
+    @endif
+
     <header class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div class="grid gap-0 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div class="p-5 sm:p-6">
@@ -58,6 +65,22 @@
                         {{ $attentionItems->count() }} требует внимания
                     </span>
                 </div>
+                <form method="POST"
+                      action="{{ route('admin.backup.run') }}"
+                      class="mt-5"
+                      x-data="{ submitting: false }"
+                      @submit="submitting = true">
+                    @csrf
+                    <button type="submit"
+                            :disabled="submitting"
+                            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-bold text-white shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-indigo-600 disabled:cursor-wait disabled:opacity-70">
+                        <i :class="submitting ? 'ri-loader-4-line animate-spin' : 'ri-database-2-line'"></i>
+                        <span x-text="submitting ? 'Создаём backup...' : 'Создать backup сейчас'"></span>
+                    </button>
+                    <p class="mt-2 text-xs text-slate-500">
+                        Создаёт дамп БД, архив storage и SHA256-проверку. Обычно занимает несколько секунд.
+                    </p>
+                </form>
             </div>
 
             <div class="border-t border-slate-100 bg-slate-50/80 p-5 sm:p-6 xl:border-l xl:border-t-0">

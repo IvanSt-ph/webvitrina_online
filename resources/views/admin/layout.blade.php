@@ -96,6 +96,7 @@
           ],
           'Управление' => [
             ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Уровни магазинов','badge'=>$pendingSellerPlanRequests],
+            ['route'=>'admin.backups.index','active'=>'admin.backups.*','icon'=>'ri-database-2-line','label'=>'Бэкапы'],
             ['route'=>'admin.production-checklist','icon'=>'ri-rocket-line','label'=>'Релиз-чеклист'],
             ['route'=>'admin.activity.index','active'=>'admin.activity.*','icon'=>'ri-history-line','label'=>'Журнал'],
             ['route'=>'admin.profile','icon'=>'ri-settings-3-line','label'=>'Настройки'],

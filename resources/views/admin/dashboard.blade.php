@@ -3,16 +3,37 @@
 @section('title', 'Главная панель')
 
 @section('content')
+@if(session('success') || session('error'))
+  <div class="mb-5 rounded-2xl border p-4 text-sm font-semibold {{ session('success') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800' }}">
+    <i class="{{ session('success') ? 'ri-check-line' : 'ri-error-warning-line' }}"></i>
+    {{ session('success') ?? session('error') }}
+  </div>
+@endif
+
 <div class="mb-5 flex flex-col gap-4 wv-panel sm:flex-row sm:items-center sm:justify-between">
   <div>
     <div class="text-xs font-bold uppercase text-indigo-600">Операционный центр</div>
     <h1 class="mt-1 text-2xl font-bold text-slate-950">Что требует внимания</h1>
     <p class="mt-1 text-sm text-slate-500">Сначала работа с обращениями и решениями, ниже - аналитика магазина.</p>
   </div>
-  <a href="{{ route('admin.chats.index') }}"
-     class="wv-btn-primary">
-    <i class="ri-message-3-line text-lg"></i> Открыть чаты
-  </a>
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <form method="POST"
+          action="{{ route('admin.backup.run') }}"
+          x-data="{ submitting: false }"
+          @submit="submitting = true">
+      @csrf
+      <button type="submit"
+              :disabled="submitting"
+              class="wv-btn-secondary h-11 w-full justify-center border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-wait disabled:opacity-70 sm:w-auto">
+        <i :class="submitting ? 'ri-loader-4-line animate-spin text-lg' : 'ri-database-2-line text-lg'"></i>
+        <span x-text="submitting ? 'Создаём backup...' : 'Backup БД'"></span>
+      </button>
+    </form>
+    <a href="{{ route('admin.chats.index') }}"
+       class="wv-btn-primary justify-center">
+      <i class="ri-message-3-line text-lg"></i> Открыть чаты
+    </a>
+  </div>
 </div>
 
 <section class="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
