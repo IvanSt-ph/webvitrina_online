@@ -491,9 +491,11 @@ class ReleaseExperienceTest extends TestCase
 
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode(['created_at' => now()->toIso8601String()]));
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz') . ' database.sql.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'manifest.json') . ' manifest.json',
         ]));
 
         try {
@@ -515,9 +517,11 @@ class ReleaseExperienceTest extends TestCase
 
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode(['created_at' => now()->toIso8601String()]));
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
             str_repeat('0', 64) . ' database.sql.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'manifest.json') . ' manifest.json',
         ]));
 
         try {

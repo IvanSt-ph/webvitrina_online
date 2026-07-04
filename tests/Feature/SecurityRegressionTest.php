@@ -6,7 +6,9 @@ use App\Models\Order;
 use App\Models\Banner;
 use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\City;
 use App\Models\Conversation;
+use App\Models\Country;
 use App\Models\Favorite;
 use App\Models\Message;
 use App\Models\OrderItem;
@@ -42,6 +44,9 @@ class SecurityRegressionTest extends TestCase
 
     public function test_remembered_location_accepts_only_positive_integer_ids(): void
     {
+        $country = Country::create(['name' => 'Remember country']);
+        $city = City::create(['country_id' => $country->id, 'name' => 'Remember city']);
+
         Route::middleware('web')->get('/_security/location-echo', function (Request $request) {
             return response()->json([
                 'country_id' => $request->input('country_id'),
@@ -49,20 +54,20 @@ class SecurityRegressionTest extends TestCase
             ]);
         });
 
-        $this->get('/_security/location-echo?country_id=<script>&city_id=2')
+        $this->get('/_security/location-echo?country_id=<script>&city_id=' . $city->id)
             ->assertOk()
             ->assertJson([
                 'country_id' => null,
-                'city_id' => 2,
+                'city_id' => $city->id,
             ])
             ->assertSessionMissing('country_id')
-            ->assertSessionHas('city_id', 2);
+            ->assertSessionHas('city_id', $city->id);
 
         $this->get('/_security/location-echo')
             ->assertOk()
             ->assertJson([
                 'country_id' => null,
-                'city_id' => 2,
+                'city_id' => $city->id,
             ]);
 
         $this->get('/_security/location-echo?clear_location=1&city_id=3')

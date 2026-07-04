@@ -130,6 +130,18 @@ class ProductController extends Controller
         $previousStatus = $product->status;
         $data = $request->validated();
 
+        if ($request->filled('city_id')) {
+            $countryId = $request->input('country_id', $product->city?->country_id);
+            $cityMatchesCountry = $countryId
+                && City::whereKey($request->input('city_id'))->where('country_id', $countryId)->exists();
+
+            if (! $cityMatchesCountry) {
+                throw ValidationException::withMessages([
+                    'city_id' => __('validation.exists', ['attribute' => 'city']),
+                ]);
+            }
+        }
+
         $sellerId = (int) ($data['user_id'] ?? $product->user_id);
         if ($sellerId !== (int) $product->user_id) {
             $seller = User::findOrFail($sellerId);

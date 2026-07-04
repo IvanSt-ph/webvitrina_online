@@ -11,55 +11,51 @@
     <!-- ВЕРХ -->
     <div class="flex-1 flex flex-col">
         <div class="flex items-center gap-2 px-6 py-6 border-b border-gray-100">
-            <a href="{{ route('home') }}" class="flex items-center gap-2">
+            <a href="{{ route('seller.cabinet') }}" class="flex items-center gap-2">
                 <img src="{{ asset('images/icon.png') }}" class="w-8 h-8 rounded-lg shadow-sm" alt="WebVitrina">
-                <span class="font-semibold text-gray-900 text-sm tracking-tight">WebVitrina Seller</span>
+                <span class="font-semibold text-gray-900 text-sm tracking-tight">Панель продавца</span>
             </a>
         </div>
 
         @php
             $active = 'wv-sidebar-link-active';
             $link   = 'wv-sidebar-link';
+            $shop = auth()->user()->shop;
+            $storefrontUrl = $shop?->slug
+                ? route('seller.show', ['identifier' => $shop->slug])
+                : route('home');
             $sellerMenu = [
-                'Работа' => [
-                    ['route' => 'seller.cabinet', 'active' => 'seller.cabinet', 'icon' => 'ri-home-5-line', 'label' => 'Главная'],
-                    ['route' => 'seller.orders.index', 'active' => 'seller.orders.*', 'icon' => 'ri-shopping-bag-3-line', 'label' => 'Заказы'],
-                    ['route' => 'chats.index', 'active' => 'chats.*', 'icon' => 'ri-chat-3-line', 'label' => 'Чаты', 'badge' => $unreadChatsCount ?? 0],
+                'Обзор' => [
+                    ['route' => 'seller.cabinet', 'active' => 'seller.cabinet', 'icon' => 'ri-dashboard-line', 'label' => 'Рабочий стол'],
+                    ['url' => $storefrontUrl, 'active' => 'seller.show', 'icon' => 'ri-store-3-line', 'label' => 'Моя витрина', 'external' => true],
+                    ['route' => 'chats.index', 'active' => 'chats.*', 'icon' => 'ri-chat-3-line', 'label' => 'Сообщения', 'badge' => $unreadChatsCount ?? 0],
                     ['route' => 'support', 'active' => 'support', 'icon' => 'ri-customer-service-2-line', 'label' => 'Поддержка'],
+                ],
+                'Продажи' => [
+                    ['route' => 'seller.orders.index', 'active' => 'seller.orders.*', 'icon' => 'ri-shopping-bag-3-line', 'label' => 'Заказы'],
+                    ['route' => 'seller.finance.index', 'active' => 'seller.finance.*', 'icon' => 'ri-wallet-3-line', 'label' => 'Финансы'],
                 ],
                 'Каталог' => [
                     ['route' => 'seller.products.index', 'active' => 'seller.products.*', 'icon' => 'ri-box-3-line', 'label' => 'Товары'],
                     ['route' => 'seller.followers.index', 'active' => 'seller.followers.*', 'icon' => 'ri-user-follow-line', 'label' => 'Подписчики'],
                 ],
-                'Финансы и рост' => [
-                    ['route' => 'seller.finance.index', 'active' => 'seller.finance.*', 'icon' => 'ri-cash-line', 'label' => 'Финансы'],
+                'Рост' => [
                     ['route' => 'seller.analytics.index', 'active' => 'seller.analytics.*', 'icon' => 'ri-line-chart-line', 'label' => 'Аналитика'],
                     ['route' => 'seller.plans.index', 'active' => 'seller.plans.*', 'icon' => 'ri-vip-crown-line', 'label' => 'Уровень магазина'],
                 ],
-                'Управление' => [
+                'Настройки' => [
                     ['route' => 'profile.edit', 'active' => 'profile.*', 'icon' => 'ri-user-3-line', 'label' => 'Профиль'],
                 ],
             ];
         @endphp
 
         <nav class="mt-5 flex flex-col text-[15px] font-normal text-slate-700">
-            <div class="px-4 pb-5">
-                <a href="{{ route('home') }}"
-                   class="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100">
-                    <span class="flex items-center gap-2">
-                        <i class="ri-store-3-line text-[20px]"></i>
-                        <span>К витрине</span>
-                    </span>
-                    <i class="ri-arrow-right-up-line text-[18px] text-indigo-500"></i>
-                </a>
-            </div>
-
             @foreach($sellerMenu as $section => $items)
                 <div class="{{ $loop->first ? '' : 'mt-4' }} px-6 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                     {{ $section }}
                 </div>
                 @foreach($items as $item)
-                    <a href="{{ route($item['route']) }}"
+                    <a href="{{ $item['url'] ?? route($item['route']) }}"
                        class="{{ request()->routeIs($item['active']) ? $active : '' }} {{ $link }}">
                         <i class="{{ $item['icon'] }} text-[22px]"></i>
                         <span>{{ $item['label'] }}</span>
@@ -67,6 +63,9 @@
                             <span class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
                                 {{ min($item['badge'], 99) }}
                             </span>
+                        @endif
+                        @if($item['external'] ?? false)
+                            <i class="ri-arrow-right-up-line ml-auto text-[16px] text-slate-400"></i>
                         @endif
                     </a>
                 @endforeach
@@ -124,4 +123,4 @@
 
 <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
 
-</x-app-layout>
+</x-seller-base>

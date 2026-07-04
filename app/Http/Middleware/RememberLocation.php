@@ -11,6 +11,10 @@ class RememberLocation
 {
     public function handle(Request $request, Closure $next)
     {
+        if (! $request->isMethodSafe()) {
+            return $next($request);
+        }
+
         if ($request->has('clear_location')) {
             session()->forget(['country_id', 'city_id']);
             $request->query->remove('country_id');
