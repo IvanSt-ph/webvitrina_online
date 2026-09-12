@@ -6,12 +6,18 @@
 
 @php
     $url = route('product.show', $p->slug ?? $p->id);
+    $galleryItems = $p->gallery ?? [];
+
+    if (is_string($galleryItems)) {
+        $decodedGallery = json_decode($galleryItems, true);
+        $galleryItems = is_array($decodedGallery) ? $decodedGallery : [];
+    }
 
     // Собираем галерею: main_image + gallery[]
     $rawGallery = [];
     if ($p->main_image) $rawGallery[] = $p->main_image;
     if ($p->image && $p->image !== $p->main_image) $rawGallery[] = $p->image;
-    foreach (($p->gallery ?? []) as $g) {
+    foreach ($galleryItems as $g) {
         if ($g && !in_array($g, $rawGallery)) $rawGallery[] = $g;
     }
   // ✅ Добавляем заглушку, если галерея пуста
