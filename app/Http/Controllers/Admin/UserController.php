@@ -11,6 +11,7 @@ use App\Models\SellerPlanRequest;
 use App\Services\SellerPlanService;
 use App\Services\AdminActivityLogger;
 use App\Services\ImageService;
+use App\Services\PasswordSecurityService;
 use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,8 @@ class UserController extends Controller
         private readonly UserTrustService $trustService,
         private readonly SellerPlanService $sellerPlans,
         private readonly AdminActivityLogger $activity,
-        private readonly ImageService $images
+        private readonly ImageService $images,
+        private readonly PasswordSecurityService $passwordSecurity
     ) {
     }
 
@@ -248,10 +250,7 @@ class UserController extends Controller
             'seller_plan' => $sellerPlan,
         ];
 
-        if ($request->filled('password')) {
-            $userData['password'] = Hash::make($request->password);
-            $userData['password_set_at'] = now();
-        }
+        $password = $request->filled('password') ? $validated['password'] : null;
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
@@ -262,7 +261,14 @@ class UserController extends Controller
         }
 
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
-        $user->update($userData);
+
+        if ($password !== null) {
+            $user->fill($userData);
+            $this->passwordSecurity->rotate($user, $password);
+        } else {
+            $user->update($userData);
+        }
+
         $after = $user->fresh()->only(['name', 'email', 'phone', 'role', 'seller_plan']);
 
         $this->activity->log('user.updated', $user, 'Администратор изменил пользователя.', [

@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\PasswordSecurityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class PasswordController extends Controller
 {
+    public function __construct(private readonly PasswordSecurityService $passwordSecurity)
+    {
+    }
+
     /**
      * Update the user's password.
      */
@@ -33,11 +37,7 @@ class PasswordController extends Controller
 
         $validated = $request->validateWithBag('updatePassword', $rules, $messages);
 
-        // Обновляем пароль
-        $request->user()->update([
-            'password' => Hash::make($validated['password']),
-            'password_set_at' => now(),
-        ]);
+        $this->passwordSecurity->rotate($request->user(), $validated['password']);
 
         return back()->with('status', 'password-updated');
     }

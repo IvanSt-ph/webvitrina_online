@@ -5,14 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
 use App\Services\AdminActivityLogger;
+use App\Services\PasswordSecurityService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class AdminProfileController extends Controller
 {
-    public function __construct(private readonly AdminActivityLogger $activity)
-    {
+    public function __construct(
+        private readonly AdminActivityLogger $activity,
+        private readonly PasswordSecurityService $passwordSecurity
+    ) {
     }
 
     public function edit()
@@ -57,11 +59,10 @@ class AdminProfileController extends Controller
         }
 
         if ($passwordChanged) {
-            $user->password = Hash::make($validated['password']);
-            $user->password_set_at = now();
+            $this->passwordSecurity->rotate($user, $validated['password']);
+        } else {
+            $user->save();
         }
-
-        $user->save();
 
         if ($profileChanged) {
             $this->activity->log('profile.updated', $user, 'Администратор обновил собственный профиль.', [
