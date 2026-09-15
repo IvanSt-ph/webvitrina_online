@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\ImageUploadConstraints;
 use App\Models\Conversation;
 use App\Models\Order;
 use App\Models\Product;
@@ -343,7 +344,7 @@ class ChatController extends Controller
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:5120',
-                'dimensions:max_width=8000,max_height=8000',
+                new ImageUploadConstraints(),
             ],
         ]);
 

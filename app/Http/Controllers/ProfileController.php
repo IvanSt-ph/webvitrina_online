@@ -9,6 +9,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\Shop;
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -39,14 +40,15 @@ class ProfileController extends Controller
 
         if ($request->ajax() && $request->hasFile('avatar')) {
             $request->validate([
-                'avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048'
+                'avatar' => ImageUploadConstraints::rules(2048, required: true),
             ]);
+
+            $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
 
             if ($user->avatar) {
                 app(ImageService::class)->delete($user->avatar);
             }
 
-            $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
             $user->avatar = $path;
             $user->save();
 
@@ -60,15 +62,16 @@ class ProfileController extends Controller
         if ($section === 'personal') {
             $data = $request->validate([
                 'name' => 'required|string|max:255',
-                'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+                'avatar' => ImageUploadConstraints::rules(2048),
             ]);
 
             if ($request->hasFile('avatar')) {
+                $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
+
                 if ($user->avatar) {
                     app(ImageService::class)->delete($user->avatar);
                 }
 
-                $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
                 $user->avatar = $path;
                 $updatedFields[] = 'avatar';
             }
@@ -197,7 +200,7 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name'   => 'required|string|max:255',
             'email'  => 'required|email|max:255|unique:users,email,' . $user->id,
-            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'avatar' => ImageUploadConstraints::rules(2048),
             'phone'  => 'nullable|string|max:50',
             'phone_full' => 'nullable|string|max:50',
         ]);
@@ -205,11 +208,13 @@ class ProfileController extends Controller
         $changed = false;
 
         if ($request->hasFile('avatar')) {
+            $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
+
             if ($user->avatar) {
                 app(ImageService::class)->delete($user->avatar);
             }
 
-            $user->avatar = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
+            $user->avatar = $path;
             $updatedFields[] = 'avatar';
             $changed = true;
         }
@@ -360,7 +365,7 @@ public function updateShop(Request $request): RedirectResponse
         'city'        => 'nullable|string|max:255',
         'description' => 'nullable|string|max:1000',
         'phone'       => 'nullable|string|max:50',
-        'banner'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        'banner'      => ImageUploadConstraints::rules(4096),
 
         'facebook'    => $this->externalUrlRules(),
         'instagram'   => $this->externalUrlRules(),
@@ -379,10 +384,13 @@ public function updateShop(Request $request): RedirectResponse
     }
 
     if ($request->hasFile('banner')) {
+        $newBannerPath = app(ImageService::class)->upload($request->file('banner'), 'banners');
+
         if ($shop->banner) {
             app(ImageService::class)->delete($shop->banner);
         }
-        $data['banner'] = app(ImageService::class)->upload($request->file('banner'), 'banners');
+
+        $data['banner'] = $newBannerPath;
     }
 
     // Проверка телефона магазина

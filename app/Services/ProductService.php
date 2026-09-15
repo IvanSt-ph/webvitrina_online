@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\ProductSlug;
+use App\Rules\ImageUploadConstraints;
 use App\Repositories\ProductCrudRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ProductService
 {
@@ -69,9 +71,11 @@ class ProductService
 
             /* ---------- 3. Обновление главного фото ---------- */
             if ($image) {
+                $newImagePath = $this->images->upload($image, 'products/' . date('Y/m'));
+
                 // Удаляем старое фото (защита в ImageService)
                 $this->images->delete($product->image);
-                $payload['image'] = $this->images->upload($image, 'products/' . date('Y/m'));
+                $payload['image'] = $newImagePath;
             }
 
             /* ---------- 4. Обновление товара ---------- */
@@ -179,6 +183,12 @@ class ProductService
 
     protected function appendGallery(Product $product, array $files): void
     {
+        if (count((array) $product->gallery) + count($files) > ImageUploadConstraints::MAX_GALLERY_IMAGES) {
+            throw ValidationException::withMessages([
+                'gallery' => 'В галерее товара может быть не более ' . ImageUploadConstraints::MAX_GALLERY_IMAGES . ' изображений.',
+            ]);
+        }
+
         $paths = $this->images->uploadGallery($files, 'products/gallery/' . date('Y/m'));
 
         $gallery = array_unique(array_merge(

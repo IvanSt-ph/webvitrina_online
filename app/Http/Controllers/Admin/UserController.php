@@ -8,6 +8,7 @@ use App\Models\Shop;
 use App\Models\AdminActivityLog;
 use App\Models\Order;
 use App\Models\SellerPlanRequest;
+use App\Rules\ImageUploadConstraints;
 use App\Services\SellerPlanService;
 use App\Services\AdminActivityLogger;
 use App\Services\ImageService;
@@ -212,7 +213,7 @@ class UserController extends Controller
             'role'     => 'required|in:admin,seller,buyer',
             'seller_plan' => ['nullable', 'in:' . implode(',', $this->sellerPlans->allowedKeys())],
             'password' => ['nullable', 'confirmed', Password::defaults()],
-            'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'avatar'   => ImageUploadConstraints::rules(2048),
         ]);
 
         if ($this->wouldRemoveLastAdmin($user, $validated['role'])) {
@@ -253,11 +254,13 @@ class UserController extends Controller
         $password = $request->filled('password') ? $validated['password'] : null;
 
         if ($request->hasFile('avatar')) {
+            $newAvatarPath = $this->images->upload($request->file('avatar'), 'avatars');
+
             if ($user->avatar) {
                 $this->images->delete($user->avatar);
             }
 
-            $userData['avatar'] = $this->images->upload($request->file('avatar'), 'avatars');
+            $userData['avatar'] = $newAvatarPath;
         }
 
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
@@ -320,7 +323,7 @@ class UserController extends Controller
             'phone'    => 'nullable|string|max:20',
             'password' => ['required', 'confirmed', Password::defaults()],
             'role'     => 'required|in:admin,seller,buyer',
-            'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'avatar'   => ImageUploadConstraints::rules(2048),
         ]);
 
         DB::beginTransaction();

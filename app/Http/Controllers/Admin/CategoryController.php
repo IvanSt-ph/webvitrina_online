@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -175,8 +176,8 @@ class CategoryController extends Controller
         $data = $request->validate([
             'name'      => 'required|string|max:255',
             'slug'      => 'required|string|max:255|unique:categories',
-            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
-            'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
+            'icon'      => ImageUploadConstraints::rules(2048),
+            'image'     => ImageUploadConstraints::rules(4096),
             'parent_id' => 'nullable|exists:categories,id',
         ]);
 
@@ -216,8 +217,8 @@ class CategoryController extends Controller
         $data = $request->validate([
             'name'      => 'required|string|max:255',
             'slug'      => 'required|string|max:255|unique:categories,slug,' . $category->id,
-            'icon'      => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
-            'image'     => 'nullable|image|mimes:png,jpg,jpeg,webp|max:4096',
+            'icon'      => ImageUploadConstraints::rules(2048),
+            'image'     => ImageUploadConstraints::rules(4096),
             'parent_id' => 'nullable|exists:categories,id',
         ]);
 
@@ -324,7 +325,9 @@ public function chain($id): JsonResponse
 
         $path = trim($directory, '/') . '/' . Str::uuid() . '.webp';
 
-        Storage::disk('public')->put($path, $image->toWebp($quality)->toString());
+        if (! Storage::disk('public')->put($path, $image->toWebp($quality)->toString())) {
+            throw new \RuntimeException('Не удалось сохранить обработанное изображение категории.');
+        }
 
         return $path;
     }

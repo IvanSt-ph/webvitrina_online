@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Seller;
 
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -38,8 +39,9 @@ class ProductStoreRequest extends FormRequest
             'latitude'  => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
 
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'gallery.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'image'     => ImageUploadConstraints::rules(4096),
+            'gallery'   => ['nullable', 'array', 'max:' . ImageUploadConstraints::MAX_GALLERY_IMAGES],
+            'gallery.*' => ImageUploadConstraints::rules(4096),
         ];
     }
 

@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 
@@ -73,7 +75,7 @@ class BannerController extends Controller
             'link'           => $this->linkRules(),
             'sort_order'     => 'nullable|integer|min:0',
             'active'         => 'nullable|boolean',
-            'image_source'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
+            'image_source'   => ImageUploadConstraints::rules(8192),
             'crop_x'         => 'nullable|numeric|min:0|max:100',
             'crop_y'         => 'nullable|numeric|min:0|max:100',
             'crop_w'         => 'nullable|numeric|min:10|max:100',
@@ -84,9 +86,9 @@ class BannerController extends Controller
             'mobile_crop_h'  => 'nullable|numeric|min:10|max:100',
             'recrop_existing' => 'nullable|boolean',
             'mobile_recrop_existing' => 'nullable|boolean',
-            'image_desktop'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
-            'image_tablet'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
-            'image_mobile'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
+            'image_desktop'  => ImageUploadConstraints::rules(8192),
+            'image_tablet'   => ImageUploadConstraints::rules(8192),
+            'image_mobile'   => ImageUploadConstraints::rules(8192),
         ]);
 
         if ($request->hasFile('image_source')) {
@@ -111,19 +113,19 @@ class BannerController extends Controller
             }
         }
 
-        unset(
-            $data['image_source'],
-            $data['crop_x'],
-            $data['crop_y'],
-            $data['crop_w'],
-            $data['crop_h'],
-            $data['mobile_crop_x'],
-            $data['mobile_crop_y'],
-            $data['mobile_crop_w'],
-            $data['mobile_crop_h'],
-            $data['recrop_existing'],
-            $data['mobile_recrop_existing'],
-        );
+            unset(
+                $data['image_source'],
+                $data['crop_x'],
+                $data['crop_y'],
+                $data['crop_w'],
+                $data['crop_h'],
+                $data['mobile_crop_x'],
+                $data['mobile_crop_y'],
+                $data['mobile_crop_w'],
+                $data['mobile_crop_h'],
+                $data['recrop_existing'],
+                $data['mobile_recrop_existing'],
+            );
 
         // 🔹 Флаг активности
         $data['active'] = $request->boolean('active');
@@ -151,7 +153,7 @@ class BannerController extends Controller
             'link'           => $this->linkRules(),
             'sort_order'     => 'nullable|integer|min:0',
             'active'         => 'nullable|boolean',
-            'image_source'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
+            'image_source'   => ImageUploadConstraints::rules(8192),
             'crop_x'         => 'nullable|numeric|min:0|max:100',
             'crop_y'         => 'nullable|numeric|min:0|max:100',
             'crop_w'         => 'nullable|numeric|min:10|max:100',
@@ -162,70 +164,81 @@ class BannerController extends Controller
             'mobile_crop_h'  => 'nullable|numeric|min:10|max:100',
             'recrop_existing' => 'nullable|boolean',
             'mobile_recrop_existing' => 'nullable|boolean',
-            'image_desktop'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
-            'image_tablet'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
-            'image_mobile'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:8192',
+            'image_desktop'  => ImageUploadConstraints::rules(8192),
+            'image_tablet'   => ImageUploadConstraints::rules(8192),
+            'image_mobile'   => ImageUploadConstraints::rules(8192),
         ]);
 
-        if ($request->hasFile('image_source')) {
-            $crop = $this->cropData($request);
-            foreach (['desktop', 'tablet', 'mobile'] as $device) {
-                $key = "image_{$device}";
-                $this->deleteBannerImage($banner->$key);
-                $data[$key] = $this->uploadBannerImage(
-                    $request->file('image_source'),
-                    $device,
-                    $crop,
-                );
-            }
-            $this->deleteBannerImage($banner->image);
-            $data['image'] = null;
-        } elseif ($request->boolean('recrop_existing')) {
-            $sourcePath = $this->bannerSourcePath($banner);
+        $newImages = [];
+        $oldImages = [];
 
-            if ($sourcePath) {
+        try {
+            if ($request->hasFile('image_source')) {
                 $crop = $this->cropData($request);
-                $newImages = [];
 
                 foreach (['desktop', 'tablet', 'mobile'] as $device) {
-                    $newImages["image_{$device}"] = $this->uploadBannerImageFromDisk($sourcePath, $device, $crop);
+                    $key = "image_{$device}";
+                    $newImages[$key] = $this->uploadBannerImage(
+                        $request->file('image_source'),
+                        $device,
+                        $crop,
+                    );
                 }
 
-                foreach (['image', 'image_desktop', 'image_tablet', 'image_mobile'] as $key) {
-                    $this->deleteBannerImage($banner->$key);
-                }
-
-                $data = array_merge($data, $newImages);
+                $oldImages = [$banner->image, $banner->image_desktop, $banner->image_tablet, $banner->image_mobile];
                 $data['image'] = null;
+            } elseif ($request->boolean('recrop_existing')) {
+                $sourcePath = $this->bannerSourcePath($banner);
+
+                if ($sourcePath) {
+                    $crop = $this->cropData($request);
+
+                    foreach (['desktop', 'tablet', 'mobile'] as $device) {
+                        $newImages["image_{$device}"] = $this->uploadBannerImageFromDisk($sourcePath, $device, $crop);
+                    }
+
+                    $oldImages = [$banner->image, $banner->image_desktop, $banner->image_tablet, $banner->image_mobile];
+                    $data['image'] = null;
+                }
             }
-        }
 
-        foreach (['desktop', 'tablet', 'mobile'] as $device) {
-            $key = "image_{$device}";
-            if ($request->hasFile($key)) {
-                $this->deleteBannerImage($banner->$key);
-                $data[$key] = $this->uploadBannerImage(
-                    $request->file($key),
-                    $device,
-                    $device === 'mobile' ? $this->cropData($request, 'mobile_crop_') : null,
-                );
+            foreach (['desktop', 'tablet', 'mobile'] as $device) {
+                $key = "image_{$device}";
+
+                if ($request->hasFile($key)) {
+                    $replacement = $this->uploadBannerImage(
+                        $request->file($key),
+                        $device,
+                        $device === 'mobile' ? $this->cropData($request, 'mobile_crop_') : null,
+                    );
+
+                    if (isset($newImages[$key])) {
+                        $this->deleteBannerImage($newImages[$key]);
+                    }
+
+                    $newImages[$key] = $replacement;
+                    $oldImages[] = $banner->$key;
+                }
             }
-        }
 
-        if (! $request->hasFile('image_source') && ! $request->hasFile('image_mobile') && $request->boolean('mobile_recrop_existing')) {
-            $sourcePath = $this->mobileBannerSourcePath($banner);
+            if (! $request->hasFile('image_source') && ! $request->hasFile('image_mobile') && $request->boolean('mobile_recrop_existing')) {
+                $sourcePath = $this->mobileBannerSourcePath($banner);
 
-            if ($sourcePath) {
-                $newMobileImage = $this->uploadBannerImageFromDisk(
-                    $sourcePath,
-                    'mobile',
-                    $this->cropData($request, 'mobile_crop_'),
-                );
+                if ($sourcePath) {
+                    $replacement = $this->uploadBannerImageFromDisk(
+                        $sourcePath,
+                        'mobile',
+                        $this->cropData($request, 'mobile_crop_'),
+                    );
 
-                $this->deleteBannerImage($banner->image_mobile);
-                $data['image_mobile'] = $newMobileImage;
+                    if (isset($newImages['image_mobile'])) {
+                        $this->deleteBannerImage($newImages['image_mobile']);
+                    }
+
+                    $newImages['image_mobile'] = $replacement;
+                    $oldImages[] = $banner->image_mobile;
+                }
             }
-        }
 
         unset(
             $data['image_source'],
@@ -241,11 +254,23 @@ class BannerController extends Controller
             $data['mobile_recrop_existing'],
         );
 
-        // 🔹 Активность
-        $data['active'] = $request->boolean('active');
+            // 🔹 Активность
+            $data['active'] = $request->boolean('active');
 
-        // 🔹 Сохраняем изменения
-        $banner->update($data);
+            // 🔹 Сохраняем изменения
+            $banner->update(array_merge($data, $newImages));
+        } catch (\Throwable $exception) {
+            foreach ($newImages as $path) {
+                $this->deleteBannerImage($path);
+            }
+
+            throw $exception;
+        }
+
+        foreach (array_unique(array_filter($oldImages)) as $path) {
+            $this->deleteBannerImage($path);
+        }
+
         cache()->forget('slides_home');
 
         return redirect()
@@ -310,9 +335,18 @@ class BannerController extends Controller
     private function uploadBannerImageFromDisk(string $sourcePath, string $device, ?array $crop = null): string
     {
         $manager = new ImageManager(new Driver());
+        $absolutePath = Storage::disk('public')->path($sourcePath);
+
+        try {
+            ImageUploadConstraints::assertSafePath($absolutePath, 8192);
+        } catch (\InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'image_source' => $exception->getMessage(),
+            ]);
+        }
 
         return $this->storeProcessedBannerImage(
-            $manager->read(Storage::disk('public')->path($sourcePath)),
+            $manager->read($absolutePath),
             $device,
             $crop,
         );
@@ -345,7 +379,9 @@ class BannerController extends Controller
 
         $path = 'banners/' . $device . '/' . Str::uuid() . '.webp';
 
-        Storage::disk('public')->put($path, $image->toString());
+        if (! Storage::disk('public')->put($path, $image->toString())) {
+            throw new \RuntimeException('Не удалось сохранить обработанное изображение баннера.');
+        }
 
         return $path;
     }

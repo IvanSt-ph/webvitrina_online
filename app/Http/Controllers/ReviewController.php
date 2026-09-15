@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Review;
 use App\Models\Product;
 use App\Models\Order;
+use App\Rules\ImageUploadConstraints;
 use App\Repositories\ProductRepository;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
@@ -44,7 +45,7 @@ public function store(Request $request, Product $product)
         'rating'    => 'required|integer|min:1|max:5',
         'body'      => 'nullable|string|max:2000',
         'images'    => 'array|max:3',
-        'images.*'  => 'image|mimes:jpg,jpeg,png,webp|max:4096',
+        'images.*'  => ImageUploadConstraints::rules(4096, required: true),
     ]);
 
     // 🧩 Создание или обновление отзыва (один отзыв на пользователя)
@@ -62,15 +63,20 @@ public function store(Request $request, Product $product)
 
         // 🧩 Обработка загруженных изображений
         if ($request->hasFile('images')) {
+            $newImagePaths = $this->images->uploadGallery(
+                $request->file('images'),
+                $this->images->makeDir('reviews')
+            );
+
             // Удаляем старые изображения вместе с миниатюрами
             foreach ($review->images as $old) {
                 $this->images->delete($old->path);
                 $old->delete();
             }
 
-            foreach ($request->file('images') as $imageFile) {
+            foreach ($newImagePaths as $path) {
                 $review->images()->create([
-                    'path' => $this->images->upload($imageFile, $this->images->makeDir('reviews')),
+                    'path' => $path,
                 ]);
             }
         }

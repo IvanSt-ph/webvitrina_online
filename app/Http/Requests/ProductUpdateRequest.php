@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -34,13 +35,13 @@ class ProductUpdateRequest extends FormRequest
         'status'      => ['sometimes', 'required', Rule::in(\App\Models\Product::statuses())],
         'attributes'  => ['nullable', 'array'],
         'attributes.*'=> ['nullable'],
-        'image'       => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-        'gallery.*'   => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        'image'       => ImageUploadConstraints::rules(4096),
+        'gallery'     => ['nullable', 'array', 'max:' . ImageUploadConstraints::MAX_GALLERY_IMAGES],
+        'gallery.*'   => ImageUploadConstraints::rules(4096),
     ];
 }
 
 
 }
-
 
 
