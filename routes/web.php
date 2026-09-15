@@ -116,7 +116,8 @@ Route::post('/phone/verify', [PhoneVerificationController::class, 'verify'])
 // 💱 Валюты
 Route::get('/internal/currency/agroprombank', [
     CurrencyProxyController::class, 'agroprombank'
-]);
+])->middleware('throttle:currency-rates')
+    ->name('currency.agroprombank');
 
 // 🏠 Главная
 Route::get('/', [ProductController::class, 'index'])->name('home');

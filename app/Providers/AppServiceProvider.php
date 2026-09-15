@@ -73,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($key);
         });
 
+        RateLimiter::for('currency-rates', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         /*
         |--------------------------------------------------------------------------
         | 📌 Автоматическая загрузка категорий в меню
