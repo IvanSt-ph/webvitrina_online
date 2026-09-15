@@ -13,7 +13,8 @@
   <meta property="og:url" content="{{ $seoUrl }}">
   <meta property="og:image" content="{{ $seoImage }}">
   <script type="application/ld+json">
-    {!! json_encode([
+    @php
+        $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'CollectionPage',
         'name' => $category->name,
@@ -24,7 +25,9 @@
             'name' => config('app.name'),
             'url' => url('/'),
         ],
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    ];
+    @endphp
+    {!! \Illuminate\Support\Js::encode($structuredData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
   </script>
 @endpush
 

@@ -1,6 +1,6 @@
 [program:webvitrina-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/webvitrina/artisan queue:work database --sleep=3 --tries=3 --timeout=90
+command=php /var/www/webvitrina/artisan queue:work database --sleep=3 --tries=3 --timeout=60
 directory=/var/www/webvitrina
 autostart=true
 autorestart=true

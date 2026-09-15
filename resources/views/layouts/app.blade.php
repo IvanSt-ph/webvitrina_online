@@ -3,6 +3,9 @@
 @php
     $hideMobileBottomNav = request()->routeIs('chats.show');
     $isAdminUser = auth()->check() && auth()->user()->role === 'admin';
+    $hideMobileBottomNav = $hideMobileBottomNav || (
+        $isAdminUser && request()->routeIs('product.show') && request()->integer('admin_chat')
+    );
     $isAdminSection = request()->routeIs('admin.*');
     $showSellerMobileBottomNav = auth()->check()
         && ! $isAdminUser

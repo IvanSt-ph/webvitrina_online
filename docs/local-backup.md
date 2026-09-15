@@ -1,9 +1,10 @@
 # Local Backup
 
-Локальный backup WebVitrina создаёт два архива и checksum-файл:
+Локальный backup WebVitrina создаёт два архива, манифест и checksum-файл:
 
 - `database.sql.gz` — дамп MySQL базы из `.env`;
 - `storage-public.tar.gz` — архив `storage/app/public`;
+- `manifest.json` — дата создания, имя базы и количество записей основных таблиц;
 - `SHA256SUMS` — контрольные суммы для проверки целостности.
 
 ## Создать backup вручную
@@ -39,7 +40,7 @@ Laravel schedule уже содержит ежедневный backup в `03:15`.
 php artisan schedule:run
 ```
 
-Для Windows это лучше повесить в Task Scheduler раз в минуту. Для Linux/VPS — в cron:
+Для Windows используйте готовые скрипты из `tools`; установка и проверка описаны в `docs/local-background-services.md`. Для Linux/VPS — cron:
 
 ```cron
 * * * * * cd /var/www/webvitrina && php artisan schedule:run >> /dev/null 2>&1

@@ -66,11 +66,13 @@ php artisan queue:failed
 
 Backup должен включать БД и `storage/app/public`.
 
-Скрипт-пример:
+Встроенная команда создаёт архивы БД и файлов, `manifest.json` и `SHA256SUMS`:
 
-```text
-deploy/backup-webvitrina.sh.example
+```bash
+php artisan backup:run
 ```
+
+Она уже запланирована в `routes/console.php` на `BACKUP_DAILY_AT` (по умолчанию 03:15). Внешний cron должен вызывать `php artisan schedule:run` каждую минуту. Отдельный ежедневный cron для backup при этом не нужен.
 
 Проверка:
 

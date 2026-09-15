@@ -43,7 +43,7 @@ php artisan migrate --force
 Очередь должна обрабатываться постоянным worker-процессом:
 
 ```bash
-php artisan queue:work database --sleep=3 --tries=3 --timeout=90
+php artisan queue:work database --sleep=3 --tries=3 --timeout=60
 ```
 
 Вручную в терминале worker держать нельзя. Его нужно запускать через Supervisor или systemd.
@@ -97,26 +97,24 @@ php artisan queue:failed
 - `storage/app/public`, где лежат загруженные изображения;
 - файл `.env` отдельно в защищённом месте или систему секретов.
 
-Пример shell-скрипта лежит здесь:
+Встроенная команда создаёт совместимый с проверкой backup:
 
-```text
-deploy/backup-webvitrina.sh.example
+```bash
+php artisan backup:run
 ```
 
-Минимальный cron для ежедневного backup в 03:15:
-
-```cron
-15 3 * * * BACKUP_DIR='/var/backups/webvitrina' DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh.example >> /var/log/webvitrina-backup.log 2>&1
-```
-
-Можно запускать этот же скрипт через Laravel scheduler. Для этого в `.env` укажи:
+Она уже запланирована в `routes/console.php`. Настройки в `.env`:
 
 ```env
-BACKUP_COMMAND="BACKUP_DIR='/var/backups/webvitrina' DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh"
+BACKUP_DIR=/var/backups/webvitrina
 BACKUP_DAILY_AT=03:15
+BACKUP_MAX_AGE_HOURS=30
+BACKUP_KEEP_DAYS=14
 ```
 
-Перед запуском на реальном сервере скопируй пример в отдельный файл, проверь `APP_DIR`, `BACKUP_DIR`, доступы MySQL и восстановление backup на тестовой базе. Укажи те же `BACKUP_DIR` и `BACKUP_MAX_AGE_HOURS` в `.env`, чтобы админский release checklist показывал свежесть последней копии. В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz` и `SHA256SUMS`.
+Достаточно минутного cron `php artisan schedule:run`, указанного выше. Отдельный ежедневный cron дублировал бы запуск. `BACKUP_COMMAND` текущим кодом не используется.
+
+В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz`, `manifest.json` и `SHA256SUMS`. Старый `deploy/backup-webvitrina.sh.example` не создаёт обязательный манифест; для текущего формата используйте встроенную команду.
 
 Проверка свежести, обязательных файлов и SHA256:
 

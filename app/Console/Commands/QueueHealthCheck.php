@@ -23,7 +23,7 @@ class QueueHealthCheck extends Command
 
         if ($connection === 'sync' && ! ($this->option('allow-sync') || $this->option('allow-sync-local'))) {
             $this->error('QUEUE_CONNECTION=sync. This does not verify a real worker.');
-            $this->line('Set QUEUE_CONNECTION=database and run php artisan queue:work database --sleep=3 --tries=3 --timeout=90.');
+            $this->line('Set QUEUE_CONNECTION=database and run php artisan queue:work database --sleep=3 --tries=3 --timeout=60.');
 
             return self::FAILURE;
         }
@@ -49,7 +49,7 @@ class QueueHealthCheck extends Command
         }
 
         $this->error('Queue worker did not process the health-check job within ' . $timeout . ' seconds.');
-        $this->line('Check that the worker is running: php artisan queue:work ' . $connection . ' --sleep=3 --tries=3 --timeout=90');
+        $this->line('Check that the worker is running: php artisan queue:work ' . $connection . ' --sleep=3 --tries=3 --timeout=60');
 
         return self::FAILURE;
     }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Services\ImageService;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -236,23 +237,31 @@ class Product extends Model
         return $this->storageImageUrl($this->image);
     }
 
-    public function getImageThumbUrlAttribute(): string
-    {
-        if ($this->image && ! self::isDefaultImagePath($this->image)) {
-            return asset('storage/' . ImageService::thumbPath($this->image));
-        }
+public function getImageThumbUrlAttribute(): string
+{
+    if ($this->image && ! self::isDefaultImagePath($this->image)) {
+        $thumbPath = ImageService::thumbPath($this->image);
 
-        return $this->image_url;
+        if (Storage::disk('public')->exists($thumbPath)) {
+            return asset('storage/' . $thumbPath);
+        }
     }
 
-    public static function storageImageUrl(?string $path): string
-    {
-        if ($path && ! self::isDefaultImagePath($path)) {
-            return asset('storage/' . $path);
-        }
+    return $this->image_url;
+}
 
-        return asset('storage/' . self::DEFAULT_IMAGE_PATH);
+public static function storageImageUrl(?string $path): string
+{
+    if (
+        $path &&
+        ! self::isDefaultImagePath($path) &&
+        Storage::disk('public')->exists($path)
+    ) {
+        return asset('storage/' . $path);
     }
+
+    return asset('storage/' . self::DEFAULT_IMAGE_PATH);
+}
 
     public static function storageThumbUrl(?string $path): string
     {

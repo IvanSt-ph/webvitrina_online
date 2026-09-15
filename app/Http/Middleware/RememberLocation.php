@@ -11,6 +11,11 @@ class RememberLocation
 {
     public function handle(Request $request, Closure $next)
     {
+        // Location filters must never rewrite submitted form or JSON data.
+        if (! $request->isMethod('GET') && ! $request->isMethod('HEAD')) {
+            return $next($request);
+        }
+
         if ($request->has('clear_location')) {
             session()->forget(['country_id', 'city_id']);
             $request->query->remove('country_id');

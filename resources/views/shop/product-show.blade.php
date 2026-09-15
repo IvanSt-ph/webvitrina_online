@@ -19,7 +19,8 @@
     <meta property="product:price:amount" content="{{ number_format((float) $product->price, 2, '.', '') }}">
     <meta property="product:price:currency" content="{{ $product->currency ?? 'PRB' }}">
     <script type="application/ld+json">
-        {!! json_encode([
+        @php
+        $structuredData = [
             '@context' => 'https://schema.org',
             '@type' => 'Product',
             'name' => $product->title,
@@ -47,7 +48,9 @@
                 'ratingValue' => round((float) ($product->reviews_avg_rating ?? 0), 1),
                 'reviewCount' => (int) $product->reviews_count,
             ] : null,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+        ];
+    @endphp
+    {!! \Illuminate\Support\Js::encode($structuredData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
     </script>
 @endpush
 
