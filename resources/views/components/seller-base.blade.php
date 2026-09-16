@@ -12,6 +12,7 @@
   @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-neutral-50 text-gray-800 font-sans antialiased">
+  <x-toast-stack />
   {{ $slot }}
 </body>
 </html>

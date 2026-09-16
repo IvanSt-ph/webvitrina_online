@@ -2,6 +2,12 @@ import Alpine from 'alpinejs'
 
 window.Alpine = Alpine
 
+window.showSiteToast = (message, type = 'info') => {
+  window.dispatchEvent(new CustomEvent('wv-toast', {
+    detail: { message, type },
+  }))
+}
+
 Alpine.store('specs', { open: false })
 
 Alpine.data('appShell', () => ({
@@ -212,6 +218,7 @@ import itiFlags2x from 'intl-tel-input/build/img/flags@2x.webp?url';
 import itiGlobe from 'intl-tel-input/build/img/globe.webp?url';
 import itiGlobe2x from 'intl-tel-input/build/img/globe@2x.webp?url';
 window.intlTelInput = intlTelInput;
+window.loadIntlTelInputUtils = () => import('intl-tel-input/utils');
 
 document.documentElement.style.setProperty('--iti-path-flags-1x', `url("${itiFlags}")`);
 document.documentElement.style.setProperty('--iti-path-flags-2x', `url("${itiFlags2x}")`);
@@ -240,14 +247,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const iti = window.intlTelInput(input, {
       // 🌍 Настройки отображения
       initialCountry: 'md',                 // Страна по умолчанию — 🇲🇩 Молдова
-      preferredCountries: ['md', 'ua', 'ru'], // Три популярных страны вверху списка
+      countryOrder: ['md', 'ua', 'ro', 'ru'], // Популярные страны вверху списка
       separateDialCode: true,               // Отображает код страны отдельно от номера
       nationalMode: false,                  // Ввод всегда в международном формате (+373 ...)
       autoPlaceholder: 'aggressive',        // Подсказка вида: +373 777 00 000
-      showSelectedDialCode: true,           // Показывает код страны рядом с флагом
+
+      // Карточка регистрации имеет overflow-hidden. Рендерим desktop-dropdown
+      // в body, иначе список стран визуально обрезается границами карточки.
+      dropdownContainer: document.body,
 
       // ⚙️ Подключаем утилиты для форматирования и валидации
-      utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.5/build/js/utils.js',
+      loadUtils: window.loadIntlTelInputUtils,
     });
 
 
@@ -276,8 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------
     // Преобразует номер в красивый международный формат при blur
     input.addEventListener('blur', () => {
-      if (window.intlTelInputUtils && iti.isValidNumber()) {
-        const formatted = iti.getNumber(intlTelInputUtils.numberFormat.INTERNATIONAL);
+      if (window.intlTelInput.utils && iti.isValidNumber()) {
+        const formatted = iti.getNumber(window.intlTelInput.utils.numberFormat.INTERNATIONAL);
         if (formatted) input.value = formatted;
       }
     });
@@ -285,10 +295,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = input.closest('form');
     if (form) {
       form.addEventListener('submit', () => {
-        if (window.intlTelInputUtils && iti.isValidNumber()) {
-          const formatted = iti.getNumber(intlTelInputUtils.numberFormat.E164);
-          if (formatted) input.value = formatted;
-        }
+        // getNumber() без format возвращает полный международный номер и не
+        // теряет dial code при separateDialCode, даже если utils ещё грузятся.
+        const fullNumber = iti.getNumber();
+        if (fullNumber) input.value = fullNumber;
       });
     }
   });

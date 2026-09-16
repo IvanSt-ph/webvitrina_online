@@ -2224,6 +2224,63 @@ class SecurityRegressionTest extends TestCase
         $this->assertNull($buyer->fresh()->avatar);
     }
 
+    public function test_profile_avatar_accepts_phone_sized_file_above_legacy_two_megabyte_limit(): void
+    {
+        Storage::fake('public');
+
+        $oldAvatar = 'avatars/medium/old.webp';
+        $oldThumb = \App\Services\ImageService::thumbPath($oldAvatar);
+        Storage::disk('public')->put($oldAvatar, 'old avatar');
+        Storage::disk('public')->put($oldThumb, 'old avatar thumb');
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'avatar' => $oldAvatar,
+        ]);
+
+        $this->actingAs($buyer)
+            ->patch(route('buyer.profile.update'), [
+                'profile_section' => 'personal',
+                'name' => $buyer->name,
+                'avatar' => UploadedFile::fake()->image('phone-photo.jpg', 1200, 900)->size(3072),
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('updated_fields', fn (array $fields) => in_array('avatar', $fields, true));
+
+        $avatar = $buyer->fresh()->avatar;
+
+        $this->assertNotNull($avatar);
+        $this->assertStringEndsWith('.webp', $avatar);
+        Storage::disk('public')->assertExists($avatar);
+        Storage::disk('public')->assertExists(\App\Services\ImageService::thumbPath($avatar));
+        Storage::disk('public')->assertMissing($oldAvatar);
+        Storage::disk('public')->assertMissing($oldThumb);
+    }
+
+    public function test_profile_avatar_rejects_files_above_sec03_filesize_limit_and_keeps_old_avatar(): void
+    {
+        Storage::fake('public');
+
+        $oldAvatar = 'avatars/medium/existing.webp';
+        Storage::disk('public')->put($oldAvatar, 'existing avatar');
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'avatar' => $oldAvatar,
+        ]);
+
+        $this->actingAs($buyer)
+            ->patch(route('buyer.profile.update'), [
+                'profile_section' => 'personal',
+                'name' => $buyer->name,
+                'avatar' => UploadedFile::fake()->image('too-large.jpg', 1200, 900)->size(8193),
+            ])
+            ->assertSessionHasErrors([
+                'avatar' => 'Размер файла аватара не должен превышать 8 МБ.',
+            ]);
+
+        $this->assertSame($oldAvatar, $buyer->fresh()->avatar);
+        Storage::disk('public')->assertExists($oldAvatar);
+    }
+
     public function test_profile_keeps_previous_avatar_when_replacement_processing_fails(): void
     {
         Storage::fake('public');
@@ -2241,7 +2298,12 @@ class SecurityRegressionTest extends TestCase
                 'name' => $buyer->name,
                 'avatar' => $this->pngHeader('broken.png', 100, 100),
             ])
-            ->assertServerError();
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('avatar')
+            ->assertJsonPath(
+                'errors.avatar.0',
+                'Не удалось обработать изображение. Убедитесь, что файл не повреждён и имеет формат JPG, PNG или WebP.'
+            );
 
         $this->assertSame($oldAvatar, $buyer->fresh()->avatar);
         Storage::disk('public')->assertExists($oldAvatar);
@@ -3381,6 +3443,45 @@ class SecurityRegressionTest extends TestCase
             'user_id' => $buyer->id,
             'product_id' => $product->id,
         ]);
+    }
+
+    public function test_review_purchase_restriction_uses_warning_toast_for_browser_requests(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $message = 'Отзыв можно оставить только после покупки и получения товара.';
+
+        $this->actingAs($buyer)
+            ->from(route('product.show', $product->slug))
+            ->post(route('review.store', $product), [
+                'rating' => 5,
+                'body' => 'Fake review',
+            ])
+            ->assertRedirect(route('product.show', $product->slug))
+            ->assertSessionHas('warning', $message);
+
+        $this->actingAs($buyer)
+            ->withSession(['warning' => $message])
+            ->get(route('product.show', $product->slug))
+            ->assertOk()
+            ->assertSee('data-toast-stack', false)
+            ->assertSee('flash-0', false)
+            ->assertSee('warning', false);
+    }
+
+    public function test_global_toast_component_supports_all_types_without_promoting_field_errors(): void
+    {
+        $component = file_get_contents(resource_path('views/components/toast-stack.blade.php'));
+
+        foreach (['success', 'error', 'warning', 'info'] as $type) {
+            $this->assertStringContainsString("session('{$type}')", $component);
+        }
+
+        $this->assertStringContainsString('aria-live="polite"', $component);
+        $this->assertStringContainsString('aria-label="Закрыть уведомление"', $component);
+        $this->assertStringContainsString('motion-reduce:transition-none', $component);
+        $this->assertStringNotContainsString('$errors->', $component);
     }
 
     public function test_user_can_review_product_after_delivery(): void

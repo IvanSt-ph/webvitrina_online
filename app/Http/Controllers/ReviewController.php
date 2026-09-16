@@ -24,8 +24,14 @@ public function store(Request $request, Product $product)
     abort_if($product->status !== 'active', 404);
 
     if ($product->user_id === auth()->id()) {
+        $message = 'Нельзя оставить отзыв на собственный товар.';
+
+        if (! $request->expectsJson()) {
+            return back()->with('warning', $message);
+        }
+
         throw ValidationException::withMessages([
-            'review' => 'Нельзя оставить отзыв на собственный товар.',
+            'review' => $message,
         ]);
     }
 
@@ -35,8 +41,14 @@ public function store(Request $request, Product $product)
         ->exists();
 
     if (! $hasPurchased) {
+        $message = 'Отзыв можно оставить только после покупки и получения товара.';
+
+        if (! $request->expectsJson()) {
+            return back()->with('warning', $message);
+        }
+
         throw ValidationException::withMessages([
-            'review' => 'Отзыв можно оставить только после покупки и получения товара.',
+            'review' => $message,
         ]);
     }
 

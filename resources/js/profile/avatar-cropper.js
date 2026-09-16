@@ -17,8 +17,8 @@ function avatarCropper() {
             const file = event.target.files[0];
             if (!file) return;
             
-            if (!file.type.match('image.*')) {
-                alert('Пожалуйста, выберите изображение');
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                this.showNotification('Поддерживаются только изображения JPG, PNG и WebP.', 'error');
                 return;
             }
             
@@ -87,7 +87,7 @@ function avatarCropper() {
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(data => {
-                            throw new Error(data.message || 'Ошибка при сохранении');
+                            throw new Error(data.errors?.avatar?.[0] || data.message || 'Ошибка при сохранении');
                         });
                     }
                     return response.json();
@@ -116,6 +116,11 @@ function avatarCropper() {
         },
         
         showNotification(message, type = 'success') {
+            if (window.showSiteToast) {
+                window.showSiteToast(message, type);
+                return;
+            }
+
             const toast = document.createElement('div');
             toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
                 type === 'success' ? 'bg-green-500' : 'bg-red-500'
