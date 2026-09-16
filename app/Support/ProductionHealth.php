@@ -212,31 +212,37 @@ class ProductionHealth
         ];
     }
 
-    private static function storage(): array
-    {
-        $path = public_path('storage');
-        $target = storage_path('app/public');
+private static function storage(): array
+{
+    $path = public_path('storage');
+    $target = storage_path('app/public');
 
-        clearstatcache(true, $path);
-        clearstatcache(true, $target);
+    clearstatcache(true, $path);
+    clearstatcache(true, $target);
 
-        $linkedTarget = file_exists($path) ? readlink($path) : false;
-        $isLinked = is_link($path) || $linkedTarget !== false;
-        $isUsable = file_exists($path) && (is_dir($path) || $isLinked);
-        $pointsToStorage = $linkedTarget === false
-            || self::normalizePath((string) $linkedTarget) === self::normalizePath($target)
-            || (realpath((string) $linkedTarget) !== false && realpath((string) $linkedTarget) === realpath($target));
-        $ok = $isUsable && $pointsToStorage;
+    $exists = file_exists($path);
+    $linkedTarget = $exists ? @readlink($path) : false;
 
-        return [
-            'ok' => $ok,
-            'value' => $ok ? ($isLinked ? 'linked' : 'directory') : 'нет ссылки',
-            'detail' => $ok
-                ? $path . ($linkedTarget !== false ? ' -> ' . $linkedTarget : '')
-                : 'На сервере выполните php artisan storage:link.',
-            'icon' => 'ri-folder-shield-2-line',
-        ];
-    }
+    // Linux/macOS: обычный symlink определяется через is_link().
+    // Windows: junction может давать is_link() === false,
+    // но readlink() при этом успешно возвращает строку.
+    $isLinked = $exists && (is_link($path) || $linkedTarget !== false);
+
+    $ok = $isLinked;
+
+    return [
+        'ok' => $ok,
+        'value' => $ok ? 'linked' : 'нет ссылки',
+        'detail' => $ok
+            ? $path . ' -> ' . (
+                $linkedTarget !== false
+                    ? $linkedTarget
+                    : $target
+            )
+            : 'На сервере выполните php artisan storage:link.',
+        'icon' => 'ri-folder-shield-2-line',
+    ];
+}
 
     private static function route(string $name, string $expectedPath): array
     {
