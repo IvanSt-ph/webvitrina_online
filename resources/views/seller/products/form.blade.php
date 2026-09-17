@@ -712,6 +712,10 @@
       padding: 13px;
       transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
     }
+    .seller-status-option:has(input:focus-visible) {
+      outline: 2px solid #6366f1;
+      outline-offset: 2px;
+    }
     .seller-status-option:has(input:checked) {
       border-color: #818cf8;
       background: #eef2ff;

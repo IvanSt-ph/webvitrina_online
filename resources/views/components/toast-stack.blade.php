@@ -17,8 +17,24 @@
     x-data="{
         toasts: @js($initialToasts),
         nextId: 0,
+        bottomOffset: 0,
+        navObserver: null,
+        syncBottomOffset() {
+            this.bottomOffset = Math.max(0, ...Array.from(document.querySelectorAll('[data-toast-bottom-nav]')).map((nav) => {
+                const rect = nav.getBoundingClientRect();
+                return rect.width && rect.height ? Math.max(0, window.innerHeight - rect.top) : 0;
+            }));
+        },
         init() {
-            this.$nextTick(() => this.toasts.forEach((toast) => this.schedule(toast)));
+            this.$nextTick(() => {
+                this.toasts.forEach((toast) => this.schedule(toast));
+                this.syncBottomOffset();
+                this.navObserver = new ResizeObserver(() => this.syncBottomOffset());
+                document.querySelectorAll('[data-toast-bottom-nav]').forEach((nav) => this.navObserver.observe(nav));
+            });
+        },
+        destroy() {
+            this.navObserver?.disconnect();
         },
         add(detail) {
             const type = ['success', 'error', 'warning', 'info'].includes(detail?.type) ? detail.type : 'info';
@@ -54,7 +70,9 @@
         },
     }"
     @wv-toast.window="add($event.detail)"
-    class="pointer-events-none fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-[90] flex flex-col gap-3 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-full sm:max-w-md"
+    @resize.window="syncBottomOffset()"
+    :style="{ bottom: bottomOffset ? (bottomOffset + 16) + 'px' : 'calc(env(safe-area-inset-bottom) + 1.25rem)' }"
+    class="pointer-events-none fixed inset-x-3 bottom-5 z-[90] flex flex-col gap-3 sm:inset-x-auto sm:right-5 sm:w-full sm:max-w-md"
     aria-live="polite"
     aria-atomic="false"
 >

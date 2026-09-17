@@ -1,26 +1,26 @@
-<div data-mobile-bottom-seller-nav
+<div data-toast-bottom-nav data-mobile-bottom-seller-nav
   x-data="{ openOrdersMenu: false, openCabinetMenu: false }"
-  class="lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-t border-neutral-200 shadow-xl">
+  class="lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-t border-neutral-200 shadow-xl" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
 
   <nav class="flex justify-around items-center h-16 text-xs font-medium">
 
     <!-- В магазин (главная сайта) -->
     <a href="{{ url('/') }}" 
-       class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->is('/') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+       class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->is('/') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-store-3-line text-xl"></i>
         <span>В магазин</span>
     </a>
 
     <!-- Товары -->
     <a href="{{ route('seller.products.index') }}" 
-       class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.products.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+       class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.products.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-store-2-line text-xl"></i>
         <span>Товары</span>
     </a>
 
     <!-- Добавить (центральная) -->
     <a href="{{ route('seller.products.create') }}" 
-       class="relative flex flex-col items-center justify-center -mt-3">
+       class="relative flex h-full min-w-0 flex-1 flex-col items-center justify-center -mt-3">
         <div class="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg border-4 border-white">
             <i class="ri-add-line text-2xl"></i>
         </div>
@@ -30,14 +30,14 @@
     <!-- Заказы (только заказы) -->
     <button 
       @click="openOrdersMenu = !openOrdersMenu; openCabinetMenu = false"
-      class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }} relative">
+      class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }} relative">
         <i class="ri-file-list-3-line text-xl"></i>
         <span>Заказы</span>
     </button>
 
     <!-- Чаты -->
     <a href="{{ route('chats.index') }}"
-       class="relative flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+       class="relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-chat-3-line text-xl"></i>
         <span>Чаты</span>
         @if(($unreadChatsCount ?? 0) > 0)
@@ -50,7 +50,7 @@
     <!-- Кабинет (меню) -->
     <button 
       @click="openCabinetMenu = !openCabinetMenu; openOrdersMenu = false"
-      class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet') || request()->routeIs('seller.finance.*') || request()->routeIs('seller.analytics.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+      class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet') || request()->routeIs('seller.finance.*') || request()->routeIs('seller.analytics.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-user-settings-line text-xl"></i>
         <span>Кабинет</span>
     </button>
@@ -67,7 +67,7 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="fixed bottom-20 left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
+    class="absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
 
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-base font-semibold text-neutral-800">Заказы</h3>
@@ -94,7 +94,7 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="fixed bottom-20 left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
+    class="absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
 
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-base font-semibold text-neutral-800">Меню кабинета</h3>

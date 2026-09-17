@@ -1,11 +1,11 @@
-<div class="lg:hidden fixed bottom-0 left-0 right-0 z-50">
+<div data-toast-bottom-nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50">
     {{-- Стильный фон с блюром — ТЕПЕРЬ БЕЗ ОТСТУПОВ СНИЗУ --}}
     <div class="bg-white/95 backdrop-blur-xl border-t border-white/20 shadow-2xl shadow-black/5" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
         <div class="flex justify-around items-center py-2 px-1">
             
 {{-- 1. ГЛАВНАЯ --}}
             <a href="{{ route('home') }}" 
-               class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 {{ request()->routeIs('home') ? 'scale-105' : 'hover:scale-105' }}">
+               class="relative group flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-300 {{ request()->routeIs('home') ? 'scale-105' : 'hover:scale-105' }}">
                 <div class="relative">
                     <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 {{ request()->routeIs('home') ? 'opacity-100' : 'group-hover:opacity-60' }}"></div>
                     <x-icon name="home" 
@@ -19,7 +19,7 @@
 
 {{-- 2. КАТЕГОРИИ --}}
             <button @click="open = true" 
-                    class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
+                    class="relative group flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
                 <div class="relative">
                     <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 group-hover:opacity-60"></div>
                     <svg class="relative z-10 h-5 w-5 transition-all duration-300 text-neutral-500 group-hover:text-indigo-500"
@@ -32,7 +32,7 @@
 
 {{-- 3. ИЗБРАННОЕ --}}
             <a href="{{ route('favorites.index') }}" 
-            class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
+            class="relative group flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
                 <div class="relative">
                     {{-- Blur background on hover --}}
                     <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 group-hover:opacity-60"></div>
@@ -63,7 +63,7 @@
 {{-- 4. ЧАТЫ --}}
             @auth
                 <a href="{{ route('chats.index') }}"
-                   class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 {{ request()->routeIs('chats.*') ? 'scale-105' : 'hover:scale-105' }}">
+                   class="relative group flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-300 {{ request()->routeIs('chats.*') ? 'scale-105' : 'hover:scale-105' }}">
                     <div class="relative">
                         <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 {{ request()->routeIs('chats.*') ? 'opacity-100' : 'group-hover:opacity-60' }}"></div>
                         <i class="ri-chat-3-line relative text-[20px] transition-all duration-300 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 group-hover:text-indigo-500' }}"></i>
@@ -82,7 +82,7 @@
 
 {{-- 5. КОРЗИНА  --}}
             <a href="{{ route('cart.index') }}" 
-            class="relative group flex flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105">
+            class="relative group flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 transition-all duration-300 hover:scale-105">
                 
                 {{-- Фиксированный контейнер для иконки --}}
                 <div class="relative flex items-center justify-center h-6 w-6">
@@ -122,7 +122,7 @@
 
  {{-- 6. ПРОФИЛЬ --}}
             <a href="{{ route('cabinet') }}" 
-               class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
+               class="relative group flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
                 <div class="relative">
                     <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 group-hover:opacity-60"></div>
                     

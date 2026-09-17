@@ -38,23 +38,23 @@
             {{-- Название + slug --}}
             <div class="grid md:grid-cols-2 gap-4" x-data="slugHelper()">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Название</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Название</label>
                     <input type="text" name="title" x-model="title"
                            value="{{ old('title') }}"
-                           class="wv-field mt-1"
+                           class="wv-field"
                            required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Slug
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Slug
                         <span class="text-gray-500 text-xs">(можно оставить пустым — сгенерируется)</span>
                     </label>
                     <div class="flex gap-2">
                         <input type="text" name="slug" x-model="slug"
                                value="{{ old('slug') }}"
-                               class="wv-field mt-1"
+                               class="wv-field"
                                placeholder="авто">
                         <button type="button" @click="makeSlug()"
-                                class="mt-1 inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                class="wv-btn-secondary shrink-0">
                             Сгенерировать
                         </button>
                     </div>
@@ -70,7 +70,7 @@
         this.sku = 'PRD-' + num;
       }
     }">
-  <label for="sku" class="block text-sm font-medium text-gray-700 mb-1">
+  <label for="sku" class="mb-1 block text-sm font-medium text-slate-700">
     Артикул (SKU)
   </label>
   <div class="flex gap-2">
@@ -78,7 +78,7 @@
            placeholder="Напр. TV-43-SMART-2024"
            class="wv-field">
     <button type="button" @click="generate()"
-            class="mt-1 inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            class="wv-btn-secondary shrink-0"
             x-show="!sku">
        Сгенерировать
     </button>
@@ -92,31 +92,31 @@
             {{-- Цена + Количество + Продавец --}}
             <div class="grid md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Цена</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Цена</label>
                     <input type="number" step="0.01" name="price"
                            value="{{ old('price') }}"
-                           class="wv-field mt-1"
+                           class="wv-field"
                            required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Старая цена</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Старая цена</label>
                     <input type="number" step="0.01" name="old_price"
                            value="{{ old('old_price') }}"
-                           class="wv-field mt-1"
+                           class="wv-field"
                            placeholder="Если есть скидка">
                     <p class="mt-1 text-xs text-gray-400">Должна быть выше текущей цены.</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Количество на складе</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Количество на складе</label>
                     <input type="number" name="stock"
                            value="{{ old('stock', 0) }}"
-                           class="wv-field mt-1"
+                           class="wv-field"
                            required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Продавец</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Продавец</label>
                     <select name="user_id"
-                            class="wv-field mt-1"
+                            class="wv-field"
                             required>
                         <option value="">— Выберите продавца —</option>
                         @foreach($sellers as $seller)
@@ -129,8 +129,8 @@
             </div>
 
             {{-- Каскадные категории --}}
-            <div x-data="categorySelect(null, {{ (int) old('category_id') ?: 'null' }})" x-init="init()" class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Категория</label>
+            <div x-data="categorySelect(null, {{ (int) old('category_id') ?: 'null' }})" x-init="init()">
+                <label class="mb-1 block text-sm font-medium text-slate-700">Категория</label>
                 <div id="category-selects" class="space-y-2">
                     <select @change="loadChildren($event, 0)"
                             name="categories[0]"
@@ -153,18 +153,18 @@
                 x-data="cityPicker()" 
                 x-init="init('{{ old('country_id') }}','{{ old('city_id') }}')"
             >
-                <label class="block text-sm font-medium text-gray-700">Страна</label>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Страна</label>
                 <select name="country_id" x-model="country" @change="loadCities()"
-                        class="wv-field mt-1">
+                        class="wv-field">
                     <option value="">— Выберите страну —</option>
                     @foreach($countries as $country)
                         <option value="{{ $country->id }}">{{ $country->name }}</option>
                     @endforeach
                 </select>
 
-                <label class="block text-sm font-medium text-gray-700 mt-4">Город</label>
+                <label class="mb-1 block text-sm font-medium text-slate-700 mt-4">Город</label>
                 <select name="city_id" x-model="city" :disabled="!country"
-                        class="wv-field mt-1">
+                        class="wv-field">
                     <option value="">
                         <span x-text="country ? '— Выберите город —' : '— Сначала выберите страну —'"></span>
                     </option>
@@ -176,14 +176,14 @@
 
             {{-- === Адрес + карта === --}}
 <div>
-  <label class="block text-sm font-medium text-gray-700">Адрес (улица, дом)</label>
+  <label class="mb-1 block text-sm font-medium text-slate-700">Адрес (улица, дом)</label>
   <input id="address" name="address" type="text"
          class="wv-field"
          placeholder="Например: ул. Ленина, 2"
          value="{{ old('address') }}">
 
   <button type="button" id="searchAddress"
-          class="mt-2 inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-indigo-700">
+          class="wv-btn-primary mt-2">
     Найти на карте
   </button>
 
@@ -191,7 +191,7 @@
 </div>
 
 <div class="mt-4">
-  <label class="block text-sm font-medium text-gray-700 mb-1">Местоположение на карте</label>
+  <label class="mb-1 block text-sm font-medium text-slate-700">Местоположение на карте</label>
   <div id="map" class="h-64 w-full rounded-2xl border border-slate-200"></div>
 
   <input type="hidden" id="latitude" name="latitude"
@@ -334,9 +334,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
             {{-- Статус --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700">Статус</label>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Статус</label>
                 <select name="status"
-                        class="wv-field mt-1">
+                        class="wv-field">
                     <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Опубликован</option>
                     <option value="draft" {{ old('status') === 'draft' ? 'selected' : '' }}>Черновик</option>
                 </select>
@@ -344,22 +344,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
             {{-- Изображения --}}
             <div class="grid md:grid-cols-2 gap-4">
-                <div x-data="imagePreview()" class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Главное изображение</label>
-                    <input type="file" name="image" @change="preview($event)" accept="image/*" class="mt-1 block w-full">
-                    <img x-show="src" :src="src" alt="preview" class="h-24 rounded-2xl border border-slate-200" x-cloak>
+                <div x-data="imagePreview()">
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Главное изображение</label>
+                    <input type="file" name="image" @change="preview($event)" accept="image/*" class="wv-field py-2 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-2 file:text-sm file:font-medium file:text-neutral-700">
+                    <img x-show="src" :src="src" alt="preview" class="mt-2 h-24 rounded-2xl border border-slate-200" x-cloak>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Галерея (несколько изображений)</label>
-                    <input type="file" name="gallery[]" multiple accept="image/*" class="mt-1 block w-full">
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Галерея (несколько изображений)</label>
+                    <input type="file" name="gallery[]" multiple accept="image/*" class="wv-field py-2 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-2 file:text-sm file:font-medium file:text-neutral-700">
                 </div>
             </div>
 
             {{-- Описание --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700">Описание</label>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Описание</label>
                 <textarea name="description" rows="4"
-                          class="wv-textarea mt-1">{{ old('description') }}</textarea>
+                          class="wv-textarea">{{ old('description') }}</textarea>
             </div>
 
             {{-- Кнопки --}}
@@ -369,7 +369,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     Отмена
                 </a>
                 <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                        class="wv-btn-primary">
                     💾 Сохранить
                 </button>
             </div>

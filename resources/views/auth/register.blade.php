@@ -140,7 +140,7 @@
                                            @checked(old('role', 'buyer') === 'buyer')
                                            class="peer sr-only"
                                            required>
-                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
+                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
                                         <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
                                             <i class="ri-shopping-bag-3-line text-2xl"></i>
                                         </div>
@@ -161,7 +161,7 @@
                                            value="seller"
                                            @checked(old('role') === 'seller')
                                            class="peer sr-only">
-                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
+                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
                                         <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
                                             <i class="ri-store-3-line text-2xl"></i>
                                         </div>

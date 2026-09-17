@@ -73,17 +73,17 @@
 
                 <div class="grid gap-4 md:grid-cols-2" x-data="slugHelper()">
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Название</span>
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Название</span>
                         <input type="text" name="title" x-model="title" value="{{ old('title', $product->title) }}" required
-                               class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                               class="wv-field">
                     </label>
 
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Slug</span>
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Slug</span>
                         <div class="flex gap-2">
                             <input type="text" name="slug" x-model="slug" value="{{ old('slug', $product->slug) }}"
-                                   class="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
-                            <button type="button" @click="makeSlug()" class="inline-flex h-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                   class="wv-field">
+                            <button type="button" @click="makeSlug()" class="wv-btn-secondary shrink-0">
                                 <i class="ri-magic-line"></i>
                             </button>
                         </div>
@@ -92,30 +92,30 @@
 
                 <div class="mt-4 grid gap-4 md:grid-cols-4" x-data="{ sku: @js(old('sku', $product->sku)), generate() { this.sku = 'PRD-' + (Math.floor(Math.random() * 90000) + 10000); } }">
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Артикул</span>
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Артикул</span>
                         <div class="flex gap-2">
-                            <input type="text" name="sku" x-model="sku" value="{{ old('sku', $product->sku) }}" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
-                            <button type="button" @click="generate()" class="h-11 rounded-lg border border-slate-200 px-3 text-slate-700 hover:bg-slate-50" title="Сгенерировать"><i class="ri-refresh-line"></i></button>
+                            <input type="text" name="sku" x-model="sku" value="{{ old('sku', $product->sku) }}" class="wv-field">
+                            <button type="button" @click="generate()" class="wv-btn-secondary shrink-0" title="Сгенерировать"><i class="ri-refresh-line"></i></button>
                         </div>
                     </label>
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Цена</span>
-                        <input type="number" step="0.01" name="price" value="{{ old('price', $product->price) }}" required class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Цена</span>
+                        <input type="number" step="0.01" name="price" value="{{ old('price', $product->price) }}" required class="wv-field">
                     </label>
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Старая цена</span>
-                        <input type="number" step="0.01" name="old_price" value="{{ old('old_price', $product->old_price) }}" placeholder="Если есть скидка" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Старая цена</span>
+                        <input type="number" step="0.01" name="old_price" value="{{ old('old_price', $product->old_price) }}" placeholder="Если есть скидка" class="wv-field">
                         <span class="mt-1 block text-xs text-slate-400">Должна быть выше текущей цены.</span>
                     </label>
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Количество</span>
-                        <input type="number" name="stock" value="{{ old('stock', $product->stock) }}" required class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Количество</span>
+                        <input type="number" name="stock" value="{{ old('stock', $product->stock) }}" required class="wv-field">
                     </label>
                 </div>
 
                 <label class="mt-4 block">
-                    <span class="mb-2 block text-sm font-bold text-slate-800">Описание</span>
-                    <textarea name="description" rows="5" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">{{ old('description', $product->description) }}</textarea>
+                    <span class="mb-1 block text-sm font-medium text-slate-700">Описание</span>
+                    <textarea name="description" rows="5" class="wv-textarea">{{ old('description', $product->description) }}</textarea>
                 </label>
             </section>
 
@@ -125,10 +125,10 @@
                     <h2 class="font-bold text-slate-950">Категория и локация</h2>
                 </div>
 
-                <div x-data="categorySelect({{ $product->id }}, {{ (int) old('category_id', $product->category_id) ?: 'null' }})" x-init="init()" class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-800">Категория</label>
+                <div x-data="categorySelect({{ $product->id }}, {{ (int) old('category_id', $product->category_id) ?: 'null' }})" x-init="init()">
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Категория</label>
                     <div id="category-selects" class="space-y-2">
-                        <select @change="loadChildren($event, 0)" name="categories[0]" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <select @change="loadChildren($event, 0)" name="categories[0]" class="wv-field">
                             <option value="">Выберите категорию</option>
                             @foreach($categories as $parent)
                                 <option value="{{ $parent->id }}" {{ old('category_id', $product->category_id) == $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
@@ -144,8 +144,8 @@
 
                 <div class="mt-4 grid gap-4 md:grid-cols-2" x-data="cityPicker()" x-init="init(@js(old('country_id', optional($product->city)->country_id)), @js(old('city_id', $product->city_id)))">
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Страна</span>
-                        <select name="country_id" x-model="country" @change="loadCities()" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Страна</span>
+                        <select name="country_id" x-model="country" @change="loadCities()" class="wv-field">
                             <option value="">Выберите страну</option>
                             @foreach($countries as $country)
                                 <option value="{{ $country->id }}">{{ $country->name }}</option>
@@ -153,8 +153,8 @@
                         </select>
                     </label>
                     <label class="block">
-                        <span class="mb-2 block text-sm font-bold text-slate-800">Город</span>
-                        <select name="city_id" x-model="city" :disabled="!country" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 disabled:bg-slate-50">
+                        <span class="mb-1 block text-sm font-medium text-slate-700">Город</span>
+                        <select name="city_id" x-model="city" :disabled="!country" class="wv-field">
                             <option value="">Выберите город</option>
                             <template x-for="c in cities" :key="c.id">
                                 <option :value="c.id" x-text="c.name"></option>
@@ -164,10 +164,10 @@
                 </div>
 
                 <div class="mt-4">
-                    <label class="mb-2 block text-sm font-bold text-slate-800">Адрес</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Адрес</label>
                     <div class="flex flex-col gap-2 sm:flex-row">
-                        <input id="address" name="address" type="text" placeholder="Например: ул. Ленина, 2" value="{{ old('address', $product->address) }}" class="h-11 flex-1 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
-                        <button type="button" id="searchAddress" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700">
+                        <input id="address" name="address" type="text" placeholder="Например: ул. Ленина, 2" value="{{ old('address', $product->address) }}" class="wv-field min-w-0 flex-1">
+                        <button type="button" id="searchAddress" class="wv-btn-primary">
                             <i class="ri-map-pin-line"></i>
                             Найти
                         </button>
@@ -177,7 +177,7 @@
 
                 <div class="mt-4">
                     <div class="mb-2 flex items-center justify-between gap-3">
-                        <label class="block text-sm font-bold text-slate-800">Местоположение на карте</label>
+                        <label class="block text-sm font-medium text-slate-700">Местоположение на карте</label>
                         <span class="text-xs text-slate-400">Метка перетаскивается</span>
                     </div>
                     <div id="map" class="h-72 w-full rounded-xl border border-slate-200"></div>
@@ -195,8 +195,8 @@
                 </div>
 
                 <label class="block">
-                    <span class="mb-2 block text-sm font-bold text-slate-800">Статус</span>
-                    <select name="status" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                    <span class="mb-1 block text-sm font-medium text-slate-700">Статус</span>
+                    <select name="status" class="wv-field">
                         <option value="active" {{ old('status', $product->status) === 'active' ? 'selected' : '' }}>Опубликован</option>
                         <option value="draft" {{ old('status', $product->status) === 'draft' ? 'selected' : '' }}>Черновик</option>
                         <option value="blocked" {{ old('status', $product->status) === 'blocked' ? 'selected' : '' }}>Заблокирован администратором</option>
@@ -209,8 +209,8 @@
                 </label>
 
                 <label class="mt-4 block">
-                    <span class="mb-2 block text-sm font-bold text-slate-800">Продавец</span>
-                    <select name="user_id" class="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100" required>
+                    <span class="mb-1 block text-sm font-medium text-slate-700">Продавец</span>
+                    <select name="user_id" class="wv-field" required>
                         @foreach($sellers as $seller)
                             @php $profile = $sellerPlanProfiles[$seller->id] ?? null; @endphp
                             <option value="{{ $seller->id }}" {{ old('user_id', $product->user_id) == $seller->id ? 'selected' : '' }}>
@@ -228,7 +228,7 @@
                 </div>
 
                 <label class="block">
-                    <span class="mb-2 block text-sm font-bold text-slate-800">Главное изображение</span>
+                    <span class="mb-1 block text-sm font-medium text-slate-700">Главное изображение</span>
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                         @if($product->image)
                             <img src="{{ asset('storage/' . $product->image) }}" class="aspect-[4/3] w-full object-cover" alt="{{ $product->title }}">
@@ -236,12 +236,12 @@
                             <div class="flex aspect-[4/3] items-center justify-center text-sm text-slate-400">Нет изображения</div>
                         @endif
                     </div>
-                    <input type="file" name="image" accept="image/*" class="mt-3 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                    <input type="file" name="image" accept="image/*" class="wv-field py-2 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-2 file:text-sm file:font-medium file:text-neutral-700 mt-3">
                 </label>
 
                 <div class="mt-5">
                     <div class="mb-2 flex items-center justify-between gap-2">
-                        <span class="block text-sm font-bold text-slate-800">Галерея</span>
+                        <span class="block text-sm font-medium text-slate-700">Галерея</span>
                         <span class="text-xs text-slate-400">{{ count($gallery) }} фото</span>
                     </div>
                     @if(!empty($gallery))
@@ -249,7 +249,7 @@
                             @foreach($gallery as $img)
                                 <div class="group relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                                     <img src="{{ asset('storage/' . $img) }}" alt="Фото" class="aspect-square w-full object-cover">
-                                    <button type="button" data-path="{{ $img }}" class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600 text-white opacity-0 transition group-hover:opacity-100" title="Удалить">
+                                    <button type="button" data-path="{{ $img }}" class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600 text-white opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500" title="Удалить">
                                         <i class="ri-close-line"></i>
                                     </button>
                                 </div>
@@ -258,14 +258,14 @@
                     @else
                         <div class="rounded-lg border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">Галерея пустая</div>
                     @endif
-                    <input type="file" name="gallery[]" multiple accept="image/*" class="mt-3 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                    <input type="file" name="gallery[]" multiple accept="image/*" class="wv-field py-2 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-2 file:text-sm file:font-medium file:text-neutral-700 mt-3">
                 </div>
             </section>
 
             <div class="sticky bottom-4 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
                 <div class="grid grid-cols-2 gap-2">
-                    <a href="{{ route('admin.products.index') }}" class="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 text-sm font-bold text-slate-700 transition hover:bg-slate-50">Отмена</a>
-                    <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-bold text-white transition hover:bg-indigo-700">
+                    <a href="{{ route('admin.products.index') }}" class="wv-btn-secondary">Отмена</a>
+                    <button type="submit" class="wv-btn-primary">
                         <i class="ri-save-3-line"></i>
                         Сохранить
                     </button>
@@ -433,7 +433,7 @@ function categorySelect(productId = null, initialCategory = null) {
             if (data.length > 0) {
                 const select = document.createElement('select');
                 select.name = `categories[${level + 1}]`;
-                select.className = 'h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100';
+                select.className = 'wv-field';
                 select.add(new Option('Выберите подкатегорию', ''));
                 data.forEach(cat => select.add(new Option(cat.name, cat.id)));
                 select.addEventListener('change', (e) => this.loadChildren(e, level + 1));
