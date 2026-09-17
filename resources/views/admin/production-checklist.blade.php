@@ -8,10 +8,12 @@
     $checks = $health['checks'];
     $done = $health['done'];
     $total = $health['total'];
-    $percent = $total > 0 ? round(($done / $total) * 100) : 0;
+    $checked = $health['checked'];
+    $notChecked = $health['not_checked'];
+    $percent = $checked > 0 ? round(($done / $checked) * 100) : 0;
     $attentionItems = collect($checks)
         ->flatMap(fn ($group) => collect($group['items'])
-            ->reject(fn ($item) => $item['ok'])
+            ->where('status', \App\Support\ProductionHealth::FAIL)
             ->map(fn ($item) => $item + ['group' => $group['group']]))
         ->values();
     $groupAnchors = [
@@ -64,6 +66,10 @@
                         <i class="ri-error-warning-line text-amber-600"></i>
                         {{ $attentionItems->count() }} требует внимания
                     </span>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
+                        <i class="ri-question-line text-slate-500"></i>
+                        {{ $notChecked }} не проверено
+                    </span>
                 </div>
                 <form method="POST"
                       action="{{ route('admin.backup.run') }}"
@@ -89,9 +95,9 @@
                         <div class="text-xs font-bold uppercase tracking-wide text-slate-400">Готовность</div>
                         <div class="mt-1 text-4xl font-black text-indigo-700">{{ $percent }}%</div>
                     </div>
-                    <div class="rounded-2xl border {{ $attentionItems->isEmpty() ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-100 bg-amber-50 text-amber-700' }} px-3 py-2 text-sm font-bold">
-                        <i class="{{ $attentionItems->isEmpty() ? 'ri-check-line' : 'ri-error-warning-line' }}"></i>
-                        {{ $attentionItems->isEmpty() ? 'Можно выпускать' : 'Есть задачи' }}
+                    <div class="rounded-2xl border {{ $attentionItems->isEmpty() ? 'border-slate-200 bg-white text-slate-700' : 'border-amber-100 bg-amber-50 text-amber-700' }} px-3 py-2 text-sm font-bold">
+                        <i class="{{ $attentionItems->isEmpty() ? 'ri-question-line' : 'ri-error-warning-line' }}"></i>
+                        {{ $attentionItems->isEmpty() ? ($notChecked > 0 ? 'Нужна ручная проверка' : 'Проверки пройдены') : 'Есть задачи' }}
                     </div>
                 </div>
                 <div class="mt-4 space-y-2">
@@ -114,10 +120,11 @@
         @foreach($health['cards'] as $card)
             @php
                 $cardLink = $cardLinks[$card['title']] ?? ['href' => '#release-checks'];
+                $cardUnchecked = $card['status'] === \App\Support\ProductionHealth::NOT_CHECKED;
             @endphp
             <a href="{{ $cardLink['href'] }}"
                @if(($cardLink['target'] ?? null) === '_blank') target="_blank" rel="noopener noreferrer" @endif
-               class="group block rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-200 {{ $card['ok'] ? 'border-emerald-100' : 'border-amber-200' }}">
+               class="group block rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-200 {{ $card['ok'] ? 'border-emerald-100' : ($cardUnchecked ? 'border-slate-200' : 'border-amber-200') }}">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400">
@@ -126,8 +133,8 @@
                         </div>
                         <div class="mt-2 truncate text-base font-black text-slate-950">{{ $card['value'] }}</div>
                     </div>
-                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl {{ $card['ok'] ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                        <i class="{{ ($cardLink['target'] ?? null) === '_blank' ? 'ri-external-link-line' : ($card['ok'] ? 'ri-arrow-down-line' : 'ri-error-warning-line') }} transition group-hover:translate-x-0.5"></i>
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl {{ $card['ok'] ? 'bg-emerald-50 text-emerald-700' : ($cardUnchecked ? 'bg-slate-100 text-slate-500' : 'bg-amber-50 text-amber-700') }}">
+                        <i class="{{ ($cardLink['target'] ?? null) === '_blank' ? 'ri-external-link-line' : ($card['ok'] ? 'ri-arrow-down-line' : ($cardUnchecked ? 'ri-question-line' : 'ri-error-warning-line')) }} transition group-hover:translate-x-0.5"></i>
                     </span>
                 </div>
                 <p class="mt-3 line-clamp-2 text-xs leading-5 text-slate-500">{{ $card['detail'] }}</p>
@@ -140,22 +147,29 @@
             @php
                 $groupItems = collect($group['items']);
                 $groupDone = $groupItems->where('ok', true)->count();
+                $groupNotChecked = $groupItems->where('status', \App\Support\ProductionHealth::NOT_CHECKED)->count();
                 $groupAnchor = $groupAnchors[$group['group']] ?? 'release-checks';
             @endphp
             <article id="{{ $groupAnchor }}" class="scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div class="flex items-center justify-between gap-3">
                     <h2 class="text-lg font-bold text-slate-950">{{ $group['group'] }}</h2>
-                    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">{{ $groupDone }}/{{ $groupItems->count() }}</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">
+                        {{ $groupDone }} PASS
+                        @if($groupNotChecked)
+                            · {{ $groupNotChecked }} вручную
+                        @endif
+                    </span>
                 </div>
                 <div class="mt-4 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-100">
                     @foreach($group['items'] as $item)
-                        <div class="{{ $item['ok'] ? 'bg-white' : 'bg-amber-50/70' }} p-3">
+                        @php($unchecked = $item['status'] === \App\Support\ProductionHealth::NOT_CHECKED)
+                        <div class="{{ $item['ok'] ? 'bg-white' : ($unchecked ? 'bg-slate-50/70' : 'bg-amber-50/70') }} p-3">
                             <div class="flex items-start gap-2.5">
-                                <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['ok'] ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
-                                    <i class="{{ $item['ok'] ? 'ri-check-line' : 'ri-error-warning-line' }}"></i>
+                                <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg {{ $item['ok'] ? 'bg-emerald-50 text-emerald-700' : ($unchecked ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-700') }}">
+                                    <i class="{{ $item['ok'] ? 'ri-check-line' : ($unchecked ? 'ri-question-line' : 'ri-error-warning-line') }}"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <div class="text-sm font-bold text-slate-900">{{ $item['label'] }}</div>
+                                    <div class="text-sm font-bold text-slate-900">{{ $item['label'] }} <span class="ml-1 text-[10px] uppercase tracking-wide {{ $item['ok'] ? 'text-emerald-600' : ($unchecked ? 'text-slate-500' : 'text-amber-700') }}">{{ strtoupper(str_replace('_', ' ', $item['status'])) }}</span></div>
                                     <div class="mt-1 truncate text-xs text-slate-500">Сейчас: {{ $item['current'] }}</div>
                                     <p class="mt-2 text-xs leading-5 text-slate-600">{{ $item['hint'] }}</p>
                                 </div>

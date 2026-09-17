@@ -458,8 +458,8 @@ class ReleaseExperienceTest extends TestCase
         $publicStorage = public_path('storage');
         if (file_exists($publicStorage) && (is_link($publicStorage) || @readlink($publicStorage) !== false)) {
             $response
-                ->assertSee('linked')
-                ->assertDontSee('Сейчас: нет ссылки');
+                ->assertSee('correct')
+                ->assertDontSee('Сейчас: missing');
         }
     }
 

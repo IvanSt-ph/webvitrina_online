@@ -10,6 +10,10 @@ class QueueHealthCheckJob implements ShouldQueue
 {
     use Queueable;
 
+    public const LAST_SUCCESS_CACHE_KEY = 'queue-health-check:last-success';
+
+    public const LAST_FAILURE_CACHE_KEY = 'queue-health-check:last-failure';
+
     public function __construct(
         private string $token,
     ) {
@@ -18,7 +22,11 @@ class QueueHealthCheckJob implements ShouldQueue
 
     public function handle(): void
     {
-        Cache::put($this->cacheKey($this->token), now()->toIso8601String(), now()->addMinutes(5));
+        $processedAt = now()->toIso8601String();
+
+        Cache::put($this->cacheKey($this->token), $processedAt, now()->addMinutes(5));
+        Cache::forever(self::LAST_SUCCESS_CACHE_KEY, $processedAt);
+        Cache::forget(self::LAST_FAILURE_CACHE_KEY);
     }
 
     public static function cacheKey(string $token): string

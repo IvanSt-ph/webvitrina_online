@@ -48,6 +48,7 @@ class QueueHealthCheck extends Command
             usleep(250000);
         }
 
+        Cache::forever(QueueHealthCheckJob::LAST_FAILURE_CACHE_KEY, now()->toIso8601String());
         $this->error('Queue worker did not process the health-check job within ' . $timeout . ' seconds.');
         $this->line('Check that the worker is running: php artisan queue:work ' . $connection . ' --sleep=3 --tries=3 --timeout=60');
 

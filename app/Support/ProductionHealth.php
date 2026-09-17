@@ -2,19 +2,32 @@
 
 namespace App\Support;
 
+use App\Jobs\QueueHealthCheckJob;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 class ProductionHealth
 {
+    public const PASS = 'pass';
+
+    public const FAIL = 'fail';
+
+    public const NOT_CHECKED = 'not_checked';
+
+    private const QUEUE_HEALTH_MAX_AGE_MINUTES = 15;
+
+    private const MAX_LOG_BYTES_PER_FILE = 1048576;
+
     public static function make(): array
     {
         $database = self::database();
         $disk = self::disk();
         $logSize = self::logSize();
         $backup = self::backup();
-        $queue = self::queue();
+        $queue = self::queue($database['ok']);
         $mail = self::mail();
         $storage = self::storage();
         $sitemap = self::route('sitemap', '/sitemap.xml');
@@ -25,34 +38,34 @@ class ProductionHealth
             [
                 'group' => 'Окружение',
                 'items' => [
-                    ['label' => 'APP_ENV=production', 'ok' => app()->environment('production'), 'current' => config('app.env'), 'hint' => 'На боевом сервере окружение должно быть production.'],
-                    ['label' => 'APP_DEBUG=false', 'ok' => ! config('app.debug'), 'current' => config('app.debug') ? 'true' : 'false', 'hint' => 'Debug-страницы могут раскрыть стек, SQL и переменные окружения.'],
-                    ['label' => 'HTTPS-cookie', 'ok' => (bool) config('session.secure'), 'current' => config('session.secure') ? 'true' : 'false', 'hint' => 'Для HTTPS включите SESSION_SECURE_COOKIE=true.'],
-                    ['label' => 'Очереди не sync', 'ok' => $queue['ok'], 'current' => $queue['value'], 'hint' => $queue['detail']],
+                    self::item('APP_ENV=production', app()->environment('production') ? self::PASS : self::FAIL, config('app.env'), 'На боевом сервере окружение должно быть production.'),
+                    self::item('APP_DEBUG=false', ! config('app.debug') ? self::PASS : self::FAIL, config('app.debug') ? 'true' : 'false', 'Debug-страницы могут раскрыть стек, SQL и переменные окружения.'),
+                    self::item('HTTPS-cookie', config('session.secure') ? self::PASS : self::FAIL, config('session.secure') ? 'true' : 'false', 'Для HTTPS включите SESSION_SECURE_COOKIE=true.'),
+                    self::item('Worker очереди работает', $queue['status'], $queue['value'], $queue['detail']),
                 ],
             ],
             [
                 'group' => 'Инфраструктура',
                 'items' => [
-                    ['label' => 'База данных доступна', 'ok' => $database['ok'], 'current' => $database['value'], 'hint' => $database['detail']],
-                    ['label' => 'Свободное место на диске', 'ok' => $disk['ok'], 'current' => $disk['value'], 'hint' => $disk['detail']],
-                    ['label' => 'Размер laravel.log под контролем', 'ok' => $logSize['ok'], 'current' => $logSize['value'], 'hint' => $logSize['detail']],
-                    ['label' => 'Почта настроена', 'ok' => $mail['ok'], 'current' => $mail['value'], 'hint' => $mail['detail']],
-                    ['label' => 'Хранилище связано', 'ok' => $storage['ok'], 'current' => $storage['value'], 'hint' => $storage['detail']],
-                    ['label' => 'Sitemap доступен', 'ok' => $sitemap['ok'], 'current' => $sitemap['value'], 'hint' => $sitemap['detail']],
-                    ['label' => 'Robots доступен', 'ok' => $robots['ok'], 'current' => $robots['value'], 'hint' => $robots['detail']],
-                    ['label' => 'Scheduler включён', 'ok' => false, 'current' => 'проверяется вручную', 'hint' => 'На сервере cron/systemd должен запускать php artisan schedule:run каждую минуту.'],
-                    ['label' => 'Бэкапы БД и файлов свежие', 'ok' => $backup['ok'], 'current' => $backup['value'], 'hint' => $backup['detail']],
-                    ['label' => 'Ошибок за 24 часа нет', 'ok' => $errors['ok'], 'current' => $errors['value'], 'hint' => $errors['detail']],
+                    self::itemFromCheck('База данных доступна', $database),
+                    self::itemFromCheck('Свободное место на диске', $disk),
+                    self::itemFromCheck('Размер Laravel-логов под контролем', $logSize),
+                    self::itemFromCheck('Почта настроена', $mail),
+                    self::itemFromCheck('Хранилище связано', $storage),
+                    self::itemFromCheck('Sitemap доступен', $sitemap),
+                    self::itemFromCheck('Robots доступен', $robots),
+                    self::item('Scheduler включён', self::NOT_CHECKED, 'не проверено', 'На сервере вручную подтвердите запуск php artisan schedule:run каждую минуту.'),
+                    self::itemFromCheck('Бэкапы БД и файлов свежие', $backup),
+                    self::itemFromCheck('Ошибок за 24 часа нет', $errors),
                 ],
             ],
             [
                 'group' => 'Бизнес-логика',
                 'items' => [
-                    ['label' => 'Онлайн-оплата честно выключена', 'ok' => true, 'current' => 'режим договорённости', 'hint' => 'До эквайринга сайт не должен обещать списание с карты.'],
-                    ['label' => 'Доставка описана как договорённость', 'ok' => true, 'current' => 'по продавцам', 'hint' => 'До логистики показывайте отдельные условия по продавцам.'],
-                    ['label' => 'Правила опубликованы', 'ok' => true, 'current' => '/rules, /privacy, /delivery-returns', 'hint' => 'Финальную редакцию всё равно стоит показать юристу.'],
-                    ['label' => 'Модерация жалоб включена', 'ok' => true, 'current' => 'товары блокируются админом', 'hint' => 'Продавец не может сам вернуть заблокированный товар.'],
+                    self::item('Онлайн-оплата честно выключена', self::NOT_CHECKED, 'не проверено', 'Вручную подтвердите, что сайт не обещает списание с карты до подключения эквайринга.'),
+                    self::item('Доставка описана как договорённость', self::NOT_CHECKED, 'не проверено', 'Вручную проверьте отображаемые условия доставки по продавцам.'),
+                    self::item('Правила опубликованы', self::NOT_CHECKED, 'не проверено', 'Вручную проверьте финальную редакцию /rules, /privacy и /delivery-returns.'),
+                    self::item('Модерация жалоб включена', self::NOT_CHECKED, 'не проверено', 'Вручную проверьте блокировку товара и невозможность самостоятельной разблокировки продавцом.'),
                 ],
             ],
         ];
@@ -74,8 +87,32 @@ class ProductionHealth
             ],
             'checks' => $checks,
             'done' => $flat->where('ok', true)->count(),
+            'failed' => $flat->where('status', self::FAIL)->count(),
+            'not_checked' => $flat->where('status', self::NOT_CHECKED)->count(),
+            'checked' => $flat->whereIn('status', [self::PASS, self::FAIL])->count(),
             'total' => $flat->count(),
         ];
+    }
+
+    private static function itemFromCheck(string $label, array $check): array
+    {
+        return self::item($label, self::status($check), $check['value'], $check['detail']);
+    }
+
+    private static function item(string $label, string $status, mixed $current, string $hint): array
+    {
+        return [
+            'label' => $label,
+            'status' => $status,
+            'ok' => $status === self::PASS,
+            'current' => $current,
+            'hint' => $hint,
+        ];
+    }
+
+    private static function status(array $check): string
+    {
+        return $check['status'] ?? ($check['ok'] ? self::PASS : self::FAIL);
     }
 
     private static function card(string $title, array $check): array
@@ -83,6 +120,7 @@ class ProductionHealth
         return [
             'title' => $title,
             'ok' => $check['ok'],
+            'status' => self::status($check),
             'value' => $check['value'],
             'detail' => $check['detail'],
             'icon' => $check['icon'] ?? 'ri-pulse-line',
@@ -147,22 +185,23 @@ class ProductionHealth
         ];
     }
 
-    private static function logSize(): array
+    private static function logSize(?array $logPaths = null): array
     {
-        $logPath = storage_path('logs/laravel.log');
+        $logPaths ??= self::laravelLogPaths();
+        $existingPaths = array_values(array_filter($logPaths, 'is_file'));
         $warningBytes = 100 * 1024 * 1024;
         $criticalBytes = 500 * 1024 * 1024;
 
-        if (! is_file($logPath)) {
+        if ($existingPaths === []) {
             return [
                 'ok' => true,
                 'value' => '0 B',
-                'detail' => 'Файл laravel.log пока не найден.',
+                'detail' => 'Актуальные Laravel-логи пока не найдены.',
                 'icon' => 'ri-file-list-3-line',
             ];
         }
 
-        $size = filesize($logPath) ?: 0;
+        $size = array_sum(array_map(fn (string $path) => filesize($path) ?: 0, $existingPaths));
         $ok = $size < $warningBytes;
 
         return [
@@ -170,24 +209,137 @@ class ProductionHealth
             'value' => 'Размер: ' . self::formatBytes($size),
             'detail' => $size >= $criticalBytes
                 ? 'Лог очень большой. Нужна ротация логов, иначе диск может закончиться.'
-                : 'Предупреждение после 100 MB. Настройте logrotate или daily channel перед релизом.',
+                : 'Проверено файлов: ' . count($existingPaths) . '. Предупреждение после 100 MB.',
             'icon' => 'ri-file-list-3-line',
         ];
     }
 
-    private static function queue(): array
+    private static function queue(bool $databaseAvailable = true): array
     {
         $connection = (string) config('queue.default');
-        $failed = self::tableCount(config('queue.failed.table', 'failed_jobs'));
-        $jobs = self::tableCount(config("queue.connections.{$connection}.table", 'jobs'));
-        $ok = $connection !== 'sync' && ($failed === null || $failed === 0);
+
+        if ($connection === 'sync') {
+            return [
+                'status' => self::FAIL,
+                'ok' => false,
+                'value' => 'worker не используется',
+                'detail' => 'QUEUE_CONNECTION=sync не подтверждает работу отдельного worker.',
+                'icon' => 'ri-stack-line',
+            ];
+        }
+
+        $failed = $databaseAvailable ? self::tableCount(config('queue.failed.table', 'failed_jobs')) : null;
+        $jobs = $databaseAvailable ? self::tableCount(config("queue.connections.{$connection}.table", 'jobs')) : null;
+
+        try {
+            $lastSuccessValue = Cache::get(QueueHealthCheckJob::LAST_SUCCESS_CACHE_KEY);
+            $lastFailureValue = Cache::get(QueueHealthCheckJob::LAST_FAILURE_CACHE_KEY);
+        } catch (\Throwable) {
+            return [
+                'status' => self::NOT_CHECKED,
+                'ok' => false,
+                'value' => 'невозможно проверить',
+                'detail' => 'Не удалось прочитать метку queue health-check из cache.',
+                'icon' => 'ri-stack-line',
+            ];
+        }
+
+        if ((! is_string($lastSuccessValue) || $lastSuccessValue === '') && is_string($lastFailureValue) && $lastFailureValue !== '') {
+            return self::failedQueueResult($lastFailureValue);
+        }
+
+        if (! is_string($lastSuccessValue) || $lastSuccessValue === '') {
+            return [
+                'status' => self::FAIL,
+                'ok' => false,
+                'value' => 'worker не подтверждён',
+                'detail' => 'Нет успешной проверки. Запустите php artisan queue:health-check.',
+                'icon' => 'ri-stack-line',
+            ];
+        }
+
+        try {
+            $lastSuccess = Carbon::parse($lastSuccessValue);
+        } catch (\Throwable) {
+            return [
+                'status' => self::NOT_CHECKED,
+                'ok' => false,
+                'value' => 'невозможно проверить',
+                'detail' => 'Метка последней проверки worker имеет некорректный формат.',
+                'icon' => 'ri-stack-line',
+            ];
+        }
+
+        if (is_string($lastFailureValue) && $lastFailureValue !== '') {
+            try {
+                $lastFailure = Carbon::parse($lastFailureValue);
+            } catch (\Throwable) {
+                return [
+                    'status' => self::NOT_CHECKED,
+                    'ok' => false,
+                    'value' => 'невозможно проверить',
+                    'detail' => 'Метка неуспешной проверки worker имеет некорректный формат.',
+                    'icon' => 'ri-stack-line',
+                ];
+            }
+
+            if ($lastFailure->greaterThan($lastSuccess)) {
+                return self::failedQueueResult($lastFailureValue, $lastSuccess);
+            }
+        }
+
+        $lastSuccessText = $lastSuccess->format('d.m.Y H:i:s');
+        $isFresh = $lastSuccess->greaterThanOrEqualTo(now()->subMinutes(self::QUEUE_HEALTH_MAX_AGE_MINUTES));
+        $status = $isFresh && ($failed === null || $failed === 0) ? self::PASS : self::FAIL;
+        $parts = ['Последняя успешная проверка worker: ' . $lastSuccessText . '.'];
+
+        if (! $isFresh) {
+            $parts[] = 'Проверка устарела (лимит ' . self::QUEUE_HEALTH_MAX_AGE_MINUTES . ' мин).';
+        }
+        if ($failed !== null && $failed > 0) {
+            $parts[] = 'Необработанных failed_jobs: ' . $failed . '.';
+        }
+        if (! $databaseAvailable) {
+            $parts[] = 'Количество jobs не проверялось: база данных недоступна.';
+        } elseif ($jobs !== null) {
+            $parts[] = 'В очереди задач: ' . $jobs . '.';
+        }
 
         return [
-            'ok' => $ok,
-            'value' => $connection . ($failed !== null ? ', failed: ' . $failed : ''),
-            'detail' => $jobs !== null
-                ? 'В очереди сейчас задач: ' . $jobs . '. Worker должен быть запущен на сервере.'
-                : 'Проверьте, что queue worker запущен на сервере.',
+            'status' => $status,
+            'ok' => $status === self::PASS,
+            'value' => ($isFresh ? 'worker подтверждён' : 'проверка устарела') . ' · ' . $lastSuccessText,
+            'detail' => implode(' ', $parts),
+            'last_success_at' => $lastSuccess->toIso8601String(),
+            'icon' => 'ri-stack-line',
+        ];
+    }
+
+    private static function failedQueueResult(string $lastFailureValue, ?Carbon $lastSuccess = null): array
+    {
+        try {
+            $lastFailure = Carbon::parse($lastFailureValue);
+        } catch (\Throwable) {
+            return [
+                'status' => self::NOT_CHECKED,
+                'ok' => false,
+                'value' => 'невозможно проверить',
+                'detail' => 'Метка неуспешной проверки worker имеет некорректный формат.',
+                'icon' => 'ri-stack-line',
+            ];
+        }
+
+        $detail = 'Worker не обработал health-check, запущенный ' . $lastFailure->format('d.m.Y H:i:s') . '.';
+        if ($lastSuccess) {
+            $detail .= ' Последняя успешная проверка worker: ' . $lastSuccess->format('d.m.Y H:i:s') . '.';
+        }
+
+        return [
+            'status' => self::FAIL,
+            'ok' => false,
+            'value' => 'worker не отвечает',
+            'detail' => $detail,
+            'last_success_at' => $lastSuccess?->toIso8601String(),
             'icon' => 'ri-stack-line',
         ];
     }
@@ -212,37 +364,57 @@ class ProductionHealth
         ];
     }
 
-private static function storage(): array
-{
-    $path = public_path('storage');
-    $target = storage_path('app/public');
+    private static function storage(?string $path = null, ?string $target = null): array
+    {
+        $path ??= public_path('storage');
+        $target ??= storage_path('app/public');
 
-    clearstatcache(true, $path);
-    clearstatcache(true, $target);
+        clearstatcache(true, $path);
+        clearstatcache(true, $target);
 
-    $exists = file_exists($path);
-    $linkedTarget = $exists ? @readlink($path) : false;
+        if (! file_exists($path) && ! is_link($path)) {
+            return self::storageResult(self::FAIL, 'missing', 'На сервере выполните php artisan storage:link.');
+        }
 
-    // Linux/macOS: обычный symlink определяется через is_link().
-    // Windows: junction может давать is_link() === false,
-    // но readlink() при этом успешно возвращает строку.
-    $isLinked = $exists && (is_link($path) || $linkedTarget !== false);
+        $linkedTarget = @readlink($path);
+        $isLink = is_link($path) || $linkedTarget !== false;
+        $resolvedPath = realpath($path);
+        $resolvedTarget = realpath($target);
 
-    $ok = $isLinked;
+        return self::classifyStorageLink($path, $isLink, $resolvedPath, $resolvedTarget);
+    }
 
-    return [
-        'ok' => $ok,
-        'value' => $ok ? 'linked' : 'нет ссылки',
-        'detail' => $ok
-            ? $path . ' -> ' . (
-                $linkedTarget !== false
-                    ? $linkedTarget
-                    : $target
-            )
-            : 'На сервере выполните php artisan storage:link.',
-        'icon' => 'ri-folder-shield-2-line',
-    ];
-}
+    private static function classifyStorageLink(
+        string $path,
+        bool $isLink,
+        string|false $resolvedPath,
+        string|false $resolvedTarget,
+    ): array {
+        if (! $isLink) {
+            return self::storageResult(self::FAIL, 'incorrect target', $path . ' существует, но не является ссылкой или Windows junction.');
+        }
+
+        if ($resolvedPath === false || $resolvedTarget === false) {
+            return self::storageResult(self::NOT_CHECKED, 'unable to verify', 'Не удалось разрешить фактический путь ссылки или ожидаемой директории.');
+        }
+
+        if (self::normalizePath($resolvedPath) !== self::normalizePath($resolvedTarget)) {
+            return self::storageResult(self::FAIL, 'incorrect target', $path . ' -> ' . $resolvedPath . '; ожидается ' . $resolvedTarget . '.');
+        }
+
+        return self::storageResult(self::PASS, 'correct', $path . ' -> ' . $resolvedTarget . '.');
+    }
+
+    private static function storageResult(string $status, string $value, string $detail): array
+    {
+        return [
+            'status' => $status,
+            'ok' => $status === self::PASS,
+            'value' => $value,
+            'detail' => $detail,
+            'icon' => 'ri-folder-shield-2-line',
+        ];
+    }
 
     private static function route(string $name, string $expectedPath): array
     {
@@ -257,18 +429,23 @@ private static function storage(): array
         ];
     }
 
-    private static function recentErrors(): array
+    private static function recentErrors(?array $logPaths = null): array
     {
-        $logPath = storage_path('logs/laravel.log');
+        $logPaths ??= self::laravelLogPaths();
+        $existingPaths = array_values(array_filter($logPaths, 'is_file'));
         $count = 0;
 
-        if (is_file($logPath) && is_readable($logPath)) {
+        foreach ($existingPaths as $logPath) {
+            if (! is_readable($logPath)) {
+                continue;
+            }
+
             $size = filesize($logPath) ?: 0;
             $handle = fopen($logPath, 'rb');
 
             if ($handle) {
-                if ($size > 1024 * 1024) {
-                    fseek($handle, -1024 * 1024, SEEK_END);
+                if ($size > self::MAX_LOG_BYTES_PER_FILE) {
+                    fseek($handle, -self::MAX_LOG_BYTES_PER_FILE, SEEK_END);
                 }
 
                 $chunk = stream_get_contents($handle) ?: '';
@@ -276,18 +453,49 @@ private static function storage(): array
 
                 $count = collect(preg_split('/\r\n|\r|\n/', $chunk))
                     ->filter(fn ($line) => self::isRecentErrorLine($line))
-                    ->count();
+                    ->count() + $count;
             }
         }
 
         return [
             'ok' => $count === 0,
             'value' => $count . ' записей',
-            'detail' => is_file($logPath)
-                ? 'Считаются ERROR/CRITICAL/ALERT/EMERGENCY в последнем фрагменте laravel.log за 24 часа.'
-                : 'Файл laravel.log пока не найден.',
+            'detail' => $existingPaths !== []
+                ? 'Проверены последние ' . self::formatBytes(self::MAX_LOG_BYTES_PER_FILE) . ' каждого актуального Laravel-лога (' . count($existingPaths) . ' файлов) за 24 часа.'
+                : 'Актуальные Laravel-логи пока не найдены.',
             'icon' => 'ri-bug-line',
         ];
+    }
+
+    private static function laravelLogPaths(): array
+    {
+        $channel = (string) config('logging.default', 'stack');
+        $channels = $channel === 'stack'
+            ? config('logging.channels.stack.channels', [])
+            : [$channel];
+        $channels = is_array($channels) ? $channels : [$channels];
+        $paths = [];
+
+        foreach ($channels as $name) {
+            $driver = (string) config("logging.channels.{$name}.driver");
+            $basePath = (string) config("logging.channels.{$name}.path", storage_path('logs/laravel.log'));
+
+            if ($driver !== 'daily') {
+                if ($driver === 'single') {
+                    $paths[] = $basePath;
+                }
+
+                continue;
+            }
+
+            $extension = pathinfo($basePath, PATHINFO_EXTENSION);
+            $base = $extension === '' ? $basePath : substr($basePath, 0, -(strlen($extension) + 1));
+            $suffix = $extension === '' ? '' : '.' . $extension;
+            $paths[] = $base . '-' . now()->format('Y-m-d') . $suffix;
+            $paths[] = $base . '-' . now()->subDay()->format('Y-m-d') . $suffix;
+        }
+
+        return array_values(array_unique($paths ?: [storage_path('logs/laravel.log')]));
     }
 
     private static function isRecentErrorLine(string $line): bool
@@ -303,11 +511,15 @@ private static function storage(): array
 
     private static function tableCount(?string $table): ?int
     {
-        if (! $table || ! Schema::hasTable($table)) {
+        try {
+            if (! $table || ! Schema::hasTable($table)) {
+                return null;
+            }
+
+            return DB::table($table)->count();
+        } catch (\Throwable) {
             return null;
         }
-
-        return DB::table($table)->count();
     }
 
     private static function formatBytes(float|int $bytes): string
@@ -328,6 +540,8 @@ private static function storage(): array
 
     private static function normalizePath(string $path): string
     {
-        return rtrim(strtolower(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path)), DIRECTORY_SEPARATOR);
+        $normalized = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+
+        return DIRECTORY_SEPARATOR === '\\' ? strtolower($normalized) : $normalized;
     }
 }
