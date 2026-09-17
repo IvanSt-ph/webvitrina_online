@@ -243,11 +243,15 @@
                                 <label class="mb-2 block text-sm font-bold text-slate-800">Телефон</label>
                                 <div class="phone-input-shell">
                                     <input type="tel"
+                                           id="registration-phone"
                                            name="phone"
+                                           inputmode="tel"
+                                           autocomplete="tel"
                                            value="{{ old('phone') }}"
                                            class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                                           placeholder="+373 ___ __ __">
+                                           aria-describedby="registration-phone-hint">
                                 </div>
+                                <p id="registration-phone-hint" class="mt-2 text-xs text-slate-500">Выберите страну и введите номер без кода страны — код добавится автоматически.</p>
                                 <x-input-error :messages="$errors->get('phone')" class="mt-2 text-sm" />
                             </div>
 

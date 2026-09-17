@@ -79,9 +79,26 @@ public function test_new_users_can_register(): void
 
         $this->assertStringContainsString("loadUtils: window.loadIntlTelInputUtils", $javascript);
         $this->assertStringContainsString('dropdownContainer: document.body', $javascript);
+        $this->assertStringContainsString('separateDialCode: true', $javascript);
+        $this->assertStringContainsString('strictMode: true', $javascript);
+        $this->assertStringContainsString('showFlags: true', $javascript);
         $this->assertStringContainsString('const fullNumber = iti.getNumber()', $javascript);
         $this->assertStringNotContainsString('utilsScript:', $javascript);
+        $this->assertStringNotContainsString("input.value = '+'", $javascript);
         $this->assertStringContainsString('.iti--container .iti__dropdown-content', $styles);
+        $this->assertStringContainsString('.iti--separate-dial-code .iti__selected-country', $styles);
+    }
+
+    public function test_local_csp_allows_vite_phone_flag_images(): void
+    {
+        $this->app->detectEnvironment(fn () => 'local');
+
+        $policy = (string) $this->get('/register')->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString(
+            "img-src 'self' data: blob: https://ui-avatars.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://*.tile.openstreetmap.org http://127.0.0.1:5173 http://localhost:5173",
+            $policy,
+        );
     }
 
 

@@ -61,6 +61,8 @@ class SecurityHeaders
             $scriptSources[] = 'http://localhost:5173';
             $connectSources[] = 'ws://127.0.0.1:5173';
             $connectSources[] = 'ws://localhost:5173';
+            $imageSources[] = 'http://127.0.0.1:5173';
+            $imageSources[] = 'http://localhost:5173';
         }
 
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');

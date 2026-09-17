@@ -249,8 +249,10 @@ document.addEventListener('DOMContentLoaded', () => {
       initialCountry: 'md',                 // Страна по умолчанию — 🇲🇩 Молдова
       countryOrder: ['md', 'ua', 'ro', 'ru'], // Популярные страны вверху списка
       separateDialCode: true,               // Отображает код страны отдельно от номера
-      nationalMode: false,                  // Ввод всегда в международном формате (+373 ...)
       autoPlaceholder: 'aggressive',        // Подсказка вида: +373 777 00 000
+      formatAsYouType: true,
+      strictMode: true,
+      showFlags: true,
 
       // Карточка регистрации имеет overflow-hidden. Рендерим desktop-dropdown
       // в body, иначе список стран визуально обрезается границами карточки.
@@ -258,27 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // ⚙️ Подключаем утилиты для форматирования и валидации
       loadUtils: window.loadIntlTelInputUtils,
-    });
-
-
-    // 🟢 Автоопределение страны при вводе кода
-    // ------------------------------------------------------
-    // Когда пользователь начинает вводить +373 / +380 / +7
-    // — автоматически меняем флаг страны
-    input.addEventListener('input', () => {
-      const val = input.value.trim();
-
-      if (val.startsWith('+373')) iti.setCountry('md'); // 🇲🇩 Молдова
-      else if (val.startsWith('+380')) iti.setCountry('ua'); // 🇺🇦 Украина
-      else if (val.startsWith('+7')) iti.setCountry('ru'); // 🇷🇺 Россия
-    });
-
-
-    // ➕ При фокусе — если пользователь кликает в пустое поле
-    // ------------------------------------------------------
-    // и там нет "+", мы автоматически добавляем его.
-    input.addEventListener('focus', () => {
-      if (!input.value.startsWith('+')) input.value = '+';
     });
 
 
