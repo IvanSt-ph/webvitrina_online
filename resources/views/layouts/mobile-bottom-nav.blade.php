@@ -9,9 +9,9 @@
                 <div class="relative">
                     <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 {{ request()->routeIs('home') ? 'opacity-100' : 'group-hover:opacity-60' }}"></div>
                     <x-icon name="home" 
-                            class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('home') ? 'text-indigo-600 drop-shadow-sm' : 'text-gray-500 group-hover:text-indigo-500' }}"/>
+                            class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('home') ? 'text-indigo-600 drop-shadow-sm' : 'text-neutral-500 group-hover:text-indigo-500' }}"/>
                 </div>
-                <span class="text-[10px] font-semibold tracking-tight transition-all duration-300 {{ request()->routeIs('home') ? 'text-indigo-600 scale-105' : 'text-gray-500 group-hover:text-indigo-500' }}">Главная</span>
+                <span class="text-[10px] font-semibold tracking-tight transition-all duration-300 {{ request()->routeIs('home') ? 'text-indigo-600 scale-105' : 'text-neutral-500 group-hover:text-indigo-500' }}">Главная</span>
                 @if(request()->routeIs('home'))
                     <div class="absolute -top-1.5 w-8 h-0.5 bg-indigo-500 rounded-full animate-pulse"></div>
                 @endif
@@ -22,12 +22,12 @@
                     class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 hover:scale-105">
                 <div class="relative">
                     <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 group-hover:opacity-60"></div>
-                    <svg class="relative z-10 h-5 w-5 transition-all duration-300 text-gray-500 group-hover:text-indigo-500"
+                    <svg class="relative z-10 h-5 w-5 transition-all duration-300 text-neutral-500 group-hover:text-indigo-500"
                          xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>
                     </svg>
                 </div>
-                <span class="text-[10px] font-semibold tracking-tight text-gray-500 group-hover:text-indigo-500 transition-colors">Категории</span>
+                <span class="text-[10px] font-semibold tracking-tight text-neutral-500 group-hover:text-indigo-500 transition-colors">Категории</span>
             </button>
 
 {{-- 3. ИЗБРАННОЕ --}}
@@ -39,7 +39,7 @@
                     
                     {{-- Иконка сердца --}}
                     <x-icon name="heart" 
-                            class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('favorites.*') ? 'text-indigo-600 drop-shadow-sm' : 'text-gray-500 group-hover:text-indigo-500 group-hover:scale-110' }}"/>
+                            class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('favorites.*') ? 'text-indigo-600 drop-shadow-sm' : 'text-neutral-500 group-hover:text-indigo-500 group-hover:scale-110' }}"/>
                     
                     {{-- Компактный бейдж --}}
                     @if(($favoritesCount ?? 0) > 0)
@@ -50,7 +50,7 @@
                 </div>
                 
                 {{-- Текст --}}
-                <span class="text-[10px] font-semibold tracking-tight transition-all duration-300 {{ request()->routeIs('favorites.*') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}">
+                <span class="text-[10px] font-semibold tracking-tight transition-all duration-300 {{ request()->routeIs('favorites.*') ? 'text-indigo-600' : 'text-neutral-500 group-hover:text-indigo-500' }}">
                     Избранное
                 </span>
                 
@@ -66,14 +66,14 @@
                    class="relative group flex flex-col items-center justify-center gap-0.5 transition-all duration-300 {{ request()->routeIs('chats.*') ? 'scale-105' : 'hover:scale-105' }}">
                     <div class="relative">
                         <div class="absolute inset-0 bg-indigo-100 rounded-full blur-xl opacity-0 transition-opacity duration-300 {{ request()->routeIs('chats.*') ? 'opacity-100' : 'group-hover:opacity-60' }}"></div>
-                        <i class="ri-chat-3-line relative text-[20px] transition-all duration-300 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}"></i>
+                        <i class="ri-chat-3-line relative text-[20px] transition-all duration-300 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 group-hover:text-indigo-500' }}"></i>
                         @if(($unreadChatsCount ?? 0) > 0)
                             <span class="absolute -right-2 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[9px] font-bold text-white">
                                 {{ min($unreadChatsCount, 9) }}
                             </span>
                         @endif
                     </div>
-                    <span class="text-[10px] font-semibold tracking-tight {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}">Чаты</span>
+                    <span class="text-[10px] font-semibold tracking-tight {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 group-hover:text-indigo-500' }}">Чаты</span>
                     @if(request()->routeIs('chats.*'))
                         <div class="absolute -top-1.5 w-8 h-0.5 bg-indigo-500 rounded-full"></div>
                     @endif
@@ -91,7 +91,7 @@
                     
                     {{-- Icon с СИНИМИ цветами --}}
                     <svg xmlns="http://www.w3.org/2000/svg" 
-                        class="h-5 w-5 transition-all duration-300 {{ request()->routeIs('cart.*') ? 'text-indigo-600 drop-shadow-sm scale-110' : 'text-gray-500 group-hover:text-indigo-500 group-hover:scale-110' }}" 
+                        class="h-5 w-5 transition-all duration-300 {{ request()->routeIs('cart.*') ? 'text-indigo-600 drop-shadow-sm scale-110' : 'text-neutral-500 group-hover:text-indigo-500 group-hover:scale-110' }}"
                         fill="none" 
                         viewBox="0 0 24 24" 
                         stroke="currentColor" 
@@ -111,7 +111,7 @@
                     @endif
                 </div>
                 
-                <span class="text-[10px] font-semibold tracking-tight {{ request()->routeIs('cart.*') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}">
+                <span class="text-[10px] font-semibold tracking-tight {{ request()->routeIs('cart.*') ? 'text-indigo-600' : 'text-neutral-500 group-hover:text-indigo-500' }}">
                     Корзина
                 </span>
                 
@@ -130,16 +130,16 @@
                     
                     @if($avatar && Storage::disk('public')->exists($avatar))
                         <img src="{{ auth()->user()->avatar_url }}"
-                             class="relative h-5 w-5 rounded-full object-cover border-2 transition-all duration-300 {{ request()->routeIs('cabinet') ? 'border-indigo-500 scale-105 shadow-md' : 'border-gray-200 group-hover:border-indigo-400 group-hover:scale-110' }}"
+                             class="relative h-5 w-5 rounded-full object-cover border-2 transition-all duration-300 {{ request()->routeIs('cabinet') ? 'border-indigo-500 scale-105 shadow-md' : 'border-neutral-200 group-hover:border-indigo-400 group-hover:scale-110' }}"
                              alt="Аватар"
                              loading="lazy"
                              decoding="async">
                     @else
                         <x-icon name="user" 
-                                class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('cabinet') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}"/>
+                                class="relative h-5 w-5 transition-all duration-300 {{ request()->routeIs('cabinet') ? 'text-indigo-600' : 'text-neutral-500 group-hover:text-indigo-500' }}"/>
                     @endif
                 </div>
-                <span class="text-[10px] font-semibold tracking-tight {{ request()->routeIs('cabinet') ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-500' }}">Профиль</span>
+                <span class="text-[10px] font-semibold tracking-tight {{ request()->routeIs('cabinet') ? 'text-indigo-600' : 'text-neutral-500 group-hover:text-indigo-500' }}">Профиль</span>
                 @if(request()->routeIs('cabinet'))
                     <div class="absolute -top-1.5 w-8 h-0.5 bg-indigo-500 rounded-full animate-pulse"></div>
                 @endif

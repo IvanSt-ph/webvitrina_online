@@ -71,7 +71,7 @@
           <i class="ri-store-3-line text-indigo-600 text-2xl"></i>
           <span class="text-xl font-bold text-indigo-600">WebVitrina</span>
         </div>
-        <button @click="sidebarOpen = false" class="md:hidden text-gray-400 hover:text-gray-600 text-xl">
+        <button @click="sidebarOpen = false" class="md:hidden text-neutral-400 hover:text-neutral-600 text-xl">
           <i class="ri-close-line"></i>
         </button>
       </div>
@@ -125,7 +125,7 @@
       </nav>
 
       <div class="p-4 border-t border-slate-100 text-xs text-slate-500 text-center">
-        © {{ date('Y') }} WebVitrina<br><span class="text-gray-400">Admin Panel</span>
+        © {{ date('Y') }} WebVitrina<br><span class="text-neutral-400">Admin Panel</span>
       </div>
     </aside>
 
@@ -134,14 +134,14 @@
 
       <!-- Topbar -->
       <header class="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-md {{ $adminFullHeight ? 'h-11 px-3 sm:h-14 sm:px-6' : 'h-14 px-4 sm:px-6' }}">
-        <button @click="sidebarOpen = !sidebarOpen" class="text-gray-600 hover:text-indigo-600 text-2xl md:hidden">
+        <button @click="sidebarOpen = !sidebarOpen" class="text-neutral-600 hover:text-indigo-600 text-2xl md:hidden">
           <i class="ri-menu-line"></i>
         </button>
 
-        <h1 class="text-base sm:text-lg font-semibold text-gray-700 truncate">@yield('title','Админка')</h1>
+        <h1 class="text-base sm:text-lg font-semibold text-neutral-700 truncate">@yield('title','Админка')</h1>
 
         <div class="flex items-center gap-4 text-sm sm:text-base">
-          <div class="hidden sm:flex items-center gap-2 text-gray-600">
+          <div class="hidden sm:flex items-center gap-2 text-neutral-600">
             <i class="ri-user-line"></i>
             <span>{{ auth()->user()->name ?? 'Admin' }}</span>
           </div>
@@ -161,7 +161,7 @@
       </main>
 
       @unless($adminFullHeight)
-        <footer class="text-center text-xs text-gray-400 py-6 border-t border-gray-100 bg-white/80">
+        <footer class="text-center text-xs text-neutral-400 py-6 border-t border-neutral-100 bg-white/80">
           WebVitrina © {{ date('Y') }} — Панель администратора
         </footer>
       @endunless

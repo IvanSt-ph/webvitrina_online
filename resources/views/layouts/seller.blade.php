@@ -10,10 +10,10 @@
 
     <!-- ВЕРХ -->
     <div class="flex-1 flex flex-col">
-        <div class="flex items-center gap-2 px-6 py-6 border-b border-gray-100">
+        <div class="flex items-center gap-2 px-6 py-6 border-b border-neutral-100">
             <a href="{{ route('home') }}" class="flex items-center gap-2">
                 <img src="{{ asset('images/icon.png') }}" class="w-8 h-8 rounded-lg shadow-sm" alt="WebVitrina">
-                <span class="font-semibold text-gray-900 text-sm tracking-tight">WebVitrina Seller</span>
+                <span class="font-semibold text-neutral-900 text-sm tracking-tight">WebVitrina Seller</span>
             </a>
         </div>
 
@@ -75,28 +75,28 @@
     </div>
 
     <!-- НИЗ (ПРИЖАТ К НИЗУ) -->
-    <div class="px-6 py-4 border-t border-gray-100">
+    <div class="px-6 py-4 border-t border-neutral-100">
         <div class="flex items-center gap-3">
             @if(auth()->user()->avatar)
                 <img
                     src="{{ auth()->user()->avatar_url }}"
-                    class="w-9 h-9 rounded-full border border-gray-200 object-cover"
+                    class="w-9 h-9 rounded-full border border-neutral-200 object-cover"
                     alt="avatar"
                     loading="lazy"
                     decoding="async">
             @else
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-indigo-50 text-sm font-semibold text-indigo-700">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-indigo-50 text-sm font-semibold text-indigo-700">
                     {{ mb_substr(auth()->user()->name ?? 'U', 0, 1) }}
                 </div>
             @endif
 
             <div class="text-sm">
-                <div class="font-semibold text-gray-800">{{ auth()->user()->name ?? 'Продавец' }}</div>
-                <div class="text-gray-400">{{ auth()->user()->email }}</div>
+                <div class="font-semibold text-neutral-800">{{ auth()->user()->name ?? 'Продавец' }}</div>
+                <div class="text-neutral-400">{{ auth()->user()->email }}</div>
 
                 <form method="POST" action="{{ route('logout') }}" class="mt-4">
                     @csrf
-                    <button type="submit" class="text-sm text-red-600 hover:text-red-800 transition">
+                    <button type="submit" class="text-sm text-danger-600 hover:text-danger-800 transition">
                         Выйти
                     </button>
                 </form>
@@ -114,7 +114,7 @@
             </div>
 
                 @unless($chatMode)
-                <footer class="mt-auto border-t pt-6 text-center text-xs text-gray-400">
+                <footer class="mt-auto border-t pt-6 text-center text-xs text-neutral-400">
                     © {{ date('Y') }} WebVitrina — Панель продавца
                 </footer>
                 @endunless

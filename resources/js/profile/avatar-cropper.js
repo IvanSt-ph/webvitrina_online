@@ -123,7 +123,7 @@ function avatarCropper() {
 
             const toast = document.createElement('div');
             toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                type === 'success' ? 'bg-success-500' : 'bg-danger-500'
             } text-white animate__animated animate__fadeIn`;
             toast.innerHTML = `
                 <i class="ri-${type === 'success' ? 'check-line' : 'error-warning-line'}"></i>

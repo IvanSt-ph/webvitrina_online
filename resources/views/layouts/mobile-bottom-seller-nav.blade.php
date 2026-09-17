@@ -1,19 +1,19 @@
 <div data-mobile-bottom-seller-nav
   x-data="{ openOrdersMenu: false, openCabinetMenu: false }"
-  class="lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-t border-gray-200 shadow-xl">
+  class="lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-t border-neutral-200 shadow-xl">
 
   <nav class="flex justify-around items-center h-16 text-xs font-medium">
 
     <!-- В магазин (главная сайта) -->
     <a href="{{ url('/') }}" 
-       class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->is('/') ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-500' }}">
+       class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->is('/') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-store-3-line text-xl"></i>
         <span>В магазин</span>
     </a>
 
     <!-- Товары -->
     <a href="{{ route('seller.products.index') }}" 
-       class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.products.*') ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-500' }}">
+       class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.products.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-store-2-line text-xl"></i>
         <span>Товары</span>
     </a>
@@ -24,20 +24,20 @@
         <div class="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg border-4 border-white">
             <i class="ri-add-line text-2xl"></i>
         </div>
-        <span class="text-[11px] text-gray-500 mt-1">Добавить</span>
+        <span class="text-[11px] text-neutral-500 mt-1">Добавить</span>
     </a>
 
     <!-- Заказы (только заказы) -->
     <button 
       @click="openOrdersMenu = !openOrdersMenu; openCabinetMenu = false"
-      class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-500' }} relative">
+      class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }} relative">
         <i class="ri-file-list-3-line text-xl"></i>
         <span>Заказы</span>
     </button>
 
     <!-- Чаты -->
     <a href="{{ route('chats.index') }}"
-       class="relative flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-500' }}">
+       class="relative flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-chat-3-line text-xl"></i>
         <span>Чаты</span>
         @if(($unreadChatsCount ?? 0) > 0)
@@ -50,7 +50,7 @@
     <!-- Кабинет (меню) -->
     <button 
       @click="openCabinetMenu = !openCabinetMenu; openOrdersMenu = false"
-      class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet') || request()->routeIs('seller.finance.*') || request()->routeIs('seller.analytics.*') ? 'text-indigo-600' : 'text-gray-500 hover:text-indigo-500' }}">
+      class="flex flex-col items-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet') || request()->routeIs('seller.finance.*') || request()->routeIs('seller.analytics.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-user-settings-line text-xl"></i>
         <span>Кабинет</span>
     </button>
@@ -67,16 +67,16 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="fixed bottom-20 left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-gray-200 z-40 shadow-xl">
+    class="fixed bottom-20 left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
 
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-base font-semibold text-gray-800">Заказы</h3>
-      <button @click="openOrdersMenu = false" class="text-gray-400 hover:text-gray-600">
+      <h3 class="text-base font-semibold text-neutral-800">Заказы</h3>
+      <button @click="openOrdersMenu = false" class="text-neutral-400 hover:text-neutral-600">
         <i class="ri-close-line text-xl"></i>
       </button>
     </div>
 
-    <ul class="space-y-3 text-sm text-gray-700">
+    <ul class="space-y-3 text-sm text-neutral-700">
       <li><a href="{{ route('seller.orders.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-list-unordered text-lg"></i> Все заказы</a></li>
       <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_PENDING]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-time-line text-lg"></i> Ожидают</a></li>
       <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_SHIPPED]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-truck-line text-lg"></i> В пути</a></li>
@@ -94,16 +94,16 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="fixed bottom-20 left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-gray-200 z-40 shadow-xl">
+    class="fixed bottom-20 left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
 
     <div class="flex items-center justify-between mb-4">
-      <h3 class="text-base font-semibold text-gray-800">Меню кабинета</h3>
-      <button @click="openCabinetMenu = false" class="text-gray-400 hover:text-gray-600">
+      <h3 class="text-base font-semibold text-neutral-800">Меню кабинета</h3>
+      <button @click="openCabinetMenu = false" class="text-neutral-400 hover:text-neutral-600">
         <i class="ri-close-line text-xl"></i>
       </button>
     </div>
 
-    <ul class="space-y-3 text-sm text-gray-700">
+    <ul class="space-y-3 text-sm text-neutral-700">
       <!-- Кабинет (главная продавца) -->
       <li><a href="{{ route('cabinet') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-dashboard-line text-lg"></i> Кабинет</a></li>
 
@@ -135,13 +135,13 @@
       <li><a href="{{ route('seller.analytics.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-bar-chart-2-line text-lg"></i> Аналитика</a></li>
       
       <!-- Разделитель -->
-      <li class="border-t border-gray-100 pt-3 mt-3"></li>
+      <li class="border-t border-neutral-100 pt-3 mt-3"></li>
       
       <!-- Кнопка выхода -->
       <li>
         <form method="POST" action="{{ route('logout') }}">
           @csrf
-          <button type="submit" class="flex items-center gap-2 text-red-500 hover:text-red-700 w-full text-left transition-colors duration-200">
+          <button type="submit" class="flex items-center gap-2 text-danger-500 hover:text-danger-700 w-full text-left transition-colors duration-200">
             <i class="ri-logout-box-r-line text-lg"></i>
             <span class="text-sm font-medium">Выйти из аккаунта</span>
           </button>

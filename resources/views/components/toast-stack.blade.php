@@ -38,18 +38,18 @@
         },
         classes(type) {
             return {
-                success: 'border-emerald-200 bg-emerald-50 text-emerald-950',
-                error: 'border-rose-200 bg-rose-50 text-rose-950',
-                warning: 'border-amber-200 bg-amber-50 text-amber-950',
-                info: 'border-sky-200 bg-sky-50 text-sky-950',
+                success: 'border-success-200 bg-success-50 text-success-950',
+                error: 'border-danger-200 bg-danger-50 text-danger-950',
+                warning: 'border-warning-200 bg-warning-50 text-warning-950',
+                info: 'border-info-200 bg-info-50 text-info-950',
             }[type];
         },
         icon(type) {
             return {
-                success: 'ri-checkbox-circle-line text-emerald-600',
-                error: 'ri-error-warning-line text-rose-600',
-                warning: 'ri-alert-line text-amber-600',
-                info: 'ri-information-line text-sky-600',
+                success: 'ri-checkbox-circle-line text-success-600',
+                error: 'ri-error-warning-line text-danger-600',
+                warning: 'ri-alert-line text-warning-600',
+                info: 'ri-information-line text-info-600',
             }[type];
         },
     }"
@@ -76,7 +76,7 @@
                 <button
                     type="button"
                     @click="close(toast.id)"
-                    class="-mr-1 -mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/70 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-current motion-reduce:transition-none"
+                    class="-mr-1 -mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-neutral-500 transition hover:bg-white/70 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-current motion-reduce:transition-none"
                     aria-label="Закрыть уведомление"
                 >
                     <i class="ri-close-line text-xl" aria-hidden="true"></i>

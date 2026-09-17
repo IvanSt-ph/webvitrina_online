@@ -2,14 +2,14 @@
 
 {{-- resources/views/layouts/buyer-layout.blade.php — боковая панель покупателя --}}
 <x-app-layout :title="$title ?? 'Личный кабинет'" :hideHeader="true" :flushMain="$flushContent || $chatMode">
-    <div class="flex min-h-screen bg-neutral-50 text-gray-800">
+    <div class="flex min-h-screen bg-neutral-50 text-neutral-800">
         <!-- 🧭 Sidebar -->
         <aside class="fixed bottom-0 left-0 top-0 hidden w-64 flex-col justify-between border-r border-slate-200 wv-sidebar md:flex">
             <div>
                 <!-- Логотип -->
-                <div class="flex items-center gap-2 border-b border-gray-100 px-6 py-6">
+                <div class="flex items-center gap-2 border-b border-neutral-100 px-6 py-6">
                     <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-8 w-8 rounded-lg shadow-sm">
-                    <span class="text-sm font-semibold tracking-tight text-gray-800">WebVitrina</span>
+                    <span class="text-sm font-semibold tracking-tight text-neutral-800">WebVitrina</span>
                 </div>
 
                 <!-- Навигация -->
@@ -30,7 +30,7 @@
                         </a>
                     </div>
 
-                    <div class="px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                    <div class="px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400">
                         Основное
                     </div>
 
@@ -93,7 +93,7 @@
                         </a>
                     </div>
 
-                    <div class="mt-5 px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+                    <div class="mt-5 px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400">
                         Сервис
                     </div>
 
@@ -127,31 +127,31 @@
             </div>
 
             <!-- Аккаунт покупателя -->
-            <div class="border-t border-gray-100 px-6 py-4">
+            <div class="border-t border-neutral-100 px-6 py-4">
                 <div class="flex items-start gap-3">
                     {{-- Аватар --}}
-                    <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gray-100">
+                    <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                         @php $avatar = auth()->user()->avatar; @endphp
 
                         @if($avatar && Storage::disk('public')->exists($avatar))
                             <img src="{{ asset('storage/'.$avatar) }}" alt="avatar" class="h-full w-full object-cover">
                         @else
-                            <span class="text-base font-semibold text-gray-600">
+                            <span class="text-base font-semibold text-neutral-600">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </span>
                         @endif
                     </div>
 
                     <div class="flex flex-col leading-tight">
-                        <span class="text-sm font-semibold text-gray-800">
+                        <span class="text-sm font-semibold text-neutral-800">
                             {{ auth()->user()->name }}
                         </span>
 
-                        <span class="text-xs text-gray-500">{{ auth()->user()->email }}</span>
+                        <span class="text-xs text-neutral-500">{{ auth()->user()->email }}</span>
 
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
-                            <button class="text-xs text-red-500 hover:text-red-600">
+                            <button class="text-xs text-danger-500 hover:text-danger-600">
                                 Выйти
                             </button>
                         </form>

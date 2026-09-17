@@ -2889,11 +2889,16 @@ class SecurityRegressionTest extends TestCase
         $favoritesToast = file_get_contents(resource_path('views/shop/favorites.blade.php'));
         $profileAvatarToast = file_get_contents(resource_path('js/profile/avatar-cropper.js'));
         $sellerAvatarToast = file_get_contents(resource_path('views/seller/partials/avatar.blade.php'));
+        $toastStack = file_get_contents(resource_path('views/components/toast-stack.blade.php'));
 
-        foreach ([$globalToast, $cartToast, $favoritesToast] as $source) {
+        foreach ([$cartToast, $favoritesToast] as $source) {
             $this->assertStringContainsString("textContent = String(text ?? '')", $source);
             $this->assertStringNotContainsString('<span>${text}</span>', $source);
         }
+
+        $this->assertStringContainsString('window.showSiteToast(message, type)', $globalToast);
+        $this->assertStringContainsString('x-text="toast.text"', $toastStack);
+        $this->assertStringNotContainsString('innerHTML', $toastStack);
 
         foreach ([$profileAvatarToast, $sellerAvatarToast] as $source) {
             $this->assertStringContainsString("textContent = String(message ?? '')", $source);
@@ -3482,6 +3487,10 @@ class SecurityRegressionTest extends TestCase
         $this->assertStringContainsString('aria-label="Закрыть уведомление"', $component);
         $this->assertStringContainsString('motion-reduce:transition-none', $component);
         $this->assertStringNotContainsString('$errors->', $component);
+
+        foreach (['success', 'danger', 'warning', 'info'] as $palette) {
+            $this->assertStringContainsString("{$palette}-600", $component);
+        }
     }
 
     public function test_user_can_review_product_after_delivery(): void

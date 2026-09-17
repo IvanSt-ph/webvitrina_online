@@ -214,7 +214,7 @@ function avatarCropper() {
             
             const notification = document.createElement('div');
             notification.className = `avatar-notification fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 
-                ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
+                ${type === 'success' ? 'bg-success-500' : type === 'error' ? 'bg-danger-500' : 'bg-info-500'} text-white`;
             notification.innerHTML = `
                 <i class="ri-${type === 'success' ? 'check-line' : type === 'error' ? 'error-warning-line' : 'information-line'}"></i>
                 <span></span>

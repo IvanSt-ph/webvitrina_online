@@ -1,4 +1,5 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
+import colors from 'tailwindcss/colors.js';
 import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
@@ -7,10 +8,19 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+        './resources/js/**/*.js',
     ],
 
     theme: {
         extend: {
+            colors: {
+                brand: colors.indigo,
+                neutral: colors.slate,
+                success: colors.emerald,
+                warning: colors.amber,
+                danger: colors.rose,
+                info: colors.sky,
+            },
             fontFamily: {
                 sans: ['Manrope', ...defaultTheme.fontFamily.sans],
             },

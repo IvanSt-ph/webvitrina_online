@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
       attrWrapper.innerHTML = html;
 
     } catch (e) {
-      attrWrapper.innerHTML = `<div class="seller-empty-state text-red-500 text-sm">
+      attrWrapper.innerHTML = `<div class="seller-empty-state text-danger-500 text-sm">
         Ошибка при загрузке характеристик
       </div>`;
     }

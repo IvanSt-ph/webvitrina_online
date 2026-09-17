@@ -13,8 +13,8 @@
     ];
 
     $classes = trim(
-        'inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 ' .
-        'font-semibold shadow-sm hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 ' .
+        'inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-neutral-700 ' .
+        'font-semibold shadow-sm hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 ' .
         'transition-all duration-200 ' .
         ($sizes[$size] ?? $sizes['md']) . ' ' .
         ($full ? 'w-full' : '')

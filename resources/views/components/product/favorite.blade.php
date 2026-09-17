@@ -29,7 +29,7 @@
             <span
                 x-show="copied"
                 x-transition
-                class="text-green-600 text-xs font-medium"
+                class="text-success-600 text-xs font-medium"
             >
                 Скопировано
             </span>
