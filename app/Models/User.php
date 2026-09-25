@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 
@@ -23,7 +25,30 @@ use App\Services\ImageService;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
+
+    public function delete()
+    {
+        if ($this->isForceDeleting()) {
+            throw new \LogicException('Accounts must be anonymized, not force deleted.');
+        }
+
+        if (! $this->exists) {
+            return null;
+        }
+
+        return DB::transaction(function () {
+            $current = static::withTrashed()->whereKey($this->getKey())->lockForUpdate()->first();
+            if (! $current || $current->trashed()) {
+                return false;
+            }
+
+            $this->setRawAttributes($current->getAttributes(), true);
+            app(\App\Services\AccountDeletionService::class)->anonymize($this);
+
+            return parent::delete();
+        });
+    }
 
     protected static function booted(): void
     {

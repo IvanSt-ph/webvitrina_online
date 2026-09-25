@@ -435,14 +435,18 @@ class ChatController extends Controller
         abort_unless($message->conversation_id === $conversation->id, 404);
         abort_unless($message->image_path && Storage::disk('local')->exists($message->image_path), 404);
 
-        return response()->file(
+        $response = response()->file(
             Storage::disk('local')->path($message->image_path),
             [
                 'Content-Type' => 'image/webp',
-                'Cache-Control' => 'private, max-age=300',
                 'X-Content-Type-Options' => 'nosniff',
             ]
         );
+
+        $response->setPrivate();
+        $response->setMaxAge(300);
+
+        return $response;
     }
 
     private function conversationQuery(Request $request)

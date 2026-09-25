@@ -722,10 +722,6 @@ public function redirectToRoleProfile()
 
         Auth::logout();
 
-        if ($user->avatar) {
-            app(ImageService::class)->delete($user->avatar);
-        }
-
         $user->delete();
 
         $request->session()->invalidate();
@@ -734,5 +730,3 @@ public function redirectToRoleProfile()
         return Redirect::to('/');
     }
 }
-
-

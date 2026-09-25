@@ -491,10 +491,20 @@ class ReleaseExperienceTest extends TestCase
 
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
-        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode(['version' => 1]));
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz', 'private-storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode([
+            'version' => 2,
+            'storage' => [
+                'private_chat_images' => [
+                    'archive' => 'storage-private-chat-images.tar.gz',
+                    'root' => 'private/chat-images',
+                ],
+            ],
+        ]));
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz') . ' database.sql.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz') . ' storage-private-chat-images.tar.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'manifest.json') . ' manifest.json',
         ]));
 
@@ -517,10 +527,20 @@ class ReleaseExperienceTest extends TestCase
 
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
-        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode(['version' => 1]));
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz', 'private-storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode([
+            'version' => 2,
+            'storage' => [
+                'private_chat_images' => [
+                    'archive' => 'storage-private-chat-images.tar.gz',
+                    'root' => 'private/chat-images',
+                ],
+            ],
+        ]));
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
             str_repeat('0', 64) . ' database.sql.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz') . ' storage-private-chat-images.tar.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'manifest.json') . ' manifest.json',
         ]));
 

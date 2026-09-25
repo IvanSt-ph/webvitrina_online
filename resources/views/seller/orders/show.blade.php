@@ -81,7 +81,7 @@
 
                 <div class="break-words text-sm text-gray-500">
                     от {{ $order->created_at?->format('d.m.Y H:i') }}
-                    • Покупатель: {{ $order->user->name ?? 'Неизвестен' }}
+                    • Покупатель: {{ $order->buyer_name }}
                     (ID: {{ $order->user_id }})
                 </div>
             </div>
@@ -145,7 +145,7 @@
             <form method="POST" action="{{ route('seller.orders.chat.buyer', $order) }}">
                 @csrf
                 <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                        @disabled(! $primaryProduct)>
+                        @disabled(! $primaryProduct || ! $order->user->exists)>
                     <i class="ri-chat-3-line"></i>
                     Написать покупателю
                 </button>
@@ -154,7 +154,7 @@
             <form method="POST" action="{{ route('support.start') }}">
                 @csrf
                 <input type="hidden" name="topic" value="Вопрос по заказу {{ $order->number }}">
-                <input type="hidden" name="details" value="Заказ {{ $order->number }}, покупатель {{ $order->user->name ?? 'не указан' }}, статус: {{ $order->status_ru }}.">
+                <input type="hidden" name="details" value="Заказ {{ $order->number }}, покупатель {{ $order->buyer_name }}, статус: {{ $order->status_ru }}.">
                 <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto">
                     <i class="ri-customer-service-2-line"></i>
                     Поддержка
@@ -262,24 +262,24 @@
                         <h2 class="text-sm font-semibold text-gray-800">Покупатель</h2>
 
                         <div class="text-sm font-medium text-gray-900">
-                            {{ $order->user->name ?? 'Неизвестен' }}
+                            {{ $order->buyer_name }}
                         </div>
 
                         <div class="text-xs text-gray-500">
                             ID: {{ $order->user_id }}
                         </div>
 
-                        @if(!empty($order->user->phone))
+                        @if(!empty($order->buyer_phone))
                             <div class="text-xs text-gray-700 flex items-center gap-1 pt-1">
                                 <i class="ri-phone-line text-gray-500 text-sm"></i>
-                                <span>{{ $order->user->phone }}</span>
+                                <span>{{ $order->buyer_phone }}</span>
                             </div>
                         @endif
 
-                        @if(isset($order->user->email))
+                        @if(isset($order->buyer_email))
                             <div class="min-w-0 text-xs text-gray-500 flex items-center gap-1">
                                 <i class="ri-mail-line text-gray-500 text-sm"></i>
-                                <span class="min-w-0 break-all">{{ $order->user->email }}</span>
+                                <span class="min-w-0 break-all">{{ $order->buyer_email }}</span>
                             </div>
                         @endif
                     </div>
@@ -288,7 +288,7 @@
                 <form method="POST" action="{{ route('seller.orders.chat.buyer', $order) }}" class="mt-4">
                     @csrf
                     <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            @disabled(! $primaryProduct)>
+                            @disabled(! $primaryProduct || ! $order->user->exists)>
                         <i class="ri-chat-3-line"></i>
                         Написать покупателю
                     </button>
@@ -438,14 +438,14 @@
                             <div>
                                 <div class="text-xs text-gray-400">Цена</div>
                                 <div class="font-semibold text-gray-900">
-                                    {{ number_format($item->price, 2, ',', ' ') }} {{ $order->currency ?? '' }}
+                                    {{ number_format($item->price, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency ?? '') }}
                                 </div>
                             </div>
 
                             <div>
                                 <div class="text-xs text-gray-400">Сумма</div>
                                 <div class="font-semibold text-gray-900 sm:text-right">
-                                    {{ number_format($item->total, 2, ',', ' ') }} {{ $order->currency ?? '' }}
+                                    {{ number_format($item->total, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency ?? '') }}
                                 </div>
                             </div>
                         </div>

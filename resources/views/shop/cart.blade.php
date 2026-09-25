@@ -3,8 +3,7 @@
 
 @php
     $unavailableItems = $unavailableItems ?? collect();
-    $cartTotal = $items->sum(fn($i) => $i->product ? $i->product->price * $i->qty : 0);
-    $freeShippingThreshold = 5000;
+    $cartTotal = $total;
 @endphp
 
 <div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe wv-page-shell max-w-none overflow-x-hidden {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
@@ -147,8 +146,8 @@
         @php
             $p = $i->product;
             $shortProductTitle = $p ? Str::limit($p->title, 18) : '';
-            $oldPriceData = $p?->old_price_for_current_currency;
-            $oldPrice = $oldPriceData['amount'] ?? null;
+            $price = (float) $i->checkout_price;
+            $oldPrice = $i->checkout_old_price !== null ? (float) $i->checkout_old_price : null;
             $discountPercent = $p?->discount_percent;
         @endphp
         @continue(! $p)
@@ -162,12 +161,12 @@
             }"
             data-cart-id="{{ $i->id }}"
             data-cart-qty="{{ $i->qty }}"
-            data-cart-price="{{ $p->price }}"
+            data-cart-price="{{ $price }}"
         >
             <div 
                 class="grid min-w-0 grid-cols-[80px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:gap-4 sm:p-5"
                 :class="selectMode ? 'cursor-pointer' : ''"
-                @click="if(selectMode) toggleSelect('{{ $i->id }}', Number(qty) * {{ $p->price }})"
+                @click="if(selectMode) toggleSelect('{{ $i->id }}', Number(qty) * {{ $price }})"
             >
 
                 <!-- Чекбокс -->
@@ -176,7 +175,7 @@
                         <input 
                             type="checkbox" 
                             :checked="selected.includes('{{ $i->id }}')"
-                            @change="toggleSelect('{{ $i->id }}', Number(qty) * {{ $p->price }})"
+                            @change="toggleSelect('{{ $i->id }}', Number(qty) * {{ $price }})"
                             class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 focus:ring-2 transition-all">
                     </div>
                 </div>
@@ -238,20 +237,20 @@
 
                         <!-- Цена -->
                         <div class="min-w-0 flex-shrink-0 sm:text-right">
-                            @if($oldPrice && $oldPrice > $p->price)
+                            @if($oldPrice && $oldPrice > $price)
                                 <div class="text-sm text-gray-400 line-through sm:text-right">
-                                    {{ number_format($oldPrice, 0, ',', ' ') }} ₽
+                                    {{ number_format($oldPrice, 0, ',', ' ') }} {{ $currencySymbol }}
                                 </div>
                             @endif
                             <div class="text-xl sm:text-2xl font-semibold text-gray-900">
-                                <span x-text="formatPrice(Number(qty) * {{ $p->price }})"></span> <span class="text-sm font-normal">₽</span>
+                                <span x-text="formatPrice(Number(qty) * {{ $price }})"></span> <span class="text-sm font-normal">{{ $currencySymbol }}</span>
                             </div>
                             <div class="text-xs text-gray-400 sm:text-right mt-0.5">
-                                {{ number_format($p->price, 2, ',', ' ') }} ₽ за шт.
+                                {{ number_format($price, 2, ',', ' ') }} {{ $currencySymbol }} за шт.
                             </div>
-                            @if($oldPrice && $oldPrice > $p->price)
+                            @if($oldPrice && $oldPrice > $price)
                                 <div class="text-xs text-green-600 sm:text-right">
-                                    Экономия: {{ number_format($oldPrice - $p->price, 0, ',', ' ') }} ₽
+                                    Экономия: {{ number_format($oldPrice - $price, 0, ',', ' ') }} {{ $currencySymbol }}
                                 </div>
                             @endif
                         </div>
@@ -266,17 +265,17 @@
                             <label class="text-sm text-gray-500">Кол-во:</label>
                             <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
                                 <button type="button" 
-                                        @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Math.max(1, Number(qty) - 1), savedQty, {{ $p->price }}, $event, $data)"
+                                        @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Math.max(1, Number(qty) - 1), savedQty, {{ $price }}, $event, $data)"
                                         :disabled="updating || Number(qty) <= 1"
                                         class="w-9 h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
                                     <i class="ri-subtract-line text-gray-500"></i>
                                 </button>
                                 <input type="number" min="1" 
                                        x-model="qty"
-                                       @blur="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', qty, savedQty, {{ $p->price }}, $event, $data)"
+                                       @blur="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', qty, savedQty, {{ $price }}, $event, $data)"
                                        class="w-14 text-center border-x border-gray-200 py-2 text-sm focus:outline-none">
                                 <button type="button"
-                                        @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Number(qty) + 1, savedQty, {{ $p->price }}, $event, $data)"
+                                        @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Number(qty) + 1, savedQty, {{ $price }}, $event, $data)"
                                         :disabled="updating"
                                         class="w-9 h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
                                     <i class="ri-add-line text-gray-500"></i>
@@ -297,7 +296,7 @@
                             </form>
 
                             <!-- Удалить - форма с перехватом -->
-                            <form method="POST" action="{{ route('cart.remove', $i) }}" class="delete-cart-form min-w-0" data-product-title="{{ addslashes($p->title) }}" @submit.prevent="removeItem($event, '{{ $i->id }}', {{ $i->qty }}, {{ $p->price }})">
+                            <form method="POST" action="{{ route('cart.remove', $i) }}" class="delete-cart-form min-w-0" data-product-title="{{ addslashes($p->title) }}" @submit.prevent="removeItem($event, '{{ $i->id }}', {{ $i->qty }}, {{ $price }})">
                                 @csrf 
                                 @method('DELETE')
                                 <x-danger-action type="submit" size="icon" title="Удалить">
@@ -340,7 +339,7 @@
                 <div class="flex items-center justify-between text-gray-600">
                     <span>Сумма товаров</span>
                     <span class="font-semibold text-gray-900">
-                        <span x-text="formatPrice(summaryTotal)"></span> ₽
+                        <span x-text="formatPrice(summaryTotal)"></span> {{ $currencySymbol }}
                     </span>
                 </div>
                 <div class="flex items-start justify-between gap-3 text-gray-600">
@@ -353,7 +352,7 @@
                 <div class="flex items-end justify-between gap-3">
                     <span class="text-sm text-gray-500">Итого</span>
                     <div class="text-2xl font-bold text-gray-900">
-                        <span x-text="formatPrice(summaryTotal)"></span> <span class="text-sm font-normal">₽</span>
+                        <span x-text="formatPrice(summaryTotal)"></span> <span class="text-sm font-normal">{{ $currencySymbol }}</span>
                     </div>
                 </div>
 
@@ -388,7 +387,7 @@
                         <span x-text="totalQty"></span> товара(ов)
                     </div>
                     <div class="text-lg sm:text-xl font-bold text-gray-900">
-                        <span x-text="formatPrice(cartTotal)"></span> <span class="text-sm font-normal">₽</span>
+                        <span x-text="formatPrice(cartTotal)"></span> <span class="text-sm font-normal">{{ $currencySymbol }}</span>
                     </div>
                 </div>
 
@@ -430,7 +429,7 @@
                         <div class="text-right">
                             <div class="text-xs text-gray-500">Сумма</div>
                             <div class="text-lg font-bold text-indigo-600 leading-tight">
-                                <span x-text="formatPrice(selectedTotal)"></span> <span class="text-xs font-normal">₽</span>
+                                <span x-text="formatPrice(selectedTotal)"></span> <span class="text-xs font-normal">{{ $currencySymbol }}</span>
                             </div>
                         </div>
                     </div>
@@ -465,7 +464,7 @@
                         <div>
                             <div class="text-xs text-gray-500">Сумма выбранных:</div>
                             <div class="text-xl font-bold text-indigo-600 leading-tight">
-                                <span x-text="formatPrice(selectedTotal)"></span> <span class="text-sm font-normal">₽</span>
+                                <span x-text="formatPrice(selectedTotal)"></span> <span class="text-sm font-normal">{{ $currencySymbol }}</span>
                             </div>
                         </div>
                     </div>
@@ -504,7 +503,7 @@
                              alt="{{ $product->title }}">
                     </div>
                     <h4 class="text-sm font-medium line-clamp-2 mb-1" style="overflow-wrap: anywhere;">{{ $product->title }}</h4>
-                    <div class="text-indigo-600 font-bold">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
+                    <div class="text-indigo-600 font-bold">{{ number_format($product->checkout_price, 0, ',', ' ') }} {{ $currencySymbol }}</div>
                 </a>
                 <form method="POST" action="{{ route('cart.add', $product->id) }}" class="mt-2">
                     @csrf
@@ -539,7 +538,7 @@
                              alt="{{ $product->title }}">
                     </div>
                     <h4 class="text-sm font-medium line-clamp-2 mb-1" style="overflow-wrap: anywhere;">{{ $product->title }}</h4>
-                    <div class="text-indigo-600 font-bold">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
+                    <div class="text-indigo-600 font-bold">{{ number_format($product->checkout_price, 0, ',', ' ') }} {{ $currencySymbol }}</div>
                 </a>
                 <form method="POST" action="{{ route('cart.add', $product->id) }}" class="mt-2">
                     @csrf

@@ -95,6 +95,7 @@ php artisan queue:failed
 
 - базу данных;
 - `storage/app/public`, где лежат загруженные изображения;
+- `storage/app/private/chat-images`, где лежат приватные вложения чатов;
 - файл `.env` отдельно в защищённом месте или систему секретов.
 
 Встроенная команда создаёт совместимый с проверкой backup:
@@ -114,7 +115,7 @@ BACKUP_KEEP_DAYS=14
 
 Достаточно минутного cron `php artisan schedule:run`, указанного выше. Отдельный ежедневный cron дублировал бы запуск. `BACKUP_COMMAND` текущим кодом не используется.
 
-В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz`, `manifest.json` и `SHA256SUMS`. Старый `deploy/backup-webvitrina.sh.example` не создаёт обязательный манифест; для текущего формата используйте встроенную команду.
+В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz`, `storage-private-chat-images.tar.gz`, `manifest.json` и `SHA256SUMS`. Старые копии без private archive считаются неполными; старый `deploy/backup-webvitrina.sh.example` с текущим форматом несовместим.
 
 Проверка свежести, обязательных файлов и SHA256:
 
@@ -155,8 +156,10 @@ php artisan test
 ```bash
 mkdir -p /tmp/webvitrina-restore-check
 tar -tzf /var/backups/webvitrina/LATEST/storage-public.tar.gz | head
+tar -tzf /var/backups/webvitrina/LATEST/storage-private-chat-images.tar.gz | head
 gunzip -t /var/backups/webvitrina/LATEST/database.sql.gz
 mysql --host=127.0.0.1 --user=restore_user --password restore_test_db < <(gunzip -c /var/backups/webvitrina/LATEST/database.sql.gz)
+php artisan backup:restore-files /var/backups/webvitrina/LATEST --force
 ```
 
 `LATEST` замени на имя последней папки backup. Тестовая база должна быть отдельной от production.

@@ -18,6 +18,7 @@ use App\Models\SellerPlanRequest;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Repositories\ProductCrudRepository;
+use App\Services\CurrencyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -2987,14 +2988,7 @@ class SecurityRegressionTest extends TestCase
 
         $this->actingAs($buyer)
             ->withSession([
-                'checkout_cart' => [[
-                    'cart_id' => null,
-                    'product_id' => $product->id,
-                    'title' => $product->title,
-                    'price' => 100,
-                    'qty' => 2,
-                    'image' => $product->image,
-                ]],
+                'checkout_cart' => [$this->checkoutCartRow($product, 2)],
             ])
             ->post(route('checkout.create'), [
                 'payment_method' => 'cash',
@@ -3022,14 +3016,9 @@ class SecurityRegressionTest extends TestCase
             'house' => '1',
             'is_default' => true,
         ]);
-        $cart = collect([$firstProduct, $secondProduct])->map(fn (Product $product) => [
-            'cart_id' => null,
-            'product_id' => $product->id,
-            'title' => $product->title,
-            'price' => $product->price,
-            'qty' => 1,
-            'image' => $product->image,
-        ])->all();
+        $cart = collect([$firstProduct, $secondProduct])
+            ->map(fn (Product $product) => $this->checkoutCartRow($product))
+            ->all();
 
         $this->actingAs($buyer)
             ->withSession(['checkout_cart' => $cart])
@@ -3038,7 +3027,7 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('First shop')
             ->assertSee('Second shop')
             ->assertSee('Будет создано заказов:')
-            ->assertSee('510,00 ₽');
+            ->assertSee('498,38 ₽');
 
         $this->actingAs($buyer)
             ->post(route('checkout.create'), [
@@ -3055,7 +3044,7 @@ class SecurityRegressionTest extends TestCase
             ->map(fn ($total) => (float) $total)
             ->all();
 
-        $this->assertSame([255.0, 255.0], $totals);
+        $this->assertSame([249.19, 249.19], $totals);
     }
 
     public function test_checkout_requires_new_confirmation_when_product_price_changes(): void
@@ -3063,14 +3052,7 @@ class SecurityRegressionTest extends TestCase
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller);
-        $cart = [[
-            'cart_id' => null,
-            'product_id' => $product->id,
-            'title' => $product->title,
-            'price' => $product->price,
-            'qty' => 1,
-            'image' => $product->image,
-        ]];
+        $cart = [$this->checkoutCartRow($product)];
 
         $this->actingAs($buyer)
             ->withSession(['checkout_cart' => $cart])
@@ -3089,7 +3071,7 @@ class SecurityRegressionTest extends TestCase
             ->assertSessionHas('error');
 
         $this->assertDatabaseMissing('orders', ['user_id' => $buyer->id]);
-        $this->assertSame(125.0, (float) session('checkout_cart.0.price'));
+        $this->assertSame(117.74, (float) session('checkout_cart.0.price'));
     }
 
     public function test_checkout_token_cannot_create_the_same_order_twice(): void
@@ -3097,14 +3079,7 @@ class SecurityRegressionTest extends TestCase
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller, ['stock' => 3]);
-        $cart = [[
-            'cart_id' => null,
-            'product_id' => $product->id,
-            'title' => $product->title,
-            'price' => $product->price,
-            'qty' => 1,
-            'image' => $product->image,
-        ]];
+        $cart = [$this->checkoutCartRow($product)];
 
         $this->actingAs($buyer)
             ->withSession(['checkout_cart' => $cart])
@@ -5440,6 +5415,28 @@ class SecurityRegressionTest extends TestCase
             'description' => 'Test product',
             'status' => 'active',
         ], $overrides));
+    }
+
+    private function checkoutCartRow(Product $product, int $quantity = 1): array
+    {
+        $quote = app(CurrencyService::class)->quote(
+            (float) $product->price,
+            Product::normalizeCurrencyCode($product->currency_base),
+            'PRB',
+        );
+
+        return [
+            'cart_id' => null,
+            'product_id' => $product->id,
+            'title' => $product->title,
+            'source_price' => (float) $product->price,
+            'source_currency' => $quote['from'],
+            'exchange_rate' => $quote['rate'],
+            'price' => $quote['amount'],
+            'currency' => $quote['to'],
+            'qty' => $quantity,
+            'image' => $product->image,
+        ];
     }
 
     private function createOrder(User $buyer, User $seller, string $status = Order::STATUS_PENDING): Order

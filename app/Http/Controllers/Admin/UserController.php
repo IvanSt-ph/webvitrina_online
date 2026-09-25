@@ -295,10 +295,11 @@ class UserController extends Controller
             ]);
         }
 
+        $deletedEmailHash = hash('sha256', (string) $user->email);
         $user->delete();
 
         $this->activity->log('user.deleted', $user, 'Администратор удалил пользователя.', [
-            'deleted_user_email_hash' => hash('sha256', (string) $user->email),
+            'deleted_user_email_hash' => $deletedEmailHash,
             'deleted_user_role' => $user->role,
         ]);
 

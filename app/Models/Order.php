@@ -5,10 +5,34 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class Order extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order) {
+            $buyer = User::findOrFail($order->user_id);
+            $order->buyer_contact = $buyer->only(['name', 'email', 'phone']);
+        });
+    }
+
+    public function getBuyerNameAttribute(): string
+    {
+        return $this->buyer_contact['name'] ?? 'Покупатель не указан';
+    }
+
+    public function getBuyerEmailAttribute(): ?string
+    {
+        return $this->buyer_contact['email'] ?? null;
+    }
+
+    public function getBuyerPhoneAttribute(): ?string
+    {
+        return $this->buyer_contact['phone'] ?? null;
+    }
 
     /* -------------------------------------------------
      | 📌 Статусы
@@ -90,6 +114,7 @@ class Order extends Model
      |--------------------------------------------------*/
 
     protected $casts = [
+        'buyer_contact' => 'array',
         'paid_at' => 'datetime',
         'accepted_at' => 'datetime',
         'shipped_at' => 'datetime',
@@ -131,12 +156,12 @@ public function markAsPaid(): void
 
     public function user()
     {
-        return $this->belongsTo(User::class)->withDefault();
+        return $this->belongsTo(User::class)->withDefault(['name' => 'Удалённый аккаунт']);
     }
 
     public function seller()
     {
-        return $this->belongsTo(User::class, 'seller_id')->withDefault();
+        return $this->belongsTo(User::class, 'seller_id')->withDefault(['name' => 'Удалённый аккаунт']);
     }
 
     public function products()
@@ -176,7 +201,7 @@ public function markAsPaid(): void
 
     public function getFormattedTotalPriceAttribute()
     {
-        return number_format($this->total_price, 2, ',', ' ') . ' ' . $this->currency;
+        return number_format($this->total_price, 2, ',', ' ') . ' ' . Product::currencySymbol($this->currency);
     }
 
     public function getPaymentMethodLabelAttribute(): string
@@ -202,34 +227,54 @@ public function markAsPaid(): void
      | ⚙️ Логика смены статуса
      |--------------------------------------------------*/
 
-    public function setStatus(string $status): void
+    public function setStatus(string $status, ?array $allowedFrom = null): void
     {
         if (! in_array($status, self::allStatuses(), true)) {
             throw new \InvalidArgumentException("Недопустимый статус заказа: {$status}");
         }
 
-        $this->status = $status;
-        $now = now();
+        $order = $this->getConnection()->transaction(function () use ($status, $allowedFrom) {
+            // Always read persisted state under the lock, including for stale model instances.
+            $order = $this->newQuery()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            if ($order->status === $status) {
+                return $order;
+            }
 
-        switch ($status) {
-            case self::STATUS_PROCESSING:
-                $this->accepted_at ??= $now;
-                break;
+            if ($order->status === self::STATUS_CANCELED
+                || ($allowedFrom !== null && ! in_array($order->status, $allowedFrom, true))) {
+                throw ValidationException::withMessages(['status' => 'Недопустимый переход статуса.']);
+            }
 
-            case self::STATUS_SHIPPED:
-                $this->shipped_at ??= $now;
-                break;
+            if ($status === self::STATUS_CANCELED) {
+                // Include withdrawn products; account deletion must not lose their inventory.
+                foreach ($order->items()->without('product')->orderBy('product_id')->get()->groupBy('product_id') as $productId => $items) {
+                    $quantity = (int) $items->sum('quantity');
+                    if ($items->contains(fn ($item) => $item->quantity <= 0)) {
+                        throw new \RuntimeException('Некорректное количество товара в заказе.');
+                    }
+                    $product = Product::on($order->getConnectionName())->withTrashed()
+                        ->whereKey($productId)->lockForUpdate()->firstOrFail();
+                    $product->increment('stock', $quantity);
+                }
+            }
 
-            case self::STATUS_DELIVERED:
-                $this->delivered_at ??= $now;
-                break;
+            $order->status = $status;
+            $timestamp = match ($status) {
+                self::STATUS_PROCESSING => 'accepted_at',
+                self::STATUS_SHIPPED => 'shipped_at',
+                self::STATUS_DELIVERED => 'delivered_at',
+                self::STATUS_CANCELED => 'canceled_at',
+                default => null,
+            };
+            if ($timestamp !== null) {
+                $order->$timestamp ??= now();
+            }
+            $order->save();
 
-            case self::STATUS_CANCELED:
-                $this->canceled_at ??= $now;
-                break;
-        }
+            return $order;
+        }, 3);
 
-        $this->save();
+        $this->setRawAttributes($order->getAttributes(), true);
     }
 
 
@@ -240,5 +285,3 @@ public function markAsPaid(): void
 
 
 }
-
-

@@ -99,6 +99,10 @@ class OrderController extends Controller
     {
         abort_if($order->seller_id !== auth()->id(), 403);
 
+        if (! $order->user->exists) {
+            return back()->with('error', 'Аккаунт покупателя удалён. Используйте контакты, сохранённые в заказе.');
+        }
+
         $order->loadMissing(['items.product']);
         $product = $order->items
             ->map(fn ($item) => $item->product)

@@ -147,7 +147,7 @@
         @forelse(($todayQueue['orders'] ?? collect()) as $order)
           <a href="{{ route('admin.orders.show', $order) }}" class="block rounded-xl bg-white p-3 text-sm transition hover:bg-indigo-50">
             <div class="truncate font-semibold text-slate-900">#{{ $order->number }}</div>
-            <div class="mt-1 truncate text-xs text-slate-500">{{ $order->user?->name ?? 'Покупатель' }} / {{ $order->seller?->name ?? 'Продавец' }}</div>
+            <div class="mt-1 truncate text-xs text-slate-500">{{ $order->buyer_name }} / {{ $order->seller?->name ?? 'Продавец' }}</div>
           </a>
         @empty
           <div class="rounded-xl bg-white p-3 text-xs leading-5 text-slate-500">Подозрительных заказов сегодня нет.</div>
@@ -181,7 +181,7 @@
         <a href="{{ route('admin.orders.show', $order) }}" class="flex items-center justify-between gap-3 py-3 text-sm transition hover:text-indigo-700">
           <div class="min-w-0">
             <div class="truncate font-semibold text-slate-900">#{{ $order->number }}</div>
-            <div class="truncate text-xs text-slate-500">{{ $order->user?->name }} / {{ $order->seller?->name }}</div>
+            <div class="truncate text-xs text-slate-500">{{ $order->buyer_name }} / {{ $order->seller?->name }}</div>
             <div class="mt-1 flex flex-wrap gap-1">
               @if($order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true))
                 <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">запрос отмены</span>

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\BackupStorageService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use RecursiveDirectoryIterator;
@@ -14,9 +15,9 @@ class RunBackup extends Command
         {--path= : Directory where backup folders are stored}
         {--keep-days= : How many days of old backups to keep}';
 
-    protected $description = 'Create a database and public storage backup without relying on external shell dump tools.';
+    protected $description = 'Create a database, public storage, and private chat uploads backup without external shell dump tools.';
 
-    public function handle(): int
+    public function handle(BackupStorageService $storage): int
     {
         $backupPath = (string) ($this->option('path') ?: config('backup.path'));
         $keepDays = (int) ($this->option('keep-days') ?: config('backup.keep_days', 14));
@@ -28,6 +29,8 @@ class RunBackup extends Command
         $databaseGz = $workDir . DIRECTORY_SEPARATOR . 'database.sql.gz';
         $storageTar = $workDir . DIRECTORY_SEPARATOR . 'storage-public.tar';
         $storageTarGz = $workDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz';
+        $privateTar = $workDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar';
+        $privateTarGz = $workDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz';
         $manifestFile = $workDir . DIRECTORY_SEPARATOR . 'manifest.json';
         $checksumFile = $workDir . DIRECTORY_SEPARATOR . 'SHA256SUMS';
 
@@ -40,13 +43,24 @@ class RunBackup extends Command
                 throw new \RuntimeException('Не удалось создать папку backup: ' . $workDir);
             }
 
-            $this->dumpDatabase($databaseSql);
+            $databaseStats = $this->dumpDatabase($databaseSql);
             $this->gzipFile($databaseSql, $databaseGz);
             @unlink($databaseSql);
 
-            $this->archivePublicStorage($storageTar, $storageTarGz);
-            $this->writeManifest($manifestFile);
-            $this->writeChecksums($checksumFile, [$databaseGz, $storageTarGz, $manifestFile]);
+            $publicStats = $storage->archiveDirectory(
+                (string) config('filesystems.disks.public.root'),
+                'public',
+                $storageTar,
+                $storageTarGz
+            );
+            $privateStats = $storage->archiveDirectory(
+                rtrim((string) config('filesystems.disks.local.root'), '/\\') . DIRECTORY_SEPARATOR . 'chat-images',
+                'private/chat-images',
+                $privateTar,
+                $privateTarGz
+            );
+            $this->writeManifest($manifestFile, $publicStats, $privateStats, $databaseStats);
+            $this->writeChecksums($checksumFile, [$databaseGz, $storageTarGz, $privateTarGz, $manifestFile]);
             $this->removeOldBackups($backupPath, $keepDays);
 
             if (! rename($workDir, $targetDir)) {
@@ -67,10 +81,18 @@ class RunBackup extends Command
         }
     }
 
-    private function dumpDatabase(string $outputPath): void
+    private function dumpDatabase(string $outputPath): array
     {
-        $pdo = DB::connection()->getPdo();
-        $database = DB::connection()->getDatabaseName();
+        // A fresh connection must not commit a caller's transaction or use a read replica.
+        $config = DB::connection()->getConfig();
+        $config['options'][\PDO::ATTR_PERSISTENT] = false;
+        $connection = app('db.factory')->make($config);
+        $pdo = $connection->getPdo();
+        $database = $connection->getDatabaseName();
+
+        if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) !== 'mysql') {
+            throw new \RuntimeException('Consistent database backup requires MySQL/InnoDB.');
+        }
 
         if ($database === '') {
             throw new \RuntimeException('DB_DATABASE не задан.');
@@ -83,24 +105,54 @@ class RunBackup extends Command
         }
 
         try {
+            $pdo->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+            $pdo->exec('START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY');
+            $tables = $this->databaseTables($pdo, $database);
+            $rowCounts = [];
+
+            // Hold metadata locks until the transaction ends; ordinary DML remains allowed.
+            foreach ($tables as $table) {
+                $pdo->query('SELECT * FROM ' . $this->quoteIdentifier($table) . ' LIMIT 0')->closeCursor();
+            }
+            $engines = $pdo->prepare('SELECT table_name AS backup_table, engine AS backup_engine FROM information_schema.tables WHERE table_schema = ? AND table_type = ?');
+            $engines->execute([$database, 'BASE TABLE']);
+            foreach ($engines->fetchAll(\PDO::FETCH_ASSOC) as $entry) {
+                if (strcasecmp((string) $entry['backup_engine'], 'InnoDB') !== 0) {
+                    throw new \RuntimeException('Consistent backup requires InnoDB: ' . $entry['backup_table'] . ' uses ' . ($entry['backup_engine'] ?? 'unknown') . '.');
+                }
+            }
+
             fwrite($handle, "-- WebVitrina database backup\n");
             fwrite($handle, "-- Created at: " . now()->toDateTimeString() . "\n");
             fwrite($handle, "-- Database: " . $database . "\n\n");
             fwrite($handle, "SET NAMES utf8mb4;\n");
             fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
-            foreach ($this->databaseTables($pdo, $database) as $table) {
+            foreach ($tables as $table) {
                 $this->dumpTable($pdo, $handle, $table);
+                if (in_array($table, ['users', 'shops', 'products', 'categories', 'orders', 'reviews', 'ad_campaigns', 'conversations', 'messages'], true)) {
+                    $rowCounts[$table] = (int) $pdo->query('SELECT COUNT(*) FROM ' . $this->quoteIdentifier($table))->fetchColumn();
+                }
             }
 
             fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+            $pdo->commit();
         } finally {
-            fclose($handle);
+            try {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+            } finally {
+                fclose($handle);
+                $connection->disconnect();
+            }
         }
 
         if (! is_file($outputPath) || (filesize($outputPath) ?: 0) <= 0) {
             throw new \RuntimeException('Дамп БД не создан или пустой.');
         }
+
+        return ['database' => $database, 'tables_total' => count($tables), 'row_counts' => $rowCounts];
     }
 
     private function databaseTables(\PDO $pdo, string $database): array
@@ -113,7 +165,7 @@ class RunBackup extends Command
         return $statement->fetchAll(\PDO::FETCH_COLUMN) ?: [];
     }
 
-    private function dumpTable(\PDO $pdo, mixed $handle, string $table): void
+    protected function dumpTable(\PDO $pdo, mixed $handle, string $table): void
     {
         $quotedTable = $this->quoteIdentifier($table);
         $createStatement = $pdo->query('SHOW CREATE TABLE ' . $quotedTable);
@@ -202,48 +254,6 @@ class RunBackup extends Command
         gzclose($output);
     }
 
-    private function archivePublicStorage(string $tarPath, string $tarGzPath): void
-    {
-        if (is_file($tarPath)) {
-            @unlink($tarPath);
-        }
-
-        if (is_file($tarGzPath)) {
-            @unlink($tarGzPath);
-        }
-
-        $storagePublic = storage_path('app/public');
-        $archive = new \PharData($tarPath);
-        $archive->addEmptyDir('public');
-
-        if (is_dir($storagePublic)) {
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($storagePublic, RecursiveDirectoryIterator::SKIP_DOTS),
-                RecursiveIteratorIterator::SELF_FIRST
-            );
-
-            foreach ($iterator as $file) {
-                $relativePath = str_replace('\\', '/', substr($file->getPathname(), strlen($storagePublic) + 1));
-                $archivePath = 'public/' . $relativePath;
-
-                if ($file->isDir()) {
-                    $archive->addEmptyDir($archivePath);
-                } else {
-                    $archive->addFile($file->getPathname(), $archivePath);
-                }
-            }
-        }
-
-        $archive->compress(\Phar::GZ);
-        unset($archive);
-
-        @unlink($tarPath);
-
-        if (! is_file($tarGzPath) || filesize($tarGzPath) === 0) {
-            throw new \RuntimeException('Архив storage не создан или пустой.');
-        }
-    }
-
     private function writeChecksums(string $checksumFile, array $files): void
     {
         $lines = [];
@@ -255,38 +265,24 @@ class RunBackup extends Command
         file_put_contents($checksumFile, implode(PHP_EOL, $lines) . PHP_EOL);
     }
 
-    private function writeManifest(string $manifestFile): void
+    private function writeManifest(string $manifestFile, array $publicStats, array $privateStats, array $databaseStats): void
     {
-        $connection = DB::connection();
-        $pdo = $connection->getPdo();
-        $database = $connection->getDatabaseName();
-        $tables = $this->databaseTables($pdo, $database);
-        $importantTables = [
-            'users',
-            'shops',
-            'products',
-            'categories',
-            'orders',
-            'reviews',
-            'ad_campaigns',
-            'conversations',
-            'messages',
-        ];
-        $rowCounts = [];
-
-        foreach ($importantTables as $table) {
-            if (in_array($table, $tables, true)) {
-                $rowCounts[$table] = (int) $pdo
-                    ->query('SELECT COUNT(*) FROM ' . $this->quoteIdentifier($table))
-                    ->fetchColumn();
-            }
-        }
-
         file_put_contents($manifestFile, json_encode([
+            'version' => 2,
             'created_at' => now()->toIso8601String(),
-            'database' => $database,
-            'tables_total' => count($tables),
-            'row_counts' => $rowCounts,
+            ...$databaseStats,
+            'storage' => [
+                'public' => [
+                    'archive' => 'storage-public.tar.gz',
+                    'root' => 'public',
+                    ...$publicStats,
+                ],
+                'private_chat_images' => [
+                    'archive' => 'storage-private-chat-images.tar.gz',
+                    'root' => 'private/chat-images',
+                    ...$privateStats,
+                ],
+            ],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 

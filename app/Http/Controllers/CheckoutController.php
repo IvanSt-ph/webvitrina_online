@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\CurrencyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
+    public function __construct(private readonly CurrencyService $currency)
+    {
+    }
+
     private const PAYMENT_METHODS = [
         'cash' => '💵 Наличными при получении или передаче товара',
         'card' => '💳 Картой при получении (онлайн-оплата на сайте пока не выполняется)',
@@ -70,15 +75,9 @@ return redirect()
         }
 
         // Кладём "корзину для оформления" в сессию
+        $checkoutCurrency = $this->currency->checkoutCurrency(session('currency'));
         session()->put('checkout_cart', [
-            [
-                'cart_id'    => $cartItem?->id,
-                'product_id' => $product->id,
-                'title'      => $product->title,
-                'price'      => $product->price,
-                'qty'        => $qty,
-                'image'      => $product->image,
-            ]
+            $this->checkoutLine($product, $qty, $cartItem?->id, $checkoutCurrency),
         ]);
 
         return redirect()->route('checkout.confirm');
@@ -127,14 +126,13 @@ return redirect()
         }
 
         // Приводим к простому массиву для хранения в сессии
-        $cart = $items->map(fn ($i) => [
-            'cart_id'    => $i->id,
-            'product_id' => $i->product_id,
-            'title'      => $i->product->title,
-            'price'      => $i->product->price,
-            'qty'        => $i->qty,
-            'image'      => $i->product->image,
-        ])->toArray();
+        $checkoutCurrency = $this->currency->checkoutCurrency(session('currency'));
+        $cart = $items->map(fn ($i) => $this->checkoutLine(
+            $i->product,
+            (int) $i->qty,
+            $i->id,
+            $checkoutCurrency,
+        ))->toArray();
 
         session()->put('checkout_cart', $cart);
 
@@ -188,17 +186,24 @@ return redirect()
             }
         }
 
-        $cart = collect($cart)->map(function (array $item) use ($products, &$pricesUpdated) {
+        $checkoutCurrency = $this->currency->checkoutCurrency(session('currency'));
+        $cart = collect($cart)->map(function (array $item) use ($products, &$pricesUpdated, $checkoutCurrency) {
             $product = $products[$item['product_id']];
+            $updated = $this->checkoutLine(
+                $product,
+                (int) $item['qty'],
+                $item['cart_id'] ?? null,
+                $checkoutCurrency,
+            );
 
-            if ((float) $item['price'] !== (float) $product->price) {
+            if (($item['currency'] ?? null) !== $checkoutCurrency
+                || (float) ($item['source_price'] ?? -1) !== (float) $product->price
+                || ($item['source_currency'] ?? null) !== $updated['source_currency']
+                || (float) ($item['price'] ?? -1) !== $updated['price']) {
                 $pricesUpdated = true;
             }
 
-            return array_merge($item, [
-                'title' => $product->title,
-                'price' => $product->price,
-                'image' => $product->image,
+            return array_merge($updated, [
                 'seller_id' => $product->user_id,
                 'seller_name' => $product->seller->shop?->name ?: $product->seller->name,
             ]);
@@ -211,11 +216,11 @@ return redirect()
             ->map(fn ($items) => [
                 'seller_name' => $items->first()['seller_name'],
                 'items' => $items->all(),
-                'subtotal' => $items->sum(fn ($item) => $item['price'] * $item['qty']),
+                'subtotal' => $items->sum(fn ($item) => $this->lineTotal($item)),
             ])
             ->values();
 
-        $total = collect($cart)->sum(fn ($i) => $i['price'] * $i['qty']);
+        $total = collect($cart)->sum(fn ($item) => $this->lineTotal($item));
 
         $user = auth()->user()->load('addresses');
         $addresses = $user->addresses;
@@ -223,7 +228,10 @@ return redirect()
 
         // ✅ Рассчитываем итог с доставкой по умолчанию
         $defaultDelivery = 'courier';
-        $deliveryCost = self::DELIVERY_PRICES[$defaultDelivery] ?? 0;
+        $deliveryPrices = collect(self::DELIVERY_PRICES)
+            ->map(fn ($price) => $this->currency->convert((float) $price, 'PRB', $checkoutCurrency))
+            ->all();
+        $deliveryCost = $deliveryPrices[$defaultDelivery] ?? 0;
         $totalDeliveryCost = $deliveryCost * $orderGroups->count();
         $totalWithDelivery = $total + $totalDeliveryCost;
         $checkoutToken = Str::random(40);
@@ -239,11 +247,13 @@ return redirect()
             'defaultAddressId'    => $defaultAddressId,
             'paymentMethods'      => self::PAYMENT_METHODS,
             'deliveryMethods'     => self::DELIVERY_METHODS,
-            'deliveryPrices'      => self::DELIVERY_PRICES,
+            'deliveryPrices'      => $deliveryPrices,
             'totalDeliveryCost'   => $totalDeliveryCost,
             'totalWithDelivery'   => $totalWithDelivery,
             'pricesUpdated'       => $pricesUpdated,
             'checkoutToken'       => $checkoutToken,
+            'checkoutCurrency'    => $checkoutCurrency,
+            'currencySymbol'      => Product::currencySymbol($checkoutCurrency),
         ]);
     }
 
@@ -344,17 +354,35 @@ return redirect()
                 ->with('error', 'Заказ уже отправлялся или страница устарела. Проверьте итог и подтвердите оформление ещё раз.');
         }
 
-        $updatedCart = collect($cart)->map(function (array $item) use ($products) {
+        $checkoutCurrencies = collect($cart)->pluck('currency')->unique()->values();
+        if ($checkoutCurrencies->count() !== 1
+            || ! in_array($checkoutCurrencies->first(), CurrencyService::SUPPORTED, true)) {
+            session()->forget('checkout_cart');
+
+            return redirect()->route('cart.index')
+                ->with('error', 'Валюта оформления изменилась. Сформируйте заказ заново.');
+        }
+
+        $checkoutCurrency = $checkoutCurrencies->first();
+        $updatedCart = collect($cart)->map(function (array $item) use ($products, $checkoutCurrency) {
             $product = $products[$item['product_id']];
 
-            return array_merge($item, [
-                'title' => $product->title,
-                'price' => $product->price,
-                'image' => $product->image,
-            ]);
+            return $this->checkoutLine(
+                $product,
+                (int) $item['qty'],
+                $item['cart_id'] ?? null,
+                $checkoutCurrency,
+            );
         })->all();
 
-        if (collect($cart)->contains(fn ($item) => (float) $item['price'] !== (float) $products[$item['product_id']]->price)) {
+        if (collect($cart)->contains(function ($item, $key) use ($updatedCart) {
+            $updated = $updatedCart[$key];
+
+            return (float) ($item['source_price'] ?? -1) !== (float) $updated['source_price']
+                || ($item['source_currency'] ?? null) !== $updated['source_currency']
+                || (float) ($item['exchange_rate'] ?? -1) !== (float) $updated['exchange_rate']
+                || (float) ($item['price'] ?? -1) !== (float) $updated['price'];
+        })) {
             session()->put('checkout_cart', $updatedCart);
 
             return redirect()->route('checkout.confirm')
@@ -366,7 +394,11 @@ return redirect()
                 ->with('error', 'Этот заказ уже отправлен. Проверьте список заказов перед повторным оформлением.');
         }
 
-        $deliveryCost = self::DELIVERY_PRICES[$deliveryMethod];
+        $deliveryCost = $this->currency->convert(
+            (float) self::DELIVERY_PRICES[$deliveryMethod],
+            'PRB',
+            $checkoutCurrency,
+        );
 
         // Добавляем seller_id к каждой позиции (уже проверили товары выше)
         $cartWithSellers = collect($cart)->map(function ($row) use ($products) {
@@ -379,12 +411,12 @@ return redirect()
         $groups = $cartWithSellers->groupBy('seller_id');
         $createdOrders = [];
 
-        DB::transaction(function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, &$createdOrders, $userId) {
+        DB::transaction(function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, &$createdOrders, $userId, $checkoutCurrency) {
             foreach ($groups as $sellerId => $items) {
-                $total = $items->sum(fn ($i) => $i['price'] * $i['qty']);
+                $total = $items->sum(fn ($item) => $this->lineTotal($item));
                 
                 // ✅ ИТОГ С УЧЕТОМ ДОСТАВКИ
-                $totalWithDelivery = $total + $deliveryCost;
+                $totalWithDelivery = round($total + $deliveryCost, 2, PHP_ROUND_HALF_UP);
 
                 // Создаём сам заказ
                 $order = Order::create([
@@ -396,7 +428,7 @@ return redirect()
                     'number'          => Order::generateNumber(),
                     'status'          => Order::STATUS_PENDING,
                     'total_price'     => $totalWithDelivery,
-                    'currency'        => 'RUB',
+                    'currency'        => $checkoutCurrency,
                 ]);
 
                 // Позиции заказа
@@ -409,7 +441,16 @@ return redirect()
                         ]);
                     }
 
-                    if ((float) $product->price !== (float) $i['price']) {
+                    $lockedQuote = $this->currency->quote(
+                        (float) $product->price,
+                        Product::normalizeCurrencyCode($product->currency_base),
+                        $checkoutCurrency,
+                    );
+
+                    if ((float) $product->price !== (float) $i['source_price']
+                        || $lockedQuote['from'] !== $i['source_currency']
+                        || $lockedQuote['amount'] !== (float) $i['price']
+                        || $lockedQuote['rate'] !== (float) $i['exchange_rate']) {
                         throw ValidationException::withMessages([
                             'price' => 'Цена товара изменилась. Вернитесь к подтверждению заказа и проверьте актуальную сумму.',
                         ]);
@@ -422,7 +463,10 @@ return redirect()
                         'product_id' => $i['product_id'],
                         'quantity'   => $i['qty'],
                         'price'      => $i['price'],
-                        'total'      => $i['price'] * $i['qty'],
+                        'total'      => $this->lineTotal($i),
+                        'source_price' => $i['source_price'],
+                        'source_currency' => $i['source_currency'],
+                        'exchange_rate' => $i['exchange_rate'],
                     ]);
 
                     // Удаляем исходную запись из корзины
@@ -448,5 +492,31 @@ return redirect()
         return redirect()->route('orders.index')
             ->with('success', 'Создано заказов: ' . count($createdOrders));
     }
-}
 
+    private function checkoutLine(Product $product, int $quantity, ?int $cartId, string $currency): array
+    {
+        $quote = $this->currency->quote(
+            (float) $product->price,
+            Product::normalizeCurrencyCode($product->currency_base),
+            $currency,
+        );
+
+        return [
+            'cart_id' => $cartId,
+            'product_id' => $product->id,
+            'title' => $product->title,
+            'source_price' => round((float) $product->price, 2, PHP_ROUND_HALF_UP),
+            'source_currency' => $quote['from'],
+            'exchange_rate' => $quote['rate'],
+            'price' => $quote['amount'],
+            'currency' => $quote['to'],
+            'qty' => $quantity,
+            'image' => $product->image,
+        ];
+    }
+
+    private function lineTotal(array $item): float
+    {
+        return round((float) $item['price'] * (int) $item['qty'], 2, PHP_ROUND_HALF_UP);
+    }
+}

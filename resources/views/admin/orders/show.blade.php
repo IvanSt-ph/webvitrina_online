@@ -24,10 +24,10 @@
             ['label' => '#' . $order->number],
         ]" />
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.users.show', $order->user) }}" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
+            <a @if($order->user->exists) href="{{ route('admin.users.show', $order->user) }}" @endif class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
                 <i class="ri-user-line"></i> Покупатель
             </a>
-            <a href="{{ route('admin.users.show', $order->seller) }}" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
+            <a @if($order->seller->exists) href="{{ route('admin.users.show', $order->seller) }}" @endif class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
                 <i class="ri-store-2-line"></i> Продавец
             </a>
         </div>
@@ -130,8 +130,8 @@
                                 <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><i class="{{ $participant['icon'] }}"></i></div>
                                 <div class="min-w-0">
                                     <div class="text-xs text-slate-400">{{ $participant['label'] }}</div>
-                                    <a href="{{ route('admin.users.show', $participant['user']) }}" class="font-semibold text-slate-900 hover:text-indigo-700">{{ $participant['user']?->name ?? 'Не найден' }}</a>
-                                    <div class="truncate text-xs text-slate-500">{{ $participant['user']?->email }}</div>
+                                    <a @if($participant['user']->exists) href="{{ route('admin.users.show', $participant['user']) }}" @endif class="font-semibold text-slate-900 hover:text-indigo-700">{{ $loop->first ? $order->buyer_name : ($participant['user']?->name ?? 'Не найден') }}</a>
+                                    <div class="truncate text-xs text-slate-500">{{ $loop->first ? $order->buyer_email : $participant['user']?->email }}</div>
                                 </div>
                             </div>
                         @endforeach

@@ -64,9 +64,9 @@ php artisan queue:failed
 
 ## 5. Настроить backup
 
-Backup должен включать БД и `storage/app/public`.
+Backup должен включать БД, `storage/app/public` и `storage/app/private/chat-images`.
 
-Встроенная команда создаёт архивы БД и файлов, `manifest.json` и `SHA256SUMS`:
+Встроенная команда создаёт архив БД, отдельные архивы public storage и private chat images, `manifest.json` и `SHA256SUMS`:
 
 ```bash
 php artisan backup:run
