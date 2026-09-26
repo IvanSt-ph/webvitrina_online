@@ -268,5 +268,4 @@
     </form>
 </section>
 
-{{-- 🔹 Alpine.js для анимаций --}}
-<script src="//unpkg.com/alpinejs" defer></script>
+{{-- Alpine is provided by the seller layout Vite bundle. --}}

@@ -168,7 +168,7 @@
     </div>
 
   </div>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  {{-- Alpine is initialized once by resources/js/app.js via Vite. --}}
 
 </body>
 </html>

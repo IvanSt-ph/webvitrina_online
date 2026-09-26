@@ -48,7 +48,7 @@
 @once
     @push('styles')
         {{-- Leaflet CSS --}}
-        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
         <style>
             .leaflet-control-attribution {
@@ -72,7 +72,7 @@
 
     @push('scripts')
         {{-- Leaflet JS --}}
-        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
         <script>
             window.initProductMap = window.initProductMap || function (el) {
