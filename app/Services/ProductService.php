@@ -138,6 +138,14 @@ class ProductService
                 return false;
             }
 
+            // Keep a current read under the product lock, even in an outer transaction.
+            // Historical products must never enter the destructive image lifecycle.
+            if ($product->orderItems()->lockForUpdate()->exists()) {
+                Log::info('Product purge skipped: required by order history', ['product_id' => $product->id]);
+
+                return false;
+            }
+
             $files = new ProductImageOperation($this->images, DB::connection());
             foreach (array_filter([$product->image, ...(array) $product->gallery]) as $path) {
                 $files->deleteAfterCommit($path);
