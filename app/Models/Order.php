@@ -11,11 +11,33 @@ class Order extends Model
 {
     use HasFactory;
 
+    public function save(array $options = [])
+    {
+        if ($this->exists && $this->isDirty('address_snapshot')) {
+            throw new \LogicException('Order address snapshot is immutable.');
+        }
+
+        return parent::save($options);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Order $order) {
             $buyer = User::findOrFail($order->user_id);
             $order->buyer_contact = $buyer->only(['name', 'email', 'phone']);
+            $address = null;
+            if ($order->address_id !== null) {
+                $address = UserAddress::whereKey($order->address_id)
+                    ->where('user_id', $buyer->id)->lockForUpdate()->first();
+                if (! $address) {
+                    throw ValidationException::withMessages(['address_id' => 'Выберите адрес из своего профиля.']);
+                }
+            }
+            // Always derive from persisted server data, never from a supplied snapshot.
+            $order->address_snapshot = $address ? array_merge(
+                $address->only(['country', 'city', 'street', 'house', 'entrance', 'apartment', 'postal_code', 'comment']),
+                ['full' => $address->full],
+            ) : ['full' => $order->delivery_address, 'comment' => null];
         });
     }
 
@@ -114,6 +136,7 @@ class Order extends Model
      |--------------------------------------------------*/
 
     protected $casts = [
+        'address_snapshot' => 'array',
         'buyer_contact' => 'array',
         'paid_at' => 'datetime',
         'accepted_at' => 'datetime',

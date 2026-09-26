@@ -90,7 +90,7 @@ class OrderController extends Controller
     {
         abort_if($order->seller_id !== auth()->id(), 403);
 
-        $order->loadMissing(['user', 'items.product', 'address']);
+        $order->loadMissing(['user', 'items.product']);
 
         return view('seller.orders.show', compact('order'));
     }

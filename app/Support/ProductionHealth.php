@@ -17,6 +17,10 @@ class ProductionHealth
 
     public const NOT_CHECKED = 'not_checked';
 
+    public const WARNING = 'warning';
+
+    public const SCHEDULER_CACHE_KEY = 'production-health:scheduler-last-run';
+
     private const QUEUE_HEALTH_MAX_AGE_MINUTES = 15;
 
     private const MAX_LOG_BYTES_PER_FILE = 1048576;
@@ -54,7 +58,9 @@ class ProductionHealth
                     self::itemFromCheck('Хранилище связано', $storage),
                     self::itemFromCheck('Sitemap доступен', $sitemap),
                     self::itemFromCheck('Robots доступен', $robots),
-                    self::item('Scheduler включён', self::NOT_CHECKED, 'не проверено', 'На сервере вручную подтвердите запуск php artisan schedule:run каждую минуту.'),
+                    self::itemFromCheck('Scheduler включён', self::scheduler()),
+                    self::itemFromCheck('Failed jobs отсутствуют', self::failedJobs()),
+                    self::itemFromCheck('Рабочие каталоги доступны для записи', self::writable()),
                     self::itemFromCheck('Бэкапы БД и файлов свежие', $backup),
                     self::itemFromCheck('Ошибок за 24 часа нет', $errors),
                 ],
@@ -89,9 +95,155 @@ class ProductionHealth
             'done' => $flat->where('ok', true)->count(),
             'failed' => $flat->where('status', self::FAIL)->count(),
             'not_checked' => $flat->where('status', self::NOT_CHECKED)->count(),
-            'checked' => $flat->whereIn('status', [self::PASS, self::FAIL])->count(),
+            'checked' => $flat->whereIn('status', [self::PASS, self::WARNING, self::FAIL])->count(),
             'total' => $flat->count(),
         ];
+    }
+
+    /** Operational checks deliberately exclude manual release/business checks. */
+    public function operational(): array
+    {
+        $checks = [];
+        foreach ([
+            'application' => fn () => self::result(! app()->isDownForMaintenance(), 'Application booted; maintenance mode must be off.'),
+            'database' => fn () => self::database(),
+            'scheduler' => fn () => self::scheduler(),
+            'queue' => function () use (&$checks) {
+                return self::queue($checks['database']['ok'] ?? false);
+            },
+            'failed_jobs' => fn () => self::failedJobs(),
+            'backup' => fn () => self::backup(),
+            'disk' => fn () => self::disk(),
+            'writable' => fn () => self::writable(),
+            'storage_link' => fn () => self::storage(),
+            'logging' => fn () => self::logging(),
+            'log_size' => fn () => self::logSize(),
+            'recent_errors' => fn () => self::recentErrors(),
+        ] as $name => $probe) {
+            try {
+                $check = $probe();
+                $check['status'] = self::status($check);
+                if (in_array($name, ['log_size', 'recent_errors'], true) && ! $check['ok']) {
+                    $check['status'] = self::WARNING;
+                }
+                $checks[$name] = $check;
+            } catch (\Throwable) {
+                $checks[$name] = self::result(false, 'Check unavailable: '.$name);
+            }
+        }
+
+        return $checks;
+    }
+
+    private static function result(bool $ok, string $detail): array
+    {
+        return ['ok' => $ok, 'status' => $ok ? self::PASS : self::FAIL, 'value' => $ok ? 'OK' : 'unavailable', 'detail' => $detail];
+    }
+
+    private static function scheduler(): array
+    {
+        try {
+            if (! self::persistentCache()) {
+                return self::result(false, 'Scheduler heartbeat requires a shared persistent cache store.');
+            }
+            $value = Cache::get(self::SCHEDULER_CACHE_KEY);
+            if (! is_string($value) || $value === '') {
+                return self::result(false, 'Scheduler heartbeat missing; schedule:run has not been confirmed.');
+            }
+            $lastRun = Carbon::parse($value);
+            $fresh = $lastRun->betweenIncluded(now()->subMinutes(max(1, (int) config('health.scheduler_max_age_minutes', 5))), now()->addMinute());
+
+            return self::result($fresh, 'Scheduler last ran: '.$lastRun->toIso8601String().($fresh ? '' : ' (stale or invalid clock).'));
+        } catch (\Throwable) {
+            return self::result(false, 'Scheduler heartbeat unavailable or invalid.');
+        }
+    }
+
+    public static function persistentCache(): bool
+    {
+        return in_array(config('cache.stores.'.config('cache.default').'.driver'), ['database', 'file', 'redis', 'memcached', 'dynamodb'], true);
+    }
+
+    private static function failedJobs(): array
+    {
+        try {
+            if (! in_array(config('queue.failed.driver'), ['database', 'database-uuids'], true)) {
+                return self::result(false, 'Failed job storage is disabled or unsupported by this check.');
+            }
+            $count = DB::connection(config('queue.failed.database'))->table(config('queue.failed.table', 'failed_jobs'))->count();
+
+            return self::result($count === 0, 'Failed jobs: '.$count.'. Records require operator review; nothing is deleted.');
+        } catch (\Throwable) {
+            return self::result(false, 'Failed jobs cannot be read.');
+        }
+    }
+
+    private static function writable(): array
+    {
+        return app(\App\Services\BackupWriteBarrier::class)->run(fn () => self::writableUnderBarrier());
+    }
+
+    private static function writableUnderBarrier(): array
+    {
+        $paths = [storage_path('app/public'), storage_path('app/private'), storage_path('framework/cache/data'), storage_path('framework/sessions'), storage_path('framework/views'), storage_path('logs'), base_path('bootstrap/cache'), (string) config('backup.path')];
+        foreach (self::laravelLogPaths() as $logPath) {
+            $paths[] = dirname($logPath);
+            if (is_file($logPath) && ! is_writable($logPath)) {
+                return self::result(false, 'Log file is not writable: '.$logPath);
+            }
+        }
+        foreach (array_unique($paths) as $path) {
+            if (! is_dir($path) || ! is_writable($path)) {
+                return self::result(false, 'Directory missing or not writable: '.$path);
+            }
+            // Only touch a uniquely owned probe file, never an existing log or upload.
+            $probe = $path.DIRECTORY_SEPARATOR.'.health-'.bin2hex(random_bytes(12));
+            try {
+                if (@file_put_contents($probe, 'health', LOCK_EX) !== 6) {
+                    return self::result(false, 'Cannot write to directory: '.$path);
+                }
+            } finally {
+                if (is_file($probe)) {
+                    @unlink($probe);
+                }
+            }
+        }
+
+        return self::result(true, 'Runtime, backup and logging directories are writable.');
+    }
+
+    private static function logging(): array
+    {
+        $names = [(string) config('logging.default')];
+        $seen = [];
+        $sinks = 0;
+        while ($names !== []) {
+            $name = array_pop($names);
+            if (isset($seen[$name])) {
+                continue;
+            }
+            $seen[$name] = true;
+            $driver = config("logging.channels.{$name}.driver");
+            if ($driver === 'stack') {
+                $children = config("logging.channels.{$name}.channels", []);
+                if ($children === []) {
+                    return self::result(false, 'Empty logging stack.');
+                }
+                $names = array_merge($names, $children);
+            } elseif (! $driver || $driver === 'null'
+                || config("logging.channels.{$name}.handler") === \Monolog\Handler\NullHandler::class
+                || ($driver === 'daily' && (int) config("logging.channels.{$name}.days") < 1)) {
+                return self::result(false, 'Logging configuration unavailable or retention is unlimited.');
+            } elseif ($driver === 'single') {
+                return self::result(false, 'Single log has no application rotation; configure LOG_STACK=daily.');
+            } else {
+                $sinks++;
+            }
+        }
+
+        return self::result($sinks > 0, $sinks > 0
+            ? 'Logging configured; external transports/rotation require server monitoring.'
+            : 'Logging stack has no output channel.');
     }
 
     private static function itemFromCheck(string $label, array $check): array
@@ -129,7 +281,11 @@ class ProductionHealth
 
     private static function backup(): array
     {
-        $backup = BackupHealth::latest();
+        try {
+            $backup = BackupHealth::latest();
+        } catch (\Throwable) {
+            return self::result(false, 'Backup validation unavailable.');
+        }
 
         return [
             'ok' => $backup['ok'],
@@ -167,22 +323,32 @@ class ProductionHealth
 
     private static function disk(): array
     {
-        $path = base_path();
-        $free = disk_free_space($path);
-        $total = disk_total_space($path);
-        $freeBytes = is_int($free) || is_float($free) ? (float) $free : null;
-        $totalBytes = is_int($total) || is_float($total) ? (float) $total : null;
-        $minimumFreeBytes = 1024 * 1024 * 1024;
-        $ok = $freeBytes !== null && $freeBytes >= $minimumFreeBytes;
+        $status = self::PASS;
+        $details = [];
+        $minimum = null;
+        foreach (array_unique([base_path(), storage_path(), (string) config('backup.path')]) as $path) {
+            try {
+                $free = app(DiskSpace::class)->free($path);
+            } catch (\Throwable) {
+                $free = false;
+            }
+            if ($free === false || $free < 0 || ! is_finite($free)) {
+                $status = self::FAIL;
+                $details[] = $path.': disk space unavailable';
+                continue;
+            }
+            $minimum = $minimum === null ? $free : min($minimum, $free);
+            $details[] = $path.': '.self::formatBytes($free);
+            if ($free < (int) config('health.disk_critical_bytes', 268435456)) {
+                $status = self::FAIL;
+            } elseif ($status === self::PASS && $free < (int) config('health.disk_warning_bytes', 1073741824)) {
+                $status = self::WARNING;
+            }
+        }
 
-        return [
-            'ok' => $ok,
-            'value' => $freeBytes !== null ? 'Свободно: ' . self::formatBytes($freeBytes) : 'неизвестно',
-            'detail' => $totalBytes !== null
-                ? 'Всего на разделе: ' . self::formatBytes($totalBytes) . '. Предупреждение ниже 1 GB свободного места.'
-                : 'Не удалось определить размер диска для ' . $path,
-            'icon' => 'ri-hard-drive-3-line',
-        ];
+        return ['ok' => $status === self::PASS, 'status' => $status,
+            'value' => 'Свободно: '.($minimum === null ? 'неизвестно' : self::formatBytes($minimum)),
+            'detail' => implode('; ', $details), 'icon' => 'ri-hard-drive-3-line'];
     }
 
     private static function logSize(?array $logPaths = null): array
@@ -283,13 +449,13 @@ class ProductionHealth
                 ];
             }
 
-            if ($lastFailure->greaterThan($lastSuccess)) {
+            if ($lastFailure->greaterThanOrEqualTo($lastSuccess)) {
                 return self::failedQueueResult($lastFailureValue, $lastSuccess);
             }
         }
 
         $lastSuccessText = $lastSuccess->format('d.m.Y H:i:s');
-        $isFresh = $lastSuccess->greaterThanOrEqualTo(now()->subMinutes(self::QUEUE_HEALTH_MAX_AGE_MINUTES));
+        $isFresh = $lastSuccess->betweenIncluded(now()->subMinutes(self::QUEUE_HEALTH_MAX_AGE_MINUTES), now()->addMinute());
         $status = $isFresh && ($failed === null || $failed === 0) ? self::PASS : self::FAIL;
         $parts = ['Последняя успешная проверка worker: ' . $lastSuccessText . '.'];
 

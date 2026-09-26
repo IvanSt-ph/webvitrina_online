@@ -70,7 +70,13 @@ class ImageService
                 throw new \RuntimeException('Не удалось сохранить обработанное изображение.');
             }
         } catch (\Throwable $exception) {
-            Storage::disk('public')->delete([$mediumPath, $thumbPath]);
+            try {
+                $this->delete($mediumPath, throwOnFailure: true);
+            } catch (\Throwable $cleanupException) {
+                Log::error('Image upload cleanup failed; retry required', [
+                    'path' => $mediumPath, 'error' => $cleanupException->getMessage(),
+                ]);
+            }
 
             throw $exception;
         }
@@ -121,7 +127,7 @@ class ImageService
     /**
      * 🧹 Удаление одной картинки (С ЗАЩИТОЙ - только точное совпадение)
      */
-    public function delete(?string $path): void
+    public function delete(?string $path, bool $throwOnFailure = false): void
     {
         if (empty($path)) {
             return;
@@ -140,15 +146,21 @@ class ImageService
             return;
         }
 
-        if (Storage::disk('public')->exists($clean)) {
-            Storage::disk('public')->delete($clean);
-            Log::info("✅ ImageService: удалено: {$clean}");
+        $failed = [];
+        foreach (array_unique([$clean, self::thumbPath($clean)]) as $file) {
+            try {
+                if (Storage::disk('public')->exists($file) && ! Storage::disk('public')->delete($file)) {
+                    $failed[] = $file;
+                }
+            } catch (\Throwable $exception) {
+                $failed[] = $file;
+            }
         }
-
-        $thumb = self::thumbPath($clean);
-        if ($thumb !== $clean && Storage::disk('public')->exists($thumb)) {
-            Storage::disk('public')->delete($thumb);
-            Log::info("✅ ImageService: удалена миниатюра: {$thumb}");
+        if ($failed) {
+            if ($throwOnFailure) {
+                throw new \RuntimeException('Image cleanup failed: ' . implode(', ', $failed));
+            }
+            Log::error('Image cleanup failed; retry required', ['paths' => $failed]);
         }
     }
 

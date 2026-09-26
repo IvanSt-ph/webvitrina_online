@@ -589,7 +589,7 @@ public function redirectToRoleProfile()
             $orders = Order::whereHas('items.product', fn ($q) =>
                 $q->where('user_id', $user->id)
             )
-            ->with(['items.product.category', 'items.product.city.country', 'address'])
+            ->with(['items.product.category', 'items.product.city.country'])
             ->latest()
             ->paginate(10);
 

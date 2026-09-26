@@ -65,15 +65,17 @@ class AccountDeletionTest extends TestCase
 
         $this->actingAs($buyer)->delete('/profile', ['password' => 'password'])->assertRedirect('/');
         foreach ($orders as $order) {
-            $this->assertSame($before[$order->id]['order'], $order->fresh()->getRawOriginal());
+            $expectedOrder = $before[$order->id]['order'];
+            $expectedOrder['address_id'] = null;
+            $this->assertSame($expectedOrder, $order->fresh()->getRawOriginal());
             $this->assertSame($before[$order->id]['item'], $order->items()->first()->getRawOriginal());
             $this->assertSame(7, $order->items()->first()->product->stock);
         }
-        $this->assertDatabaseHas('user_addresses', ['id' => $address->id]);
+        $this->assertDatabaseMissing('user_addresses', ['id' => $address->id]);
         $completed = $orders->firstWhere('status', Order::STATUS_COMPLETED);
         $this->actingAs($seller)->get(route('seller.orders.show', $completed))->assertOk()->assertSee('Original Buyer')->assertSee('Order street')->assertDontSee('Changed Profile');
         $this->get(route('seller.orders.index'))->assertOk()->assertSee('Original Buyer');
-        $this->actingAs($admin)->get(route('admin.orders.show', $completed))->assertOk()->assertSee('Original Buyer');
+        $this->actingAs($admin)->get(route('admin.orders.show', $completed))->assertOk()->assertSee('Original Buyer')->assertSee('Order street');
         $this->get(route('admin.orders.index'))->assertOk()->assertSee('Original Buyer');
         $this->actingAs($seller)->post(route('seller.orders.chat.buyer', $completed))->assertRedirect()->assertSessionHas('error');
         $pending = $orders->firstWhere('status', Order::STATUS_PENDING);

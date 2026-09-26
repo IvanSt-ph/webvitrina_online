@@ -13,7 +13,7 @@
     $percent = $checked > 0 ? round(($done / $checked) * 100) : 0;
     $attentionItems = collect($checks)
         ->flatMap(fn ($group) => collect($group['items'])
-            ->where('status', \App\Support\ProductionHealth::FAIL)
+            ->whereIn('status', [\App\Support\ProductionHealth::FAIL, \App\Support\ProductionHealth::WARNING])
             ->map(fn ($item) => $item + ['group' => $group['group']]))
         ->values();
     $groupAnchors = [

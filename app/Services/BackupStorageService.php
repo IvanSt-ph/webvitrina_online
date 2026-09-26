@@ -75,114 +75,117 @@ class BackupStorageService
         try {
             while (! feof($input)) {
                 $chunk = fread($input, 1024 * 1024);
-                if ($chunk === false || gzwrite($output, $chunk) === false) {
+                if ($chunk === false || gzwrite($output, $chunk) !== strlen($chunk)) {
                     throw new \RuntimeException('Не удалось сжать storage archive.');
                 }
             }
         } finally {
             fclose($input);
-            gzclose($output);
+            if (! gzclose($output)) {
+                throw new \RuntimeException('Cannot finalize storage gzip.');
+            }
         }
     }
 
     public function restore(string $backupDirectory, string $publicRoot, string $privateRoot): void
     {
-        $health = BackupHealth::inspectDirectory($backupDirectory, true);
+        app(BackupWriteBarrier::class)->run(
+            fn () => $this->restoreProtected($backupDirectory, $publicRoot, $privateRoot),
+            exclusive: true,
+        );
+    }
 
+    private function restoreProtected(string $backupDirectory, string $publicRoot, string $privateRoot): void
+    {
+        $health = BackupHealth::inspectDirectory($backupDirectory, true);
         if (! $health['ok']) {
             throw new \RuntimeException('Backup неполный или повреждён: ' . implode(' ', $health['issues']));
         }
-
-        $parent = dirname($publicRoot);
-        if ($parent !== dirname($privateRoot)) {
-            throw new \RuntimeException('Public и private storage должны иметь общий родительский каталог.');
+        [$publicRoot, $privateRoot] = app(RestoreDestination::class)->storageRoots($publicRoot, $privateRoot, $backupDirectory);
+        if (dirname($publicRoot) !== dirname($privateRoot) || $publicRoot === $privateRoot) {
+            throw new \RuntimeException('Public и private storage должны иметь разные имена и общий родительский каталог.');
         }
-
-        $stage = $parent . DIRECTORY_SEPARATOR . '.backup-restore-' . Str::uuid();
-        $previousPublic = $stage . DIRECTORY_SEPARATOR . '.previous-public';
-        $previousChatImages = $stage . DIRECTORY_SEPARATOR . '.previous-chat-images';
-        $publicInstalled = false;
-        $privateInstalled = false;
-
+        $stage = dirname($publicRoot) . DIRECTORY_SEPARATOR . '.backup-restore-' . Str::uuid();
+        if (! mkdir($stage, 0700)) {
+            throw new \RuntimeException('Cannot create restore staging directory: ' . $stage);
+        }
+        $roots = [
+            ['live' => $publicRoot, 'new' => $stage . '/public', 'old' => $stage . '/.previous-public', 'saved' => false, 'installed' => false],
+            ['live' => $privateRoot . '/chat-images', 'new' => $stage . '/private/chat-images', 'old' => $stage . '/.previous-chat-images', 'saved' => false, 'installed' => false],
+        ];
         try {
-            if (! mkdir($stage, 0700, true) && ! is_dir($stage)) {
-                throw new \RuntimeException('Не удалось создать временный каталог восстановления.');
+            $this->extractArchive($backupDirectory . '/storage-public.tar.gz', $stage, 'public');
+            $this->extractArchive($backupDirectory . '/storage-private-chat-images.tar.gz', $stage, 'private/chat-images');
+            foreach ($roots as $root) {
+                if (! is_dir($root['new'])) {
+                    throw new \RuntimeException('Missing required archive directory: ' . $root['new']);
+                }
             }
-
-            $this->extractArchive(
-                $backupDirectory . DIRECTORY_SEPARATOR . 'storage-public.tar.gz',
-                $stage,
-                'public'
-            );
-            $this->extractArchive(
-                $backupDirectory . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz',
-                $stage,
-                'private/chat-images'
-            );
-
-            $stagedPublic = $stage . DIRECTORY_SEPARATOR . 'public';
-            $stagedChatImages = $stage . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'chat-images';
-            $chatImagesRoot = $privateRoot . DIRECTORY_SEPARATOR . 'chat-images';
-
-            if (! is_dir($stagedPublic) || ! is_dir($stagedChatImages)) {
-                throw new \RuntimeException('В архивах отсутствуют обязательные каталоги storage.');
+            if (! is_dir($privateRoot) && ! mkdir($privateRoot, 0750)) {
+                throw new \RuntimeException('Cannot create private storage: ' . $privateRoot);
             }
-
-            if (is_dir($publicRoot) && ! rename($publicRoot, $previousPublic)) {
-                throw new \RuntimeException('Не удалось подготовить public storage к восстановлению.');
+            foreach ($roots as &$root) {
+                if (file_exists($root['live']) || is_link($root['live'])) {
+                    $this->moveDirectory($root['live'], $root['old']);
+                    $root['saved'] = true;
+                }
+                $this->moveDirectory($root['new'], $root['live']);
+                $root['installed'] = true;
             }
-
-            if (! rename($stagedPublic, $publicRoot)) {
-                throw new \RuntimeException('Не удалось установить восстановленный public storage.');
+            unset($root);
+            $this->applyPrivatePermissions($privateRoot . '/chat-images');
+        } catch (\Throwable $original) {
+            unset($root);
+            $failures = [];
+            foreach (array_reverse($roots) as $root) {
+                try {
+                    // Move new files aside; preserve the old copy until rollback succeeds.
+                    if ($root['installed']) {
+                        $this->moveDirectory($root['live'], $root['new']);
+                    }
+                    if ($root['saved']) {
+                        $this->moveDirectory($root['old'], $root['live']);
+                    }
+                } catch (\Throwable $rollback) {
+                    $failures[] = $root['live'] . ': ' . $rollback->getMessage();
+                }
             }
-            $publicInstalled = true;
-
-            if (! is_dir($privateRoot) && ! mkdir($privateRoot, 0750, true) && ! is_dir($privateRoot)) {
-                throw new \RuntimeException('Не удалось подготовить private storage.');
+            if ($failures !== []) {
+                throw new \RuntimeException($original->getMessage() . '; ROLLBACK FAILED. Preserve recovery directory ' . $stage
+                    . '; restore .previous-public / .previous-chat-images to the reported roots after stopping writers. '
+                    . implode('; ', $failures), 0, $original);
             }
-
-            if (is_dir($chatImagesRoot) && ! rename($chatImagesRoot, $previousChatImages)) {
-                throw new \RuntimeException('Не удалось подготовить private chat images к восстановлению.');
+            try {
+                $this->removeDirectory($stage);
+            } catch (\Throwable $cleanup) {
+                throw new \RuntimeException($original->getMessage() . '; rollback completed, cleanup failed at ' . $stage . ': ' . $cleanup->getMessage(), 0, $original);
             }
-
-            if (! rename($stagedChatImages, $chatImagesRoot)) {
-                throw new \RuntimeException('Не удалось установить восстановленные private chat images.');
-            }
-            $privateInstalled = true;
-
-            $this->applyPrivatePermissions($chatImagesRoot);
-            $this->removeDirectory($previousPublic);
-            $this->removeDirectory($previousChatImages);
-        } catch (\Throwable $exception) {
-            $chatImagesRoot = $privateRoot . DIRECTORY_SEPARATOR . 'chat-images';
-
-            if ($privateInstalled) {
-                $this->removeDirectory($chatImagesRoot);
-            }
-            if (is_dir($previousChatImages)) {
-                @rename($previousChatImages, $chatImagesRoot);
-            }
-
-            if ($publicInstalled) {
-                $this->removeDirectory($publicRoot);
-            }
-            if (is_dir($previousPublic)) {
-                @rename($previousPublic, $publicRoot);
-            }
-
-            throw $exception;
-        } finally {
+            throw $original;
+        }
+        // Commit point: cleanup failure must not roll back partially removed old copies.
+        try {
             $this->removeDirectory($stage);
+        } catch (\Throwable $cleanup) {
+            throw new \RuntimeException('Restore installed successfully, but cleanup failed. Keep active storage; inspect ' . $stage . ': ' . $cleanup->getMessage(), 0, $cleanup);
         }
     }
 
-    private function extractArchive(string $archivePath, string $destination, string $requiredRoot): void
+    protected function moveDirectory(string $source, string $target): void
+    {
+        if (! rename($source, $target)) {
+            throw new \RuntimeException('Cannot rename ' . $source . ' to ' . $target);
+        }
+    }
+    protected function extractArchive(string $archivePath, string $destination, string $requiredRoot): void
     {
         $archive = new \PharData($archivePath);
-        $prefix = str_replace('\\', '/', $archivePath) . '/';
+        $prefix = str_replace('\\', '/', realpath($archivePath)) . '/';
         $foundRoot = false;
 
         foreach (new RecursiveIteratorIterator($archive, RecursiveIteratorIterator::SELF_FIRST) as $file) {
+            if ($file->isLink()) {
+                throw new \RuntimeException('Archive links are not permitted.');
+            }
             $path = str_replace('\\', '/', $file->getPathname());
             $entry = str_starts_with($path, 'phar://') ? substr($path, strlen('phar://')) : $path;
             $entry = str_starts_with($entry, $prefix) ? substr($entry, strlen($prefix)) : basename($entry);
@@ -208,9 +211,11 @@ class BackupStorageService
         $archive->extractTo($destination, null, true);
     }
 
-    private function applyPrivatePermissions(string $directory): void
+    protected function applyPrivatePermissions(string $directory): void
     {
-        @chmod($directory, 0750);
+        if (! chmod($directory, 0750)) {
+            throw new \RuntimeException('Cannot set private permissions: ' . $directory);
+        }
 
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -218,11 +223,13 @@ class BackupStorageService
         );
 
         foreach ($iterator as $file) {
-            @chmod($file->getPathname(), $file->isDir() ? 0750 : 0640);
+            if (! chmod($file->getPathname(), $file->isDir() ? 0750 : 0640)) {
+                throw new \RuntimeException('Cannot set private permissions: ' . $file->getPathname());
+            }
         }
     }
 
-    private function removeDirectory(string $directory): void
+    protected function removeDirectory(string $directory): void
     {
         if (! is_dir($directory)) {
             return;
@@ -234,9 +241,14 @@ class BackupStorageService
         );
 
         foreach ($iterator as $file) {
-            $file->isDir() ? @rmdir($file->getPathname()) : @unlink($file->getPathname());
+            $ok = $file->isDir() && ! $file->isLink() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+            if (! $ok) {
+                throw new \RuntimeException('Cannot remove restore artifact: ' . $file->getPathname());
+            }
         }
 
-        @rmdir($directory);
+        if (! rmdir($directory)) {
+            throw new \RuntimeException('Cannot remove restore directory: ' . $directory);
+        }
     }
 }

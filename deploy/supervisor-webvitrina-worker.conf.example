@@ -8,6 +8,8 @@ user=www-data
 numprocs=1
 redirect_stderr=true
 stdout_logfile=/var/www/webvitrina/storage/logs/worker.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=5
 stopwaitsecs=3600
 
 ; After installing/reloading Supervisor, verify the worker:

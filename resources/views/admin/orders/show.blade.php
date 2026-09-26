@@ -114,9 +114,9 @@
                         <div class="flex justify-between gap-3"><dt class="text-slate-500">Оплата</dt><dd class="text-right font-semibold text-slate-800">{{ $order->payment_method_label }}</dd></div>
                         <div class="border-t border-slate-100 pt-3">
                             <dt class="text-slate-500">Адрес</dt>
-                            <dd class="mt-1 break-words font-semibold text-slate-800">{{ $order->delivery_address ?: ($order->address?->full ?: 'Адрес не заполнен') }}</dd>
-                            @if(filled($order->address?->comment))
-                                <p class="mt-2 text-xs text-slate-500">{{ $order->address->comment }}</p>
+                            <dd class="mt-1 break-words font-semibold text-slate-800">{{ ($order->address_snapshot['full'] ?? null) ?: 'Адрес не заполнен' }}</dd>
+                            @if(filled(($order->address_snapshot['comment'] ?? null)))
+                                <p class="mt-2 text-xs text-slate-500">{{ $order->address_snapshot['comment'] }}</p>
                             @endif
                         </div>
                     </dl>

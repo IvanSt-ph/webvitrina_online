@@ -19,6 +19,16 @@ class RunBackup extends Command
 
     public function handle(BackupStorageService $storage): int
     {
+        try {
+            return app(\App\Services\BackupWriteBarrier::class)->run(fn () => $this->createBackup($storage), exclusive: true);
+        } catch (Throwable $exception) {
+            $this->error($exception->getMessage());
+            return self::FAILURE;
+        }
+    }
+
+    private function createBackup(BackupStorageService $storage): int
+    {
         $backupPath = (string) ($this->option('path') ?: config('backup.path'));
         $keepDays = (int) ($this->option('keep-days') ?: config('backup.keep_days', 14));
         $stamp = now()->format('Ymd-His');
@@ -33,15 +43,17 @@ class RunBackup extends Command
         $privateTarGz = $workDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz';
         $manifestFile = $workDir . DIRECTORY_SEPARATOR . 'manifest.json';
         $checksumFile = $workDir . DIRECTORY_SEPARATOR . 'SHA256SUMS';
+        $ownsWorkDir = false;
 
         try {
-            if (is_dir($workDir)) {
-                $this->removeDirectory($workDir);
+            if (file_exists($workDir) || file_exists($targetDir)) {
+                throw new \RuntimeException('Backup destination already exists; retry with a new timestamp.');
             }
 
             if (! is_dir($workDir) && ! mkdir($workDir, 0755, true) && ! is_dir($workDir)) {
                 throw new \RuntimeException('Не удалось создать папку backup: ' . $workDir);
             }
+            $ownsWorkDir = true;
 
             $databaseStats = $this->dumpDatabase($databaseSql);
             $this->gzipFile($databaseSql, $databaseGz);
@@ -61,18 +73,23 @@ class RunBackup extends Command
             );
             $this->writeManifest($manifestFile, $publicStats, $privateStats, $databaseStats);
             $this->writeChecksums($checksumFile, [$databaseGz, $storageTarGz, $privateTarGz, $manifestFile]);
-            $this->removeOldBackups($backupPath, $keepDays);
 
             if (! rename($workDir, $targetDir)) {
                 throw new \RuntimeException('Не удалось завершить backup: временная папка не переименована.');
             }
 
+            $this->removeOldBackups($backupPath, $keepDays);
+
             $this->info('Backup created: ' . $targetDir);
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            if (is_dir($workDir)) {
-                $this->removeDirectory($workDir);
+            if ($ownsWorkDir && is_dir($workDir)) {
+                try {
+                    $this->removeDirectory($workDir);
+                } catch (Throwable $cleanup) {
+                    $this->error('Backup cleanup failed; inspect ' . $workDir . ': ' . $cleanup->getMessage());
+                }
             }
 
             $this->error($e->getMessage());
@@ -122,11 +139,11 @@ class RunBackup extends Command
                 }
             }
 
-            fwrite($handle, "-- WebVitrina database backup\n");
-            fwrite($handle, "-- Created at: " . now()->toDateTimeString() . "\n");
-            fwrite($handle, "-- Database: " . $database . "\n\n");
-            fwrite($handle, "SET NAMES utf8mb4;\n");
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
+            $this->writeStream($handle, "-- WebVitrina database backup\n");
+            $this->writeStream($handle, "-- Created at: " . now()->toDateTimeString() . "\n");
+            $this->writeStream($handle, "-- Database: " . $database . "\n\n");
+            $this->writeStream($handle, "SET NAMES utf8mb4;\n");
+            $this->writeStream($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
             foreach ($tables as $table) {
                 $this->dumpTable($pdo, $handle, $table);
@@ -135,7 +152,7 @@ class RunBackup extends Command
                 }
             }
 
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+            $this->writeStream($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
             $pdo->commit();
         } finally {
             try {
@@ -176,8 +193,8 @@ class RunBackup extends Command
             throw new \RuntimeException('Не удалось получить CREATE TABLE для ' . $table . '.');
         }
 
-        fwrite($handle, "\nDROP TABLE IF EXISTS {$quotedTable};\n");
-        fwrite($handle, $createSql . ";\n\n");
+        $this->writeStream($handle, "\nDROP TABLE IF EXISTS {$quotedTable};\n");
+        $this->writeStream($handle, $createSql . ";\n\n");
 
         $rows = $pdo->query('SELECT * FROM ' . $quotedTable, \PDO::FETCH_ASSOC);
 
@@ -211,8 +228,8 @@ class RunBackup extends Command
     {
         $quotedColumns = implode(', ', array_map(fn ($column) => $this->quoteIdentifier((string) $column), $columns));
 
-        fwrite($handle, 'INSERT INTO ' . $quotedTable . ' (' . $quotedColumns . ') VALUES' . "\n");
-        fwrite($handle, implode(",\n", $values) . ";\n");
+        $this->writeStream($handle, 'INSERT INTO ' . $quotedTable . ' (' . $quotedColumns . ') VALUES' . "\n");
+        $this->writeStream($handle, implode(",\n", $values) . ";\n");
     }
 
     private function quoteIdentifier(string $identifier): string
@@ -243,15 +260,31 @@ class RunBackup extends Command
         $output = gzopen($target, 'wb9');
 
         if (! $input || ! $output) {
+            if (is_resource($input)) { fclose($input); }
+            if (is_resource($output)) { gzclose($output); }
             throw new \RuntimeException('Не удалось открыть файл для gzip-сжатия.');
         }
 
-        while (! feof($input)) {
-            gzwrite($output, fread($input, 1024 * 1024));
+        try {
+            while (! feof($input)) {
+                $chunk = fread($input, 1024 * 1024);
+                if ($chunk === false || gzwrite($output, $chunk) !== strlen($chunk)) {
+                    throw new \RuntimeException('Incomplete database gzip write.');
+                }
+            }
+        } finally {
+            fclose($input);
+            if (! gzclose($output)) {
+                throw new \RuntimeException('Cannot finalize database gzip.');
+            }
         }
+    }
 
-        fclose($input);
-        gzclose($output);
+    private function writeStream(mixed $handle, string $contents): void
+    {
+        if (fwrite($handle, $contents) !== strlen($contents)) {
+            throw new \RuntimeException('Incomplete database dump write.');
+        }
     }
 
     private function writeChecksums(string $checksumFile, array $files): void
@@ -259,15 +292,19 @@ class RunBackup extends Command
         $lines = [];
 
         foreach ($files as $file) {
-            $lines[] = hash_file('sha256', $file) . '  ' . basename($file);
+            $hash = hash_file('sha256', $file);
+            if ($hash === false) {
+                throw new \RuntimeException('Cannot hash backup file: ' . $file);
+            }
+            $lines[] = $hash . '  ' . basename($file);
         }
 
-        file_put_contents($checksumFile, implode(PHP_EOL, $lines) . PHP_EOL);
+        $this->writeFile($checksumFile, implode(PHP_EOL, $lines) . PHP_EOL);
     }
 
     private function writeManifest(string $manifestFile, array $publicStats, array $privateStats, array $databaseStats): void
     {
-        file_put_contents($manifestFile, json_encode([
+        $this->writeFile($manifestFile, json_encode([
             'version' => 2,
             'created_at' => now()->toIso8601String(),
             ...$databaseStats,
@@ -283,7 +320,14 @@ class RunBackup extends Command
                     ...$privateStats,
                 ],
             ],
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    }
+
+    protected function writeFile(string $path, string $contents): void
+    {
+        if (file_put_contents($path, $contents) !== strlen($contents)) {
+            throw new \RuntimeException('Cannot write complete backup file: ' . $path);
+        }
     }
 
     private function removeOldBackups(string $backupPath, int $keepDays): void

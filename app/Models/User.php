@@ -37,7 +37,7 @@ class User extends Authenticatable implements MustVerifyEmail
             return null;
         }
 
-        return DB::transaction(function () {
+        return app(\App\Services\BackupWriteBarrier::class)->transaction(function () {
             $current = static::withTrashed()->whereKey($this->getKey())->lockForUpdate()->first();
             if (! $current || $current->trashed()) {
                 return false;

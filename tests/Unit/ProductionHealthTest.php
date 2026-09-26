@@ -15,6 +15,7 @@ use Tests\TestCase;
 class ProductionHealthTest extends TestCase
 {
     private string $temporaryDirectory;
+    private string $originalStorage;
 
     protected function setUp(): void
     {
@@ -27,10 +28,14 @@ class ProductionHealthTest extends TestCase
         $this->temporaryDirectory = storage_path('framework/testing/production-health');
         File::deleteDirectory($this->temporaryDirectory);
         File::ensureDirectoryExists($this->temporaryDirectory);
+        $this->originalStorage = storage_path();
+        app()->useStoragePath($this->temporaryDirectory . '/runtime');
+        config(['backup.lock_path' => $this->temporaryDirectory . '/barrier.lock']);
     }
 
     protected function tearDown(): void
     {
+        app()->useStoragePath($this->originalStorage);
         File::deleteDirectory($this->temporaryDirectory);
         Carbon::setTestNow();
 

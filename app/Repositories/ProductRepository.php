@@ -146,7 +146,10 @@ class ProductRepository
 
         $this->applySorting($query, $request);
 
-        $perPage = min((int) $request->get('per_page', 20), 100);
+        $perPage = \App\Http\Middleware\NormalizeCatalogInput::positiveInteger(
+            $request->get('per_page', 20),
+            \App\Http\Middleware\NormalizeCatalogInput::MAX_PER_PAGE,
+        ) ?? 20;
 
         return $query->paginate($perPage)->withQueryString();
     }

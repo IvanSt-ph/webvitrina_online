@@ -426,6 +426,25 @@ class ReleaseExperienceTest extends TestCase
 
     public function test_admin_dashboard_and_production_checklist_show_release_tasks(): void
     {
+        $this->withoutVite();
+        $originalStorage = storage_path();
+        $originalPublic = public_path();
+        $root = storage_path('framework/testing/release-health-' . uniqid());
+        File::ensureDirectoryExists($root . '/storage/app/public');
+        File::ensureDirectoryExists($root . '/public');
+        $link = $root . '/public/storage';
+        $this->beforeApplicationDestroyed(function () use ($originalStorage, $originalPublic, $root, $link) {
+            if (is_link($link) || @readlink($link) !== false) {
+                PHP_OS_FAMILY === 'Windows' ? rmdir($link) : unlink($link);
+            }
+            app()->useStoragePath($originalStorage);
+            app()->usePublicPath($originalPublic);
+            File::deleteDirectory($root);
+        });
+        File::link($root . '/storage/app/public', $link);
+        app()->useStoragePath($root . '/storage');
+        app()->usePublicPath($root . '/public');
+        config(['backup.lock_path' => $root . '/barrier.lock']);
         $admin = User::factory()->create(['role' => 'admin']);
 
         $this->actingAs($admin)

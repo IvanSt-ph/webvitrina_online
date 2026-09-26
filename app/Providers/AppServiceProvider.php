@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(\App\Services\BackupWriteBarrier::class);
     }
 
     /**
@@ -36,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $barrier = fn () => app(\App\Services\BackupWriteBarrier::class);
+        // Lock each job, never the scheduler or worker lifetime. Scheduled product
+        // cleanup is protected by ProductService's transaction boundary.
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Queue\Events\JobProcessing::class, fn () => $barrier()->acquire());
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Queue\Events\JobProcessed::class, fn () => $barrier()->release());
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Queue\Events\JobExceptionOccurred::class, fn () => $barrier()->release());
         /*
         |--------------------------------------------------------------------------
         | 🔥 Русская транслитерация slug (Убрали дубль slug, фикс категории)

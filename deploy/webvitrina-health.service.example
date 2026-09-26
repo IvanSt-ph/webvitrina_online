@@ -1,0 +1,13 @@
+[Unit]
+Description=WebVitrina operational health check
+After=network.target
+# Configure OnFailure= with your existing alert transport, or monitor this unit externally.
+
+[Service]
+Type=oneshot
+User=www-data
+WorkingDirectory=/var/www/webvitrina
+ExecStart=/usr/bin/php /var/www/webvitrina/artisan production:health-check --json
+TimeoutStartSec=240
+StandardOutput=journal
+StandardError=journal

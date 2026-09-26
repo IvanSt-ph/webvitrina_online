@@ -21,12 +21,7 @@
         6 => 'Завершён',
     ];
 
-    $addressParts = collect([
-        $order->address?->country,
-        $order->address?->city,
-        $order->address?->street,
-        trim(($order->address?->house ?? '') . ($order->address?->apartment ? ', кв. ' . $order->address->apartment : '')),
-    ])->filter(fn ($part) => filled($part));
+    $addressParts = collect([$order->address_snapshot['full'] ?? null])->filter();
 
     $shop = $order->seller?->shop;
     $canConfirmDelivery = $order->status === \App\Models\Order::STATUS_SHIPPED;
@@ -241,10 +236,10 @@
                     {{ $addressParts->join(', ') }}
                 </p>
 
-                @if(filled($order->address?->comment))
+                @if(filled(($order->address_snapshot['comment'] ?? null)))
                     <p class="min-w-0 break-words text-xs text-gray-500 mt-2 flex items-start gap-1">
                         <i class="ri-chat-1-line shrink-0"></i>
-                        {{ $order->address->comment }}
+                        {{ $order->address_snapshot['comment'] }}
                     </p>
                 @endif
             @else

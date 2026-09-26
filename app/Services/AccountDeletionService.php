@@ -39,8 +39,8 @@ class AccountDeletionService
         foreach (['cart_items', 'favorites', 'shop_followers', 'user_notifications', 'user_remembered_devices', 'seller_plan_requests'] as $table) {
             DB::table($table)->where('user_id', $user->id)->delete();
         }
-        // Existing orders still refer to address records. Retain only those needed by orders.
-        $user->addresses()->whereNotIn('id', DB::table('orders')->whereNotNull('address_id')->select('address_id'))->delete();
+        // Order-owned snapshots preserve delivery history independently of the address book.
+        $user->addresses()->delete();
         DB::table('sessions')->where('user_id', $user->id)->delete();
         if (config('session.driver') === 'database' && (config('session.connection') || config('session.table') !== 'sessions')) {
             DB::connection(config('session.connection'))->table(config('session.table'))->where('user_id', $user->id)->delete();
@@ -83,9 +83,23 @@ class AccountDeletionService
 
         DB::afterCommit(function () use ($publicFiles, $privateFiles) {
             foreach (array_unique($publicFiles) as $file) {
-                app(ImageService::class)->delete($file);
+                try {
+                    app(ImageService::class)->delete($file, throwOnFailure: true);
+                } catch (\Throwable $exception) {
+                    \Illuminate\Support\Facades\Log::error('Account file cleanup failed; retry required', [
+                        'path' => $file, 'error' => $exception->getMessage(),
+                    ]);
+                }
             }
-            Storage::disk('local')->delete($privateFiles);
+            try {
+                if (! Storage::disk('local')->delete($privateFiles)) {
+                    throw new \RuntimeException('Cannot delete private account attachments.');
+                }
+            } catch (\Throwable $exception) {
+                \Illuminate\Support\Facades\Log::error('Account file cleanup failed; retry required', [
+                    'paths' => $privateFiles, 'error' => $exception->getMessage(),
+                ]);
+            }
         });
     }
 }

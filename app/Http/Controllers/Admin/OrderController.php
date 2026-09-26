@@ -147,7 +147,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['user', 'seller.shop', 'address', 'items.product']);
+        $order->load(['user', 'seller.shop', 'items.product']);
 
         $productIds = $order->items->pluck('product_id')->filter()->values();
 

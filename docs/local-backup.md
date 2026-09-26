@@ -80,10 +80,20 @@ cmd /c "gzip -dc C:\path\to\backup\database.sql.gz | mysql -u root webvitrina_re
 
 После восстановления проверьте количество пользователей, товаров и заказов.
 
+Isolated restore drill: создай новый пустой каталог с доступом только для оператора.
 Файлы storage восстанавливаются только из полного backup с корректными SHA256:
 
 ```powershell
-php artisan backup:restore-files C:\path\to\backup\20260923-030000 --force
+$drill = Join-Path $env:TEMP ('webvitrina-restore-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $drill
+php artisan backup:restore-files C:\path\to\backup\20260923-030000 --drill="$drill"
 ```
 
-Команда предварительно распаковывает оба архива во временный каталог, затем заменяет `storage/app/public` и только `storage/app/private/chat-images`. Каталог private backups, cache и logs она не затрагивает. Старые backup без private archive отклоняются как неполные.
+Drill создаёт `$drill/public` и `$drill/private/chat-images`; live storage не меняется.
+Отдельная тестовая БД не меняет filesystem destination автоматически.
+
+Production destructive restore: только после остановки writers, проверки backup и
+согласования DB restore запускай `php artisan backup:restore-files C:\path\to\backup --force`.
+Эта команда заменяет live public и private/chat-images, сохраняя другие private каталоги.
+При ошибке rollback recovery artifacts не удаляются. Старые backup без private archive
+отклоняются как неполные. Подробнее: [PROD-10](backup-restore-safety.md).

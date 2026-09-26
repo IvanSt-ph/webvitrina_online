@@ -310,12 +310,9 @@
     </div>
 
     <div class="break-words text-xs text-gray-500 mt-2">
-        @if($order->delivery_address)
-            📦 {{ $order->delivery_address }}
-        @elseif($order->address)
-            🏠 {{ $order->address->full }}
-        @else
-            Адрес не указан
+        {{ ($order->address_snapshot['full'] ?? null) ?: 'Адрес не указан' }}
+        @if(filled($order->address_snapshot['comment'] ?? null))
+            <p>{{ $order->address_snapshot['comment'] }}</p>
         @endif
     </div>
     <div class="mt-2 rounded-xl bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
