@@ -6,6 +6,18 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    public function be(\Illuminate\Contracts\Auth\Authenticatable $user, $guard = null)
+    {
+        parent::be($user, $guard);
+
+        // actingAs bypasses Login events; supply the same credential snapshot.
+        if (($guard ?? config('auth.defaults.guard')) === 'web') {
+            app(\App\Services\PasswordSecurityService::class)->bindSession(session()->driver(), $user);
+        }
+
+        return $this;
+    }
+
     protected function setUpTraits()
     {
         self::assertSafeTestDatabaseConfiguration(

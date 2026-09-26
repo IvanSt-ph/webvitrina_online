@@ -38,6 +38,8 @@ class PasswordController extends Controller
         $validated = $request->validateWithBag('updatePassword', $rules, $messages);
 
         $this->passwordSecurity->rotate($request->user(), $validated['password']);
+        $request->session()->regenerate();
+        $this->passwordSecurity->bindSession($request->session(), $request->user());
 
         return back()->with('status', 'password-updated');
     }

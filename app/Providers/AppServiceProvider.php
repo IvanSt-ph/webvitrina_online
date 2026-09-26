@@ -36,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, function ($event): void {
+            if ($event->guard === 'web') {
+                app(\App\Services\PasswordSecurityService::class)->bindSession(session()->driver(), $event->user);
+            }
+        });
+
         $barrier = fn () => app(\App\Services\BackupWriteBarrier::class);
         // Lock each job, never the scheduler or worker lifetime. Scheduled product
         // cleanup is protected by ProductService's transaction boundary.

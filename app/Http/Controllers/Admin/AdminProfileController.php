@@ -60,6 +60,8 @@ class AdminProfileController extends Controller
 
         if ($passwordChanged) {
             $this->passwordSecurity->rotate($user, $validated['password']);
+            $request->session()->regenerate();
+            $this->passwordSecurity->bindSession($request->session(), $user);
         } else {
             $user->save();
         }

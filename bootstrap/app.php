@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \App\Http\Middleware\EnsurePasswordSessionIsCurrent::class,
             \App\Http\Middleware\CoordinateBackupWrites::class,
             \App\Http\Middleware\RememberLocation::class,
             \App\Http\Middleware\SecurityHeaders::class,
