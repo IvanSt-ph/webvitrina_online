@@ -97,6 +97,115 @@
             </div>
         </div>
 
+        {{-- Товары в заказе --}}
+        <div x-data="{ showAllItems: false }" class="min-w-0 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-gray-900">
+                        Товары в заказе
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500">Фото, артикул, остаток и сумма по каждой позиции.</p>
+                </div>
+                <span class="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    {{ $itemsCount }} шт.
+                </span>
+            </div>
+
+            <div id="seller-order-items" class="divide-y divide-gray-100">
+                @forelse($order->items as $item)
+                    @php
+                        $product = $item->product;
+                        $itemTitle = $product->title ?? 'Товар удалён';
+                        $productEditUrl = $product ? route('seller.products.edit', $product) : null;
+                    @endphp
+                    <div @if($loop->index >= 3) x-show="showAllItems" x-cloak @endif
+                         class="grid min-w-0 gap-4 px-4 py-5 sm:grid-cols-[112px_minmax(0,1fr)] lg:grid-cols-[128px_minmax(0,1fr)_auto] lg:items-center sm:gap-5 sm:px-5">
+                        <div class="h-28 w-28 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm lg:h-32 lg:w-32">
+                            @if($product)
+                                <a href="{{ $productEditUrl }}" class="block h-full w-full" title="Открыть товар продавца">
+                                    <img src="{{ $product->image_thumb_url }}"
+                                         alt="{{ $itemTitle }}"
+                                         class="h-full w-full object-cover">
+                                </a>
+                            @else
+                                <div class="flex h-full w-full items-center justify-center text-slate-300">
+                                    <i class="ri-image-line text-2xl"></i>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="min-w-0 space-y-2">
+                            <div class="break-words text-sm font-semibold text-gray-900" style="overflow-wrap:anywhere;">
+                                {{ $itemTitle }}
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                <span class="rounded-full bg-slate-100 px-2 py-1">ID товара: {{ $item->product_id }}</span>
+                                @if($product?->sku)
+                                    <span class="rounded-full bg-slate-100 px-2 py-1">SKU: {{ $product->sku }}</span>
+                                @endif
+                                @if($product)
+                                    <span class="rounded-full {{ $product->stock <= 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700' }} px-2 py-1">Остаток: {{ $product->stock }}</span>
+                                @endif
+                            </div>
+
+                            @if($productEditUrl)
+                                <a href="{{ $productEditUrl }}" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+                                    <i class="ri-external-link-line"></i>
+                                    Открыть товар
+                                </a>
+                            @endif
+                        </div>
+
+                        <div class="grid min-w-0 gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm sm:col-span-2 sm:grid-cols-3 lg:col-span-1 lg:min-w-[320px] lg:items-center">
+                            <div>
+                                <div class="text-xs text-gray-400">Кол-во</div>
+                                <div class="font-semibold text-gray-900">{{ $item->quantity }}</div>
+                            </div>
+
+                            <div>
+                                <div class="text-xs text-gray-400">Цена</div>
+                                <div class="font-semibold text-gray-900">
+                                    {{ number_format($item->price, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency ?? '') }}
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="text-xs text-gray-400">Сумма</div>
+                                <div class="font-semibold text-gray-900 sm:text-right">
+                                    {{ number_format($item->total, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency ?? '') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="px-5 py-6 text-sm text-gray-500">В этом заказе нет сохранённых позиций.</p>
+                @endforelse
+            </div>
+
+            @if($order->items->count() > 3)
+                <div class="border-t border-gray-100 px-5 py-3">
+                    <button type="button"
+                            @click="showAllItems = !showAllItems"
+                            :aria-expanded="showAllItems.toString()"
+                            aria-expanded="false"
+                            aria-controls="seller-order-items"
+                            class="w-full rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+                            x-text="showAllItems ? 'Свернуть список' : 'Показать все товары ({{ $order->items->count() }})'">
+                        Показать все товары ({{ $order->items->count() }})
+                    </button>
+                </div>
+            @endif
+
+            <div class="px-5 py-4 border-t border-gray-100 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:flex sm:justify-end">
+                <div class="text-sm text-gray-500">
+                    Итого:
+                </div>
+                <div class="truncate text-right text-lg font-semibold text-gray-900">
+                    {{ $order->formatted_total_price ?? (number_format($order->total_price, 2, ',', ' ') . ' ' . ($order->currency ?? '')) }}
+                </div>
+            </div>
+        </div>
+
         {{-- Прогресс статусов --}}
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm px-5 py-4">
             <div class="flex flex-col gap-4">
@@ -358,107 +467,6 @@
             </div>
         </div>
 
-        {{-- Товары в заказе --}}
-        <div class="min-w-0 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-100 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h2 class="text-base font-bold text-gray-900">
-                        Товары в заказе
-                    </h2>
-                    <p class="mt-1 text-sm text-gray-500">Фото, артикул, остаток и сумма по каждой позиции.</p>
-                </div>
-                <span class="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                    {{ $itemsCount }} шт.
-                </span>
-            </div>
-
-            <div class="divide-y divide-gray-100">
-                @foreach($order->items as $item)
-                    @php
-                        $product = $item->product;
-                        $itemTitle = $product->title ?? 'Товар удалён';
-                        $shortItemTitle = \Illuminate\Support\Str::limit($itemTitle, 18);
-                        $productEditUrl = $product ? route('seller.products.edit', $product) : null;
-                    @endphp
-                    <div class="grid min-w-0 gap-4 px-4 py-5 sm:grid-cols-[112px_minmax(0,1fr)] lg:grid-cols-[128px_minmax(0,1fr)_auto] lg:items-center sm:gap-5 sm:px-5">
-                        <div class="h-28 w-28 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm lg:h-32 lg:w-32">
-                            @if($product)
-                                <a href="{{ $productEditUrl }}" class="block h-full w-full" title="Открыть товар продавца">
-                                    <img src="{{ $product->image_thumb_url }}"
-                                         alt="{{ $itemTitle }}"
-                                         class="h-full w-full object-cover">
-                                </a>
-                            @else
-                                <div class="flex h-full w-full items-center justify-center text-slate-300">
-                                    <i class="ri-image-line text-2xl"></i>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div class="min-w-0 space-y-2">
-                            <div class="truncate text-sm font-semibold text-gray-900 sm:hidden" title="{{ $itemTitle }}">
-                                {{ $shortItemTitle }}
-                            </div>
-                            <div class="hidden sm:block">
-                                <div
-                                    class="overflow-hidden text-sm font-semibold text-gray-900"
-                                    style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;word-break:break-word;"
-                                    title="{{ $itemTitle }}"
-                                >
-                                    {{ $itemTitle }}
-                                </div>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                                <span class="rounded-full bg-slate-100 px-2 py-1">ID товара: {{ $item->product_id }}</span>
-                                @if($product?->sku)
-                                    <span class="rounded-full bg-slate-100 px-2 py-1">SKU: {{ $product->sku }}</span>
-                                @endif
-                                @if($product)
-                                    <span class="rounded-full {{ $product->stock <= 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700' }} px-2 py-1">Остаток: {{ $product->stock }}</span>
-                                @endif
-                            </div>
-
-                            @if($productEditUrl)
-                                <a href="{{ $productEditUrl }}" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
-                                    <i class="ri-external-link-line"></i>
-                                    Открыть товар
-                                </a>
-                            @endif
-                        </div>
-
-                        <div class="grid min-w-0 gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm sm:col-span-2 sm:grid-cols-3 lg:col-span-1 lg:min-w-[320px] lg:items-center">
-                            <div>
-                                <div class="text-xs text-gray-400">Кол-во</div>
-                                <div class="font-semibold text-gray-900">{{ $item->quantity }}</div>
-                            </div>
-
-                            <div>
-                                <div class="text-xs text-gray-400">Цена</div>
-                                <div class="font-semibold text-gray-900">
-                                    {{ number_format($item->price, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency ?? '') }}
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="text-xs text-gray-400">Сумма</div>
-                                <div class="font-semibold text-gray-900 sm:text-right">
-                                    {{ number_format($item->total, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency ?? '') }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <div class="px-5 py-4 border-t border-gray-100 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:flex sm:justify-end">
-                <div class="text-sm text-gray-500">
-                    Итого:
-                </div>
-                <div class="truncate text-right text-lg font-semibold text-gray-900">
-                    {{ $order->formatted_total_price ?? (number_format($order->total_price, 2, ',', ' ') . ' ' . ($order->currency ?? '')) }}
-                </div>
-            </div>
-        </div>
 
     </div>
 

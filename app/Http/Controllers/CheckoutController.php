@@ -7,9 +7,11 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\CurrencyService;
+use App\Services\UserNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -476,6 +478,30 @@ return redirect()
                 }
 
                 $createdOrders[] = $order;
+
+                // Keep both the site notification and email dispatch outside all
+                // checkout transactions; rollback discards this callback.
+                DB::afterCommit(function () use ($order): void {
+                    try {
+                        app(UserNotificationService::class)->create(
+                            $order->seller,
+                            'order_created',
+                            'Новый заказ',
+                            "Поступил новый заказ {$order->number}.",
+                            route('seller.orders.show', $order, false),
+                            ['order_id' => $order->id],
+                        );
+                    } catch (\Throwable $exception) {
+                        // The order is committed. Do not fail checkout or prevent
+                        // callbacks for the remaining sellers from running.
+                        Log::error('Seller new-order notification failed', [
+                            'order_id' => $order->id,
+                            'seller_id' => $order->seller_id,
+                            'exception' => get_class($exception),
+                            'message' => $exception->getMessage(),
+                        ]);
+                    }
+                });
             }
         });
 
