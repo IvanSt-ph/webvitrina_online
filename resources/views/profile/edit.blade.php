@@ -169,9 +169,9 @@
   </div>
 
   {{-- ✅ Cropper.js --}}
-  <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  @once('remixicon-4.1.0')
+      @vite('resources/css/remixicon.css')
+  @endonce
 
   @include('layouts.mobile-bottom-seller-nav')
 

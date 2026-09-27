@@ -3214,7 +3214,7 @@ class SecurityRegressionTest extends TestCase
             ->assertHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()')
             ->assertHeader(
                 'content-security-policy',
-                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: blob: https://ui-avatars.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://*.tile.openstreetmap.org; font-src 'self' data: https://fonts.bunny.net https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; connect-src 'self' https://nominatim.openstreetmap.org; frame-src 'self' https://www.youtube.com"
+                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: blob: https://ui-avatars.com https://*.tile.openstreetmap.org; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://nominatim.openstreetmap.org; frame-src 'self' https://www.youtube.com"
             );
     }
 

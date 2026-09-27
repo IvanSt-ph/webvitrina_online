@@ -96,7 +96,7 @@ public function test_new_users_can_register(): void
         $policy = (string) $this->get('/register')->headers->get('Content-Security-Policy');
 
         $this->assertStringContainsString(
-            "img-src 'self' data: blob: https://ui-avatars.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://*.tile.openstreetmap.org http://127.0.0.1:5173 http://localhost:5173",
+            "img-src 'self' data: blob: https://ui-avatars.com https://*.tile.openstreetmap.org http://127.0.0.1:5173 http://localhost:5173",
             $policy,
         );
     }

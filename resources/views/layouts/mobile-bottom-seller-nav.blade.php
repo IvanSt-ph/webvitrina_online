@@ -151,4 +151,6 @@
   </div>
 </div>
 
-<link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+@once('remixicon-4.1.0')
+    @vite('resources/css/remixicon.css')
+@endonce

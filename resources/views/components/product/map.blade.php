@@ -48,7 +48,6 @@
 @once
     @push('styles')
         {{-- Leaflet CSS --}}
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
         <style>
             .leaflet-control-attribution {
@@ -72,7 +71,6 @@
 
     @push('scripts')
         {{-- Leaflet JS --}}
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
         <script>
             window.initProductMap = window.initProductMap || function (el) {
@@ -96,7 +94,7 @@
                 L.marker([lat, lng]).addTo(map).bindPopup(title);
             };
 
-            (function () {
+            document.addEventListener('DOMContentLoaded', () => {
                 const maps = document.querySelectorAll('[data-product-map]');
                 if (!maps.length) return;
 
@@ -116,7 +114,7 @@
                 }, { threshold: 0.15 });
 
                 maps.forEach(el => observer.observe(el));
-            })();
+            });
         </script>
     @endpush
 @endonce

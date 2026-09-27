@@ -9,11 +9,12 @@
     <title>{{ config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700,800&display=swap" rel="stylesheet" />
+    @vite('resources/css/manrope.css')
 
     <!-- Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    @once('remixicon-3.5.0')
+        @vite('resources/css/remixicon-v3.css')
+    @endonce
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

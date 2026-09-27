@@ -28,17 +28,13 @@ sudo chmod 600 /var/www/webvitrina/.env
 
 ## Очереди
 
-Для продакшна рекомендуется:
+Для продакшна обязательно (текущий health probe поддерживает только database driver):
 
 ```env
 QUEUE_CONNECTION=database
 ```
 
-Миграция таблицы `jobs` уже есть в проекте. На сервере после настройки `.env` выполни:
-
-```bash
-php artisan migrate --force
-```
+Миграция таблицы `jobs` уже есть в проекте. Все migrations выполняются только в контролируемом deployment после остановки writers и проверенного backup: [release runbook, раздел 3](release-runbook.md#3-применить-миграции-и-production-cache).
 
 Очередь должна обрабатываться постоянным worker-процессом:
 
@@ -68,18 +64,18 @@ php artisan queue:restart
 php artisan queue:health-check --timeout=15
 ```
 
-Команда кладёт маленькую проверочную job в очередь и ждёт, пока worker её выполнит. Если `QUEUE_CONNECTION=sync`, команда специально падает: `sync` не проверяет настоящий worker.
+Команда кладёт маленькую проверочную job в database queue и ждёт, пока worker её выполнит. `sync` не проверяет настоящий worker; другие async drivers текущий probe отвергает. Нужен общий persistent cache для HTTP/CLI/worker/scheduler.
 
 Минимальная проверка очереди перед релизом:
 
 ```bash
-php artisan migrate --force
+php artisan migrate:status
 php artisan queue:restart
 php artisan queue:health-check --timeout=15
 php artisan queue:failed
 ```
 
-`queue:failed` должен быть пустым или содержать только разобранные старые ошибки.
+Перед production acceptance обязательно `failed_jobs = 0`. Даже разобранная старая запись означает critical health. Сначала сохраните необходимые сведения об ошибке, расследуйте причину, исправьте её и подтвердите результат. Затем осознанно удалите конкретную разобранную запись через `queue:forget <id>`; retry допустим только после оценки повторных побочных эффектов. Не включайте автоматическую очистку ради зелёного health-check.
 
 ## Scheduler и бэкапы
 
@@ -125,13 +121,29 @@ php artisan backup:health-check --max-age-hours=30
 
 Если команда падает, backup нельзя считать рабочим. Исправь проблему и проверь ещё раз.
 
-## Команды после деплоя
+## LOCAL/CI acceptance
+
+В изолированном local/CI окружении с dev dependencies и разрешённой тестовой БД:
+
+```bash
+composer install --optimize-autoloader
+php artisan test
+composer audit
+npm ci
+npm run build
+npm audit
+```
+
+В package.json нет npm test script. Локальный test DB guard не переносится на production.
+
+## STAGING/PRODUCTION deployment и acceptance
+
+Ниже этап установки и кэширования; полный порядок и обязательный writer-stop перед migrations описаны в [release runbook](release-runbook.md). Собранный `public/build` можно доставлять из CI вместе с кодом; тогда npm на production не нужен. При сборке на сервере нужны npm devDependencies для Vite.
 
 ```bash
 composer install --no-dev --optimize-autoloader
 npm ci
 npm run build
-php artisan migrate --force
 php artisan storage:link
 php artisan config:cache
 php artisan route:cache
@@ -141,15 +153,18 @@ php artisan queue:restart
 
 `APP_KEY` должен быть сгенерирован один раз при первоначальной настройке окружения и затем храниться стабильно. Не генерируй новый ключ на каждом деплое: это инвалидирует сессии и может сделать ранее зашифрованные данные нечитаемыми.
 
-Перед запуском проверь:
+После контролируемых migrations, возобновления worker/scheduler и выхода из maintenance проверь:
 
 ```bash
-composer audit
-npm audit --omit=dev
-php artisan test
+php artisan migrate:status
+php artisan route:list --except-vendor
+php artisan queue:health-check --timeout=15
+php artisan queue:failed
+php artisan backup:health-check --max-age-hours=30
+php artisan production:health-check --json
 ```
 
-После первого backup обязательно проверь восстановление: backup считается рабочим только после успешного restore на отдельной базе или тестовом окружении.
+После `composer install --no-dev` не запускайте PHPUnit или `php artisan test`: это LOCAL/CI acceptance. На staging/server нужны также scheduler heartbeat, HTTP smoke, внешние integrations и проверка кэшей. После первого backup обязательно проверь восстановление: backup считается рабочим только после успешного restore на отдельной базе или тестовом окружении.
 
 Isolated restore drill (новый пустой каталог, отдельная БД и отдельный DB user,
 не имеющий доступа к production DB):

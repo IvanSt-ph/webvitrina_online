@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Example backup script for WebVitrina production.
+# LEGACY / DO NOT USE: incomplete backup, no private chat archive or manifest,
+# and no BackupWriteBarrier. Incompatible with current health/restore.
+# Use php artisan backup:run through the existing Laravel scheduler instead.
+echo "Unsupported legacy example. Use php artisan backup:run; see docs/deployment.md." >&2
+exit 1
+
+# Historical example backup script for WebVitrina production.
 # Put real values into environment variables or a root-only env file.
 
 APP_DIR="${APP_DIR:-/var/www/webvitrina}"

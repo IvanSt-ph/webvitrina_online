@@ -41,14 +41,9 @@
 
 {{-- Подключаем стили и скрипты --}}
 @push('styles')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
     <style>[x-cloak] { display: none !important; }</style>
 @endpush
 
-@push('scripts')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-    <script src="{{ asset('js/profile/avatar-cropper.js') }}"></script>
-@endpush
 
 
 

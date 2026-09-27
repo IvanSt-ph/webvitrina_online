@@ -77,7 +77,10 @@ One failed component does not prevent the remaining checks from running.
 - Failed jobs: separate count on the configured failed-job database/table;
   any record, disabled/unsupported provider or unreadable table is critical.
   No pruning, flushing, retries or record deletion is performed by health checks.
-  Investigate and resolve records explicitly; historical failures remain visible.
+  Production acceptance requires `failed_jobs = 0`, including historical records.
+  Preserve diagnostic evidence, investigate the cause and verify the fix before
+  deliberately removing resolved records (`queue:forget <id>`). Assess duplicate
+  side effects before retrying. Never auto-flush records to make health green.
 - Backup: reuse `BackupHealth::latest()` with SHA256 enabled. Missing/stale,
   incomplete archives, invalid manifest or checksums fail. Temporary unpublished
   backups are ignored. Freshness uses existing published directory mtime and

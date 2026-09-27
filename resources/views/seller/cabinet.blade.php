@@ -13,7 +13,7 @@
              class="relative w-full rounded-2xl overflow-hidden mb-6
                     border border-indigo-100/50 shadow-md bg-gradient-to-br from-indigo-50/80 via-white to-slate-50">
       <div class="relative w-full pt-[33%] sm:pt-[21%]">
-        
+
         @php
           if ($shop?->banner) {
               if (\Illuminate\Support\Str::startsWith($shop->banner, ['http://', 'https://'])) {
@@ -450,8 +450,8 @@
   </div>
 
   {{-- 📊 Chart.js --}}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
+document.addEventListener('DOMContentLoaded', () => {
     const ctx = document.getElementById('salesChart');
     new Chart(ctx, {
       type: 'line',
@@ -475,7 +475,9 @@
         }
       }
     });
-  </script>
+
+});
+</script>
 
   @include('layouts.mobile-bottom-seller-nav')
 </x-seller-layout>

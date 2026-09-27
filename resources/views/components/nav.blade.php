@@ -9,11 +9,11 @@
     </form>
     <nav class="flex items-center gap-4">
       <a href="/favorites" class="relative group">
-        <span class="lucide lucide-heart"></span>
+        <span class="icon-heart"></span>
         <span class="absolute -top-2 -right-2 text-xs bg-pink-600 text-white rounded-full px-1">{{ $favoritesCount ?? 0 }}</span>
       </a>
       <a href="/cart" class="relative group">
-        <span class="lucide lucide-shopping-cart"></span>
+        <span class="icon-shopping-cart"></span>
         <span class="absolute -top-2 -right-2 text-xs bg-indigo-600 text-white rounded-full px-1">{{ $cartCount ?? 0 }}</span>
       </a>
       @auth

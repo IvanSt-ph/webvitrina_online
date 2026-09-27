@@ -10,7 +10,9 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <link rel="icon" type="image/svg+xml" href="{{ asset('icons/favicon.svg') }}">
   @vite(['resources/css/app.css', 'resources/js/app.js'])
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  @once('remixicon-4.1.0')
+      @vite('resources/css/remixicon.css')
+  @endonce
 </head>
 
 @php

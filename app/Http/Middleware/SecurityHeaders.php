@@ -18,17 +18,10 @@ class SecurityHeaders
         $styleSources = [
             "'self'",
             "'unsafe-inline'",
-            'https://fonts.bunny.net',
-            'https://cdn.jsdelivr.net',
-            'https://cdnjs.cloudflare.com',
-            'https://unpkg.com',
         ];
         $fontSources = [
             "'self'",
             'data:',
-            'https://fonts.bunny.net',
-            'https://cdn.jsdelivr.net',
-            'https://unpkg.com',
         ];
         // Alpine's standard build evaluates directive expressions at runtime.
         // Until the app moves to Alpine's CSP-compatible build, unsafe-eval is
@@ -37,9 +30,6 @@ class SecurityHeaders
             "'self'",
             "'unsafe-inline'",
             "'unsafe-eval'",
-            'https://cdn.jsdelivr.net',
-            'https://cdnjs.cloudflare.com',
-            'https://unpkg.com',
         ];
         $connectSources = ["'self'", 'https://nominatim.openstreetmap.org'];
         $imageSources = [
@@ -47,9 +37,6 @@ class SecurityHeaders
             'data:',
             'blob:',
             'https://ui-avatars.com',
-            'https://cdn.jsdelivr.net',
-            'https://cdnjs.cloudflare.com',
-            'https://unpkg.com',
             'https://*.tile.openstreetmap.org',
         ];
         $frameSources = ["'self'", 'https://www.youtube.com'];

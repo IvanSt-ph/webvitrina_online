@@ -340,6 +340,5 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 {{-- ===== Chart.js подключение и стек ===== --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 @stack('charts')
 @endsection

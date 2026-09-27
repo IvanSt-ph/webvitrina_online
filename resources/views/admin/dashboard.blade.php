@@ -416,8 +416,8 @@
 </div>
 
 <!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -483,6 +483,8 @@
     },
     options: commonOptions
   });
+
+});
 </script>
 
 
