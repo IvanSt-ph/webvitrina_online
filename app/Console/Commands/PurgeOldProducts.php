@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Product;
+use App\Services\ProductService;
 
 class PurgeOldProducts extends Command
 {
@@ -23,9 +24,15 @@ class PurgeOldProducts extends Command
             return Command::SUCCESS;
         }
 
+        $deletedBefore = now()->subDays($days);
+        $count = 0;
         Product::onlyTrashed()
-            ->where('deleted_at', '<', now()->subDays($days))
-            ->forceDelete();
+            ->where('deleted_at', '<', $deletedBefore)
+            ->chunkById(200, function ($products) use ($deletedBefore, &$count) {
+                foreach ($products as $product) {
+                    $count += (int) app(ProductService::class)->purge($product, $deletedBefore);
+                }
+            });
 
         $this->info("Удалено товаров: $count");
         return Command::SUCCESS;

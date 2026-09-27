@@ -606,8 +606,8 @@
   </div>
 
   {{-- Leaflet карта --}}
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
     .seller-product-page {
@@ -711,6 +711,10 @@
       background: #fff;
       padding: 13px;
       transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+    }
+    .seller-status-option:has(input:focus-visible) {
+      outline: 2px solid #6366f1;
+      outline-offset: 2px;
     }
     .seller-status-option:has(input:checked) {
       border-color: #818cf8;

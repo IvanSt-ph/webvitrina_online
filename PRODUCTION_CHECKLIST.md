@@ -24,10 +24,10 @@
 - `php artisan queue:health-check --timeout=15` успешно подтверждает, что worker обрабатывает job
 - `php artisan queue:failed` не показывает неразобранные production-ошибки
 - Cron/systemd timer для Laravel scheduler настроен: `php artisan schedule:run` каждую минуту
-- Ежедневный backup БД и `storage/app/public` настроен по примеру `deploy/backup-webvitrina.sh.example`
+- Ежедневный backup БД и `storage/app/public` настроен через `php artisan backup:run` в Laravel scheduler
 - `BACKUP_DIR` и `BACKUP_MAX_AGE_HOURS` заданы так, чтобы админский релиз-чеклист видел свежий backup
-- Если backup запускается через Laravel scheduler, задан `BACKUP_COMMAND` и включён cron `php artisan schedule:run`
-- В backup есть `database.sql.gz`, `storage-public.tar.gz` и `SHA256SUMS`
+- Включён cron `php artisan schedule:run` каждую минуту; время backup задано в `BACKUP_DAILY_AT`. Переменная `BACKUP_COMMAND` кодом не используется
+- В backup есть `database.sql.gz`, `storage-public.tar.gz`, `manifest.json` и `SHA256SUMS`
 - `php artisan backup:health-check --max-age-hours=30` проходит без ошибок
 - Restore backup проверен на тестовой базе, не только создание архива
 - Выполнены `php artisan migrate --force`, `php artisan storage:link`

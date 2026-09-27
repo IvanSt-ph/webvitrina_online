@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Seller;
 
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,15 +33,16 @@ class ProductUpdateRequest extends FormRequest
             'old_price_uah' => 'nullable|numeric|min:0',
 
             'category_id' => 'required|exists:categories,id',
-            'country_id'  => 'required|exists:countries,id',
-            'city_id'     => ['required', Rule::exists('cities', 'id')->where('country_id', $this->input('country_id'))],
+            'country_id'  => 'bail|required|integer|min:1|exists:countries,id',
+            'city_id'     => ['bail', 'required', 'integer', 'min:1', Rule::exists('cities', 'id')->where('country_id', filter_var($this->input('country_id'), FILTER_VALIDATE_INT) ?: null)],
 
             'address'   => 'nullable|string|max:255',
             'latitude'  => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
 
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'gallery.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'image'     => ImageUploadConstraints::rules(4096),
+            'gallery'   => ['nullable', 'array', 'max:' . ImageUploadConstraints::MAX_GALLERY_IMAGES],
+            'gallery.*' => ImageUploadConstraints::rules(4096),
         ];
     }
 }

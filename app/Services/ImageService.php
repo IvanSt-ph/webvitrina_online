@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Rules\ImageUploadConstraints;
+use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 use Illuminate\Http\UploadedFile;
@@ -26,14 +28,16 @@ class ImageService
      */
     public function upload(UploadedFile $file, string $dir): string
     {
+        ImageUploadConstraints::assertSafe($file);
+
         try {
             return $this->uploadOptimized($file, $dir);
         } catch (\Throwable $e) {
-            Log::warning('ImageService: optimized upload failed, storing original file', [
+            Log::warning('ImageService: optimized upload failed', [
                 'error' => $e->getMessage(),
             ]);
 
-            return $file->store($dir, 'public');
+            throw $e;
         }
     }
 
@@ -46,27 +50,43 @@ class ImageService
      */
     protected function uploadOptimized(UploadedFile $file, string $dir): string
     {
-        $manager = new ImageManager(new Driver());
-        $image = $manager->read($file->getRealPath());
+        $image = $this->decode($file);
 
         $baseName = (string) Str::uuid() . '.webp';
         $mediumPath = trim($dir, '/') . '/medium/' . $baseName;
         $thumbPath = trim($dir, '/') . '/thumb/' . $baseName;
 
-        $medium = clone $image;
-        $thumb = clone $image;
+        $medium = $image->scaleDown(width: 1200, height: 1200);
+        $mediumContents = $medium->toWebp(82)->toString();
+        $thumbContents = (clone $medium)
+            ->scaleDown(width: 480, height: 480)
+            ->toWebp(78)
+            ->toString();
 
-        Storage::disk('public')->put(
-            $mediumPath,
-            $medium->scaleDown(width: 1200, height: 1200)->toWebp(82)->toString()
-        );
+        try {
+            $disk = Storage::disk('public');
 
-        Storage::disk('public')->put(
-            $thumbPath,
-            $thumb->scaleDown(width: 480, height: 480)->toWebp(78)->toString()
-        );
+            if (! $disk->put($mediumPath, $mediumContents) || ! $disk->put($thumbPath, $thumbContents)) {
+                throw new \RuntimeException('Не удалось сохранить обработанное изображение.');
+            }
+        } catch (\Throwable $exception) {
+            try {
+                $this->delete($mediumPath, throwOnFailure: true);
+            } catch (\Throwable $cleanupException) {
+                Log::error('Image upload cleanup failed; retry required', [
+                    'path' => $mediumPath, 'error' => $cleanupException->getMessage(),
+                ]);
+            }
+
+            throw $exception;
+        }
 
         return $mediumPath;
+    }
+
+    protected function decode(UploadedFile $file): ImageInterface
+    {
+        return (new ImageManager(new Driver()))->read($file->getRealPath());
     }
 
     public static function thumbPath(string $path): string
@@ -89,10 +109,16 @@ class ImageService
     {
         $paths = [];
 
-        foreach ($files as $file) {
-            if ($file instanceof UploadedFile) {
-                $paths[] = $this->upload($file, $dir);
+        try {
+            foreach ($files as $file) {
+                if ($file instanceof UploadedFile) {
+                    $paths[] = $this->upload($file, $dir);
+                }
             }
+        } catch (\Throwable $exception) {
+            $this->deleteMany($paths);
+
+            throw $exception;
         }
 
         return $paths;
@@ -101,7 +127,7 @@ class ImageService
     /**
      * 🧹 Удаление одной картинки (С ЗАЩИТОЙ - только точное совпадение)
      */
-    public function delete(?string $path): void
+    public function delete(?string $path, bool $throwOnFailure = false): void
     {
         if (empty($path)) {
             return;
@@ -120,15 +146,21 @@ class ImageService
             return;
         }
 
-        if (Storage::disk('public')->exists($clean)) {
-            Storage::disk('public')->delete($clean);
-            Log::info("✅ ImageService: удалено: {$clean}");
+        $failed = [];
+        foreach (array_unique([$clean, self::thumbPath($clean)]) as $file) {
+            try {
+                if (Storage::disk('public')->exists($file) && ! Storage::disk('public')->delete($file)) {
+                    $failed[] = $file;
+                }
+            } catch (\Throwable $exception) {
+                $failed[] = $file;
+            }
         }
-
-        $thumb = self::thumbPath($clean);
-        if ($thumb !== $clean && Storage::disk('public')->exists($thumb)) {
-            Storage::disk('public')->delete($thumb);
-            Log::info("✅ ImageService: удалена миниатюра: {$thumb}");
+        if ($failed) {
+            if ($throwOnFailure) {
+                throw new \RuntimeException('Image cleanup failed: ' . implode(', ', $failed));
+            }
+            Log::error('Image cleanup failed; retry required', ['paths' => $failed]);
         }
     }
 

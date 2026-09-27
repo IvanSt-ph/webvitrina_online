@@ -20,6 +20,7 @@ use App\Models\SellerPlanRequest;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Repositories\ProductCrudRepository;
+use App\Services\CurrencyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -995,10 +996,29 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($buyer)
             ->from(route('chats.show', $conversation))
             ->post(route('chats.messages.store', $conversation), [
-                'image' => UploadedFile::fake()->image('huge.png', 8001, 100),
+                'image' => $this->pngHeader('huge.png', 8001, 100),
             ])
             ->assertRedirect(route('chats.show', $conversation))
             ->assertSessionHasErrors('image');
+
+        $this->assertDatabaseCount('messages', 0);
+    }
+
+    public function test_chat_rejects_image_exceeding_total_pixel_limit(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $conversation = Conversation::create([
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+        ]);
+
+        $this->actingAs($buyer)
+            ->postJson(route('chats.messages.store', $conversation), [
+                'image' => $this->pngHeader('chat.png', 5000, 3201),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('image');
 
         $this->assertDatabaseCount('messages', 0);
     }
@@ -1981,11 +2001,15 @@ class SecurityRegressionTest extends TestCase
 
         $this->actingAs($seller)
             ->view('layouts.seller', ['slot' => ''])
-            ->assertSee('Работа')
+            ->assertSee('Обзор')
+            ->assertSee('Рабочий стол')
+            ->assertSee('Моя витрина')
+            ->assertSee('Продажи')
             ->assertSee('Каталог')
-            ->assertSee('Финансы и рост')
-            ->assertSee('Управление')
-            ->assertSee('Чаты')
+            ->assertSee('Финансы')
+            ->assertSee('Рост')
+            ->assertSee('Настройки')
+            ->assertSee('Сообщения')
             ->assertSee(route('chats.index'), false);
     }
 
@@ -2190,6 +2214,107 @@ class SecurityRegressionTest extends TestCase
             ->assertSessionHasErrors('avatar');
 
         $this->assertNull($buyer->fresh()->avatar);
+    }
+
+    public function test_profile_avatar_rejects_oversized_image_dimensions(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+
+        $this->actingAs($buyer)
+            ->patchJson(route('buyer.profile.update'), [
+                'profile_section' => 'personal',
+                'name' => $buyer->name,
+                'avatar' => $this->pngHeader('avatar.png', 8001, 1),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('avatar');
+
+        $this->assertNull($buyer->fresh()->avatar);
+    }
+
+    public function test_profile_avatar_accepts_phone_sized_file_above_legacy_two_megabyte_limit(): void
+    {
+        Storage::fake('public');
+
+        $oldAvatar = 'avatars/medium/old.webp';
+        $oldThumb = \App\Services\ImageService::thumbPath($oldAvatar);
+        Storage::disk('public')->put($oldAvatar, 'old avatar');
+        Storage::disk('public')->put($oldThumb, 'old avatar thumb');
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'avatar' => $oldAvatar,
+        ]);
+
+        $this->actingAs($buyer)
+            ->patch(route('buyer.profile.update'), [
+                'profile_section' => 'personal',
+                'name' => $buyer->name,
+                'avatar' => UploadedFile::fake()->image('phone-photo.jpg', 1200, 900)->size(3072),
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('updated_fields', fn (array $fields) => in_array('avatar', $fields, true));
+
+        $avatar = $buyer->fresh()->avatar;
+
+        $this->assertNotNull($avatar);
+        $this->assertStringEndsWith('.webp', $avatar);
+        Storage::disk('public')->assertExists($avatar);
+        Storage::disk('public')->assertExists(\App\Services\ImageService::thumbPath($avatar));
+        Storage::disk('public')->assertMissing($oldAvatar);
+        Storage::disk('public')->assertMissing($oldThumb);
+    }
+
+    public function test_profile_avatar_rejects_files_above_sec03_filesize_limit_and_keeps_old_avatar(): void
+    {
+        Storage::fake('public');
+
+        $oldAvatar = 'avatars/medium/existing.webp';
+        Storage::disk('public')->put($oldAvatar, 'existing avatar');
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'avatar' => $oldAvatar,
+        ]);
+
+        $this->actingAs($buyer)
+            ->patch(route('buyer.profile.update'), [
+                'profile_section' => 'personal',
+                'name' => $buyer->name,
+                'avatar' => UploadedFile::fake()->image('too-large.jpg', 1200, 900)->size(8193),
+            ])
+            ->assertSessionHasErrors([
+                'avatar' => 'Размер файла аватара не должен превышать 8 МБ.',
+            ]);
+
+        $this->assertSame($oldAvatar, $buyer->fresh()->avatar);
+        Storage::disk('public')->assertExists($oldAvatar);
+    }
+
+    public function test_profile_keeps_previous_avatar_when_replacement_processing_fails(): void
+    {
+        Storage::fake('public');
+
+        $oldAvatar = 'avatars/medium/existing.webp';
+        Storage::disk('public')->put($oldAvatar, 'existing avatar');
+        $buyer = User::factory()->create([
+            'role' => 'buyer',
+            'avatar' => $oldAvatar,
+        ]);
+
+        $this->actingAs($buyer)
+            ->patchJson(route('buyer.profile.update'), [
+                'profile_section' => 'personal',
+                'name' => $buyer->name,
+                'avatar' => $this->pngHeader('broken.png', 100, 100),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('avatar')
+            ->assertJsonPath(
+                'errors.avatar.0',
+                'Не удалось обработать изображение. Убедитесь, что файл не повреждён и имеет формат JPG, PNG или WebP.'
+            );
+
+        $this->assertSame($oldAvatar, $buyer->fresh()->avatar);
+        Storage::disk('public')->assertExists($oldAvatar);
     }
 
     public function test_admin_views_public_user_profile_inside_admin_panel(): void
@@ -2674,6 +2799,39 @@ class SecurityRegressionTest extends TestCase
         $this->assertDatabaseMissing('products', ['title' => $payload['title']]);
     }
 
+    public function test_seller_product_rejects_image_exceeding_total_pixel_limit(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $payload = $this->validSellerProductPayload([
+            'image' => $this->pngHeader('product.png', 5000, 3201),
+        ]);
+
+        $this->actingAs($seller)
+            ->postJson(route('seller.products.store'), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('image');
+
+        $this->assertDatabaseMissing('products', ['title' => $payload['title']]);
+    }
+
+    public function test_seller_product_limits_gallery_images_per_request(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $payload = $this->validSellerProductPayload([
+            'gallery' => array_map(
+                fn (int $index) => UploadedFile::fake()->image("gallery-{$index}.jpg", 10, 10),
+                range(1, 11)
+            ),
+        ]);
+
+        $this->actingAs($seller)
+            ->postJson(route('seller.products.store'), $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('gallery');
+
+        $this->assertDatabaseMissing('products', ['title' => $payload['title']]);
+    }
+
     public function test_cart_rejects_quantity_above_product_stock(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -2739,11 +2897,16 @@ class SecurityRegressionTest extends TestCase
         $favoritesToast = file_get_contents(resource_path('views/shop/favorites.blade.php'));
         $profileAvatarToast = file_get_contents(resource_path('js/profile/avatar-cropper.js'));
         $sellerAvatarToast = file_get_contents(resource_path('views/seller/partials/avatar.blade.php'));
+        $toastStack = file_get_contents(resource_path('views/components/toast-stack.blade.php'));
 
-        foreach ([$globalToast, $cartToast, $favoritesToast] as $source) {
+        foreach ([$cartToast, $favoritesToast] as $source) {
             $this->assertStringContainsString("textContent = String(text ?? '')", $source);
             $this->assertStringNotContainsString('<span>${text}</span>', $source);
         }
+
+        $this->assertStringContainsString('window.showSiteToast(message, type)', $globalToast);
+        $this->assertStringContainsString('x-text="toast.text"', $toastStack);
+        $this->assertStringNotContainsString('innerHTML', $toastStack);
 
         foreach ([$profileAvatarToast, $sellerAvatarToast] as $source) {
             $this->assertStringContainsString("textContent = String(message ?? '')", $source);
@@ -2832,14 +2995,7 @@ class SecurityRegressionTest extends TestCase
 
         $this->actingAs($buyer)
             ->withSession([
-                'checkout_cart' => [[
-                    'cart_id' => null,
-                    'product_id' => $product->id,
-                    'title' => $product->title,
-                    'price' => 100,
-                    'qty' => 2,
-                    'image' => $product->image,
-                ]],
+                'checkout_cart' => [$this->checkoutCartRow($product, 2)],
             ])
             ->post(route('checkout.create'), [
                 'payment_method' => 'cash',
@@ -2867,14 +3023,9 @@ class SecurityRegressionTest extends TestCase
             'house' => '1',
             'is_default' => true,
         ]);
-        $cart = collect([$firstProduct, $secondProduct])->map(fn (Product $product) => [
-            'cart_id' => null,
-            'product_id' => $product->id,
-            'title' => $product->title,
-            'price' => $product->price,
-            'qty' => 1,
-            'image' => $product->image,
-        ])->all();
+        $cart = collect([$firstProduct, $secondProduct])
+            ->map(fn (Product $product) => $this->checkoutCartRow($product))
+            ->all();
 
         $this->actingAs($buyer)
             ->withSession(['checkout_cart' => $cart])
@@ -2883,7 +3034,7 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('First shop')
             ->assertSee('Second shop')
             ->assertSee('Будет создано заказов:')
-            ->assertSee('510,00 ₽');
+            ->assertSee('498,38 ₽');
 
         $this->actingAs($buyer)
             ->post(route('checkout.create'), [
@@ -2900,7 +3051,7 @@ class SecurityRegressionTest extends TestCase
             ->map(fn ($total) => (float) $total)
             ->all();
 
-        $this->assertSame([255.0, 255.0], $totals);
+        $this->assertSame([249.19, 249.19], $totals);
     }
 
     public function test_checkout_requires_new_confirmation_when_product_price_changes(): void
@@ -2908,14 +3059,7 @@ class SecurityRegressionTest extends TestCase
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller);
-        $cart = [[
-            'cart_id' => null,
-            'product_id' => $product->id,
-            'title' => $product->title,
-            'price' => $product->price,
-            'qty' => 1,
-            'image' => $product->image,
-        ]];
+        $cart = [$this->checkoutCartRow($product)];
 
         $this->actingAs($buyer)
             ->withSession(['checkout_cart' => $cart])
@@ -2934,7 +3078,7 @@ class SecurityRegressionTest extends TestCase
             ->assertSessionHas('error');
 
         $this->assertDatabaseMissing('orders', ['user_id' => $buyer->id]);
-        $this->assertSame(125.0, (float) session('checkout_cart.0.price'));
+        $this->assertSame(117.74, (float) session('checkout_cart.0.price'));
     }
 
     public function test_checkout_token_cannot_create_the_same_order_twice(): void
@@ -2942,14 +3086,7 @@ class SecurityRegressionTest extends TestCase
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller, ['stock' => 3]);
-        $cart = [[
-            'cart_id' => null,
-            'product_id' => $product->id,
-            'title' => $product->title,
-            'price' => $product->price,
-            'qty' => 1,
-            'image' => $product->image,
-        ]];
+        $cart = [$this->checkoutCartRow($product)];
 
         $this->actingAs($buyer)
             ->withSession(['checkout_cart' => $cart])
@@ -3130,6 +3267,22 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_admin_category_rejects_image_exceeding_total_pixel_limit(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.categories.store'), [
+                'name' => 'Oversized category',
+                'slug' => 'oversized-category',
+                'image' => $this->pngHeader('category.png', 5000, 3201),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('image');
+
+        $this->assertDatabaseMissing('categories', ['slug' => 'oversized-category']);
+    }
+
     public function test_admin_category_images_are_converted_to_webp(): void
     {
         Storage::fake('public');
@@ -3277,6 +3430,49 @@ class SecurityRegressionTest extends TestCase
             'user_id' => $buyer->id,
             'product_id' => $product->id,
         ]);
+    }
+
+    public function test_review_purchase_restriction_uses_warning_toast_for_browser_requests(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $message = 'Отзыв можно оставить только после покупки и получения товара.';
+
+        $this->actingAs($buyer)
+            ->from(route('product.show', $product->slug))
+            ->post(route('review.store', $product), [
+                'rating' => 5,
+                'body' => 'Fake review',
+            ])
+            ->assertRedirect(route('product.show', $product->slug))
+            ->assertSessionHas('warning', $message);
+
+        $this->actingAs($buyer)
+            ->withSession(['warning' => $message])
+            ->get(route('product.show', $product->slug))
+            ->assertOk()
+            ->assertSee('data-toast-stack', false)
+            ->assertSee('flash-0', false)
+            ->assertSee('warning', false);
+    }
+
+    public function test_global_toast_component_supports_all_types_without_promoting_field_errors(): void
+    {
+        $component = file_get_contents(resource_path('views/components/toast-stack.blade.php'));
+
+        foreach (['success', 'error', 'warning', 'info'] as $type) {
+            $this->assertStringContainsString("session('{$type}')", $component);
+        }
+
+        $this->assertStringContainsString('aria-live="polite"', $component);
+        $this->assertStringContainsString('aria-label="Закрыть уведомление"', $component);
+        $this->assertStringContainsString('motion-reduce:transition-none', $component);
+        $this->assertStringNotContainsString('$errors->', $component);
+
+        foreach (['success', 'danger', 'warning', 'info'] as $palette) {
+            $this->assertStringContainsString("{$palette}-600", $component);
+        }
     }
 
     public function test_user_can_review_product_after_delivery(): void
@@ -3532,6 +3728,35 @@ class SecurityRegressionTest extends TestCase
                 'images' => [
                     UploadedFile::fake()->create('review.svg', 1, 'image/svg+xml'),
                 ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('images.0');
+
+        $this->assertDatabaseMissing('reviews', [
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+    }
+
+    public function test_review_rejects_oversized_image_dimensions(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $order = $this->createOrder($buyer, $seller, Order::STATUS_DELIVERED);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'total' => 100,
+        ]);
+
+        $this->actingAs($buyer)
+            ->postJson(route('review.store', $product), [
+                'rating' => 5,
+                'images' => [$this->pngHeader('review.png', 1, 8001)],
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('images.0');
@@ -4168,6 +4393,21 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
+    public function test_admin_banner_rejects_image_exceeding_total_pixel_limit(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.banners.store'), [
+                'title' => 'Oversized banner image',
+                'image_source' => $this->pngHeader('banner-source.png', 5000, 3201),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('image_source');
+
+        $this->assertDatabaseMissing('banners', ['title' => 'Oversized banner image']);
+    }
+
     public function test_admin_banner_images_are_converted_to_webp(): void
     {
         Storage::fake('public');
@@ -4286,6 +4526,32 @@ class SecurityRegressionTest extends TestCase
         Storage::disk('public')->assertExists($banner->image_desktop);
     }
 
+    public function test_admin_banner_keeps_previous_image_when_replacement_processing_fails(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $oldPath = 'banners/desktop/existing.webp';
+        Storage::disk('public')->put($oldPath, 'existing banner');
+
+        $banner = Banner::create([
+            'title' => 'Banner with failed replacement',
+            'image_desktop' => $oldPath,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->putJson(route('admin.banners.update', $banner), [
+                'title' => $banner->title,
+                'active' => '1',
+                'image_desktop' => $this->pngHeader('broken.png', 100, 100),
+            ])
+            ->assertServerError();
+
+        $this->assertSame($oldPath, $banner->fresh()->image_desktop);
+        Storage::disk('public')->assertExists($oldPath);
+    }
+
     public function test_admin_banner_can_recrop_existing_legacy_image_without_reupload(): void
     {
         Storage::fake('public');
@@ -4327,6 +4593,36 @@ class SecurityRegressionTest extends TestCase
         Storage::disk('public')->assertMissing($legacyPath);
     }
 
+    public function test_admin_banner_rejects_oversized_legacy_image_before_recrop_decode(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $legacyPath = 'banners/legacy/oversized.png';
+        $header = $this->pngHeader('oversized.png', 5000, 3201);
+        Storage::disk('public')->put($legacyPath, file_get_contents($header->getRealPath()));
+
+        $banner = Banner::create([
+            'title' => 'Oversized legacy banner',
+            'image' => $legacyPath,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->putJson(route('admin.banners.update', $banner), [
+                'title' => $banner->title,
+                'active' => '1',
+                'recrop_existing' => '1',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('image_source');
+
+        Storage::disk('public')->assertExists($legacyPath);
+        $this->assertSame([], Storage::disk('public')->allFiles('banners/desktop'));
+        $this->assertSame([], Storage::disk('public')->allFiles('banners/tablet'));
+        $this->assertSame([], Storage::disk('public')->allFiles('banners/mobile'));
+    }
+
     public function test_seller_shop_rejects_javascript_social_link(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);
@@ -4351,6 +4647,21 @@ class SecurityRegressionTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('banner');
+    }
+
+    public function test_seller_shop_rejects_banner_exceeding_total_pixel_limit(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $this->actingAs($seller)
+            ->patchJson(route('profile.shop.update'), [
+                'name' => 'Seller shop',
+                'banner' => $this->pngHeader('banner.png', 5000, 3201),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('banner');
+
+        $this->assertNull($seller->fresh()->shop?->banner);
     }
 
     public function test_admin_cannot_update_attribute_through_unrelated_category(): void
@@ -5113,6 +5424,28 @@ class SecurityRegressionTest extends TestCase
         ], $overrides));
     }
 
+    private function checkoutCartRow(Product $product, int $quantity = 1): array
+    {
+        $quote = app(CurrencyService::class)->quote(
+            (float) $product->price,
+            Product::normalizeCurrencyCode($product->currency_base),
+            'PRB',
+        );
+
+        return [
+            'cart_id' => null,
+            'product_id' => $product->id,
+            'title' => $product->title,
+            'source_price' => (float) $product->price,
+            'source_currency' => $quote['from'],
+            'exchange_rate' => $quote['rate'],
+            'price' => $quote['amount'],
+            'currency' => $quote['to'],
+            'qty' => $quantity,
+            'image' => $product->image,
+        ];
+    }
+
     private function createOrder(User $buyer, User $seller, string $status = Order::STATUS_PENDING): Order
     {
         return Order::create([
@@ -5144,5 +5477,20 @@ class SecurityRegressionTest extends TestCase
             'city_id' => $city->id,
             'status' => 'draft',
         ], $overrides);
+    }
+
+    private function pngHeader(string $name, int $width, int $height): UploadedFile
+    {
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+            true
+        );
+
+        $this->assertIsString($png);
+
+        return UploadedFile::fake()->createWithContent(
+            $name,
+            substr_replace($png, pack('N', $width) . pack('N', $height), 16, 8)
+        );
     }
 }

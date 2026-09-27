@@ -2,6 +2,12 @@ import Alpine from 'alpinejs'
 
 window.Alpine = Alpine
 
+window.showSiteToast = (message, type = 'info') => {
+  window.dispatchEvent(new CustomEvent('wv-toast', {
+    detail: { message, type },
+  }))
+}
+
 Alpine.store('specs', { open: false })
 
 Alpine.data('appShell', () => ({
@@ -102,58 +108,11 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// 🔔 Единый toast для быстрых уведомлений
-window.showAppToast = (text, type = 'success') => {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
-
-  const styleId = 'app-toast-style';
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      .toast {
-        position: fixed;
-        right: 16px;
-        top: 80px;
-        padding: 10px 18px;
-        color: white;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 600;
-        box-shadow: 0 12px 30px -8px rgba(15,23,42,.28);
-        animation: appToastIn .25s ease;
-        z-index: 99999;
-        backdrop-filter: blur(10px);
-        background: rgba(30, 41, 59, .96);
-      }
-      .toast-success { border-left: 3px solid #10b981; }
-      .toast-error { background: rgba(239, 68, 68, .96); border-left: 3px solid #fecaca; }
-      @keyframes appToastIn {
-        from { opacity: 0; transform: translateX(24px); }
-        to { opacity: 1; transform: translateX(0); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  const el = document.createElement('div');
-  el.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
-  el.innerHTML = `
-    <div class="flex items-center gap-2">
-      <i class="${type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'} text-base"></i>
-      <span></span>
-    </div>
-  `;
-  el.querySelector('span').textContent = String(text ?? '');
-  document.body.appendChild(el);
-
-  setTimeout(() => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(20px)';
-    setTimeout(() => el.remove(), 300);
-  }, 2500);
-};
+// Backward-compatible entry point for screens that still call showAppToast.
+// Rendering and semantic colors are owned by the shared <x-toast-stack>.
+window.showAppToast = (message, type = 'success') => {
+  window.showSiteToast(message, type)
+}
 
 // 🧮 Актуализация счетчиков товаров на карточках после возврата назад
 // Браузер может восстановить главную из bfcache, поэтому Blade-значения становятся устаревшими.
@@ -212,6 +171,7 @@ import itiFlags2x from 'intl-tel-input/build/img/flags@2x.webp?url';
 import itiGlobe from 'intl-tel-input/build/img/globe.webp?url';
 import itiGlobe2x from 'intl-tel-input/build/img/globe@2x.webp?url';
 window.intlTelInput = intlTelInput;
+window.loadIntlTelInputUtils = () => import('intl-tel-input/utils');
 
 document.documentElement.style.setProperty('--iti-path-flags-1x', `url("${itiFlags}")`);
 document.documentElement.style.setProperty('--iti-path-flags-2x', `url("${itiFlags2x}")`);
@@ -240,35 +200,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const iti = window.intlTelInput(input, {
       // 🌍 Настройки отображения
       initialCountry: 'md',                 // Страна по умолчанию — 🇲🇩 Молдова
-      preferredCountries: ['md', 'ua', 'ru'], // Три популярных страны вверху списка
+      countryOrder: ['md', 'ua', 'ro', 'ru'], // Популярные страны вверху списка
       separateDialCode: true,               // Отображает код страны отдельно от номера
-      nationalMode: false,                  // Ввод всегда в международном формате (+373 ...)
       autoPlaceholder: 'aggressive',        // Подсказка вида: +373 777 00 000
-      showSelectedDialCode: true,           // Показывает код страны рядом с флагом
+      formatAsYouType: true,
+      strictMode: true,
+      showFlags: true,
+
+      // Карточка регистрации имеет overflow-hidden. Рендерим desktop-dropdown
+      // в body, иначе список стран визуально обрезается границами карточки.
+      dropdownContainer: document.body,
 
       // ⚙️ Подключаем утилиты для форматирования и валидации
-      utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.5/build/js/utils.js',
-    });
-
-
-    // 🟢 Автоопределение страны при вводе кода
-    // ------------------------------------------------------
-    // Когда пользователь начинает вводить +373 / +380 / +7
-    // — автоматически меняем флаг страны
-    input.addEventListener('input', () => {
-      const val = input.value.trim();
-
-      if (val.startsWith('+373')) iti.setCountry('md'); // 🇲🇩 Молдова
-      else if (val.startsWith('+380')) iti.setCountry('ua'); // 🇺🇦 Украина
-      else if (val.startsWith('+7')) iti.setCountry('ru'); // 🇷🇺 Россия
-    });
-
-
-    // ➕ При фокусе — если пользователь кликает в пустое поле
-    // ------------------------------------------------------
-    // и там нет "+", мы автоматически добавляем его.
-    input.addEventListener('focus', () => {
-      if (!input.value.startsWith('+')) input.value = '+';
+      loadUtils: window.loadIntlTelInputUtils,
     });
 
 
@@ -276,8 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------
     // Преобразует номер в красивый международный формат при blur
     input.addEventListener('blur', () => {
-      if (window.intlTelInputUtils && iti.isValidNumber()) {
-        const formatted = iti.getNumber(intlTelInputUtils.numberFormat.INTERNATIONAL);
+      if (window.intlTelInput.utils && iti.isValidNumber()) {
+        const formatted = iti.getNumber(window.intlTelInput.utils.numberFormat.INTERNATIONAL);
         if (formatted) input.value = formatted;
       }
     });
@@ -285,10 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = input.closest('form');
     if (form) {
       form.addEventListener('submit', () => {
-        if (window.intlTelInputUtils && iti.isValidNumber()) {
-          const formatted = iti.getNumber(intlTelInputUtils.numberFormat.E164);
-          if (formatted) input.value = formatted;
-        }
+        // getNumber() без format возвращает полный международный номер и не
+        // теряет dial code при separateDialCode, даже если utils ещё грузятся.
+        const fullNumber = iti.getNumber();
+        if (fullNumber) input.value = fullNumber;
       });
     }
   });

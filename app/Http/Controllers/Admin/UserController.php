@@ -8,9 +8,11 @@ use App\Models\Shop;
 use App\Models\AdminActivityLog;
 use App\Models\Order;
 use App\Models\SellerPlanRequest;
+use App\Rules\ImageUploadConstraints;
 use App\Services\SellerPlanService;
 use App\Services\AdminActivityLogger;
 use App\Services\ImageService;
+use App\Services\PasswordSecurityService;
 use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +28,8 @@ class UserController extends Controller
         private readonly UserTrustService $trustService,
         private readonly SellerPlanService $sellerPlans,
         private readonly AdminActivityLogger $activity,
-        private readonly ImageService $images
+        private readonly ImageService $images,
+        private readonly PasswordSecurityService $passwordSecurity
     ) {
     }
 
@@ -210,7 +213,7 @@ class UserController extends Controller
             'role'     => 'required|in:admin,seller,buyer',
             'seller_plan' => ['nullable', 'in:' . implode(',', $this->sellerPlans->allowedKeys())],
             'password' => ['nullable', 'confirmed', Password::defaults()],
-            'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'avatar'   => ImageUploadConstraints::rules(2048),
         ]);
 
         if ($this->wouldRemoveLastAdmin($user, $validated['role'])) {
@@ -248,21 +251,27 @@ class UserController extends Controller
             'seller_plan' => $sellerPlan,
         ];
 
-        if ($request->filled('password')) {
-            $userData['password'] = Hash::make($request->password);
-            $userData['password_set_at'] = now();
-        }
+        $password = $request->filled('password') ? $validated['password'] : null;
 
         if ($request->hasFile('avatar')) {
+            $newAvatarPath = $this->images->upload($request->file('avatar'), 'avatars');
+
             if ($user->avatar) {
                 $this->images->delete($user->avatar);
             }
 
-            $userData['avatar'] = $this->images->upload($request->file('avatar'), 'avatars');
+            $userData['avatar'] = $newAvatarPath;
         }
 
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
-        $user->update($userData);
+
+        if ($password !== null) {
+            $user->fill($userData);
+            $this->passwordSecurity->rotate($user, $password);
+        } else {
+            $user->update($userData);
+        }
+
         $after = $user->fresh()->only(['name', 'email', 'phone', 'role', 'seller_plan']);
 
         $this->activity->log('user.updated', $user, 'Администратор изменил пользователя.', [
@@ -286,10 +295,11 @@ class UserController extends Controller
             ]);
         }
 
+        $deletedEmailHash = hash('sha256', (string) $user->email);
         $user->delete();
 
         $this->activity->log('user.deleted', $user, 'Администратор удалил пользователя.', [
-            'deleted_user_email_hash' => hash('sha256', (string) $user->email),
+            'deleted_user_email_hash' => $deletedEmailHash,
             'deleted_user_role' => $user->role,
         ]);
 
@@ -314,7 +324,7 @@ class UserController extends Controller
             'phone'    => 'nullable|string|max:20',
             'password' => ['required', 'confirmed', Password::defaults()],
             'role'     => 'required|in:admin,seller,buyer',
-            'avatar'   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'avatar'   => ImageUploadConstraints::rules(2048),
         ]);
 
         DB::beginTransaction();

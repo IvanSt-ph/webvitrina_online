@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class LoginRequest extends FormRequest
 {
@@ -53,10 +54,17 @@ class LoginRequest extends FormRequest
             }
         }
 
-        if (! Auth::attempt([
-            $field => $login,
-            'password' => $this->input('password'),
-        ], $this->boolean('remember'))) {
+        try {
+            $authenticated = Auth::attempt([
+                $field => $login,
+                'password' => $this->input('password'),
+            ], $this->boolean('remember'));
+        } catch (RuntimeException $exception) {
+            report($exception);
+            $authenticated = false;
+        }
+
+        if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

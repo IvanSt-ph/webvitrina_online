@@ -9,17 +9,22 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\Shop;
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 use App\Services\ImageService;
+use Throwable;
 
 class ProfileController extends Controller
 {
+    private const AVATAR_MAX_FILE_KILOBYTES = ImageUploadConstraints::MAX_FILE_KILOBYTES;
+
     /* =========================
      * ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
      * ========================= */
@@ -39,36 +44,38 @@ class ProfileController extends Controller
 
         if ($request->ajax() && $request->hasFile('avatar')) {
             $request->validate([
-                'avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048'
-            ]);
+                'avatar' => $this->avatarValidationRules(required: true),
+            ], $this->avatarValidationMessages());
 
-            if ($user->avatar) {
-                app(ImageService::class)->delete($user->avatar);
-            }
+            $oldAvatar = $user->avatar;
+            $path = $this->storeAvatar($request->file('avatar'));
 
-            $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
             $user->avatar = $path;
             $user->save();
+
+            if ($oldAvatar) {
+                app(ImageService::class)->delete($oldAvatar);
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Аватар успешно обновлен',
-                'avatar_url' => Storage::url($path)
+                'avatar_url' => $user->avatar_url,
             ]);
         }
 
         if ($section === 'personal') {
             $data = $request->validate([
                 'name' => 'required|string|max:255',
-                'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            ]);
+                'avatar' => $this->avatarValidationRules(),
+            ], $this->avatarValidationMessages());
+
+            $oldAvatar = null;
 
             if ($request->hasFile('avatar')) {
-                if ($user->avatar) {
-                    app(ImageService::class)->delete($user->avatar);
-                }
+                $oldAvatar = $user->avatar;
+                $path = $this->storeAvatar($request->file('avatar'));
 
-                $path = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
                 $user->avatar = $path;
                 $updatedFields[] = 'avatar';
             }
@@ -80,6 +87,11 @@ class ProfileController extends Controller
 
             if (!empty($updatedFields)) {
                 $user->save();
+
+                if ($oldAvatar) {
+                    app(ImageService::class)->delete($oldAvatar);
+                }
+
                 return back()->with('updated_fields', $updatedFields);
             }
 
@@ -197,19 +209,19 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name'   => 'required|string|max:255',
             'email'  => 'required|email|max:255|unique:users,email,' . $user->id,
-            'avatar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'avatar' => $this->avatarValidationRules(),
             'phone'  => 'nullable|string|max:50',
             'phone_full' => 'nullable|string|max:50',
-        ]);
+        ], $this->avatarValidationMessages());
 
         $changed = false;
+        $oldAvatar = null;
 
         if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                app(ImageService::class)->delete($user->avatar);
-            }
+            $oldAvatar = $user->avatar;
+            $path = $this->storeAvatar($request->file('avatar'));
 
-            $user->avatar = app(ImageService::class)->upload($request->file('avatar'), 'avatars');
+            $user->avatar = $path;
             $updatedFields[] = 'avatar';
             $changed = true;
         }
@@ -254,6 +266,10 @@ class ProfileController extends Controller
 
         if ($changed) {
             $user->save();
+
+            if ($oldAvatar) {
+                app(ImageService::class)->delete($oldAvatar);
+            }
         }
 
         if (!empty($updatedFields)) {
@@ -360,7 +376,7 @@ public function updateShop(Request $request): RedirectResponse
         'city'        => 'nullable|string|max:255',
         'description' => 'nullable|string|max:1000',
         'phone'       => 'nullable|string|max:50',
-        'banner'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        'banner'      => ImageUploadConstraints::rules(4096),
 
         'facebook'    => $this->externalUrlRules(),
         'instagram'   => $this->externalUrlRules(),
@@ -379,10 +395,13 @@ public function updateShop(Request $request): RedirectResponse
     }
 
     if ($request->hasFile('banner')) {
+        $newBannerPath = app(ImageService::class)->upload($request->file('banner'), 'banners');
+
         if ($shop->banner) {
             app(ImageService::class)->delete($shop->banner);
         }
-        $data['banner'] = app(ImageService::class)->upload($request->file('banner'), 'banners');
+
+        $data['banner'] = $newBannerPath;
     }
 
     // Проверка телефона магазина
@@ -483,6 +502,35 @@ private function phoneExistsInAnotherShop(?string $phone, User $user): bool
         ->exists();
 }
 
+private function avatarValidationRules(bool $required = false): array
+{
+    return ImageUploadConstraints::rules(self::AVATAR_MAX_FILE_KILOBYTES, $required);
+}
+
+private function avatarValidationMessages(): array
+{
+    return [
+        'avatar.required' => 'Выберите изображение для аватара.',
+        'avatar.uploaded' => 'Не удалось загрузить файл. Проверьте его размер и попробуйте снова.',
+        'avatar.image' => 'Файл должен быть корректным изображением JPG, PNG или WebP.',
+        'avatar.mimes' => 'Поддерживаются только изображения JPG, PNG и WebP.',
+        'avatar.max' => 'Размер файла аватара не должен превышать 8 МБ.',
+    ];
+}
+
+private function storeAvatar(UploadedFile $avatar): string
+{
+    try {
+        return app(ImageService::class)->upload($avatar, 'avatars');
+    } catch (Throwable $exception) {
+        report($exception);
+
+        throw ValidationException::withMessages([
+            'avatar' => 'Не удалось обработать изображение. Убедитесь, что файл не повреждён и имеет формат JPG, PNG или WebP.',
+        ]);
+    }
+}
+
     /* =========================
      * КАБИНЕТ
      * ========================= */
@@ -541,7 +589,7 @@ public function redirectToRoleProfile()
             $orders = Order::whereHas('items.product', fn ($q) =>
                 $q->where('user_id', $user->id)
             )
-            ->with(['items.product.category', 'items.product.city.country', 'address'])
+            ->with(['items.product.category', 'items.product.city.country'])
             ->latest()
             ->paginate(10);
 
@@ -674,10 +722,6 @@ public function redirectToRoleProfile()
 
         Auth::logout();
 
-        if ($user->avatar) {
-            app(ImageService::class)->delete($user->avatar);
-        }
-
         $user->delete();
 
         $request->session()->invalidate();
@@ -686,5 +730,3 @@ public function redirectToRoleProfile()
         return Redirect::to('/');
     }
 }
-
-

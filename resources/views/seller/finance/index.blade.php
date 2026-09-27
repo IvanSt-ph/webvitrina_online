@@ -47,7 +47,7 @@
                 <span class="font-semibold text-slate-900">#{{ $order->number }}</span>
                 <x-status-badge :status="$order->status" />
               </div>
-              <p class="mt-1 truncate text-sm text-slate-500">{{ $order->user?->name ?? 'Покупатель' }} · {{ $order->created_at?->format('d.m.Y H:i') }}</p>
+              <p class="mt-1 truncate text-sm text-slate-500">{{ $order->buyer_name }} · {{ $order->created_at?->format('d.m.Y H:i') }}</p>
             </div>
             <div class="text-sm font-bold text-slate-900">{{ $order->formatted_total_price }}</div>
           </a>

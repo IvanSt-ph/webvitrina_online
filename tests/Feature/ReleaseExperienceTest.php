@@ -426,6 +426,25 @@ class ReleaseExperienceTest extends TestCase
 
     public function test_admin_dashboard_and_production_checklist_show_release_tasks(): void
     {
+        $this->withoutVite();
+        $originalStorage = storage_path();
+        $originalPublic = public_path();
+        $root = storage_path('framework/testing/release-health-' . uniqid());
+        File::ensureDirectoryExists($root . '/storage/app/public');
+        File::ensureDirectoryExists($root . '/public');
+        $link = $root . '/public/storage';
+        $this->beforeApplicationDestroyed(function () use ($originalStorage, $originalPublic, $root, $link) {
+            if (is_link($link) || @readlink($link) !== false) {
+                PHP_OS_FAMILY === 'Windows' ? rmdir($link) : unlink($link);
+            }
+            app()->useStoragePath($originalStorage);
+            app()->usePublicPath($originalPublic);
+            File::deleteDirectory($root);
+        });
+        File::link($root . '/storage/app/public', $link);
+        app()->useStoragePath($root . '/storage');
+        app()->usePublicPath($root . '/public');
+        config(['backup.lock_path' => $root . '/barrier.lock']);
         $admin = User::factory()->create(['role' => 'admin']);
 
         $this->actingAs($admin)
@@ -458,8 +477,8 @@ class ReleaseExperienceTest extends TestCase
         $publicStorage = public_path('storage');
         if (file_exists($publicStorage) && (is_link($publicStorage) || @readlink($publicStorage) !== false)) {
             $response
-                ->assertSee('linked')
-                ->assertDontSee('Сейчас: нет ссылки');
+                ->assertSee('correct')
+                ->assertDontSee('Сейчас: missing');
         }
     }
 
@@ -491,10 +510,21 @@ class ReleaseExperienceTest extends TestCase
 
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
-        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode(['created_at' => now()->toIso8601String()]));
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz', 'private-storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode([
+            'version' => 2,
+            'created_at' => now()->toIso8601String(),
+            'storage' => [
+                'private_chat_images' => [
+                    'archive' => 'storage-private-chat-images.tar.gz',
+                    'root' => 'private/chat-images',
+                ],
+            ],
+        ]));
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz') . ' database.sql.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz') . ' storage-private-chat-images.tar.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'manifest.json') . ' manifest.json',
         ]));
 
@@ -517,10 +547,21 @@ class ReleaseExperienceTest extends TestCase
 
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'database.sql.gz', 'database');
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz', 'storage');
-        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode(['created_at' => now()->toIso8601String()]));
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz', 'private-storage');
+        file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'manifest.json', json_encode([
+            'version' => 2,
+            'created_at' => now()->toIso8601String(),
+            'storage' => [
+                'private_chat_images' => [
+                    'archive' => 'storage-private-chat-images.tar.gz',
+                    'root' => 'private/chat-images',
+                ],
+            ],
+        ]));
         file_put_contents($backupDir . DIRECTORY_SEPARATOR . 'SHA256SUMS', implode(PHP_EOL, [
             str_repeat('0', 64) . ' database.sql.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz') . ' storage-public.tar.gz',
+            hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz') . ' storage-private-chat-images.tar.gz',
             hash_file('sha256', $backupDir . DIRECTORY_SEPARATOR . 'manifest.json') . ' manifest.json',
         ]));
 

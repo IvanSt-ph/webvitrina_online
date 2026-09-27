@@ -9,8 +9,12 @@ use App\Support\SafeRedirect;
 
 class UserNotificationService
 {
-    public function create(User $user, string $type, string $title, ?string $body = null, ?string $url = null, array $data = []): UserNotification
+    public function create(?User $user, string $type, string $title, ?string $body = null, ?string $url = null, array $data = []): ?UserNotification
     {
+        if (! $user || ! $user->exists || $user->trashed() || ! User::whereKey($user->id)->exists()) {
+            return null;
+        }
+
         $safeUrl = SafeRedirect::internalPath($url);
 
         $notification = $user->notifications()->create([

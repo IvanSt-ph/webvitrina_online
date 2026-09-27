@@ -183,7 +183,7 @@
 
                             <div class="min-w-0">
                                 <div class="truncate text-sm font-medium text-slate-800">
-                                    {{ $order->user->name ?? 'Покупатель не указан' }}
+                                    {{ $order->buyer_name }}
                                 </div>
                                 <div class="mt-1 truncate text-xs text-slate-500">
                                     {{ $firstItem?->product?->title ?? 'Товар не найден' }}

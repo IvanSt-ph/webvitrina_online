@@ -83,6 +83,75 @@ class ProductCountryCityValidationTest extends TestCase
         $this->assertNotSame($cityFromAnotherCountry->id, $product->fresh()->city_id);
     }
 
+    public function test_admin_form_update_rejects_mismatched_city_without_changing_saved_filters(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $product = $this->createProduct(User::factory()->create(['role' => 'seller']));
+        [$country, $city] = $this->mismatchedCountryAndCity();
+        $originalCity = $product->city_id;
+
+        $this->actingAs($admin)->withSession(['country_id' => $product->country_id, 'city_id' => $originalCity])
+            ->patch(route('admin.products.update', $product), [
+                'country_id' => $country->id,
+                'city_id' => $city->id,
+            ])
+            ->assertSessionHasErrors('city_id')
+            ->assertSessionHas('city_id', $originalCity);
+
+        $this->assertEquals($originalCity, $product->fresh()->city_id);
+    }
+
+    public function test_method_spoofed_update_keeps_invalid_city_for_validation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $product = $this->createProduct(User::factory()->create(['role' => 'seller']));
+
+        $this->actingAs($admin)->post(route('admin.products.update', $product), [
+            '_method' => 'PATCH',
+            'country_id' => $product->country_id,
+            'city_id' => ['invalid'],
+        ])->assertSessionHasErrors('city_id');
+    }
+
+    public function test_unrelated_update_does_not_inherit_or_clear_location_filters(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $product = $this->createProduct(User::factory()->create(['role' => 'seller']));
+        $otherLocation = $this->validProductPayload();
+        $originalCity = $product->city_id;
+
+        foreach ([[], ['clear_location' => 1]] as $extra) {
+            $this->actingAs($admin)->withSession([
+                'country_id' => $otherLocation['country_id'],
+                'city_id' => $otherLocation['city_id'],
+            ])->patch(route('admin.products.update', $product), ['title' => 'Updated title'] + $extra)
+                ->assertRedirect(route('admin.products.index'))
+                ->assertSessionHas('country_id', $otherLocation['country_id'])
+                ->assertSessionHas('city_id', $otherLocation['city_id']);
+
+            $this->assertEquals($originalCity, $product->fresh()->city_id);
+            $this->assertSame('Updated title', $product->fresh()->title);
+        }
+    }
+
+    public function test_product_forms_reject_arrays_containing_existing_location_ids(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller);
+        $payload = $this->validProductPayload(['user_id' => $seller->id]);
+
+        foreach (['country_id', 'city_id'] as $field) {
+            $invalid = array_replace($payload, [$field => [$payload[$field]]]);
+            foreach ([['admin', $admin], ['seller', $seller]] as [$prefix, $user]) {
+                $this->actingAs($user)->postJson(route($prefix.'.products.store'), $invalid)
+                    ->assertUnprocessable()->assertJsonValidationErrors($field);
+                $this->actingAs($user)->patchJson(route($prefix.'.products.update', $product), $invalid)
+                    ->assertUnprocessable()->assertJsonValidationErrors($field);
+            }
+        }
+    }
+
     private function mismatchedCountryAndCity(): array
     {
         $country = Country::create(['name' => 'Moldova ' . uniqid()]);

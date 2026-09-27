@@ -20,6 +20,7 @@ class CategoryController extends Controller
     public function ajax(Request $request, $slug)
 {
     $category = Category::where('slug', $slug)->firstOrFail();
+    \App\Support\CatalogAttributeFilters::normalize($request, $category);
     $categoryIds = $category->allChildrenIds();
 
     $productsQuery = Product::query()
@@ -61,6 +62,7 @@ class CategoryController extends Controller
     {
         // 📌 Категория (с кешом через сервис)
         $category = $this->categories->getBySlug($slug);
+        \App\Support\CatalogAttributeFilters::normalize(request(), $category);
 
         // Атрибуты категории (по всем потомкам)
         $allIds = $category->allChildrenIds();
@@ -141,11 +143,11 @@ class CategoryController extends Controller
                         // Числовой диапазон
                         if (is_array($value) && (isset($value['from']) || isset($value['to']))) {
 
-                            if (!empty($value['from'])) {
+                            if (isset($value['from'])) {
                                 $q->where('value', '>=', $value['from']);
                             }
 
-                            if (!empty($value['to'])) {
+                            if (isset($value['to'])) {
                                 $q->where('value', '<=', $value['to']);
                             }
                         } else {

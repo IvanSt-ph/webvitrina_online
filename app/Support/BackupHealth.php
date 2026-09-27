@@ -9,6 +9,7 @@ class BackupHealth
     public const REQUIRED_FILES = [
         'database.sql.gz',
         'storage-public.tar.gz',
+        'storage-private-chat-images.tar.gz',
         'manifest.json',
         'SHA256SUMS',
     ];
@@ -37,22 +38,10 @@ class BackupHealth
         $modifiedAt = filemtime($latest) ?: time();
         $ageHours = round((time() - $modifiedAt) / 3600, 1);
         $files = self::files($latest);
-        $issues = [];
+        $issues = self::integrityIssues($latest, $files, $verifyChecksums);
 
         if ($ageHours > $maxAge) {
             $issues[] = 'Backup старше лимита: ' . $ageHours . ' ч при лимите ' . $maxAge . ' ч.';
-        }
-
-        foreach (self::REQUIRED_FILES as $file) {
-            if (! ($files[$file]['exists'] ?? false)) {
-                $issues[] = 'Нет файла ' . $file . '.';
-            } elseif (($files[$file]['size'] ?? 0) <= 0) {
-                $issues[] = 'Файл ' . $file . ' пустой.';
-            }
-        }
-
-        if ($verifyChecksums && ($files['SHA256SUMS']['exists'] ?? false)) {
-            $issues = array_merge($issues, self::checksumIssues($latest));
         }
 
         return [
@@ -63,10 +52,32 @@ class BackupHealth
             'created_at' => date('d.m.Y H:i', $modifiedAt),
             'age_hours' => $ageHours,
             'value' => 'Последний: ' . date('d.m.Y H:i', $modifiedAt),
-            'detail' => 'Папка: ' . basename($latest) . '. Возраст: ' . $ageHours . ' ч. Проверяются database.sql.gz, storage-public.tar.gz и SHA256SUMS.',
+            'detail' => 'Папка: ' . basename($latest) . '. Возраст: ' . $ageHours . ' ч. Проверяются БД, public storage, private chat images, manifest и SHA256SUMS.',
             'issues' => $issues,
             'files' => $files,
             'manifest' => self::manifest($latest),
+        ];
+    }
+
+    public static function inspectDirectory(string $directory, bool $verifyChecksums = true): array
+    {
+        if (! is_dir($directory) || ! is_readable($directory)) {
+            return [
+                'ok' => false,
+                'issues' => ['Каталог backup не найден или недоступен для чтения.'],
+                'files' => [],
+                'manifest' => null,
+            ];
+        }
+
+        $files = self::files($directory);
+        $issues = self::integrityIssues($directory, $files, $verifyChecksums);
+
+        return [
+            'ok' => $issues === [],
+            'issues' => $issues,
+            'files' => $files,
+            'manifest' => self::manifest($directory),
         ];
     }
 
@@ -130,13 +141,40 @@ class BackupHealth
             }
         }
 
-        foreach (['database.sql.gz', 'storage-public.tar.gz', 'manifest.json'] as $file) {
+        foreach (['database.sql.gz', 'storage-public.tar.gz', 'storage-private-chat-images.tar.gz', 'manifest.json'] as $file) {
             if (! in_array($file, $seen, true)) {
                 $issues[] = 'В SHA256SUMS нет записи для ' . $file . '.';
             }
         }
 
         return $issues;
+    }
+
+    private static function integrityIssues(string $directory, array $files, bool $verifyChecksums): array
+    {
+        $issues = [];
+
+        foreach (self::REQUIRED_FILES as $file) {
+            if (! ($files[$file]['exists'] ?? false)) {
+                $issues[] = 'Нет файла ' . $file . '.';
+            } elseif (($files[$file]['size'] ?? 0) <= 0) {
+                $issues[] = 'Файл ' . $file . ' пустой.';
+            }
+        }
+
+        $manifest = self::manifest($directory);
+        if (($manifest['version'] ?? 0) < 2) {
+            $issues[] = 'Старый backup не содержит подтверждённого полного набора private uploads.';
+        } elseif (($manifest['storage']['private_chat_images']['archive'] ?? null) !== 'storage-private-chat-images.tar.gz'
+            || ($manifest['storage']['private_chat_images']['root'] ?? null) !== 'private/chat-images') {
+            $issues[] = 'Manifest не описывает обязательный private chat images archive.';
+        }
+
+        if ($verifyChecksums && ($files['SHA256SUMS']['exists'] ?? false)) {
+            $issues = array_merge($issues, self::checksumIssues($directory));
+        }
+
+        return array_values(array_unique($issues));
     }
 
     private static function manifest(string $directory): ?array

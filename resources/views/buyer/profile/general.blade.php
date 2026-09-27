@@ -74,7 +74,7 @@
                     <img src="{{ Auth::user()->avatar_url }}" class="w-24 h-24 rounded-full border border-gray-200 shadow-sm object-cover" />
                     <label class="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-indigo-500/90 hover:bg-indigo-600 text-white cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center border border-indigo-400/30">
                         <i class="ri-camera-line"></i>
-                        <input type="file" name="avatar" class="hidden" accept="image/*">
+                        <input type="file" name="avatar" class="hidden" accept="image/jpeg,image/png,image/webp">
                     </label>
                 </div>
 
@@ -85,6 +85,9 @@
                     <x-input-error :messages="$errors->get('name')" class="mt-1 text-sm" />
                 </div>
             </div>
+
+            <p class="text-xs text-gray-500">JPG, PNG или WebP, до 8 МБ и 16 мегапикселей.</p>
+            <x-input-error :messages="$errors->get('avatar')" class="text-sm" />
 
             <div class="flex justify-end border-t border-gray-100 pt-4">
                 <x-action-button>
@@ -297,7 +300,8 @@
                 };
             },
             placeholderNumberType: "MOBILE",
-            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.5/build/js/utils.js",
+            dropdownContainer: document.body,
+            loadUtils: window.loadIntlTelInputUtils,
         });
 
         const savedPhone = phoneInput.value.trim();

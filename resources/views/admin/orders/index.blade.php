@@ -298,15 +298,15 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="text-xs text-slate-400">Покупатель</div>
-                                        <a href="{{ route('admin.users.show', $order->user) }}" class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->user?->name ?? '—' }}</a>
-                                        <div class="truncate text-xs text-slate-400">{{ $order->user?->email }}</div>
+                                        <a @if($order->user->exists) href="{{ route('admin.users.show', $order->user) }}" @endif class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->buyer_name }}</a>
+                                        <div class="truncate text-xs text-slate-400">{{ $order->buyer_email }}</div>
                                     </div>
                                     <div>
                                         <div class="text-xs text-slate-400">Продавец</div>
                                         @if($sellerShopUrl)
                                             <a href="{{ $sellerShopUrl }}" class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->seller?->name ?? '—' }}</a>
                                         @else
-                                            <a href="{{ route('admin.users.show', $order->seller) }}" class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->seller?->name ?? '—' }}</a>
+                                            <a @if($order->seller->exists) href="{{ route('admin.users.show', $order->seller) }}" @endif class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->seller?->name ?? '—' }}</a>
                                         @endif
                                         <div class="truncate text-xs text-slate-400">{{ $order->seller?->email }}</div>
                                     </div>
@@ -418,11 +418,11 @@
                     <div class="mt-4 grid gap-3 sm:grid-cols-2">
                         <div class="rounded-xl bg-slate-50 p-3">
                             <div class="text-xs text-slate-400">Покупатель</div>
-                            <a href="{{ route('admin.users.show', $order->user) }}" class="mt-1 block truncate font-semibold text-slate-800">{{ $order->user?->name ?? '—' }}</a>
+                            <a @if($order->user->exists) href="{{ route('admin.users.show', $order->user) }}" @endif class="mt-1 block truncate font-semibold text-slate-800">{{ $order->buyer_name }}</a>
                         </div>
                         <div class="rounded-xl bg-slate-50 p-3">
                             <div class="text-xs text-slate-400">Продавец</div>
-                            <a href="{{ route('admin.users.show', $order->seller) }}" class="mt-1 block truncate font-semibold text-slate-800">{{ $order->seller?->name ?? '—' }}</a>
+                            <a @if($order->seller->exists) href="{{ route('admin.users.show', $order->seller) }}" @endif class="mt-1 block truncate font-semibold text-slate-800">{{ $order->seller?->name ?? '—' }}</a>
                         </div>
                         <div class="rounded-xl bg-slate-50 p-3">
                             <div class="text-xs text-slate-400">Состав</div>

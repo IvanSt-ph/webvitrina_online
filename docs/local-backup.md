@@ -1,10 +1,34 @@
 # Local Backup
 
-Локальный backup WebVitrina создаёт два архива и checksum-файл:
+Локальный backup WebVitrina создаёт три архива, манифест и checksum-файл:
 
 - `database.sql.gz` — дамп MySQL базы из `.env`;
 - `storage-public.tar.gz` — архив `storage/app/public`;
+- `storage-private-chat-images.tar.gz` — только приватные вложения чатов из `storage/app/private/chat-images`;
+- `manifest.json` — дата создания, имя базы и количество записей основных таблиц;
 - `SHA256SUMS` — контрольные суммы для проверки целостности.
+
+## Согласованность базы (PROD-03)
+
+SQL-дамп и `row_counts` манифеста читаются через одно отдельное write-соединение PDO
+в транзакции `REPEATABLE READ`, начатой командой
+`START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY` до чтения таблиц.
+Backup принимает только InnoDB: при обнаружении другого engine завершится ошибкой,
+удалит временную папку и не опубликует backup. При ошибке чтения snapshot откатывается;
+при успехе транзакция завершается до сжатия и архивации файлов.
+
+Обычные INSERT/UPDATE/DELETE продолжают работать: dump видит зафиксированные данные
+на момент начала snapshot. Чужая транзакция приложения не используется и не завершается.
+`SHOW CREATE TABLE` выполняется на том же PDO; DDL и SET из SQL-файла только записываются
+в файл, а не исполняются на сервере. Внешний mysqldump не требуется.
+
+Не запускайте миграции и другой DDL (CREATE/ALTER/DROP/RENAME/TRUNCATE) одновременно
+с backup: схема и список таблиц не версионируются MVCC. Backup удерживает metadata locks
+на перечисленных таблицах до конца транзакции; DDL может ожидать их освобождения.
+Длительный snapshot удерживает старые версии строк InnoDB и создаёт нагрузку на undo.
+Текущий экспорт сохраняет порции INSERT по 100 строк и стандартную буферизацию PDO;
+оптимизация больших баз не входит в PROD-03. Архивы файлов создаются после SQL-дампа
+и не являются атомарным снимком вместе с БД.
 
 ## Создать backup вручную
 
@@ -39,7 +63,7 @@ Laravel schedule уже содержит ежедневный backup в `03:15`.
 php artisan schedule:run
 ```
 
-Для Windows это лучше повесить в Task Scheduler раз в минуту. Для Linux/VPS — в cron:
+Для Windows используйте готовые скрипты из `tools`; установка и проверка описаны в `docs/local-background-services.md`. Для Linux/VPS — cron:
 
 ```cron
 * * * * * cd /var/www/webvitrina && php artisan schedule:run >> /dev/null 2>&1
@@ -55,3 +79,21 @@ cmd /c "gzip -dc C:\path\to\backup\database.sql.gz | mysql -u root webvitrina_re
 ```
 
 После восстановления проверьте количество пользователей, товаров и заказов.
+
+Isolated restore drill: создай новый пустой каталог с доступом только для оператора.
+Файлы storage восстанавливаются только из полного backup с корректными SHA256:
+
+```powershell
+$drill = Join-Path $env:TEMP ('webvitrina-restore-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $drill
+php artisan backup:restore-files C:\path\to\backup\20260923-030000 --drill="$drill"
+```
+
+Drill создаёт `$drill/public` и `$drill/private/chat-images`; live storage не меняется.
+Отдельная тестовая БД не меняет filesystem destination автоматически.
+
+Production destructive restore: только после остановки writers, проверки backup и
+согласования DB restore запускай `php artisan backup:restore-files C:\path\to\backup --force`.
+Эта команда заменяет live public и private/chat-images, сохраняя другие private каталоги.
+При ошибке rollback recovery artifacts не удаляются. Старые backup без private archive
+отклоняются как неполные. Подробнее: [PROD-10](backup-restore-safety.md).

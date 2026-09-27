@@ -76,7 +76,6 @@ class OrderController extends Controller
         $order->load([
             'items.product.category',
             'items.product.city.country',
-            'address',
             'seller.shop',
         ]);
 

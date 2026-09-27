@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\ProductSlug;
+use App\Rules\ImageUploadConstraints;
 use App\Repositories\ProductCrudRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ProductService
 {
@@ -23,7 +25,8 @@ class ProductService
      ============================================================ */
     public function create(array $data, ?UploadedFile $image = null, array $gallery = [], array $attrs = []): Product
     {
-        return DB::transaction(function () use ($data, $image, $gallery, $attrs) {
+        return app(BackupWriteBarrier::class)->transaction(function () use ($data, $image, $gallery, $attrs) {
+            $files = new ProductImageOperation($this->images, DB::connection());
 
             /* ---------- 1. Подготовка данных ---------- */
             $payload = $this->prepareData($data);
@@ -33,7 +36,7 @@ class ProductService
 
             /* ---------- 3. Загрузка главного фото ---------- */
             if ($image) {
-                $payload['image'] = $this->images->upload($image, 'products/' . date('Y/m'));
+                $payload['image'] = $files->upload($image, 'products/' . date('Y/m'));
             }
             // Если нет изображения - оставляем null (НЕ сохраняем путь к no-image.png)
 
@@ -42,7 +45,7 @@ class ProductService
 
             /* ---------- 5. Галерея ---------- */
             if ($gallery) {
-                $this->appendGallery($product, $gallery);
+                $this->appendGallery($product, $gallery, $files);
             }
 
             /* ---------- 6. Атрибуты ---------- */
@@ -59,7 +62,9 @@ class ProductService
      ============================================================ */
     public function update(Product $product, array $data, ?UploadedFile $image = null, array $galleryNew = [], array $galleryToDelete = [], array $attrs = []): Product
     {
-        return DB::transaction(function () use ($product, $data, $image, $galleryNew, $galleryToDelete, $attrs) {
+        return app(BackupWriteBarrier::class)->transaction(function () use ($product, $data, $image, $galleryNew, $galleryToDelete, $attrs) {
+            $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $files = new ProductImageOperation($this->images, DB::connection());
 
             /* ---------- 1. Подготовка данных ---------- */
             $payload = $this->prepareData($data, updating: true);
@@ -69,9 +74,11 @@ class ProductService
 
             /* ---------- 3. Обновление главного фото ---------- */
             if ($image) {
-                // Удаляем старое фото (защита в ImageService)
-                $this->images->delete($product->image);
-                $payload['image'] = $this->images->upload($image, 'products/' . date('Y/m'));
+                $newImagePath = $files->upload($image, 'products/' . date('Y/m'));
+
+                // Старое фото удаляется только после окончательного commit.
+                $files->deleteAfterCommit($product->image);
+                $payload['image'] = $newImagePath;
             }
 
             /* ---------- 4. Обновление товара ---------- */
@@ -80,13 +87,13 @@ class ProductService
             /* ---------- 5. Удаление файлов галереи ---------- */
             if ($galleryToDelete) {
                 foreach ($galleryToDelete as $path) {
-                    $this->removeGalleryImage($product, $path);
+                    $this->removeGalleryImage($product, $path, $files);
                 }
             }
 
             /* ---------- 6. Добавление новых фото ---------- */
             if ($galleryNew) {
-                $this->appendGallery($product, $galleryNew);
+                $this->appendGallery($product, $galleryNew, $files);
             }
 
             /* ---------- 7. Атрибуты ---------- */
@@ -103,20 +110,49 @@ class ProductService
      ============================================================ */
     public function delete(Product $product): void
     {
-        DB::transaction(function () use ($product) {
+        app(BackupWriteBarrier::class)->transaction(function () use ($product) {
+            $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $files = new ProductImageOperation($this->images, DB::connection());
 
-            // Удаляем главное фото (защита в ImageService)
-            $this->images->delete($product->image);
+            // Планируем очистку файлов после окончательного commit.
+            $files->deleteAfterCommit($product->image);
 
-            // Удаляем галерею (защита в ImageService)
+            // Галерея использует ту же отложенную очистку.
             foreach ((array)$product->gallery as $path) {
-                $this->images->delete($path);
+                $files->deleteAfterCommit($path);
             }
 
             // Удаляем товар
             $this->repo->delete($product);
             
             Log::info("✅ Товар удален: ID {$product->id} - {$product->title}");
+        });
+    }
+
+    public function purge(Product $product, \DateTimeInterface $deletedBefore): bool
+    {
+        return app(BackupWriteBarrier::class)->transaction(function () use ($product, $deletedBefore) {
+            $product = Product::onlyTrashed()->whereKey($product->id)
+                ->where('deleted_at', '<', $deletedBefore)->lockForUpdate()->first();
+            if (! $product) {
+                return false;
+            }
+
+            // Keep a current read under the product lock, even in an outer transaction.
+            // Historical products must never enter the destructive image lifecycle.
+            if ($product->orderItems()->lockForUpdate()->exists()) {
+                Log::info('Product purge skipped: required by order history', ['product_id' => $product->id]);
+
+                return false;
+            }
+
+            $files = new ProductImageOperation($this->images, DB::connection());
+            foreach (array_filter([$product->image, ...(array) $product->gallery]) as $path) {
+                $files->deleteAfterCommit($path);
+            }
+            $product->forceDelete();
+
+            return true;
         });
     }
 
@@ -177,9 +213,20 @@ class ProductService
         }
     }
 
-    protected function appendGallery(Product $product, array $files): void
+    protected function appendGallery(Product $product, array $uploads, ProductImageOperation $files): void
     {
-        $paths = $this->images->uploadGallery($files, 'products/gallery/' . date('Y/m'));
+        if (count((array) $product->gallery) + count($uploads) > ImageUploadConstraints::MAX_GALLERY_IMAGES) {
+            throw ValidationException::withMessages([
+                'gallery' => 'В галерее товара может быть не более ' . ImageUploadConstraints::MAX_GALLERY_IMAGES . ' изображений.',
+            ]);
+        }
+
+        $paths = [];
+        foreach ($uploads as $upload) {
+            if ($upload instanceof UploadedFile) {
+                $paths[] = $files->upload($upload, 'products/gallery/' . date('Y/m'));
+            }
+        }
 
         $gallery = array_unique(array_merge(
             (array)$product->gallery,
@@ -189,7 +236,7 @@ class ProductService
         $product->update(['gallery' => array_values($gallery)]);
     }
 
-    protected function removeGalleryImage(Product $product, string $path): void
+    protected function removeGalleryImage(Product $product, string $path, ProductImageOperation $files): void
     {
         $gallery = (array) $product->gallery;
         $cleanPath = $this->normalizeGalleryPath($path);
@@ -198,8 +245,8 @@ class ProductService
             abort(403, 'Изображение не принадлежит галерее этого товара.');
         }
 
-        // Удаляем через ImageService (защита внутри)
-        $this->images->delete($cleanPath);
+        // Файл сохраняется до окончательного commit удаления ссылки.
+        $files->deleteAfterCommit($cleanPath);
 
         $gallery = array_filter($gallery, fn($p) => $p !== $cleanPath);
 
@@ -213,6 +260,10 @@ class ProductService
 
     public function deleteFromGallery(Product $product, string $path): void
     {
-        $this->removeGalleryImage($product, $path);
+        app(BackupWriteBarrier::class)->transaction(function () use ($product, $path) {
+            $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $files = new ProductImageOperation($this->images, DB::connection());
+            $this->removeGalleryImage($product, $path, $files);
+        });
     }
 }

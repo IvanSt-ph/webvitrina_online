@@ -116,13 +116,14 @@ Route::post('/phone/verify', [PhoneVerificationController::class, 'verify'])
 // 💱 Валюты
 Route::get('/internal/currency/agroprombank', [
     CurrencyProxyController::class, 'agroprombank'
-]);
+])->middleware('throttle:currency-rates')
+    ->name('currency.agroprombank');
 
 // 🏠 Главная
-Route::get('/', [ProductController::class, 'index'])->name('home');
-Route::get('/recommendations', [ProductController::class, 'recommendations'])->name('recommendations.index');
-Route::get('/search/suggest', [ProductController::class, 'suggest'])->name('search.suggest');
-Route::get('/search', [ProductController::class, 'index'])->name('search');
+Route::get('/', [ProductController::class, 'index'])->name('home')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
+Route::get('/recommendations', [ProductController::class, 'recommendations'])->name('recommendations.index')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
+Route::get('/search/suggest', [ProductController::class, 'suggest'])->name('search.suggest')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
+Route::get('/search', [ProductController::class, 'index'])->name('search')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
 Route::view('/about', 'legal.about')->name('about');
 Route::view('/contacts', 'legal.contacts')->name('contacts');
 
@@ -145,17 +146,17 @@ Route::get('/sitemap.xml', function () {
 // 🛍 Товар
 // 🛍 Товар - универсальный (работает и с ID, и со slug)
 Route::get('/p/{identifier}', [ProductController::class, 'show'])
-    ->name('product.show');
+    ->name('product.show')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
 
 
     
 // 📂 Категории
-Route::get('/category',        [CategoryController::class, 'index'])->name('category.index');
-Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
+Route::get('/category',        [CategoryController::class, 'index'])->name('category.index')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
+Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
 
 // AJAX загрузка товаров по фильтрам
 Route::get('/category-ajax/{slug}', [CategoryController::class, 'ajax'])
-    ->name('category.ajax');
+    ->name('category.ajax')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
 
 
 // 🌎 Города
@@ -190,7 +191,7 @@ Route::middleware('auth')->group(function () {
     /*--------------------------------------------------------------------------
     | 🛍 PRODUCTS & CATEGORIES (общий доступ)
     |--------------------------------------------------------------------------*/
-    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products', [ProductController::class, 'index'])->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
     Route::get('/categories', [CategoryController::class, 'index']);
 
     /*
@@ -476,8 +477,8 @@ Route::middleware('role:buyer')->group(function () {
 | 🧾 PUBLIC SELLER PAGE
 |--------------------------------------------------------------------------
 */
-Route::get('/seller/{identifier}', [SellerController::class, 'show'])->name('seller.show');
-Route::get('/u/{user}', [PublicUserController::class, 'show'])->name('users.public.show');
+Route::get('/seller/{identifier}', [SellerController::class, 'show'])->name('seller.show')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
+Route::get('/u/{user}', [PublicUserController::class, 'show'])->name('users.public.show')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
 
 
 /*

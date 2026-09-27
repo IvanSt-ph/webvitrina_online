@@ -1,0 +1,10 @@
+[Unit]
+Description=Check WebVitrina independently of Laravel scheduler
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+Unit=webvitrina-health.service
+
+[Install]
+WantedBy=timers.target

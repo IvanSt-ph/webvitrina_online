@@ -32,22 +32,22 @@
 
     $current = $statusMeta[$order->status] ?? ['label' => $order->status, 'icon' => 'ri-information-line'];
     $toneClass = fn ($tone) => match ($tone) {
-        'rose' => 'bg-rose-50 text-rose-600 border-rose-100',
+        'rose' => 'bg-danger-50 text-danger-600 border-danger-100',
         'sky' => 'bg-sky-50 text-sky-600 border-sky-100',
-        'emerald' => 'bg-emerald-50 text-emerald-600 border-emerald-100',
+        'emerald' => 'bg-success-50 text-success-600 border-success-100',
         'blue' => 'bg-blue-50 text-blue-600 border-blue-100',
         'green' => 'bg-green-50 text-green-600 border-green-100',
-        default => 'bg-indigo-50 text-indigo-600 border-indigo-100',
+        default => 'bg-brand-50 text-brand-600 border-brand-100',
     };
 @endphp
 
-<section {{ $attributes->merge(['class' => 'rounded-2xl border border-slate-200 bg-white shadow-sm ' . ($compact ? 'p-4' : 'p-4 sm:p-5')]) }}>
+<section {{ $attributes->merge(['class' => 'rounded-2xl border border-neutral-200 bg-white shadow-sm ' . ($compact ? 'p-4' : 'p-4 sm:p-5')]) }}>
     <div class="flex items-start justify-between gap-3">
         <div>
-            <h2 class="font-bold text-slate-900">Ход заказа</h2>
-            <p class="mt-1 text-sm text-slate-500">{{ $compact ? 'Ключевые события по заказу.' : 'Важные события по заказу в одном месте.' }}</p>
+            <h2 class="font-bold text-neutral-900">Ход заказа</h2>
+            <p class="mt-1 text-sm text-neutral-500">{{ $compact ? 'Ключевые события по заказу.' : 'Важные события по заказу в одном месте.' }}</p>
         </div>
-        <span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+        <span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
             <i class="{{ $current['icon'] }}"></i>
             {{ $current['label'] }}
         </span>

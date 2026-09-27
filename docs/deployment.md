@@ -43,7 +43,7 @@ php artisan migrate --force
 Очередь должна обрабатываться постоянным worker-процессом:
 
 ```bash
-php artisan queue:work database --sleep=3 --tries=3 --timeout=90
+php artisan queue:work database --sleep=3 --tries=3 --timeout=60
 ```
 
 Вручную в терминале worker держать нельзя. Его нужно запускать через Supervisor или systemd.
@@ -89,34 +89,33 @@ php artisan queue:failed
 * * * * * cd /var/www/webvitrina && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Даже если в приложении пока нет регулярных задач, scheduler нужен как стандартная часть продакшн-окружения: его проще включить сразу, чем вспоминать после добавления очередной фоновой задачи.
+Scheduler запускает heartbeat каждую минуту, queue probe каждые пять минут и ежедневные задачи. Независимый operational monitoring обязателен: см. [PROD-09](production-monitoring.md).
 
 Бэкапы должны покрывать:
 
 - базу данных;
 - `storage/app/public`, где лежат загруженные изображения;
+- `storage/app/private/chat-images`, где лежат приватные вложения чатов;
 - файл `.env` отдельно в защищённом месте или систему секретов.
 
-Пример shell-скрипта лежит здесь:
+Встроенная команда создаёт совместимый с проверкой backup:
 
-```text
-deploy/backup-webvitrina.sh.example
+```bash
+php artisan backup:run
 ```
 
-Минимальный cron для ежедневного backup в 03:15:
-
-```cron
-15 3 * * * BACKUP_DIR='/var/backups/webvitrina' DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh.example >> /var/log/webvitrina-backup.log 2>&1
-```
-
-Можно запускать этот же скрипт через Laravel scheduler. Для этого в `.env` укажи:
+Она уже запланирована в `routes/console.php`. Настройки в `.env`:
 
 ```env
-BACKUP_COMMAND="BACKUP_DIR='/var/backups/webvitrina' DB_PASSWORD='strong-password' /var/www/webvitrina/deploy/backup-webvitrina.sh"
+BACKUP_DIR=/var/backups/webvitrina
 BACKUP_DAILY_AT=03:15
+BACKUP_MAX_AGE_HOURS=30
+BACKUP_KEEP_DAYS=14
 ```
 
-Перед запуском на реальном сервере скопируй пример в отдельный файл, проверь `APP_DIR`, `BACKUP_DIR`, доступы MySQL и восстановление backup на тестовой базе. Укажи те же `BACKUP_DIR` и `BACKUP_MAX_AGE_HOURS` в `.env`, чтобы админский release checklist показывал свежесть последней копии. В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz` и `SHA256SUMS`.
+Достаточно минутного cron `php artisan schedule:run`, указанного выше. Отдельный ежедневный cron дублировал бы запуск. `BACKUP_COMMAND` текущим кодом не используется.
+
+В каждой копии должны быть `database.sql.gz`, `storage-public.tar.gz`, `storage-private-chat-images.tar.gz`, `manifest.json` и `SHA256SUMS`. Старые копии без private archive считаются неполными; старый `deploy/backup-webvitrina.sh.example` с текущим форматом несовместим.
 
 Проверка свежести, обязательных файлов и SHA256:
 
@@ -152,25 +151,36 @@ php artisan test
 
 После первого backup обязательно проверь восстановление: backup считается рабочим только после успешного restore на отдельной базе или тестовом окружении.
 
-Минимальный restore-аудит:
+Isolated restore drill (новый пустой каталог, отдельная БД и отдельный DB user,
+не имеющий доступа к production DB):
 
 ```bash
-mkdir -p /tmp/webvitrina-restore-check
+DRILL_DIR=$(mktemp -d /tmp/webvitrina-restore-check.XXXXXX)
 tar -tzf /var/backups/webvitrina/LATEST/storage-public.tar.gz | head
+tar -tzf /var/backups/webvitrina/LATEST/storage-private-chat-images.tar.gz | head
 gunzip -t /var/backups/webvitrina/LATEST/database.sql.gz
 mysql --host=127.0.0.1 --user=restore_user --password restore_test_db < <(gunzip -c /var/backups/webvitrina/LATEST/database.sql.gz)
+php artisan backup:restore-files /var/backups/webvitrina/LATEST --drill="$DRILL_DIR"
 ```
 
 `LATEST` замени на имя последней папки backup. Тестовая база должна быть отдельной от production.
+Файлы появятся только в `$DRILL_DIR/public` и `$DRILL_DIR/private/chat-images`.
+Не направляй рабочее приложение в drill DB или эти каталоги. Для проверки приложения
+используй отдельную копию с отдельными cache/session/queue и отключёнными внешними отправками.
+
+Production destructive restore выполняется отдельно, после остановки writers и
+согласования восстановления БД: `php artisan backup:restore-files /path/to/backup --force`.
+Он заменяет live roots. Порядок, recovery artifacts и ограничения общей блокировки:
+[Backup/restore PROD-10](backup-restore-safety.md).
 
 ## Логи
 
 Основные файлы логов:
 
 ```text
-storage/logs/laravel.log
-storage/logs/twilio.log
-storage/logs/registration.log
+storage/logs/laravel-YYYY-MM-DD.log
+storage/logs/twilio-YYYY-MM-DD.log
+storage/logs/registration-YYYY-MM-DD.log
 ```
 
-Если пользователь видит сообщение `Не удалось отправить SMS. Попробуйте позже.`, реальную причину смотри в `storage/logs/twilio.log`.
+Используйте `LOG_CHANNEL=stack`, `LOG_STACK=daily`, `LOG_DAILY_DAYS=14`. Существующий `.env` нужно обновить явно и выполнить `php artisan config:cache`. Старые и emergency-логи требуют server logrotate. Если пользователь видит сообщение `Не удалось отправить SMS. Попробуйте позже.`, причину ищите в датированном twilio-логе.

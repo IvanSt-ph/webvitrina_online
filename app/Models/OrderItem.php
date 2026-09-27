@@ -12,6 +12,16 @@ class OrderItem extends Model
         'price',
         'quantity',
         'total',
+        'source_price',
+        'source_currency',
+        'exchange_rate',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'total' => 'decimal:2',
+        'source_price' => 'decimal:2',
+        'exchange_rate' => 'decimal:8',
     ];
 
     // Всегда подгружаем товар (даже soft-deleted)

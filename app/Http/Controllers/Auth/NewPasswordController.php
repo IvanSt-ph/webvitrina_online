@@ -4,13 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\PasswordSecurityService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -18,6 +17,10 @@ use App\Notifications\PasswordChangedNotification;
 
 class NewPasswordController extends Controller
 {
+    public function __construct(private readonly PasswordSecurityService $passwordSecurity)
+    {
+    }
+
     /**
      * Display the password reset view.
      */
@@ -41,11 +44,7 @@ class NewPasswordController extends Controller
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user) use ($request) {
 
-                $user->forceFill([
-                    'password' => Hash::make($request->password),
-                    'password_set_at' => now(),
-                    'remember_token' => Str::random(60),
-                ])->save();
+                $this->passwordSecurity->rotate($user, $request->password);
 
                 try {
                     $user->notify(new PasswordChangedNotification());

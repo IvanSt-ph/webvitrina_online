@@ -21,12 +21,7 @@
         6 => 'Завершён',
     ];
 
-    $addressParts = collect([
-        $order->address?->country,
-        $order->address?->city,
-        $order->address?->street,
-        trim(($order->address?->house ?? '') . ($order->address?->apartment ? ', кв. ' . $order->address->apartment : '')),
-    ])->filter(fn ($part) => filled($part));
+    $addressParts = collect([$order->address_snapshot['full'] ?? null])->filter();
 
     $shop = $order->seller?->shop;
     $canConfirmDelivery = $order->status === \App\Models\Order::STATUS_SHIPPED;
@@ -241,10 +236,10 @@
                     {{ $addressParts->join(', ') }}
                 </p>
 
-                @if(filled($order->address?->comment))
+                @if(filled(($order->address_snapshot['comment'] ?? null)))
                     <p class="min-w-0 break-words text-xs text-gray-500 mt-2 flex items-start gap-1">
                         <i class="ri-chat-1-line shrink-0"></i>
-                        {{ $order->address->comment }}
+                        {{ $order->address_snapshot['comment'] }}
                     </p>
                 @endif
             @else
@@ -318,15 +313,15 @@
                         <p class="text-gray-500 text-sm mt-1">
                             Кол-во: {{ $item->quantity }}  
                             <span class="mx-1">•</span>  
-                            Цена: {{ number_format($item->price, 2, ',', ' ') }} ₽
+                            Цена: {{ number_format($item->price, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}
                         </p>
                         <p class="mt-1 text-sm font-semibold text-gray-900 sm:hidden">
-                            Сумма: {{ number_format($item->total, 2, ',', ' ') }} ₽
+                            Сумма: {{ number_format($item->total, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}
                         </p>
                     </div>
 
                     <div class="hidden min-w-0 break-words text-right font-semibold text-gray-900 text-sm sm:ml-auto sm:block sm:shrink-0 sm:text-base">
-                        {{ number_format($item->total, 2, ',', ' ') }} ₽
+                        {{ number_format($item->total, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}
                     </div>
 
                 </div>
@@ -336,7 +331,7 @@
         <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-6">
             <div class="text-sm text-slate-500">Итого:</div>
             <div class="min-w-0 truncate text-right text-xl font-bold text-slate-950">
-                {{ number_format($order->total_price, 2, ',', ' ') }} ₽
+                {{ number_format($order->total_price, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}
             </div>
         </div>
 

@@ -1,3 +1,12 @@
+@php
+    $galleryItems = $product->gallery ?? [];
+
+    if (is_string($galleryItems)) {
+        $decodedGallery = json_decode($galleryItems, true);
+        $galleryItems = is_array($decodedGallery) ? $decodedGallery : [];
+    }
+@endphp
+
 <div class="lg:col-span-5 w-full max-w-xl mx-auto">
     <div
         x-data="{
@@ -6,7 +15,7 @@
                 @if ($product->image)
                     '{{ $product->image_url }}',
                 @endif
-                @foreach ($product->gallery ?? [] as $img)
+                @foreach ($galleryItems as $img)
                     '{{ \App\Models\Product::storageImageUrl($img) }}',
                 @endforeach
             ],

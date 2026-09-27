@@ -74,10 +74,10 @@
 
                             <div class="col-span-2 min-w-0 rounded-xl bg-slate-50 px-3 py-2 text-left sm:col-span-1 sm:min-w-[110px] sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
                                 <div class="text-base font-semibold text-slate-950 sm:text-lg">
-                                    {{ number_format($item['price'] * $item['qty'], 2, ',', ' ') }} ₽
+                                    {{ number_format($item['price'] * $item['qty'], 2, ',', ' ') }} {{ $currencySymbol }}
                                 </div>
                                 <div class="text-xs text-slate-400">
-                                    {{ number_format($item['price'], 2, ',', ' ') }} ₽ / шт
+                                    {{ number_format($item['price'], 2, ',', ' ') }} {{ $currencySymbol }} / шт
                                 </div>
                             </div>
                         </div>
@@ -85,7 +85,7 @@
                 </div>
                 <div class="flex justify-between gap-3 border-t border-slate-100 px-4 py-3 text-sm sm:px-5">
                     <span class="text-slate-500">Товары магазина:</span>
-                    <span class="font-semibold text-slate-950">{{ number_format($group['subtotal'], 2, ',', ' ') }} ₽</span>
+                    <span class="font-semibold text-slate-950">{{ number_format($group['subtotal'], 2, ',', ' ') }} {{ $currencySymbol }}</span>
                 </div>
             </section>
         @endforeach
@@ -193,7 +193,7 @@
     {{ collect($cart)->sum('qty') }}
 </span>
 
-        <span id="subtotal" class="shrink-0">{{ number_format($total, 2, ',', ' ') }} ₽</span>
+        <span id="subtotal" class="shrink-0">{{ number_format($total, 2, ',', ' ') }} {{ $currencySymbol }}</span>
     </div>
 
     <div class="flex min-w-0 justify-between gap-3 text-sm text-slate-700">
@@ -208,7 +208,7 @@
     <div class="flex min-w-0 items-start justify-between gap-3">
         <span class="min-w-0 text-base font-semibold text-slate-950 sm:text-lg">Итого за товары</span>
         <span id="total-with-delivery" class="shrink-0 text-xl font-semibold text-slate-950 sm:text-2xl">
-            {{ number_format($totalWithDelivery, 2, ',', ' ') }} ₽
+            {{ number_format($totalWithDelivery, 2, ',', ' ') }} {{ $currencySymbol }}
         </span>
     </div>
 </div>
@@ -261,13 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitButton = document.querySelector('button[type="submit"]');
     const subtotal = Number(@json($total));
     const prices = @json($deliveryPrices ?? []);
+    const currencySymbol = @json($currencySymbol);
     const orderCount = Number(@json($orderCount));
 
     const deliveryEl = document.getElementById('delivery-cost');
     const totalEl = document.getElementById('total-with-delivery');
 
     const format = v =>
-        v.toLocaleString('ru-RU', { minimumFractionDigits: 2 }) + ' ₽';
+        v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currencySymbol;
 
     function updateTotal(radio) {
         if (!radio) return;

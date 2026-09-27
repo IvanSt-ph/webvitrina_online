@@ -14,6 +14,9 @@ QUEUE_CONNECTION=database
 SESSION_SECURE_COOKIE=true
 SESSION_ENCRYPT=true
 CACHE_STORE=database
+LOG_CHANNEL=stack
+LOG_STACK=daily
+LOG_DAILY_DAYS=14
 MAIL_MAILER=smtp
 MAIL_FROM_ADDRESS=noreply@your-domain.example
 BACKUP_DIR=/var/backups/webvitrina
@@ -21,6 +24,8 @@ BACKUP_MAX_AGE_HOURS=30
 ```
 
 `APP_KEY` должен быть заполнен один раз и не должен меняться между деплоями.
+
+Настройте независимый запуск `production:health-check --json`, внешний `/up` monitoring и доставку тревог по [инструкции PROD-09](production-monitoring.md). Успешный ручной запуск не подтверждает регулярный monitoring.
 
 ## 2. Установить зависимости и собрать frontend
 
@@ -64,13 +69,15 @@ php artisan queue:failed
 
 ## 5. Настроить backup
 
-Backup должен включать БД и `storage/app/public`.
+Backup должен включать БД, `storage/app/public` и `storage/app/private/chat-images`.
 
-Скрипт-пример:
+Встроенная команда создаёт архив БД, отдельные архивы public storage и private chat images, `manifest.json` и `SHA256SUMS`:
 
-```text
-deploy/backup-webvitrina.sh.example
+```bash
+php artisan backup:run
 ```
+
+Она уже запланирована в `routes/console.php` на `BACKUP_DAILY_AT` (по умолчанию 03:15). Внешний cron должен вызывать `php artisan schedule:run` каждую минуту. Отдельный ежедневный cron для backup при этом не нужен.
 
 Проверка:
 
@@ -79,6 +86,18 @@ php artisan backup:health-check --max-age-hours=30
 ```
 
 После первого backup обязательно проверить восстановление на отдельной тестовой базе.
+
+Isolated restore drill: используй отдельного DB user без прав на production DB.
+Для файлов обязательно укажи новый пустой каталог:
+
+```bash
+DRILL_DIR=$(mktemp -d /tmp/webvitrina-restore-check.XXXXXX)
+php artisan backup:restore-files /path/to/completed-backup --drill="$DRILL_DIR"
+```
+
+Production destructive restore — отдельная операция: `backup:restore-files /path/to/backup --force`
+заменяет live storage и требует согласованного DB restore при остановленных writers.
+Модель блокировки записей и recovery: [PROD-10](backup-restore-safety.md).
 
 ## 6. Проверить письма и уведомления
 

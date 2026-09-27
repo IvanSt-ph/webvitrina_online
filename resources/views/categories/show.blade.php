@@ -13,7 +13,8 @@
   <meta property="og:url" content="{{ $seoUrl }}">
   <meta property="og:image" content="{{ $seoImage }}">
   <script type="application/ld+json">
-    {!! json_encode([
+    @php
+        $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'CollectionPage',
         'name' => $category->name,
@@ -24,7 +25,9 @@
             'name' => config('app.name'),
             'url' => url('/'),
         ],
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    ];
+    @endphp
+    {!! \Illuminate\Support\Js::encode($structuredData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
   </script>
 @endpush
 
@@ -104,13 +107,13 @@
   </section>
 @endif
 
-@if($products->count())
-    <div id="products-container">
+<div id="products-container">
+    @if($products->count())
         @include('partials.products-grid', ['products' => $products])
-    </div>
-@else
-    <p class="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">В этой категории пока нет товаров.</p>
-@endif
+    @else
+        <p class="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">В этой категории пока нет товаров.</p>
+    @endif
+</div>
 
 
 </div>

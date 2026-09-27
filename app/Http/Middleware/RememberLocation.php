@@ -11,7 +11,8 @@ class RememberLocation
 {
     public function handle(Request $request, Closure $next)
     {
-        if (! $request->isMethodSafe()) {
+        // Location filters must never rewrite submitted form or JSON data.
+        if (! $request->isMethod('GET') && ! $request->isMethod('HEAD')) {
             return $next($request);
         }
 

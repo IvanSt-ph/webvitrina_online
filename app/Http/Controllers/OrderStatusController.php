@@ -33,7 +33,7 @@ class OrderStatusController extends Controller
         }
 
         // Устанавливаем delivered
-        $order->setStatus(Order::STATUS_DELIVERED);
+        $order->setStatus(Order::STATUS_DELIVERED, [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED]);
         app(UserNotificationService::class)->create(
             $order->seller,
             'order_delivered',
@@ -108,12 +108,14 @@ public function sellerUpdate(Request $request, Order $order)
     // проверяем валидность перехода
     if (
         !in_array($new, ['canceled', ...array_values($allowed)])
-        || ($new === 'canceled' && ! in_array($order->status, $cancelableStatuses, true))
+        || ($new === 'canceled' && ! in_array($order->status, [...$cancelableStatuses, Order::STATUS_CANCELED], true))
         || ($new !== 'canceled' && ($allowed[$order->status] ?? null) !== $new)
     ) {
         return back()->with('error', 'Недопустимый переход статуса.');
     }
-    $order->setStatus($new);
+    $order->setStatus($new, $new === Order::STATUS_CANCELED
+        ? $cancelableStatuses
+        : [array_search($new, $allowed, true)]);
     app(UserNotificationService::class)->create(
         $order->user,
         'order_status_updated',
@@ -164,6 +166,5 @@ public function sellerUpdate(Request $request, Order $order)
         return back()->with('success', 'Статус заказа обновлён администратором.');
     }
 }
-
 
 

@@ -6,6 +6,7 @@ use App\Models\CartItem;
 use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\ProductStat;
+use App\Services\CurrencyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -13,6 +14,10 @@ use Carbon\Carbon;
 
 class CartController extends Controller
 {
+    public function __construct(private readonly CurrencyService $currency)
+    {
+    }
+
     public function index()
     {
         $cartItems = CartItem::with([
@@ -30,11 +35,29 @@ class CartController extends Controller
             ->reject(fn (CartItem $item) => $item->product && $item->product->status === 'active' && $item->product->stock > 0)
             ->values();
 
-        // считаем общую сумму
-        $total = 0;
+        $checkoutCurrency = $this->currency->checkoutCurrency(session('currency'));
+        $currencySymbol = Product::currencySymbol($checkoutCurrency);
+
+        // Считаем корзину в одной выбранной валюте.
+        $total = 0.0;
         foreach ($items as $item) {
             if ($item->product) {
-                $total += $item->product->price * $item->qty;
+                $price = $this->currency->convert(
+                    (float) $item->product->price,
+                    Product::normalizeCurrencyCode($item->product->currency_base),
+                    $checkoutCurrency,
+                );
+                $oldPrice = $item->product->old_price
+                    ? $this->currency->convert(
+                        (float) $item->product->old_price,
+                        Product::normalizeCurrencyCode($item->product->currency_base),
+                        $checkoutCurrency,
+                    )
+                    : null;
+
+                $item->setAttribute('checkout_price', $price);
+                $item->setAttribute('checkout_old_price', $oldPrice);
+                $total += round($price * $item->qty, 2, PHP_ROUND_HALF_UP);
             }
         }
 
@@ -56,12 +79,25 @@ class CartController extends Controller
             ->limit(4)
             ->get();
 
+        foreach ($crossSellProducts->concat($recommendedProducts) as $product) {
+            $product->setAttribute('checkout_price', $this->currency->convert(
+                (float) $product->price,
+                Product::normalizeCurrencyCode($product->currency_base),
+                $checkoutCurrency,
+            ));
+        }
+
+        $freeShippingThreshold = $this->currency->convert(5000, 'PRB', $checkoutCurrency);
+
         return view('shop.cart', compact(
             'items',
             'unavailableItems',
             'total',
             'crossSellProducts',
-            'recommendedProducts'
+            'recommendedProducts',
+            'checkoutCurrency',
+            'currencySymbol',
+            'freeShippingThreshold'
         ));
     }
 

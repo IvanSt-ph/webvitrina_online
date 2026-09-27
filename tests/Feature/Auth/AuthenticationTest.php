@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -146,6 +147,27 @@ class AuthenticationTest extends TestCase
             'login' => $user->email, // ← ИСПРАВЛЕНО
             'password' => 'wrong-password',
         ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_login_with_legacy_plain_text_password_record_fails_without_server_error(): void
+    {
+        $user = User::factory()->create();
+
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update([
+                'password' => '0000000000',
+                'password_set_at' => null,
+            ]);
+
+        $this->post('/login', [
+            'login' => $user->email,
+            'password' => '0000000000',
+        ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('login');
 
         $this->assertGuest();
     }

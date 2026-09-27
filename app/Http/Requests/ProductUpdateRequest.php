@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\City;
+use App\Rules\ImageUploadConstraints;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,11 +27,14 @@ class ProductUpdateRequest extends FormRequest
             'stock'       => ['sometimes', 'required', 'integer', 'min:0'],
             'user_id'     => ['sometimes', Rule::exists('users', 'id')->where('role', 'seller')],
             'category_id' => ['sometimes', 'exists:categories,id'],
-            'country_id'  => ['sometimes', 'exists:countries,id'],
+            'country_id'  => ['bail', 'sometimes', 'integer', 'min:1', 'exists:countries,id'],
             'city_id'     => [
+                'bail',
                 'sometimes',
                 'required',
-                Rule::exists('cities', 'id'),
+                'integer',
+                'min:1',
+                Rule::exists('cities', 'id')->where('country_id', filter_var($this->input('country_id', $this->route('product')?->city?->country_id), FILTER_VALIDATE_INT) ?: null),
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     $countryId = $this->input('country_id', $this->route('product')?->city?->country_id);
 
@@ -46,8 +50,9 @@ class ProductUpdateRequest extends FormRequest
             'status'      => ['sometimes', 'required', Rule::in(\App\Models\Product::statuses())],
             'attributes'  => ['nullable', 'array'],
             'attributes.*'=> ['nullable'],
-            'image'       => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-            'gallery.*'   => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'image'       => ImageUploadConstraints::rules(4096),
+            'gallery'     => ['nullable', 'array', 'max:' . ImageUploadConstraints::MAX_GALLERY_IMAGES],
+            'gallery.*'   => ImageUploadConstraints::rules(4096),
         ];
     }
 }

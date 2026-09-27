@@ -230,7 +230,7 @@
                         <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Новый заказ</span>
                       @endif
                     </div>
-                    <p class="mt-1 truncate text-sm text-slate-500">{{ $order->user?->name ?? 'Покупатель' }} · {{ $order->items->first()?->product?->title ?? 'Товар не найден' }}</p>
+                    <p class="mt-1 truncate text-sm text-slate-500">{{ $order->buyer_name }} · {{ $order->items->first()?->product?->title ?? 'Товар не найден' }}</p>
                   </div>
                   <div class="text-sm font-bold text-slate-900">{{ $order->formatted_total_price }}</div>
                 </a>
@@ -450,7 +450,7 @@
   </div>
 
   {{-- 📊 Chart.js --}}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
     const ctx = document.getElementById('salesChart');
     new Chart(ctx, {

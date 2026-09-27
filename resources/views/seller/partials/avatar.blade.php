@@ -29,7 +29,7 @@
                x-ref="fileInput"
                @change="openCropper($event)"
                class="hidden" 
-               accept="image/*">
+               accept="image/jpeg,image/png,image/webp">
     </label>
     
     <!-- Модальное окно обрезки -->
@@ -96,8 +96,8 @@ function avatarCropper() {
             if (!file) return;
             
             
-            if (!file.type.startsWith('image/')) {
-                alert('Пожалуйста, выберите изображение');
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                this.showNotification('Поддерживаются только изображения JPG, PNG и WebP.', 'error');
                 return;
             }
             
@@ -168,7 +168,7 @@ function avatarCropper() {
                 .then(response => {
                     if (!response.ok) {
                         return response.json().then(data => {
-                            throw new Error(data.message || 'Ошибка при сохранении');
+                            throw new Error(data.errors?.avatar?.[0] || data.message || 'Ошибка при сохранении');
                         });
                     }
                     return response.json();
@@ -201,6 +201,11 @@ function avatarCropper() {
         },
         
         showNotification(message, type = 'success') {
+            if (window.showSiteToast) {
+                window.showSiteToast(message, type);
+                return;
+            }
+
             // Удаляем предыдущее уведомление если есть
             const oldNotification = document.querySelector('.avatar-notification');
             if (oldNotification) {
@@ -209,7 +214,7 @@ function avatarCropper() {
             
             const notification = document.createElement('div');
             notification.className = `avatar-notification fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 
-                ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
+                ${type === 'success' ? 'bg-success-500' : type === 'error' ? 'bg-danger-500' : 'bg-info-500'} text-white`;
             notification.innerHTML = `
                 <i class="ri-${type === 'success' ? 'check-line' : type === 'error' ? 'error-warning-line' : 'information-line'}"></i>
                 <span></span>

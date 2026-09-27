@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
 {
+    private const LOGIN_ERROR = 'Не удалось войти через Google. Попробуйте снова или используйте другой способ входа.';
+
     public function redirect()
     {
         return Socialite::driver('google')->redirect();
@@ -18,68 +22,99 @@ class GoogleController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->user();
-        } catch (\Exception $e) {
-            return redirect()->route('login')
-                ->with('error', 'Ошибка Google авторизации.');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->failedLogin();
         }
 
-        // 1) Ищем пользователя по provider_id
-        $user = User::where('provider', 'google')
-            ->where('provider_id', $googleUser->id)
-            ->first();
+        $providerId = $this->googleProviderId($googleUser);
 
-        // 2) Если нет — ищем по email
-        if (!$user && $this->hasVerifiedGoogleEmail($googleUser)) {
-            $user = User::where('email', $googleUser->email)->first();
+        if ($providerId === null) {
+            return $this->failedLogin();
+        }
 
-            if ($user) {
-                // Привязываем Google к существующему аккаунту
-                $user->provider = 'google';
-                $user->provider_id = $googleUser->id;
-                $user->save();
-            } else {
-                // Создаём нового
+        $linkedUsers = User::where('provider', 'google')
+            ->where('provider_id', $providerId)
+            ->limit(2)
+            ->get();
+
+        if ($linkedUsers->count() > 1) {
+            return $this->failedLogin();
+        }
+
+        $user = $linkedUsers->first();
+
+        if (! $user) {
+            $email = $this->verifiedGoogleEmail($googleUser);
+
+            if ($email === null || User::where('email', $email)->exists()) {
+                return $this->failedLogin();
+            }
+
+            try {
                 $user = User::create([
                     'name'            => $googleUser->name ?? 'User',
-                    'email'           => $googleUser->email,
+                    'email'           => $email,
                     'provider'        => 'google',
-                    'provider_id'     => $googleUser->id,
+                    'provider_id'     => $providerId,
                     'password'        => bcrypt(str()->random(16)),
                     'password_set_at' => null,
                     'role'            => 'buyer',
                 ]);
+            } catch (QueryException $e) {
+                report($e);
+
+                return $this->failedLogin();
             }
         }
 
-        if (!$user) {
-            return redirect()->route('login')
-                ->with('error', 'Не удалось безопасно подтвердить email Google-аккаунта.');
-        }
-
-        // 3) Если почта НЕ подтверждена — генерируем письмо
         if (!$user->email_verified_at) {
             $user->sendEmailVerificationNotification();
         }
 
-        // 4) Логиним
         Auth::login($user, true);
 
-        // 5) Если НЕ подтвержден → отправим на страницу verify
         if (!$user->email_verified_at) {
             return redirect()->route('verification.notice');
         }
 
-        // 6) Иначе → домой
         return redirect()->route('home');
     }
 
-    private function hasVerifiedGoogleEmail(object $googleUser): bool
+    private function googleProviderId(object $googleUser): ?string
     {
-        $raw = $googleUser->user ?? [];
+        $providerId = $googleUser->id ?? null;
 
-        return filter_var(
+        if (! is_string($providerId) && ! is_int($providerId)) {
+            return null;
+        }
+
+        $providerId = trim((string) $providerId);
+
+        return $providerId !== '' ? $providerId : null;
+    }
+
+    private function verifiedGoogleEmail(object $googleUser): ?string
+    {
+        $email = $googleUser->email ?? null;
+        $raw = $googleUser->user ?? [];
+        $verified = filter_var(
             $raw['email_verified'] ?? $raw['verified_email'] ?? false,
             FILTER_VALIDATE_BOOL
         );
+
+        if (! $verified || ! is_string($email)) {
+            return null;
+        }
+
+        $email = trim($email);
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : null;
+    }
+
+    private function failedLogin(): RedirectResponse
+    {
+        return redirect()->route('login')->with('error', self::LOGIN_ERROR);
     }
 }
