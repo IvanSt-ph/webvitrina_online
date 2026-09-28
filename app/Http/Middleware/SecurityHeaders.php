@@ -19,10 +19,12 @@ class SecurityHeaders
             "'self'",
             "'unsafe-inline'",
         ];
+
         $fontSources = [
             "'self'",
             'data:',
         ];
+
         // Alpine's standard build evaluates directive expressions at runtime.
         // Until the app moves to Alpine's CSP-compatible build, unsafe-eval is
         // required for x-data / x-show directives to keep working correctly.
@@ -31,7 +33,12 @@ class SecurityHeaders
             "'unsafe-inline'",
             "'unsafe-eval'",
         ];
-        $connectSources = ["'self'", 'https://nominatim.openstreetmap.org'];
+
+        $connectSources = [
+            "'self'",
+            'https://nominatim.openstreetmap.org',
+        ];
+
         $imageSources = [
             "'self'",
             'data:',
@@ -39,22 +46,33 @@ class SecurityHeaders
             'https://ui-avatars.com',
             'https://*.tile.openstreetmap.org',
         ];
-        $frameSources = ["'self'", 'https://www.youtube.com'];
+
+        $frameSources = [
+            "'self'",
+            'https://www.youtube.com',
+        ];
 
         if (app()->environment('local')) {
             $styleSources[] = 'http://127.0.0.1:5173';
             $styleSources[] = 'http://localhost:5173';
+
             $scriptSources[] = 'http://127.0.0.1:5173';
             $scriptSources[] = 'http://localhost:5173';
+
             $connectSources[] = 'ws://127.0.0.1:5173';
             $connectSources[] = 'ws://localhost:5173';
+
             $imageSources[] = 'http://127.0.0.1:5173';
             $imageSources[] = 'http://localhost:5173';
+
+            $fontSources[] = 'http://127.0.0.1:5173';
+            $fontSources[] = 'http://localhost:5173';
         }
 
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
         $response->headers->set(
             'Permissions-Policy',
             'camera=(), microphone=(), geolocation=()'
@@ -85,7 +103,10 @@ class SecurityHeaders
             $csp[] = 'upgrade-insecure-requests';
         }
 
-        $response->headers->set('Content-Security-Policy', implode('; ', $csp));
+        $response->headers->set(
+            'Content-Security-Policy',
+            implode('; ', $csp)
+        );
 
         return $response;
     }

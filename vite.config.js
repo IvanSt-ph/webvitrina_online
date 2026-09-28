@@ -12,9 +12,15 @@ export default defineConfig({
                 'resources/css/manrope.css',
                 'resources/css/instrument-sans.css',
                 'resources/js/app.js',
-                'resources/js/seller-product-form.js'
+                'resources/js/seller-product-form.js',
             ],
             refresh: true,
         }),
     ],
+
+    server: {
+        host: '127.0.0.1',
+        port: 5173,
+        strictPort: true,
+    },
 });
