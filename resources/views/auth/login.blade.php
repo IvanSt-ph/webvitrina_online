@@ -32,7 +32,7 @@
                     <i class="ri-shield-check-line text-base"></i>
                     Безопасный вход
                 </span>
-                <h1 class="mt-5 text-4xl font-black leading-tight tracking-tight xl:text-5xl">
+                <h1 class="mt-5 text-4xl font-bold leading-tight tracking-tight xl:text-5xl">
                     Вернитесь к заказам, магазинам и чатам.
                 </h1>
                 <p class="mt-5 text-base leading-7 text-white/75">
@@ -86,7 +86,7 @@
                 <div class="mx-auto w-full max-w-[440px]">
                     <div class="mb-6">
                         <p class="text-sm font-bold text-indigo-600">С возвращением</p>
-                        <h2 class="mt-1 text-3xl font-black tracking-tight text-slate-950">Войти в аккаунт</h2>
+                        <h2 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">Войти в аккаунт</h2>
                         <p class="mt-2 text-sm leading-6 text-slate-500">
                             Используйте email или телефон, привязанный к вашему профилю.
                         </p>
@@ -121,7 +121,7 @@
                                 <form method="POST" action="{{ route('login.remembered.forget-all') }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="inline-flex h-8 items-center gap-1.5 rounded-xl bg-white px-2.5 text-xs font-bold text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:text-rose-600 hover:ring-rose-200">
+                                    <button type="submit" class="inline-flex h-8 items-center gap-1.5 rounded-xl bg-white px-2.5 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:text-rose-600 hover:ring-rose-200">
                                         <i class="ri-delete-bin-line"></i>
                                         Все
                                     </button>
@@ -182,20 +182,20 @@
                                 <button type="button"
                                         @click="loginType = 'email'"
                                         :class="loginType === 'email' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
-                                        class="flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold transition">
+                                        class="flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-medium transition">
                                     <i class="ri-mail-line"></i>
                                     Email
                                 </button>
                                 <button type="button"
                                         @click="loginType = 'phone'"
                                         :class="loginType === 'phone' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
-                                        class="flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold transition">
+                                        class="flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-medium transition">
                                     <i class="ri-smartphone-line"></i>
                                     Телефон
                                 </button>
                             </div>
 
-                            <label class="mb-2 block text-sm font-bold text-slate-800">Email или телефон</label>
+                            <label class="mb-2 block text-sm font-medium text-slate-800">Email или телефон</label>
                             <div class="relative">
                                 <template x-if="loginType === 'email'">
                                     <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
@@ -223,7 +223,7 @@
 
                         <div x-data="{ show: false }">
                             <div class="mb-2 flex items-center justify-between gap-3">
-                                <label class="block text-sm font-bold text-slate-800">Пароль</label>
+                                <label class="block text-sm font-medium text-slate-800">Пароль</label>
                                 @if (Route::has('password.request'))
                                     <a href="{{ route('password.request') }}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">
                                         Забыли пароль?
@@ -258,7 +258,7 @@
                             </span>
                         </label>
 
-                        <button type="submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 font-black text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-indigo-600/30">
+                        <button type="submit" class="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-indigo-600/30">
                             <i class="ri-login-box-line text-lg"></i>
                             Войти
                         </button>

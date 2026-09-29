@@ -41,9 +41,6 @@
     @stack('meta')
     <title>{{ $title ? $title . ' — ' . config('app.name', 'Laravel') : config('app.name', 'Laravel') }}</title>
 
-    <!-- Fonts -->
-    @vite('resources/css/manrope.css')
-
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 

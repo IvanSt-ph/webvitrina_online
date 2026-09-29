@@ -34,7 +34,7 @@
                         <i class="ri-user-add-line text-base"></i>
                         Новый аккаунт
                     </p>
-                    <h1 class="text-4xl font-extrabold leading-tight tracking-tight xl:text-5xl">
+                    <h1 class="text-4xl font-bold leading-tight tracking-tight xl:text-5xl">
                         Создайте профиль для покупок или магазина.
                     </h1>
                     <p class="mt-5 text-base leading-7 text-white/80">
@@ -88,7 +88,7 @@
                 <div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
                     <div class="mb-5">
                         <p class="text-sm font-semibold text-indigo-600">Регистрация</p>
-                        <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Создать аккаунт</h2>
+                        <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-950">Создать аккаунт</h2>
                         <p class="mt-2 text-sm leading-6 text-slate-500">
                             Четыре коротких шага. Ничего лишнего, только данные для входа и роли.
                         </p>
@@ -128,7 +128,7 @@
 
                         <div id="step-1" class="step-content space-y-5">
                             <div>
-                                <h3 class="text-lg font-extrabold text-slate-950">Как будете использовать WebVitrina?</h3>
+                                <h3 class="text-lg font-semibold text-slate-950">Как будете использовать WebVitrina?</h3>
                                 <p class="mt-1 text-sm text-slate-500">Роль можно выбрать сразу, а данные магазина продавец заполнит в кабинете.</p>
                             </div>
 
@@ -180,7 +180,7 @@
                             <div class="flex justify-end pt-2">
                                 <button type="button"
                                         onclick="goToStep(2)"
-                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
                                     Далее
                                     <i class="ri-arrow-right-line"></i>
                                 </button>
@@ -189,12 +189,12 @@
 
                         <div id="step-2" class="step-content hidden space-y-5">
                             <div>
-                                <h3 class="text-lg font-extrabold text-slate-950">Личные данные</h3>
+                                <h3 class="text-lg font-semibold text-slate-950">Личные данные</h3>
                                 <p class="mt-1 text-sm text-slate-500">Имя будет видно в профиле, чатах и заказах.</p>
                             </div>
 
                             <div>
-                                <label class="mb-2 block text-sm font-bold text-slate-800">Имя *</label>
+                                <label class="mb-2 block text-sm font-medium text-slate-800">Имя *</label>
                                 <div class="relative">
                                     <i class="ri-user-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
                                     <input type="text"
@@ -208,11 +208,11 @@
                             </div>
 
                             <div class="flex justify-between gap-3 pt-2">
-                                <button type="button" onclick="goToStep(1)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-bold text-slate-700 transition hover:bg-slate-50">
+                                <button type="button" onclick="goToStep(1)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-medium text-slate-700 transition hover:bg-slate-50">
                                     <i class="ri-arrow-left-line"></i>
                                     Назад
                                 </button>
-                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
                                     Далее
                                     <i class="ri-arrow-right-line"></i>
                                 </button>
@@ -221,12 +221,12 @@
 
                         <div id="step-3" class="step-content hidden space-y-5">
                             <div>
-                                <h3 class="text-lg font-extrabold text-slate-950">Контакты</h3>
+                                <h3 class="text-lg font-semibold text-slate-950">Контакты</h3>
                                 <p class="mt-1 text-sm text-slate-500">Email нужен для входа и восстановления доступа. Телефон можно добавить сразу.</p>
                             </div>
 
                             <div>
-                                <label class="mb-2 block text-sm font-bold text-slate-800">Email *</label>
+                                <label class="mb-2 block text-sm font-medium text-slate-800">Email *</label>
                                 <div class="relative">
                                     <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
                                     <input type="email"
@@ -240,7 +240,7 @@
                             </div>
 
                             <div>
-                                <label class="mb-2 block text-sm font-bold text-slate-800">Телефон</label>
+                                <label class="mb-2 block text-sm font-medium text-slate-800">Телефон</label>
                                 <div class="phone-input-shell">
                                     <input type="tel"
                                            id="registration-phone"
@@ -256,11 +256,11 @@
                             </div>
 
                             <div class="flex justify-between gap-3 pt-2">
-                                <button type="button" onclick="goToStep(2)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-bold text-slate-700 transition hover:bg-slate-50">
+                                <button type="button" onclick="goToStep(2)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-medium text-slate-700 transition hover:bg-slate-50">
                                     <i class="ri-arrow-left-line"></i>
                                     Назад
                                 </button>
-                                <button type="button" onclick="goToStep(4)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                <button type="button" onclick="goToStep(4)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
                                     Далее
                                     <i class="ri-arrow-right-line"></i>
                                 </button>
@@ -269,12 +269,12 @@
 
                         <div id="step-4" class="step-content hidden space-y-5">
                             <div>
-                                <h3 class="text-lg font-extrabold text-slate-950">Безопасность</h3>
+                                <h3 class="text-lg font-semibold text-slate-950">Безопасность</h3>
                                 <p class="mt-1 text-sm text-slate-500">Создайте пароль и подтвердите согласие с условиями.</p>
                             </div>
 
                             <div x-data="{ show: false }">
-                                <label class="mb-2 block text-sm font-bold text-slate-800">Пароль *</label>
+                                <label class="mb-2 block text-sm font-medium text-slate-800">Пароль *</label>
                                 <div class="relative">
                                     <i class="ri-lock-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
                                     <input :type="show ? 'text' : 'password'"
@@ -293,7 +293,7 @@
                             </div>
 
                             <div x-data="{ show: false }">
-                                <label class="mb-2 block text-sm font-bold text-slate-800">Повторите пароль *</label>
+                                <label class="mb-2 block text-sm font-medium text-slate-800">Повторите пароль *</label>
                                 <div class="relative">
                                     <i class="ri-lock-password-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
                                     <input :type="show ? 'text' : 'password'"
@@ -320,12 +320,12 @@
                             </label>
 
                             <div class="flex justify-between gap-3 pt-2">
-                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-bold text-slate-700 transition hover:bg-slate-50">
+                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-medium text-slate-700 transition hover:bg-slate-50">
                                     <i class="ri-arrow-left-line"></i>
                                     Назад
                                 </button>
                                 <button type="submit"
-                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-bold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
                                     <i class="ri-user-add-line"></i>
                                     Зарегистрироваться
                                 </button>

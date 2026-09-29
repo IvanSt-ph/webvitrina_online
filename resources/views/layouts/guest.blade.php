@@ -8,9 +8,6 @@
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
-    <!-- Fonts -->
-    @vite('resources/css/manrope.css')
-
     <!-- Icons -->
     @once('remixicon-3.5.0')
         @vite('resources/css/remixicon-v3.css')

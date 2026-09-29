@@ -1,3 +1,5 @@
+@import './manrope.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,6 +8,13 @@
     body {
         background: rgb(248 250 252);
         color: rgb(15 23 42);
+    }
+
+    /* Preflight inherits the UI family; controls use the same medium weight. */
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+        @apply font-medium;
     }
 }
 
@@ -31,11 +40,11 @@
     }
 
     .wv-btn-primary {
-        @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm shadow-brand-600/10 transition hover:bg-brand-700;
+        @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-medium text-white transition-colors duration-150 hover:bg-brand-700;
     }
 
     .wv-btn-secondary {
-        @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700;
+        @apply inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 transition-colors duration-150 hover:bg-neutral-50 hover:text-brand-700;
     }
 
     .wv-sidebar {
@@ -43,19 +52,94 @@
     }
 
     .wv-sidebar-link {
-        @apply mx-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition hover:bg-brand-50 hover:text-brand-700;
+        @apply mx-3 flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors duration-150 hover:bg-neutral-50 hover:text-brand-700;
     }
 
-    .wv-sidebar-link-active {
-        @apply bg-brand-50 text-brand-700 ring-1 ring-brand-100;
+    .wv-sidebar-link > i:first-child {
+        @apply flex h-6 w-6 shrink-0 items-center justify-center text-xl leading-none;
     }
 
     .wv-sidebar-link.wv-sidebar-link-active {
-        @apply bg-brand-50 text-brand-700 ring-1 ring-brand-100;
+        @apply bg-brand-50 text-brand-700;
+        box-shadow: inset 2px 0 0 theme('colors.brand.300');
+    }
+
+    .wv-ui-tab {
+        @apply border-b-2 border-transparent font-medium text-neutral-600 transition-colors duration-150 hover:bg-neutral-50 hover:text-brand-700;
+    }
+
+    .wv-ui-tab[aria-current],
+    .wv-ui-tab[aria-pressed="true"] {
+        @apply border-brand-600 text-brand-700;
+    }
+
+    .wv-ui-pill {
+        @apply border border-neutral-200 font-medium text-neutral-600 transition-colors duration-150 hover:bg-neutral-50 hover:text-brand-700;
+    }
+
+    .wv-ui-pill[aria-current] {
+        @apply border-brand-200 bg-brand-50 text-brand-700 underline underline-offset-4;
+        text-decoration-thickness: 1px;
+    }
+
+    .wv-ui-menu-link {
+        @apply font-medium text-neutral-600 transition-colors duration-150 hover:bg-neutral-50 hover:text-brand-700;
+    }
+
+    .wv-ui-focus:focus-visible,
+    .wv-sidebar-link:focus-visible,
+    .wv-ui-tab:focus-visible,
+    .wv-ui-pill:focus-visible,
+    .wv-ui-menu-link:focus-visible,
+    .wv-btn-primary:focus-visible,
+    .wv-btn-secondary:focus-visible,
+    .wv-buyer-sidebar a:focus-visible,
+    .wv-buyer-sidebar button:focus-visible,
+    .wv-buyer-menu-toggle:focus-visible {
+        @apply outline outline-2 outline-brand-600;
+        outline-offset: -2px;
+    }
+
+    .wv-btn-primary:focus-visible {
+        outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .wv-sidebar-link,
+        .wv-ui-tab,
+        .wv-ui-pill,
+        .wv-ui-menu-link,
+        .wv-btn-primary,
+        .wv-btn-secondary {
+            transition: none;
+        }
     }
 
     .wv-input {
         @apply rounded-xl border border-neutral-200 bg-white text-sm outline-none transition focus:border-brand-300 focus:ring-4 focus:ring-brand-100;
+    }
+
+    .wv-buyer-sidebar {
+        @apply hidden overflow-y-auto overscroll-contain md:flex;
+        max-height: calc(100dvh - 9rem);
+    }
+
+    .wv-buyer-shell[data-menu-open="true"] .wv-buyer-sidebar {
+        display: flex;
+    }
+
+    .wv-buyer-menu-group + .wv-buyer-menu-group {
+        @apply mt-4 border-t border-neutral-100 pt-4;
+    }
+
+    .wv-buyer-badge {
+        @apply ml-auto shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-center text-xs font-semibold tabular-nums text-brand-800;
+    }
+
+    @media (min-width: 768px) {
+        .wv-buyer-sidebar {
+            max-height: 100dvh;
+        }
     }
 
     .wv-muted {
@@ -122,18 +206,6 @@
     /* уменьшаем внутренние отступы */
     .pc-body {
         padding: 8px;
-    }
-
-    /* заголовок компактнее */
-    .pc-title {
-        font-size: 13px;
-        line-height: 1.2;
-    }
-
-    /* цена компактнее */
-    .pc-price {
-        font-size: 14px;
-        font-weight: 600;
     }
 
     /* скрываем лишнее */
