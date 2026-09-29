@@ -47,7 +47,9 @@
   $missingMobileBanners = $adminMenuCounters['missing_mobile_banners'] ?? 0;
 @endphp
 
-<body class="bg-slate-50 text-slate-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}" x-data="{ sidebarOpen: false }">
+<body class="bg-slate-50 text-slate-800 font-sans antialiased {{ $adminFullHeight ? 'overflow-hidden' : '' }}"
+      x-data="{ sidebarOpen: false }"
+      @keydown.escape.window="if (sidebarOpen) { sidebarOpen = false; $nextTick(() => $refs.sidebarToggle.focus()) }">
 
   <div class="flex min-h-screen overflow-hidden relative">
 
@@ -61,7 +63,8 @@
     </div>
 
     <!-- ===== Sidebar ===== -->
-    <aside 
+    <aside id="admin-sidebar"
+      aria-label="Навигация администратора"
       class="fixed left-0 top-0 bottom-0 z-40 w-64 border-r border-slate-200 wv-sidebar flex flex-col
              -translate-x-full transform transition-transform duration-300 ease-in-out
              md:translate-x-0"
@@ -73,9 +76,16 @@
           <i class="ri-store-3-line text-indigo-600 text-2xl"></i>
           <span class="text-xl font-bold text-indigo-600">WebVitrina</span>
         </div>
-        <button type="button" aria-label="Закрыть меню" @click="sidebarOpen = false" class="wv-ui-focus md:hidden text-neutral-400 hover:text-neutral-600 text-xl">
+        <button type="button" aria-label="Закрыть меню" @click="sidebarOpen = false; $nextTick(() => $refs.sidebarToggle.focus())" class="wv-ui-focus md:hidden text-neutral-400 hover:text-neutral-600 text-xl">
           <i class="ri-close-line"></i>
         </button>
+      </div>
+
+      <div class="border-b border-slate-100 p-4">
+        <a href="{{ route('home') }}" class="wv-ui-menu-link flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm">
+          <i class="ri-arrow-left-line text-xl" aria-hidden="true"></i>
+          <span>На витрину</span>
+        </a>
       </div>
 
       <!-- Navigation -->
@@ -83,21 +93,25 @@
         $menu = [
           'Работа' => [
             ['route'=>'admin.dashboard','icon'=>'ri-home-5-line','label'=>'Главная'],
-            ['route'=>'admin.orders.index','params'=>['focus'=>'attention'],'icon'=>'ri-shopping-bag-3-line','label'=>'Заказы','badge'=>$attentionOrders,'badgeTitle'=>'Запросы отмены по заказам'],
+            ['route'=>'admin.orders.index','params'=>['focus'=>'attention'],'active'=>'admin.orders.*','icon'=>'ri-shopping-bag-3-line','label'=>'Заказы','badge'=>$attentionOrders,'badgeTitle'=>'Запросы отмены по заказам'],
             ['route'=>'admin.chats.index','active'=>'admin.chats.*','icon'=>'ri-message-3-line','label'=>'Чаты','badge'=>$adminUnreadChats],
             ['route'=>'admin.disputes.index','active'=>'admin.disputes.*','icon'=>'ri-scales-3-line','label'=>'Споры','badge'=>$openDisputes],
-            ['route'=>'admin.reviews.index','icon'=>'ri-chat-3-line','label'=>'Отзывы','badge'=>$pendingReviews],
+            ['route'=>'admin.reviews.index','active'=>'admin.reviews.*','icon'=>'ri-chat-3-line','label'=>'Отзывы','badge'=>$pendingReviews],
             ['route'=>'admin.product-reports.index','active'=>'admin.product-reports.*','icon'=>'ri-alarm-warning-line','label'=>'Жалобы','badge'=>$openProductReports],
-            ['route'=>'admin.users.index','icon'=>'ri-user-3-line','label'=>'Пользователи'],
           ],
           'Каталог' => [
-            ['route'=>'admin.products.index','icon'=>'ri-box-3-line','label'=>'Товары'],
-            ['route'=>'admin.categories.index','icon'=>'ri-folder-3-line','label'=>'Категории'],
-            ['route'=>'admin.banners.index','icon'=>'ri-image-line','label'=>'Баннеры','badge'=>$missingMobileBanners],
+            ['route'=>'admin.products.index','active'=>'admin.products.*','icon'=>'ri-box-3-line','label'=>'Товары'],
+            ['route'=>'admin.categories.index','active'=>'admin.categories.*','icon'=>'ri-folder-3-line','label'=>'Категории'],
+          ],
+          'Пользователи' => [
+            ['route'=>'admin.users.index','active'=>'admin.users.*','icon'=>'ri-user-3-line','label'=>'Пользователи'],
+            ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Уровни магазинов','badge'=>$pendingSellerPlanRequests],
+          ],
+          'Продвижение' => [
+            ['route'=>'admin.banners.index','active'=>'admin.banners.*','icon'=>'ri-image-line','label'=>'Баннеры','badge'=>$missingMobileBanners],
             ['route'=>'admin.ads.index','active'=>'admin.ads.*','icon'=>'ri-megaphone-line','label'=>'Реклама'],
           ],
-          'Управление' => [
-            ['route'=>'admin.seller-plan-requests.index','active'=>'admin.seller-plan-requests.*','icon'=>'ri-vip-crown-line','label'=>'Уровни магазинов','badge'=>$pendingSellerPlanRequests],
+          'Система' => [
             ['route'=>'admin.backups.index','active'=>'admin.backups.*','icon'=>'ri-database-2-line','label'=>'Бэкапы'],
             ['route'=>'admin.production-checklist','icon'=>'ri-rocket-line','label'=>'Релиз-чеклист'],
             ['route'=>'admin.activity.index','active'=>'admin.activity.*','icon'=>'ri-history-line','label'=>'Журнал'],
@@ -137,7 +151,7 @@
 
       <!-- Topbar -->
       <header class="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-md {{ $adminFullHeight ? 'h-11 px-3 sm:h-14 sm:px-6' : 'h-14 px-4 sm:px-6' }}">
-        <button type="button" aria-label="Открыть меню" :aria-expanded="sidebarOpen" @click="sidebarOpen = !sidebarOpen" class="wv-ui-focus text-neutral-600 hover:text-indigo-600 text-2xl md:hidden">
+        <button type="button" x-ref="sidebarToggle" aria-label="Открыть меню" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen" @click="sidebarOpen = !sidebarOpen" class="wv-ui-focus text-neutral-600 hover:text-indigo-600 text-2xl md:hidden">
           <i class="ri-menu-line"></i>
         </button>
 
