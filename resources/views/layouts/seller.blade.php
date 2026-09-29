@@ -6,10 +6,10 @@
 <div class="flex min-h-screen overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-800">
 
     <!-- Sidebar -->
-<aside class="fixed bottom-0 left-0 top-0 z-30 hidden w-64 flex-col border-r border-slate-200 wv-sidebar lg:flex">
+<aside class="fixed bottom-0 left-0 top-0 z-30 hidden w-64 flex-col overflow-y-auto border-r border-slate-200 wv-sidebar lg:flex">
 
     <!-- ВЕРХ -->
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 flex flex-col shrink-0">
         <div class="flex items-center gap-2 px-6 py-6 border-b border-neutral-100">
             <a href="{{ route('seller.cabinet') }}" class="flex items-center gap-2">
                 <img src="{{ asset('images/icon.png') }}" class="w-8 h-8 rounded-lg shadow-sm" alt="WebVitrina">
@@ -49,16 +49,17 @@
             ];
         @endphp
 
-        <nav class="mt-5 flex flex-col text-[15px] font-normal text-slate-700">
+        <nav class="mt-5 flex flex-col text-[15px] font-normal text-slate-700" aria-label="Кабинет продавца">
             @foreach($sellerMenu as $section => $items)
                 <div class="{{ $loop->first ? '' : 'mt-4' }} px-6 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                     {{ $section }}
                 </div>
                 @foreach($items as $item)
                     <a href="{{ $item['url'] ?? route($item['route']) }}"
-                       class="{{ request()->routeIs($item['active']) ? $active : '' }} {{ $link }}">
-                        <i class="{{ $item['icon'] }} text-[22px]"></i>
-                        <span>{{ $item['label'] }}</span>
+                       class="{{ request()->routeIs($item['active']) ? $active : '' }} {{ $link }}"
+                       @if(request()->routeIs($item['active'])) aria-current="page" @endif>
+                        <i class="{{ $item['icon'] }}" aria-hidden="true"></i>
+                        <span class="min-w-0 break-words">{{ $item['label'] }}</span>
                         @if(($item['badge'] ?? 0) > 0)
                             <span class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
                                 {{ min($item['badge'], 99) }}
@@ -74,7 +75,7 @@
     </div>
 
     <!-- НИЗ (ПРИЖАТ К НИЗУ) -->
-    <div class="px-6 py-4 border-t border-neutral-100">
+    <div class="shrink-0 px-6 py-4 border-t border-neutral-100">
         <div class="flex items-center gap-3">
             @if(auth()->user()->avatar)
                 <img
@@ -89,7 +90,7 @@
                 </div>
             @endif
 
-            <div class="text-sm">
+            <div class="min-w-0 break-words text-sm">
                 <div class="font-semibold text-neutral-800">{{ auth()->user()->name ?? 'Продавец' }}</div>
                 <div class="text-neutral-400">{{ auth()->user()->email }}</div>
 

@@ -73,7 +73,7 @@
           <i class="ri-store-3-line text-indigo-600 text-2xl"></i>
           <span class="text-xl font-bold text-indigo-600">WebVitrina</span>
         </div>
-        <button @click="sidebarOpen = false" class="md:hidden text-neutral-400 hover:text-neutral-600 text-xl">
+        <button type="button" aria-label="Закрыть меню" @click="sidebarOpen = false" class="wv-ui-focus md:hidden text-neutral-400 hover:text-neutral-600 text-xl">
           <i class="ri-close-line"></i>
         </button>
       </div>
@@ -106,15 +106,16 @@
         ];
       @endphp
 
-      <nav class="flex-1 overflow-y-auto p-4">
+      <nav class="flex-1 overflow-y-auto p-4" aria-label="Администрирование">
         @foreach ($menu as $section => $items)
           <div class="{{ $loop->first ? '' : 'mt-5' }} mb-2 px-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ $section }}</div>
           <div class="space-y-1">
           @foreach ($items as $item)
           <a href="{{ route($item['route'], $item['params'] ?? []) }}"
-             class="wv-sidebar-link {{ request()->routeIs($item['active'] ?? $item['route'].'*') ? 'wv-sidebar-link-active' : '' }}">
-            <i class="{{ $item['icon'] }} text-lg"></i>
-            <span>{{ $item['label'] }}</span>
+             class="wv-sidebar-link {{ request()->routeIs($item['active'] ?? $item['route'].'*') ? 'wv-sidebar-link-active' : '' }}"
+             @if(request()->routeIs($item['active'] ?? $item['route'].'*')) aria-current="page" @endif>
+            <i class="{{ $item['icon'] }}" aria-hidden="true"></i>
+            <span class="min-w-0 break-words">{{ $item['label'] }}</span>
             @if(($item['badge'] ?? 0) > 0)
               <span @if($item['route'] === 'admin.chats.index') data-admin-chat-unread="{{ $item['badge'] }}" @endif title="{{ $item['badgeTitle'] ?? '' }}" class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
                 {{ $item['badge'] > 99 ? '99+' : $item['badge'] }}
@@ -136,7 +137,7 @@
 
       <!-- Topbar -->
       <header class="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-md {{ $adminFullHeight ? 'h-11 px-3 sm:h-14 sm:px-6' : 'h-14 px-4 sm:px-6' }}">
-        <button @click="sidebarOpen = !sidebarOpen" class="text-neutral-600 hover:text-indigo-600 text-2xl md:hidden">
+        <button type="button" aria-label="Открыть меню" :aria-expanded="sidebarOpen" @click="sidebarOpen = !sidebarOpen" class="wv-ui-focus text-neutral-600 hover:text-indigo-600 text-2xl md:hidden">
           <i class="ri-menu-line"></i>
         </button>
 

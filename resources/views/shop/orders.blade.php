@@ -70,11 +70,12 @@
                 @endif
             </form>
 
-            <nav class="w-full overflow-hidden border-b border-slate-200">
+            <nav class="w-full overflow-hidden border-b border-slate-200" aria-label="Разделы заказов">
                 <div class="grid w-full min-w-0 grid-cols-4 gap-1 sm:flex sm:gap-2">
                     @foreach($tabs as $key => $item)
                         <a href="{{ route('orders.index', ['tab' => $key, 'q' => $search ?: null]) }}"
-                           class="flex min-w-0 items-center justify-center gap-1 border-b-2 px-1 py-3 text-center text-xs font-semibold transition sm:inline-flex sm:justify-start sm:gap-2 sm:px-3 sm:text-sm {{ $tab === $key ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
+                           class="wv-ui-tab flex min-h-11 min-w-0 items-center justify-center gap-1 px-1 py-3 text-center text-xs sm:inline-flex sm:justify-start sm:gap-2 sm:px-3 sm:text-sm"
+                           @if($tab === $key) aria-current="page" @endif>
                             <span class="min-w-0 truncate">{{ $item['label'] }}</span>
                             <span class="shrink-0 rounded-full {{ $tab === $key ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-500' }} px-1.5 py-0.5 text-[11px] sm:px-2 sm:text-xs">
                                 {{ $item['count'] }}

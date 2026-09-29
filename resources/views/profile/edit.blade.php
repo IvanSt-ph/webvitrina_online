@@ -108,16 +108,16 @@
 
       {{-- 🧭 Вкладки (десктоп) --}}
       <div class="hidden md:flex border-b border-gray-200 overflow-x-auto">
-        <button @click="tab = 'main'" :class="tab === 'main' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
-                class="px-4 py-2 text-sm font-medium whitespace-nowrap">
+        <button @click="tab = 'main'" :aria-pressed="tab === 'main'" type="button"
+                class="wv-ui-tab min-h-11 px-4 py-2 text-sm whitespace-nowrap">
           Основная информация
         </button>
-        <button @click="tab = 'shop'" :class="tab === 'shop' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
-                class="px-4 py-2 text-sm font-medium whitespace-nowrap">
+        <button @click="tab = 'shop'" :aria-pressed="tab === 'shop'" type="button"
+                class="wv-ui-tab min-h-11 px-4 py-2 text-sm whitespace-nowrap">
           Информация о магазине
         </button>
-        <button @click="tab = 'security'" :class="tab === 'security' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600'"
-                class="px-4 py-2 text-sm font-medium whitespace-nowrap">
+        <button @click="tab = 'security'" :aria-pressed="tab === 'security'" type="button"
+                class="wv-ui-tab min-h-11 px-4 py-2 text-sm whitespace-nowrap">
           Безопасность
         </button>
       </div>
@@ -126,16 +126,17 @@
       <div class="block md:hidden space-y-3">
         <template x-for="section in ['main', 'shop', 'security']" :key="section">
           <div class="border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <header @click="mobileOpen = mobileOpen === section ? null : section"
-                    class="flex items-center justify-between px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer">
-              <span class="text-sm font-medium text-gray-800" x-text="
+            <button type="button" @click="mobileOpen = mobileOpen === section ? null : section"
+                    :aria-expanded="mobileOpen === section" :aria-controls="'profile-mobile-' + section"
+                    class="wv-ui-menu-link flex min-h-11 w-full items-center justify-between px-3 sm:px-4 py-3 bg-neutral-50 text-left">
+              <span class="text-sm" x-text="
                 section === 'main' ? 'Основная информация' :
                 section === 'shop' ? 'Информация о магазине' :
                 'Безопасность аккаунта'"></span>
-              <i class="ri-arrow-down-s-line text-lg text-gray-500 transition"
+              <i class="ri-arrow-down-s-line text-lg transition-transform duration-150" aria-hidden="true"
                  :class="mobileOpen === section ? 'rotate-180' : ''"></i>
-            </header>
-            <div x-show="mobileOpen === section" class="bg-white">
+            </button>
+            <div :id="'profile-mobile-' + section" x-show="mobileOpen === section" class="bg-white">
               <div class="p-2 sm:p-4">
                 <template x-if="section === 'main'">
                   @include('seller.partials.main')

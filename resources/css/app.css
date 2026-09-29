@@ -104,11 +104,23 @@
         outline-offset: 2px;
     }
 
+    .wv-ui-button:focus-visible {
+        @apply outline outline-2 outline-brand-600;
+        outline-offset: 2px;
+    }
+
+    .wv-ui-button:disabled,
+    .wv-btn-primary:disabled,
+    .wv-btn-secondary:disabled {
+        @apply pointer-events-none opacity-50;
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .wv-sidebar-link,
         .wv-ui-tab,
         .wv-ui-pill,
         .wv-ui-menu-link,
+        .wv-ui-button,
         .wv-btn-primary,
         .wv-btn-secondary {
             transition: none;

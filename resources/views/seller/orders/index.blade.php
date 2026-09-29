@@ -125,14 +125,15 @@
                     <div class="flex min-w-max items-center gap-2">
                         @foreach($tabs as $key => $tab)
                             @php
-                                $isActive = ($activeStatus === null && $key === null) || ($activeStatus === $key);
+                                $isActive = ($key === '' && $activeStatus === null && $activeAction === null) || ($activeStatus === $key);
                                 $count = $key === null ? $totalOrders : ($statusCounts[$key] ?? 0);
                                 $href = $key === null
                                     ? route('seller.orders.index', array_filter(['q' => $search]))
                                     : route('seller.orders.index', array_filter(['q' => $search, 'status' => $key]));
                             @endphp
                             <a href="{{ $href }}"
-                               class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ $isActive ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50' }}">
+                               class="wv-ui-pill inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                               @if($isActive) aria-current="true" @endif>
                                 <i class="{{ $tab['icon'] }}"></i>
                                 <span>{{ $tab['label'] }}</span>
                                 <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $count }}</span>
@@ -147,7 +148,8 @@
                                 $href = route('seller.orders.index', array_filter(['q' => $search, 'action' => $key]));
                             @endphp
                             <a href="{{ $href }}"
-                               class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition {{ $isActive ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50' }}">
+                               class="wv-ui-pill inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                               @if($isActive) aria-current="true" @endif>
                                 <i class="{{ $tab['icon'] }}"></i>
                                 <span>{{ $tab['label'] }}</span>
                                 <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ $actionCounts[$key] ?? 0 }}</span>

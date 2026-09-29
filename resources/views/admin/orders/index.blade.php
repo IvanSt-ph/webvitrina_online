@@ -246,14 +246,15 @@
             <div class="flex min-w-max items-center gap-2">
                 @foreach($tabs as $key => $tab)
                     @php
-                        $isActive = ($currentStatus === null && $key === null) || ($currentStatus !== null && (string) $currentStatus === (string) $key);
+                        $isActive = ($currentStatus === null && $key === '') || ($currentStatus !== null && (string) $currentStatus === (string) $key);
                         $count = $key === null ? $totalOrders : ($statusCounts[$key] ?? 0);
                         $href = $key === null
                             ? route('admin.orders.index', $baseFilters)
                             : route('admin.orders.index', array_merge($baseFilters, ['status' => $key]));
                     @endphp
                     <a href="{{ $href }}"
-                       class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition {{ $isActive ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50' }}">
+                       class="wv-ui-pill inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                       @if($isActive) aria-current="true" @endif>
                         <i class="{{ $tab['icon'] }}"></i>
                         <span>{{ $tab['label'] }}</span>
                         <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold">{{ number_format($count, 0, ',', ' ') }}</span>

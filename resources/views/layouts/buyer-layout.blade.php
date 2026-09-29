@@ -2,9 +2,20 @@
 
 {{-- resources/views/layouts/buyer-layout.blade.php — боковая панель покупателя --}}
 <x-app-layout :title="$title ?? 'Личный кабинет'" :hideHeader="true" :flushMain="$flushContent || $chatMode">
-    <div class="flex min-h-screen bg-neutral-50 text-neutral-800">
+    <div class="wv-buyer-shell flex min-h-screen flex-col bg-neutral-50 text-neutral-800 md:flex-row"
+         x-data="{ buyerMenuOpen: false }" :data-menu-open="buyerMenuOpen"
+         @keydown.escape="if (buyerMenuOpen) { buyerMenuOpen = false; $refs.buyerMenuToggle.focus() }">
+        <div class="border-b border-neutral-200 bg-white px-3 py-2 md:hidden">
+            <button type="button" x-ref="buyerMenuToggle" @click="buyerMenuOpen = !buyerMenuOpen"
+                    :aria-expanded="buyerMenuOpen" aria-expanded="false" aria-controls="buyer-sidebar"
+                    class="wv-buyer-menu-toggle flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-neutral-800">
+                <i class="ri-menu-line text-xl" aria-hidden="true"></i>
+                <span>Меню кабинета</span>
+                <i class="ri-arrow-down-s-line ml-auto text-xl" :class="{ 'rotate-180': buyerMenuOpen }" aria-hidden="true"></i>
+            </button>
+        </div>
         <!-- 🧭 Sidebar -->
-        <aside class="fixed bottom-0 left-0 top-0 hidden w-64 flex-col justify-between border-r border-slate-200 wv-sidebar md:flex">
+        <aside id="buyer-sidebar" class="wv-buyer-sidebar wv-sidebar flex-col justify-between border-r border-slate-200 md:fixed md:inset-y-0 md:left-0 md:w-64">
             <div>
                 <!-- Логотип -->
                 <div class="flex items-center gap-2 border-b border-neutral-100 px-6 py-6">
@@ -12,125 +23,67 @@
                     <span class="text-sm font-semibold tracking-tight text-neutral-800">WebVitrina</span>
                 </div>
 
-                <!-- Навигация -->
                 @php
-                    $active = 'wv-sidebar-link-active';
-                    $link = 'wv-sidebar-link';
+                    $menuGroups = [
+                        'Основное' => [
+                            ['cabinet', 'cabinet', 'ri-home-5-line', 'Кабинет'],
+                            ['orders.index', 'orders.*', 'ri-shopping-bag-3-line', 'Заказы'],
+                            ['favorites.index', 'favorites.*', 'ri-heart-line', 'Избранное'],
+                            ['cart.index', 'cart.*', 'ri-shopping-cart-2-line', 'Корзина'],
+                        ],
+                        'Общение' => [
+                            ['chats.index', 'chats.*', 'ri-chat-3-line', 'Чаты', $unreadChatsCount ?? 0],
+                            ['notifications.index', 'notifications.*', 'ri-notification-3-line', 'Уведомления', $unreadNotificationsCount ?? 0],
+                            ['support', 'support', 'ri-customer-service-2-line', 'Поддержка'],
+                            ['disputes.index', 'disputes.*', 'ri-scales-3-line', 'Обращения'],
+                        ],
+                        'Профиль' => [
+                            ['addresses.index', 'addresses.*', 'ri-map-pin-line', 'Адреса доставки'],
+                            ['reviews.index', 'reviews.index', 'ri-star-line', 'Мои отзывы'],
+                            ['subscriptions.index', 'subscriptions.*', 'ri-user-follow-line', 'Мои подписки'],
+                            ['buyer.profile', 'buyer.profile*', 'ri-settings-3-line', 'Настройки'],
+                        ],
+                    ];
                 @endphp
 
-                <nav class="mt-5 text-[16px] font-normal text-slate-700">
-                    <div class="px-4 pb-5">
-                        <a href="{{ route('home') }}"
-                           class="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:border-indigo-200 hover:bg-indigo-100">
-                            <span class="flex items-center gap-2">
-                                <i class="ri-store-3-line text-[20px]"></i>
-                                <span>К витрине</span>
-                            </span>
-                            <i class="ri-arrow-right-up-line text-[18px] text-indigo-500"></i>
+                <nav class="py-4" aria-label="Кабинет покупателя">
+                    <div class="mx-3 mb-4 border-b border-neutral-200 pb-4">
+                        <a href="{{ route('home') }}" class="wv-buyer-store-link flex min-h-11 items-center gap-3 rounded-xl border border-neutral-200 px-3 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100">
+                            <i class="ri-arrow-left-line text-xl" aria-hidden="true"></i>
+                            <span>К витрине</span>
                         </a>
                     </div>
-
-                    <div class="px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400">
-                        Основное
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <a href="{{ route('cabinet') }}" class="{{ request()->routeIs('cabinet') ? $active : '' }} {{ $link }}">
-                            <i class="ri-home-5-line text-[22px]"></i>
-                            <span>Кабинет</span>
-                        </a>
-
-                        <a href="{{ route('orders.index') }}" class="{{ request()->routeIs('orders.*') ? $active : '' }} {{ $link }}">
-                            <i class="ri-shopping-bag-3-line text-[22px]"></i>
-                            <span>Заказы</span>
-                        </a>
-
-                        <a href="{{ route('favorites.index') }}" class="{{ request()->routeIs('favorites.*') ? $active : '' }} {{ $link }}">
-                            <i class="ri-heart-line text-[22px]"></i>
-                            <span>Избранное</span>
-                        </a>
-
-                        <a href="{{ route('chats.index') }}" class="{{ request()->routeIs('chats.*') ? $active : '' }} {{ $link }}">
-                            <span class="relative">
-                                <i class="ri-chat-3-line text-[22px]"></i>
-                                @if(($unreadChatsCount ?? 0) > 0)
-                                    <span class="absolute -right-3 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                        {{ min($unreadChatsCount, 99) }}
-                                    </span>
-                                @endif
-                            </span>
-                            <span>Чаты</span>
-                        </a>
-
-                        <a href="{{ route('notifications.index') }}" class="{{ request()->routeIs('notifications.*') ? $active : '' }} {{ $link }}">
-                            <span class="relative">
-                                <i class="ri-notification-3-line text-[22px]"></i>
-                                @if(($unreadNotificationsCount ?? 0) > 0)
-                                    <span class="absolute -right-3 -top-2 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                        {{ min($unreadNotificationsCount, 99) }}
-                                    </span>
-                                @endif
-                            </span>
-                            <span>Уведомления</span>
-                        </a>
-
-                        <a href="{{ route('cart.index') }}" class="{{ request()->routeIs('cart.*') ? $active : '' }} {{ $link }}">
-                            <div class="relative">
-                                <i class="ri-shopping-cart-2-line text-[22px]" data-cart-icon></i>
-
-                                <!-- 🔥 бейдж количества товаров -->
-                                <span data-cart-count
-                                      class="pointer-events-none absolute -right-2 -top-1.5 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white opacity-0 transition-none">
-                                </span>
-                            </div>
-
-                            <span>Корзина</span>
-                        </a>
-
-                        <a href="{{ route('addresses.index') }}" class="{{ request()->routeIs('addresses.*') ? $active : '' }} {{ $link }}">
-                            <i class="ri-map-pin-line text-[22px]"></i>
-                            <span>Адреса доставки</span>
-                        </a>
-                    </div>
-
-                    <div class="mt-5 px-6 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400">
-                        Сервис
-                    </div>
-
-                    <div class="flex flex-col gap-1">
-                        <a href="{{ route('reviews.index') }}" class="{{ request()->routeIs('reviews.index') ? $active : '' }} {{ $link }}">
-                            <i class="ri-star-line text-[22px]"></i>
-                            <span>Мои отзывы</span>
-                        </a>
-
-                        <a href="{{ route('support') }}" class="{{ request()->routeIs('support') ? $active : '' }} {{ $link }}">
-                            <i class="ri-customer-service-2-line text-[22px]"></i>
-                            <span>Поддержка</span>
-                        </a>
-
-                        <a href="{{ route('disputes.index') }}" class="{{ request()->routeIs('disputes.*') ? $active : '' }} {{ $link }}">
-                            <i class="ri-scales-3-line text-[22px]"></i>
-                            <span>Обращения</span>
-                        </a>
-
-                        <a href="{{ route('subscriptions.index') }}" class="{{ request()->routeIs('subscriptions.*') ? $active : '' }} {{ $link }}">
-                            <i class="ri-user-follow-line text-[22px]"></i>
-                            <span>Мои подписки</span>
-                        </a>
-
-                        <a href="{{ route('buyer.profile') }}" class="{{ request()->routeIs('buyer.profile') ? $active : '' }} {{ $link }}">
-                            <i class="ri-settings-3-line text-[22px]"></i>
-                            <span>Настройки</span>
-                        </a>
-                    </div>
+                    @foreach($menuGroups as $group => $items)
+                        <section class="wv-buyer-menu-group" aria-labelledby="buyer-menu-group-{{ $loop->index }}">
+                            <h2 id="buyer-menu-group-{{ $loop->index }}" class="px-6 pb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-500">{{ $group }}</h2>
+                            <ul class="space-y-1">
+                                @foreach($items as $item)
+                                    @php $isActive = request()->routeIs($item[1]); @endphp
+                                    <li>
+                                        <a href="{{ route($item[0]) }}" class="wv-sidebar-link {{ $isActive ? 'wv-sidebar-link-active' : '' }}"
+                                           @if($isActive) aria-current="page" @endif>
+                                            <i class="{{ $item[2] }}" aria-hidden="true" @if($item[0] === 'cart.index') data-cart-icon @endif></i>
+                                            <span class="min-w-0 flex-1 break-words">{{ $item[3] }}</span>
+                                            @if(($item[4] ?? 0) > 0)
+                                                <span class="wv-buyer-badge" aria-label="{{ $item[4] }} непрочитанных">{{ $item[4] > 99 ? '99+' : $item[4] }}</span>
+                                            @endif
+                                            @if($item[0] === 'cart.index')
+                                                <span data-cart-count class="wv-buyer-badge hidden"></span>
+                                            @endif
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </section>
+                    @endforeach
                 </nav>
             </div>
 
             <!-- Аккаунт покупателя -->
-            <div class="border-t border-neutral-100 px-6 py-4">
+            <div class="shrink-0 border-t border-neutral-100 px-6 py-4">
                 <div class="flex items-start gap-3">
                     {{-- Аватар --}}
-                    <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
                         @php $avatar = auth()->user()->avatar; @endphp
 
                         @if($avatar && Storage::disk('public')->exists($avatar))
@@ -142,7 +95,7 @@
                         @endif
                     </div>
 
-                    <div class="flex flex-col leading-tight">
+                    <div class="flex min-w-0 flex-col break-words leading-tight">
                         <span class="text-sm font-semibold text-neutral-800">
                             {{ auth()->user()->name }}
                         </span>
@@ -151,7 +104,7 @@
 
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
-                            <button class="text-xs text-danger-500 hover:text-danger-600">
+                            <button class="min-h-11 rounded text-sm text-danger-500 hover:text-danger-600">
                                 Выйти
                             </button>
                         </form>
@@ -161,7 +114,7 @@
         </aside>
 
         <!-- 🌤 Контент -->
-        <main class="flex-1 bg-neutral-50 {{ $chatMode ? 'h-dvh overflow-hidden p-0 md:ml-64 md:p-0' : ($flushContent ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10') }}">
+        <main class="min-w-0 flex-1 bg-neutral-50 {{ $chatMode ? 'h-dvh overflow-hidden p-0 md:ml-64 md:p-0' : ($flushContent ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10') }}">
             {{ $slot }}
         </main>
     </div>

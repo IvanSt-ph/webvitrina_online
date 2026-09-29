@@ -14,13 +14,13 @@
                 <p class="mt-2 text-sm text-slate-500">Заказы, чаты, отзывы, поддержка и важные системные события.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('notifications.settings') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <a href="{{ route('notifications.settings') }}" class="wv-btn-secondary">
                     <i class="ri-settings-3-line"></i>
                     Настройки
                 </a>
                 <form method="POST" action="{{ route('notifications.readAll') }}">
                     @csrf
-                    <button class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+                    <button class="wv-btn-primary">
                         <i class="ri-check-double-line"></i>
                         Всё прочитано
                     </button>
@@ -36,7 +36,7 @@
                     @endphp
                     <form method="POST" action="{{ route('notifications.read', $notification) }}" class="block">
                         @csrf
-                        <button class="grid w-full gap-2 px-4 py-4 text-left transition hover:bg-slate-50 sm:grid-cols-[1fr_auto] sm:items-center {{ $isModerationAction && !$notification->read_at ? 'bg-rose-50/60' : '' }}">
+                        <button class="wv-ui-focus grid w-full gap-2 px-4 py-4 text-left transition-colors duration-150 hover:bg-neutral-50 sm:grid-cols-[1fr_auto] sm:items-center {{ $isModerationAction && !$notification->read_at ? 'bg-rose-50/60' : '' }}">
                             <span class="min-w-0">
                                 <span class="flex items-center gap-2">
                                     @if(!$notification->read_at)

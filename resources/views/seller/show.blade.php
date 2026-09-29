@@ -441,7 +441,8 @@
                                 @php $activeFilter = $filter === $key; @endphp
                                 <a href="{{ route('seller.show', ['identifier' => $shop->slug, 'filter' => $key]) }}"
                                    data-shop-filter-link
-                                   class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition sm:h-9 sm:gap-2 sm:px-3 sm:text-sm {{ $activeFilter ? 'border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700' }}">
+                                   class="wv-ui-pill inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+                                   @if($activeFilter) aria-current="true" @endif>
                                     <i class="{{ $meta['icon'] }} text-sm sm:text-base"></i>
                                     {{ $meta['label'] }}
                                     <span class="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-500 ring-1 ring-slate-100 sm:px-2 sm:text-[11px]">

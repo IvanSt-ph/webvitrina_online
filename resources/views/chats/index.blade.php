@@ -64,12 +64,14 @@
 
                     <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
                         <a href="{{ route('chats.index', array_filter(['q' => $search])) }}"
-                           class="inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition {{ $activeFilter === null ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50' }}">
+                           class="wv-ui-pill inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                               @if($activeFilter === null) aria-current="true" @endif>
                             Все
                         </a>
                         @foreach($chatFilters as $key => $meta)
                             <a href="{{ route('chats.index', array_filter(['q' => $search, 'filter' => $key])) }}"
-                               class="inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition {{ $activeFilter === $key ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50' }}">
+                               class="wv-ui-pill inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                               @if($activeFilter === $key) aria-current="true" @endif>
                                 <i class="{{ $meta['icon'] }}"></i>
                                 {{ $meta['label'] }}
                             </a>
