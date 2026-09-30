@@ -2997,13 +2997,70 @@ class SecurityRegressionTest extends TestCase
             ->withSession([
                 'checkout_cart' => [$this->checkoutCartRow($product, 2)],
             ])
+            ->get(route('checkout.confirm'))
+            ->assertOk();
+
+        $this->actingAs($buyer)
             ->post(route('checkout.create'), [
+                'checkout_token' => session('checkout_token'),
                 'payment_method' => 'cash',
                 'delivery_method' => 'pickup',
             ])
             ->assertRedirect();
 
+        $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
         $this->assertSame(1, $product->fresh()->stock);
+    }
+
+    public function test_checkout_rejects_missing_empty_and_mismatched_tokens(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['stock' => 3]);
+        $cart = [$this->checkoutCartRow($product)];
+        $payload = ['payment_method' => 'cash', 'delivery_method' => 'pickup'];
+
+        $this->actingAs($buyer)
+            ->withSession(['checkout_cart' => $cart, 'checkout_token' => null])
+            ->post(route('checkout.create'), $payload)
+            ->assertRedirect(route('checkout.confirm'))
+            ->assertSessionHas('error');
+
+        $this->actingAs($buyer)
+            ->withSession(['checkout_token' => ''])
+            ->post(route('checkout.create'), $payload + ['checkout_token' => ''])
+            ->assertRedirect(route('checkout.confirm'))
+            ->assertSessionHas('error');
+
+        $this->actingAs($buyer)
+            ->get(route('checkout.confirm'))
+            ->assertOk();
+
+        $token = session('checkout_token');
+        $this->assertNotEmpty($token);
+
+        foreach ([$payload, $payload + ['checkout_token' => ''], $payload + ['checkout_token' => 'wrong'], $payload + ['checkout_token' => ['wrong']]] as $invalidPayload) {
+            $this->actingAs($buyer)
+                ->post(route('checkout.create'), $invalidPayload)
+                ->assertRedirect(route('checkout.confirm'))
+                ->assertSessionHas('error');
+        }
+
+        $this->assertSame(0, Order::where('user_id', $buyer->id)->count());
+        $this->assertSame(3, $product->fresh()->stock);
+
+        $this->actingAs($buyer)
+            ->get(route('checkout.confirm'))
+            ->assertOk();
+
+        $this->assertNotSame($token, session('checkout_token'));
+
+        $this->actingAs($buyer)
+            ->post(route('checkout.create'), $payload + ['checkout_token' => session('checkout_token')])
+            ->assertRedirect();
+
+        $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
+        $this->assertSame(2, $product->fresh()->stock);
     }
 
     public function test_checkout_displays_and_charges_delivery_for_each_seller_order(): void
@@ -3113,6 +3170,51 @@ class SecurityRegressionTest extends TestCase
             ->assertRedirect(route('checkout.confirm'))
             ->assertSessionHas('error');
 
+        $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
+        $this->assertSame(2, $product->fresh()->stock);
+    }
+
+    public function test_overlapping_checkout_submissions_with_one_token_create_one_order(): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $product = $this->createProduct($seller, ['stock' => 3]);
+
+        $this->actingAs($buyer)
+            ->withSession(['checkout_cart' => [$this->checkoutCartRow($product)]])
+            ->get(route('checkout.confirm'))
+            ->assertOk();
+
+        $payload = [
+            'checkout_token' => session('checkout_token'),
+            'payment_method' => 'cash',
+            'delivery_method' => 'pickup',
+        ];
+        $cache = Cache::store();
+        $overlappingResponse = null;
+        $reservations = 0;
+
+        Cache::shouldReceive('add')->twice()
+            ->andReturnUsing(function ($key, $value, $ttl) use ($cache, $payload, &$overlappingResponse, &$reservations) {
+                $accepted = $cache->add($key, $value, $ttl);
+                $reservations++;
+
+                // Start the second request after the first has reserved the token,
+                // while the first order transaction has not started yet.
+                if ($accepted && $reservations === 1) {
+                    $overlappingResponse = $this->post(route('checkout.create'), $payload);
+                }
+
+                return $accepted;
+            });
+
+        $this->actingAs($buyer)
+            ->post(route('checkout.create'), $payload)
+            ->assertRedirect();
+
+        $this->assertNotNull($overlappingResponse);
+        $overlappingResponse->assertRedirect(route('checkout.confirm'));
+        $this->assertSame(2, $reservations);
         $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
         $this->assertSame(2, $product->fresh()->stock);
     }
@@ -4320,20 +4422,27 @@ class SecurityRegressionTest extends TestCase
 
     public function test_admin_banner_edit_page_previews_legacy_image_and_exposes_cropper_controls(): void
     {
+        Storage::fake('public');
+        $legacyPath = UploadedFile::fake()
+            ->image('old.jpg', 2400, 720)
+            ->storeAs('banners/legacy', 'old.jpg', 'public');
+
         $admin = User::factory()->create(['role' => 'admin']);
 
         $banner = Banner::create([
             'title' => 'Legacy image banner',
-            'image' => 'banners/legacy/old.webp',
+            'image' => $legacyPath,
             'active' => true,
         ]);
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->get(route('admin.banners.edit', $banner))
             ->assertOk()
-            ->assertSee('storage/banners/legacy/old.webp', false)
+            ->assertSee('src="' . asset('storage/' . $legacyPath) . '" alt="Предпросмотр баннера"', false)
             ->assertSee('id="banner-open-crop"', false)
             ->assertSee('id="banner-recrop-existing"', false);
+
+        $this->assertMatchesRegularExpression('/id="banner-open-crop"\s+class="(?!hidden\b)/', $response->getContent());
     }
 
     public function test_admin_banners_index_has_operational_filters_and_device_signals(): void

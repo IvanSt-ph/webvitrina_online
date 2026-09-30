@@ -350,8 +350,9 @@ return redirect()
         }
 
         $expectedToken = session('checkout_token');
-        $submittedToken = (string) $request->input('checkout_token', '');
-        if ($expectedToken && ! hash_equals($expectedToken, $submittedToken)) {
+        $submittedToken = $request->input('checkout_token');
+        if (! is_string($expectedToken) || $expectedToken === ''
+            || ! is_string($submittedToken) || ! hash_equals($expectedToken, $submittedToken)) {
             return redirect()->route('checkout.confirm')
                 ->with('error', 'Заказ уже отправлялся или страница устарела. Проверьте итог и подтвердите оформление ещё раз.');
         }
@@ -391,7 +392,7 @@ return redirect()
                 ->with('error', 'Цена одного или нескольких товаров изменилась. Проверьте обновлённую сумму и подтвердите заказ снова.');
         }
 
-        if ($expectedToken && ! Cache::add('checkout:used:' . hash('sha256', $expectedToken), true, now()->addMinutes(10))) {
+        if (! Cache::add('checkout:used:' . hash('sha256', $expectedToken), true, now()->addMinutes(10))) {
             return redirect()->route('checkout.confirm')
                 ->with('error', 'Этот заказ уже отправлен. Проверьте список заказов перед повторным оформлением.');
         }
