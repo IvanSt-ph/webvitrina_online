@@ -187,7 +187,7 @@
             </div>
         </div>
 
-        <div class="hidden xl:block">
+        <div class="hidden overflow-x-auto xl:block">
             <table class="min-w-full text-sm">
                 <thead class="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>

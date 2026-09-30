@@ -84,7 +84,7 @@
     <input type="hidden" name="recrop_existing" id="banner-recrop-existing" value="0">
     <input type="hidden" name="mobile_recrop_existing" id="banner-mobile-recrop-existing" value="0">
 
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="mb-5 flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
           <div>
@@ -96,7 +96,7 @@
           </span>
         </div>
 
-        <div class="grid gap-5 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div class="space-y-2">
             <label for="title" class="text-sm font-medium text-gray-700">Заголовок</label>
             <div class="relative">
@@ -195,7 +195,7 @@
           </div>
         </div>
 
-        <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div class="space-y-4">
             <div class="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
               <div class="mb-3 flex items-start justify-between gap-3">
@@ -309,7 +309,7 @@
         <h2 id="banner-crop-title" class="text-lg font-semibold text-gray-900">Обрезать баннер</h2>
         <p id="banner-crop-help" class="mt-1 text-sm text-gray-500">Перетаскивайте изображение внутри рамки и настройте масштаб.</p>
       </div>
-      <button type="button" data-banner-crop-cancel class="h-9 w-9 rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800">
+      <button type="button" data-banner-crop-cancel aria-label="Закрыть обрезку баннера" class="h-11 w-11 shrink-0 sm:h-9 sm:w-9 rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800">
         <i class="ri-close-line text-xl"></i>
       </button>
     </div>

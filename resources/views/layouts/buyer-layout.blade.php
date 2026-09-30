@@ -2,10 +2,10 @@
 
 {{-- resources/views/layouts/buyer-layout.blade.php — боковая панель покупателя --}}
 <x-app-layout :title="$title ?? 'Личный кабинет'" :hideHeader="true" :flushMain="$flushContent || $chatMode">
-    <div class="wv-buyer-shell flex min-h-screen flex-col bg-neutral-50 text-neutral-800 md:flex-row"
+    <div class="wv-buyer-shell flex {{ $chatMode ? 'h-dvh overflow-hidden' : 'min-h-screen' }} flex-col bg-neutral-50 text-neutral-800 md:flex-row"
          x-data="{ buyerMenuOpen: false }" :data-menu-open="buyerMenuOpen"
          @keydown.escape="if (buyerMenuOpen) { buyerMenuOpen = false; $refs.buyerMenuToggle.focus() }">
-        <div class="border-b border-neutral-200 bg-white px-3 py-2 md:hidden">
+        <div class="shrink-0 border-b border-neutral-200 bg-white px-3 py-2 md:hidden">
             <button type="button" x-ref="buyerMenuToggle" @click="buyerMenuOpen = !buyerMenuOpen"
                     :aria-expanded="buyerMenuOpen" aria-expanded="false" aria-controls="buyer-sidebar"
                     class="wv-buyer-menu-toggle flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-neutral-800">
@@ -114,7 +114,7 @@
         </aside>
 
         <!-- 🌤 Контент -->
-        <main class="min-w-0 flex-1 bg-neutral-50 {{ $chatMode ? 'h-dvh overflow-hidden p-0 md:ml-64 md:p-0' : ($flushContent ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10') }}">
+        <main class="min-w-0 flex-1 bg-neutral-50 {{ $chatMode ? 'min-h-0 overflow-hidden p-0 md:ml-64 md:p-0' : ($flushContent ? 'p-0 md:ml-64 md:p-0' : 'p-2 md:ml-64 md:p-10') }}">
             {{ $slot }}
         </main>
     </div>

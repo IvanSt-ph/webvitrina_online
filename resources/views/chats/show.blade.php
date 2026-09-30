@@ -165,7 +165,7 @@
         }"
         x-init="$nextTick(() => { resize(); settleAtBottom(); poller = setInterval(() => loadNewerMessages(), 5000) })"
         @beforeunload.window="if (poller) clearInterval(poller)"
-        class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden sm:px-5 sm:py-5 lg:px-6 lg:py-6"
+        class="mx-auto flex h-full w-full max-w-8xl min-w-0 flex-col overflow-hidden sm:px-5 sm:py-5 lg:px-6 lg:py-6"
     >
         <div class="grid min-h-0 min-w-0 flex-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
             <aside class="hidden min-h-0 min-w-0 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-50/70 p-3 lg:block">

@@ -76,7 +76,7 @@
           <i class="ri-store-3-line text-indigo-600 text-2xl"></i>
           <span class="text-xl font-bold text-indigo-600">WebVitrina</span>
         </div>
-        <button type="button" aria-label="Закрыть меню" @click="sidebarOpen = false; $nextTick(() => $refs.sidebarToggle.focus())" class="wv-ui-focus md:hidden text-neutral-400 hover:text-neutral-600 text-xl">
+        <button type="button" aria-label="Закрыть меню" @click="sidebarOpen = false; $nextTick(() => $refs.sidebarToggle.focus())" class="wv-ui-focus flex h-11 w-11 shrink-0 items-center justify-center md:hidden text-neutral-400 hover:text-neutral-600 text-xl">
           <i class="ri-close-line"></i>
         </button>
       </div>
@@ -147,11 +147,11 @@
     </aside>
 
     <!-- ===== Контент ===== -->
-    <div class="flex-1 flex flex-col w-full md:ml-[16rem] transition-all duration-300 {{ $adminFullHeight ? 'h-[100dvh] overflow-hidden' : '' }}">
+    <div class="min-w-0 flex-1 flex flex-col w-full md:ml-[16rem] transition-all duration-300 {{ $adminFullHeight ? 'h-[100dvh] overflow-hidden' : '' }}">
 
       <!-- Topbar -->
       <header class="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-md {{ $adminFullHeight ? 'h-11 px-3 sm:h-14 sm:px-6' : 'h-14 px-4 sm:px-6' }}">
-        <button type="button" x-ref="sidebarToggle" aria-label="Открыть меню" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen" @click="sidebarOpen = !sidebarOpen" class="wv-ui-focus text-neutral-600 hover:text-indigo-600 text-2xl md:hidden">
+        <button type="button" x-ref="sidebarToggle" aria-label="Открыть меню" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen" @click="sidebarOpen = !sidebarOpen" class="wv-ui-focus flex h-11 w-11 shrink-0 items-center justify-center text-neutral-600 hover:text-indigo-600 text-2xl md:hidden">
           <i class="ri-menu-line"></i>
         </button>
 

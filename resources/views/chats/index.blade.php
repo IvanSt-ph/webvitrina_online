@@ -3,7 +3,7 @@
 @endphp
 
 <x-dynamic-component :component="$chatLayout" title="Чаты" :chat-mode="true">
-    <div class="mx-auto flex h-dvh w-full max-w-8xl min-w-0 flex-col overflow-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-6 lg:pb-6">
+    <div class="mx-auto flex h-full w-full max-w-8xl min-w-0 flex-col overflow-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 lg:px-6 lg:pb-6">
         <div class="sticky top-0 z-20 mb-3 shrink-0 border-b border-slate-100 bg-neutral-50/95 pb-3 backdrop-blur sm:mb-4 sm:border-0 sm:bg-transparent sm:pb-0">
             @if(auth()->user()->isSeller())
                 <a href="{{ route('seller.cabinet') }}"

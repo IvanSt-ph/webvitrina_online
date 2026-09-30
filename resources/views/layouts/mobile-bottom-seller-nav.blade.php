@@ -1,5 +1,6 @@
 <div data-toast-bottom-nav data-mobile-bottom-seller-nav
   x-data="{ openOrdersMenu: false, openCabinetMenu: false }"
+  @keydown.escape.window="if (openOrdersMenu) { openOrdersMenu = false; $refs.ordersToggle.focus() } else if (openCabinetMenu) { openCabinetMenu = false; $refs.cabinetToggle.focus() }"
   class="lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-t border-neutral-200 shadow-xl" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
 
   <nav class="flex justify-around items-center h-16 text-xs font-medium">
@@ -29,6 +30,7 @@
 
     <!-- Заказы (только заказы) -->
     <button 
+      type="button" x-ref="ordersToggle" aria-controls="seller-orders-menu" :aria-expanded="openOrdersMenu"
       @click="openOrdersMenu = !openOrdersMenu; openCabinetMenu = false"
       class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }} relative">
         <i class="ri-file-list-3-line text-xl"></i>
@@ -49,8 +51,9 @@
 
     <!-- Кабинет (меню) -->
     <button 
+      type="button" x-ref="cabinetToggle" aria-controls="seller-cabinet-menu" :aria-expanded="openCabinetMenu"
       @click="openCabinetMenu = !openCabinetMenu; openOrdersMenu = false"
-      class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet') || request()->routeIs('seller.finance.*') || request()->routeIs('seller.analytics.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+      class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet', 'seller.cabinet', 'seller.finance.*', 'seller.analytics.*', 'seller.followers.*', 'seller.plans.*', 'profile.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-user-settings-line text-xl"></i>
         <span>Кабинет</span>
     </button>
@@ -59,7 +62,7 @@
 
   <!-- Меню заказов (только заказы) -->
   <div 
-    x-show="openOrdersMenu"
+    id="seller-orders-menu" x-cloak x-show="openOrdersMenu"
     @click.away="openOrdersMenu = false"
     x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="translate-y-full opacity-0"
@@ -67,26 +70,26 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
+    class="max-h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] overflow-y-auto overscroll-contain absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
 
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-base font-semibold text-neutral-800">Заказы</h3>
-      <button @click="openOrdersMenu = false" class="text-neutral-400 hover:text-neutral-600">
+      <button type="button" aria-label="Закрыть меню заказов" @click="openOrdersMenu = false; $refs.ordersToggle.focus()" class="flex h-11 w-11 items-center justify-center text-neutral-400 hover:text-neutral-600">
         <i class="ri-close-line text-xl"></i>
       </button>
     </div>
 
     <ul class="space-y-3 text-sm text-neutral-700">
-      <li><a href="{{ route('seller.orders.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-list-unordered text-lg"></i> Все заказы</a></li>
-      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_PENDING]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-time-line text-lg"></i> Ожидают</a></li>
-      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_SHIPPED]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-truck-line text-lg"></i> В пути</a></li>
-      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_COMPLETED]) }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-check-double-line text-lg"></i> Завершённые</a></li>
+      <li><a href="{{ route('seller.orders.index') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-list-unordered text-lg"></i> Все заказы</a></li>
+      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_PENDING]) }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-time-line text-lg"></i> Ожидают</a></li>
+      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_SHIPPED]) }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-truck-line text-lg"></i> В пути</a></li>
+      <li><a href="{{ route('seller.orders.index', ['status' => \App\Models\Order::STATUS_COMPLETED]) }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-check-double-line text-lg"></i> Завершённые</a></li>
     </ul>
   </div>
 
   <!-- Меню кабинета (кабинет, финансы, аналитика, выход) -->
   <div 
-    x-show="openCabinetMenu"
+    id="seller-cabinet-menu" x-cloak x-show="openCabinetMenu"
     @click.away="openCabinetMenu = false"
     x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="translate-y-full opacity-0"
@@ -94,46 +97,48 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
+    class="max-h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] overflow-y-auto overscroll-contain absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
 
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-base font-semibold text-neutral-800">Меню кабинета</h3>
-      <button @click="openCabinetMenu = false" class="text-neutral-400 hover:text-neutral-600">
+      <button type="button" aria-label="Закрыть меню кабинета" @click="openCabinetMenu = false; $refs.cabinetToggle.focus()" class="flex h-11 w-11 items-center justify-center text-neutral-400 hover:text-neutral-600">
         <i class="ri-close-line text-xl"></i>
       </button>
     </div>
 
     <ul class="space-y-3 text-sm text-neutral-700">
       <!-- Кабинет (главная продавца) -->
-      <li><a href="{{ route('cabinet') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-dashboard-line text-lg"></i> Кабинет</a></li>
+      <li><a href="{{ route('cabinet') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-dashboard-line text-lg"></i> Кабинет</a></li>
 
       <li>
-        <a href="{{ route('seller.followers.index') }}" class="flex items-center gap-2 hover:text-indigo-600">
+        <a href="{{ route('seller.followers.index') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600">
           <i class="ri-user-follow-line text-lg"></i>
           Подписчики
         </a>
       </li>
 
       <li>
-        <a href="{{ route('support') }}" class="flex items-center gap-2 hover:text-indigo-600">
+        <a href="{{ route('support') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600">
           <i class="ri-customer-service-2-line text-lg"></i>
           Поддержка
         </a>
       </li>
 
       <li>
-        <a href="{{ route('seller.plans.index') }}" class="flex items-center gap-2 hover:text-indigo-600">
+        <a href="{{ route('seller.plans.index') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600">
           <i class="ri-vip-crown-line text-lg"></i>
           Уровень магазина
         </a>
       </li>
       
       <!-- Финансы -->
-      <li><a href="{{ route('seller.finance.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-wallet-3-line text-lg"></i> Финансы</a></li>
+      <li><a href="{{ route('seller.finance.index') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-wallet-3-line text-lg"></i> Финансы</a></li>
       
       <!-- Аналитика -->
-      <li><a href="{{ route('seller.analytics.index') }}" class="flex items-center gap-2 hover:text-indigo-600"><i class="ri-bar-chart-2-line text-lg"></i> Аналитика</a></li>
+      <li><a href="{{ route('seller.analytics.index') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-bar-chart-2-line text-lg"></i> Аналитика</a></li>
       
+      <li><a href="{{ route('profile.edit') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-user-3-line text-lg" aria-hidden="true"></i> Профиль</a></li>
+      <li><a href="{{ auth()->user()->shop?->slug ? route('seller.show', ['identifier' => auth()->user()->shop->slug]) : url('/') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-store-3-line text-lg" aria-hidden="true"></i> Моя витрина</a></li>
       <!-- Разделитель -->
       <li class="border-t border-neutral-100 pt-3 mt-3"></li>
       
@@ -141,7 +146,7 @@
       <li>
         <form method="POST" action="{{ route('logout') }}">
           @csrf
-          <button type="submit" class="flex items-center gap-2 text-danger-500 hover:text-danger-700 w-full text-left transition-colors duration-200">
+          <button type="submit" class="flex min-h-11 items-center gap-2 text-danger-500 hover:text-danger-700 w-full text-left transition-colors duration-200">
             <i class="ri-logout-box-r-line text-lg"></i>
             <span class="text-sm font-medium">Выйти из аккаунта</span>
           </button>

@@ -13,7 +13,7 @@
         <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
     </div>
 
-    <div class="grid min-h-[640px] overflow-hidden bg-white/88 backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
+    <div class="grid grid-cols-1 min-h-[640px] overflow-hidden bg-white/88 backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
         <section class="relative hidden bg-slate-950 p-8 text-white lg:flex lg:flex-col lg:justify-between xl:p-10">
             <img src="{{ asset('images/help/banner.jpg') }}"
                  class="absolute inset-0 h-full w-full object-cover opacity-55"
@@ -59,7 +59,7 @@
             </div>
         </section>
 
-        <section class="flex min-h-[640px] flex-col bg-white/88 backdrop-blur-xl">
+        <section class="flex min-w-0 min-h-[640px] flex-col bg-white/88 backdrop-blur-xl">
             <div class="relative h-36 overflow-hidden lg:hidden">
                 <video
                     autoplay
@@ -83,7 +83,7 @@
             </div>
 
             <div class="flex flex-1 items-center px-5 py-7 sm:px-8 lg:px-12 xl:px-16">
-                <div class="mx-auto w-full max-w-[440px]">
+                <div class="mx-auto min-w-0 w-full max-w-[440px]">
                     <div class="mb-6">
                         <p class="text-sm font-bold text-indigo-600">С возвращением</p>
                         <h2 class="mt-1 text-3xl font-bold tracking-tight text-slate-950">Войти в аккаунт</h2>
@@ -121,7 +121,7 @@
                                 <form method="POST" action="{{ route('login.remembered.forget-all') }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="inline-flex h-8 items-center gap-1.5 rounded-xl bg-white px-2.5 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:text-rose-600 hover:ring-rose-200">
+                                    <button type="submit" class="inline-flex h-11 sm:h-8 items-center gap-1.5 rounded-xl bg-white px-2.5 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:text-rose-600 hover:ring-rose-200">
                                         <i class="ri-delete-bin-line"></i>
                                         Все
                                     </button>
@@ -157,7 +157,7 @@
                                             @csrf
                                             @method('DELETE')
                                             <input type="hidden" name="selector" value="{{ $account['selector'] }}">
-                                            <button type="submit" class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" title="Убрать аккаунт из запомненных">
+                                            <button type="submit" aria-label="Убрать аккаунт из запомненных" class="inline-flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" title="Убрать аккаунт из запомненных">
                                                 <i class="ri-close-line text-lg"></i>
                                             </button>
                                         </form>

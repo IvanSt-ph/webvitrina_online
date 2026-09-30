@@ -267,17 +267,19 @@
                                 <button type="button" 
                                         @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Math.max(1, Number(qty) - 1), savedQty, {{ $price }}, $event, $data)"
                                         :disabled="updating || Number(qty) <= 1"
-                                        class="w-9 h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
+                                        aria-label="Уменьшить количество"
+                                        class="w-11 h-11 sm:w-9 sm:h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
                                     <i class="ri-subtract-line text-gray-500"></i>
                                 </button>
-                                <input type="number" min="1" 
+                                <input type="number" min="1" aria-label="Количество товара"
                                        x-model="qty"
                                        @blur="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', qty, savedQty, {{ $price }}, $event, $data)"
                                        class="w-14 text-center border-x border-gray-200 py-2 text-sm focus:outline-none">
                                 <button type="button"
                                         @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Number(qty) + 1, savedQty, {{ $price }}, $event, $data)"
                                         :disabled="updating"
-                                        class="w-9 h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
+                                        aria-label="Увеличить количество"
+                                        class="w-11 h-11 sm:w-9 sm:h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
                                     <i class="ri-add-line text-gray-500"></i>
                                 </button>
                             </div>
@@ -380,7 +382,7 @@
          x-transition
          class="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:hidden"
          style="padding-bottom: env(safe-area-inset-bottom, 0px);">
-        <div class="w-full max-w-none px-3 py-3 sm:py-4 mb-12 sm:mb-0">
+        <div class="w-full max-w-none px-3 py-3 sm:py-4 mb-16 sm:mb-0">
             <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                 <div class="min-w-0">
                     <div class="text-xs text-gray-500">

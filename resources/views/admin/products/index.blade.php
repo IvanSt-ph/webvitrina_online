@@ -371,7 +371,7 @@
         </div>
 
         <div class="flex flex-col gap-3 border-b border-slate-100 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex min-w-max items-center gap-2 overflow-x-auto">
+            <div class="flex min-w-0 items-center gap-2 overflow-x-auto [&>a]:min-h-11 [&>a]:shrink-0 [&>a]:whitespace-nowrap">
                 @foreach($tabs as $key => $tab)
                     @php
                         $isActive = (! filled($currentStatus) && $key === '') || ((string) $currentStatus === (string) $key);

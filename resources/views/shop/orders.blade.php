@@ -70,13 +70,13 @@
                 @endif
             </form>
 
-            <nav class="w-full overflow-hidden border-b border-slate-200" aria-label="Разделы заказов">
-                <div class="grid w-full min-w-0 grid-cols-4 gap-1 sm:flex sm:gap-2">
+            <nav class="w-full overflow-x-auto border-b border-slate-200" aria-label="Разделы заказов">
+                <div class="flex w-max min-w-full gap-2">
                     @foreach($tabs as $key => $item)
                         <a href="{{ route('orders.index', ['tab' => $key, 'q' => $search ?: null]) }}"
-                           class="wv-ui-tab flex min-h-11 min-w-0 items-center justify-center gap-1 px-1 py-3 text-center text-xs sm:inline-flex sm:justify-start sm:gap-2 sm:px-3 sm:text-sm"
+                           class="wv-ui-tab inline-flex min-h-11 shrink-0 items-center justify-start gap-2 whitespace-nowrap px-3 py-3 text-center text-sm"
                            @if($tab === $key) aria-current="page" @endif>
-                            <span class="min-w-0 truncate">{{ $item['label'] }}</span>
+                            <span>{{ $item['label'] }}</span>
                             <span class="shrink-0 rounded-full {{ $tab === $key ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-500' }} px-1.5 py-0.5 text-[11px] sm:px-2 sm:text-xs">
                                 {{ $item['count'] }}
                             </span>
@@ -141,8 +141,8 @@
                                 <div class="min-w-0 truncate text-base font-bold text-slate-950 lg:text-lg">
                                     {{ number_format($order->total_price, 2, ',', ' ') }} {{ $order->currency }}
                                 </div>
-                                <a href="{{ route('orders.show', $order) }}"
-                                   class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
+                                <a href="{{ route('orders.show', $order) }}" aria-label="Подробнее о заказе {{ $order->number }}"
+                                   class="inline-flex h-11 min-w-11 sm:h-9 sm:min-w-0 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700">
                                     <i class="ri-eye-line"></i>
                                     <span class="hidden sm:inline">Подробнее</span>
                                 </a>
