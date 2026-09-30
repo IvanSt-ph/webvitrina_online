@@ -31,10 +31,10 @@
         <td class="px-4 py-3">
           <div class="flex items-center gap-3">
             @if($cat->image)
-              <img src="{{ $cat->image_thumb_url }}" alt="{{ $cat->name }}" class="h-12 w-12 rounded-xl border border-slate-100 object-cover shadow-sm">
+              <img data-image-candidates="{{ json_encode($cat->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $cat->image_thumb_url }}" alt="{{ $cat->name }}" class="h-12 w-12 rounded-xl border border-slate-100 object-cover shadow-sm">
             @elseif($cat->icon)
               <span class="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-100 bg-white shadow-sm">
-                <img src="{{ $cat->icon_url }}" alt="{{ $cat->name }}" class="h-8 w-8 object-contain">
+                <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $cat->icon_url }}" alt="{{ $cat->name }}" class="h-8 w-8 object-contain">
               </span>
             @else
               <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-xl text-slate-400">

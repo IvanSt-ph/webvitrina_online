@@ -2,21 +2,14 @@
 {{-- Главная / Каталог с баннерами и сортировкой --}}
 
 @php
-/**
- * ✅ Локальный helper для получения URL баннера.
- */
-$bannerImageUrl = function ($banner, $default = 'storage/banners/sale1.jpg') {
-    if (!$banner) return asset($default);
-    $image = $banner->image_desktop ?? $banner->image_tablet ?? $banner->image_mobile;
-    return $image ? asset('storage/'.$image) : asset($default);
-};
-
 $firstBanner = $bannerItems->first();
-$firstImage = $bannerImageUrl($firstBanner);
+$firstImage = $firstBanner?->imageUrl();
 @endphp
 
 {{-- ✅ Предзагрузка первого баннера для ускорения --}}
+@if($firstImage)
 <link rel="preload" as="image" href="{{ $firstImage }}">
+@endif
 
 <x-app-layout title="Каталог">
 
@@ -36,9 +29,10 @@ $firstImage = $bannerImageUrl($firstBanner);
           screen: null,
           resizeHandler: null,
           slides: @js($bannerItems->map(fn($b) => [
-              'desktop' => $b->image_desktop ? asset('storage/'.$b->image_desktop) : asset('storage/banners/sale1.jpg'),
-              'tablet'  => $b->image_tablet  ? asset('storage/'.$b->image_tablet)  : asset('storage/banners/sale1.jpg'),
-              'mobile'  => $b->image_mobile  ? asset('storage/'.$b->image_mobile)  : asset('storage/banners/sale1.jpg'),
+              'desktop' => $b->imageUrl('desktop'),
+              'candidates' => ['desktop' => $b->imageCandidates('desktop'), 'tablet' => $b->imageCandidates('tablet'), 'mobile' => $b->imageCandidates('mobile')],
+              'tablet'  => $b->imageUrl('tablet'),
+              'mobile'  => $b->imageUrl('mobile'),
               'link'    => $b->link ?: '#',
           ])),
           next() { 
@@ -84,10 +78,10 @@ $firstImage = $bannerImageUrl($firstBanner);
           :href="slides[active].link" 
           class="banner-bg block w-full h-full"
         >
-          <img
+          <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
             class="w-full h-full object-cover select-none pointer-events-auto
                    transition-transform duration-700 ease-out will-change-transform"
-            :src="srcFor(slides[active])"
+            :data-image-candidates="JSON.stringify(slides[active].candidates[screen <= 768 ? 'mobile' : screen <= 1280 ? 'tablet' : 'desktop'])" :src="srcFor(slides[active])"
             :alt="`banner-${active}`"
             :loading="active === 0 ? 'eager' : 'lazy'"
           >
@@ -325,7 +319,7 @@ $firstImage = $bannerImageUrl($firstBanner);
                   <a href="{{ $campaign->resolved_url }}"
                      class="group relative min-h-[170px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
                     @if($cover)
-                      <img src="{{ $cover }}" alt="{{ $title }}" class="absolute inset-0 h-full w-full object-cover opacity-80 transition duration-500 group-hover:scale-[1.03]">
+                      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $cover }}" alt="{{ $title }}" class="absolute inset-0 h-full w-full object-cover opacity-80 transition duration-500 group-hover:scale-[1.03]">
                     @endif
                     <span class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/35 to-slate-950/5"></span>
                     <span class="relative z-10 flex min-h-[130px] flex-col justify-end">
@@ -349,7 +343,7 @@ $firstImage = $bannerImageUrl($firstBanner);
                         <a href="{{ $campaign->resolved_url }}"
                            @if($duplicate) aria-hidden="true" tabindex="-1" @endif
                            class="group grid w-[280px] shrink-0 grid-cols-[76px_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-indigo-200 hover:shadow-md sm:w-[330px]">
-                          <img src="{{ $shop->card_image_url }}" alt="{{ $shop->name }}" class="h-[76px] w-[76px] rounded-xl object-cover">
+                          <img data-image-candidates="{{ json_encode($shop->card_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $shop->card_image_url }}" alt="{{ $shop->name }}" class="h-[76px] w-[76px] rounded-xl object-cover">
                           <span class="min-w-0">
                             <span class="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">{{ $campaign->label }}</span>
                             <span class="mt-2 block truncate text-base font-bold text-slate-950 group-hover:text-indigo-700">{{ $shop->name }}</span>

@@ -101,7 +101,7 @@
                         <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 lg:grid-cols-[72px_minmax(0,1fr)_220px] lg:items-center">
                             <div class="h-16 w-16 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 lg:h-[72px] lg:w-[72px]">
                                 @if($firstItem?->product)
-                                    <img src="{{ $firstItem->product->image_thumb_url }}"
+                                    <img data-image-candidates="{{ json_encode($firstItem->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $firstItem->product->image_thumb_url }}"
                                          alt="{{ $firstItem->product->title }}"
                                          class="h-full w-full object-cover">
                                 @else

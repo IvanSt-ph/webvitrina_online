@@ -10,8 +10,8 @@
                class="relative w-full rounded-2xl overflow-hidden mb-8
                       border border-indigo-100 shadow-md bg-gradient-to-br from-indigo-50 via-white to-slate-50">
         <div class="relative w-full" style="padding-top:21%;">
-          <img id="banner-preview"
-               src="{{ Auth::user()->shop?->banner_url }}"
+          <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" id="banner-preview"
+               src="{{ Auth::user()->shop?->banner_url ?? asset('images/image-placeholder.svg') }}"
                alt="Баннер магазина"
                class="absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-in-out">
           <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>

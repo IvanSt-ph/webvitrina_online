@@ -151,7 +151,7 @@
                            aria-label="Открыть чат #{{ $conversation->id }}"></a>
                         <div class="pointer-events-none relative z-10 flex min-w-0 gap-3">
                             <div class="relative shrink-0">
-                                <img src="{{ $conversation->buyer?->avatar_url ?? 'https://ui-avatars.com/api/?name=User&color=7F9CF5&background=EBF4FF' }}"
+                                <img data-image-candidates="{{ json_encode($conversation->buyer?->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $conversation->buyer?->avatar_url ?? asset('images/avatar-placeholder.svg') }}"
                                      alt="{{ $conversation->buyer?->name ?? 'Пользователь' }}"
                                      class="h-11 w-11 rounded-2xl object-cover ring-1 ring-slate-900/5">
                                 <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white {{ $conversation->isLocked() ? 'bg-rose-500 text-white' : ($conversation->isSupport() ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-white') }}">

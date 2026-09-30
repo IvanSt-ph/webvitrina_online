@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Shop extends Model
@@ -213,24 +212,16 @@ public function getReputationDescriptionAttribute(): string
 
     public function getBannerUrlAttribute(): string
     {
-        if (blank($this->banner)) {
-            return asset('images/default-shop-banner.jpg');
-        }
+        return \App\Support\PublicImage::url($this->banner, 'images/image-placeholder.svg');
+    }
 
-        if (Str::startsWith($this->banner, ['http://', 'https://'])) {
-            return $this->banner;
-        }
-
-        $path = ltrim(str_replace(['storage/', '/storage/'], '', $this->banner), '/');
-
-        return Storage::disk('public')->exists($path)
-            ? Storage::url($path)
-            : asset('images/default-shop-banner.jpg');
+    public function getCardImageCandidatesAttribute(): array
+    {
+        return $this->user?->avatar_candidates ?? [asset('images/avatar-placeholder.svg')];
     }
 
     public function getCardImageUrlAttribute(): string
     {
-        return $this->user?->avatar_url
-            ?: 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+        return $this->user?->avatar_url ?: asset('images/avatar-placeholder.svg');
     }
 }

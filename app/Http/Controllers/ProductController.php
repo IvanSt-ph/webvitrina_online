@@ -30,10 +30,10 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = $this->products->getFilteredProducts($request);
-        $bannerItems = Cache::remember('slides_home', 3600, function () {
+        $bannerItems = Cache::remember('slides_home.images-v2', 3600, function () {
             return Banner::where('active', true)
                 ->orderBy('sort_order')
-                ->get(['image_desktop', 'image_tablet', 'image_mobile', 'link']);
+                ->get(['image', 'image_desktop', 'image_tablet', 'image_mobile', 'link']);
         });
         $showHomeRecommendations = collect($request->query())
             ->except('sort')
@@ -255,6 +255,7 @@ class ProductController extends Controller
                 'subtitle' => $product->category?->name ?? 'Товар',
                 'url' => route('product.show', $product->slug),
                 'image' => $product->image_thumb_url,
+                'image_candidates' => $product->image_thumb_candidates,
             ]);
 
         $categories = Category::query()

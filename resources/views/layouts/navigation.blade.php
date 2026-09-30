@@ -131,7 +131,7 @@
                                 <div class="max-h-[420px] overflow-y-auto p-2">
                                     <template x-for="product in results.products" :key="'product-' + product.url">
                                         <a :href="product.url" class="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-indigo-50">
-                                            <img :src="product.image" :alt="product.title" class="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100">
+                                            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :data-image-candidates="JSON.stringify(product.image_candidates)" :src="product.image" :alt="product.title" class="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100">
                                             <span class="min-w-0">
                                                 <span class="block truncate text-sm font-semibold text-slate-900" x-text="product.title"></span>
                                                 <span class="block truncate text-xs text-slate-500" x-text="product.subtitle"></span>
@@ -592,7 +592,7 @@
                                 
                                 <!-- Если есть аватарка - показываем её, если нет - градиент -->
                                 @if(auth()->user()->avatar)
-                                    <img src="{{ auth()->user()->avatar_url }}"
+                                    <img data-image-candidates="{{ json_encode(auth()->user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ auth()->user()->avatar_url }}"
                                         alt="{{ auth()->user()->name }}"
                                         class="h-9 w-9 rounded-2xl object-cover border-2 border-white shadow-sm group-hover:shadow-md transition-shadow"
                                         loading="lazy" decoding="async">
@@ -656,7 +656,7 @@
                                 <div class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-indigo-200/35 blur-2xl"></div>
                                 <div class="relative flex items-start gap-3">
                                     @if(auth()->user()->avatar)
-                                        <img src="{{ auth()->user()->avatar_url }}"
+                                        <img data-image-candidates="{{ json_encode(auth()->user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ auth()->user()->avatar_url }}"
                                              alt="{{ auth()->user()->name }}"
                                              class="h-11 w-11 rounded-2xl object-cover ring-2 ring-white shadow-sm"
                                              loading="lazy" decoding="async">

@@ -129,7 +129,7 @@
                     @php $avatar = auth()->user()->avatar ?? null @endphp
                     
                     @if($avatar && Storage::disk('public')->exists($avatar))
-                        <img src="{{ auth()->user()->avatar_url }}"
+                        <img data-image-candidates="{{ json_encode(auth()->user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ auth()->user()->avatar_url }}"
                              class="relative h-5 w-5 rounded-full object-cover border-2 transition-all duration-300 {{ request()->routeIs('cabinet') ? 'border-indigo-500 scale-105 shadow-md' : 'border-neutral-200 group-hover:border-indigo-400 group-hover:scale-110' }}"
                              alt="Аватар"
                              loading="lazy"

@@ -87,7 +87,7 @@
                         @php $avatar = auth()->user()->avatar; @endphp
 
                         @if($avatar && Storage::disk('public')->exists($avatar))
-                            <img src="{{ asset('storage/'.$avatar) }}" alt="avatar" class="h-full w-full object-cover">
+                            <img data-image-candidates="{{ json_encode(auth()->user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ auth()->user()->avatar_url }}" alt="avatar" class="h-full w-full object-cover">
                         @else
                             <span class="text-base font-semibold text-neutral-600">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}

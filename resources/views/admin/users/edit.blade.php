@@ -20,7 +20,7 @@
     <section class="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-                <img src="{{ $user->avatar_url }}"
+                <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}"
                      class="h-20 w-20 rounded-2xl border border-slate-200 object-cover shadow-sm"
                      alt="Аватар {{ $user->name }}">
                 <div class="min-w-0">

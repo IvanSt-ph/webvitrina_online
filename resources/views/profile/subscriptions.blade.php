@@ -96,7 +96,7 @@
                         <article class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                             <a href="{{ route('seller.show', $shop->slug) }}" class="block">
                                 <div class="aspect-[16/7] overflow-hidden bg-gray-50">
-                                    <img src="{{ $shop->banner_url }}" alt="{{ $shop->name }}" class="h-full w-full object-cover transition duration-300 hover:scale-105">
+                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $shop->banner_url }}" alt="{{ $shop->name }}" class="h-full w-full object-cover transition duration-300 hover:scale-105">
                                 </div>
                             </a>
 

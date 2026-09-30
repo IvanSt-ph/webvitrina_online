@@ -178,14 +178,14 @@
                     @php
                         $desktopImage = $banner->image_desktop ?: $banner->image_tablet ?: $banner->image_mobile ?: $banner->image;
                         $mobileImage = $banner->image_mobile ?: $desktopImage;
-                        $desktopUrl = $desktopImage ? asset('storage/'.$desktopImage) : null;
-                        $mobileUrl = $mobileImage ? asset('storage/'.$mobileImage) : null;
+                        $desktopUrl = $desktopImage ? $banner->imageUrl('desktop') : null;
+                        $mobileUrl = $mobileImage ? $banner->imageUrl('mobile') : null;
                     @endphp
                     <article class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-md">
                         <div class="relative bg-slate-100">
                             <div class="aspect-[30/9] overflow-hidden">
                                 @if($desktopUrl)
-                                    <img src="{{ $desktopUrl }}" alt="{{ $banner->title ?: 'Баннер' }}" class="h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]">
+                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" data-image-candidates="{{ json_encode($banner->imageCandidates('desktop')) }}" src="{{ $desktopUrl }}" alt="{{ $banner->title ?: 'Баннер' }}" class="h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]">
                                 @else
                                     <div class="flex h-full items-center justify-center text-sm text-slate-400">Нет desktop изображения</div>
                                 @endif
@@ -213,7 +213,7 @@
                             <div class="absolute bottom-3 right-3 hidden w-20 overflow-hidden rounded-xl border-2 border-white bg-slate-200 shadow-lg sm:block">
                                 <div class="aspect-[9/16]">
                                     @if($mobileUrl)
-                                        <img src="{{ $mobileUrl }}" alt="Mobile preview" class="h-full w-full object-cover">
+                                        <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" data-image-candidates="{{ json_encode($banner->imageCandidates('mobile')) }}" src="{{ $mobileUrl }}" alt="Mobile preview" class="h-full w-full object-cover">
                                     @else
                                         <div class="flex h-full items-center justify-center text-[10px] text-slate-400">mobile</div>
                                     @endif

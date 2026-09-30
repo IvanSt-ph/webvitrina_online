@@ -90,7 +90,7 @@
             <div class="flex items-center gap-4 min-w-0">
                 <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
                     @if($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar))
-                        <img src="{{ $user->avatar_url }}" class="object-cover w-full h-full" alt="{{ $user->name }}" loading="lazy" decoding="async">
+                        <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}" class="object-cover w-full h-full" alt="{{ $user->name }}" loading="lazy" decoding="async">
                     @else
                         <span class="text-2xl sm:text-3xl font-bold">{{ strtoupper(mb_substr($user->name, 0, 1)) }}</span>
                     @endif
@@ -218,7 +218,7 @@
                                 @foreach($order->items->take(4) as $item)
                                     <div class="w-11 h-11 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
                                         @if($item->product?->image)
-                                            <img src="{{ $item->product->image_thumb_url }}" class="w-full h-full object-cover" alt="{{ $item->product->title }}">
+                                            <img data-image-candidates="{{ json_encode($item->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->product->image_thumb_url }}" class="w-full h-full object-cover" alt="{{ $item->product->title }}">
                                         @else
                                             <div class="w-full h-full flex items-center justify-center text-gray-300">
                                                 <i class="ri-image-line"></i>
@@ -269,7 +269,7 @@
                         @foreach($latestFollowedShops as $shop)
                             <a href="{{ route('seller.show', $shop->slug) }}" class="group rounded-xl border border-gray-100 p-3 transition hover:border-indigo-100 hover:shadow-md">
                                 <div class="aspect-[5/3] overflow-hidden rounded-lg bg-gray-50">
-                                    <img src="{{ $shop->banner_url }}" alt="{{ $shop->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $shop->banner_url }}" alt="{{ $shop->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                                 </div>
                                 <div class="mt-3 min-w-0">
                                     <div class="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700">{{ $shop->name }}</div>
@@ -307,7 +307,7 @@
                             <a href="{{ $item['link'] ?? '#' }}" class="group block border border-gray-100 rounded-xl p-2 hover:shadow-md hover:border-indigo-100 transition">
                                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
                                     @if(!empty($item['image']))
-                                        <img src="{{ \App\Models\Product::storageThumbUrl($item['image']) }}" alt="{{ $item['title'] ?? 'Товар' }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                        <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($item['image'])) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ \App\Models\Product::storageThumbUrl($item['image']) }}" alt="{{ $item['title'] ?? 'Товар' }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                     @else
                                         <i class="ri-image-2-line text-3xl text-gray-300"></i>
                                     @endif

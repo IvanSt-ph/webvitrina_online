@@ -76,7 +76,7 @@
             $currencySymbol = $priceData['symbol'] ?? '₽';
           @endphp
           <a href="{{ $campaign->resolved_url }}" class="group grid min-w-0 grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5 transition hover:border-indigo-200 hover:bg-indigo-50">
-            <img src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-[72px] w-[72px] rounded-lg object-cover">
+            <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-[72px] w-[72px] rounded-lg object-cover">
             <span class="min-w-0">
               <span class="inline-flex rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-indigo-700">{{ $campaign->label }}</span>
               <span class="mt-1 block truncate text-sm font-bold text-slate-950 group-hover:text-indigo-700">{{ $product->title }}</span>
@@ -88,7 +88,7 @@
           </a>
         @elseif($campaign->shop)
           <a href="{{ $campaign->resolved_url }}" class="group grid min-w-0 grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5 transition hover:border-indigo-200 hover:bg-indigo-50">
-            <img src="{{ $campaign->shop->card_image_url }}" alt="{{ $campaign->shop->name }}" class="h-[72px] w-[72px] rounded-lg object-cover">
+            <img data-image-candidates="{{ json_encode($campaign->shop->card_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $campaign->shop->card_image_url }}" alt="{{ $campaign->shop->name }}" class="h-[72px] w-[72px] rounded-lg object-cover">
             <span class="min-w-0">
               <span class="inline-flex rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-indigo-700">{{ $campaign->label }}</span>
               <span class="mt-1 block truncate text-sm font-bold text-slate-950 group-hover:text-indigo-700">{{ $campaign->shop->name }}</span>

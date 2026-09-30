@@ -71,7 +71,7 @@
 
             <div class="flex flex-col sm:flex-row items-center gap-5">
                 <div class="relative shrink-0">
-                    <img src="{{ Auth::user()->avatar_url }}" class="w-24 h-24 rounded-full border border-gray-200 shadow-sm object-cover" />
+                    <img data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" alt="Аватар пользователя" src="{{ Auth::user()->avatar_url }}" class="w-24 h-24 rounded-full border border-gray-200 shadow-sm object-cover" />
                     <label class="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-indigo-500/90 hover:bg-indigo-600 text-white cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center border border-indigo-400/30">
                         <i class="ri-camera-line"></i>
                         <input type="file" name="avatar" class="hidden" accept="image/jpeg,image/png,image/webp">

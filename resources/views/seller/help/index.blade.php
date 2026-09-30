@@ -25,7 +25,7 @@
           
           <!-- Изображение -->
           <div class="relative h-40 overflow-hidden">
-            <img src="{{ $image }}" alt="{{ $news['title'] }}" 
+            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}"
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent opacity-70 group-hover:opacity-90 transition-opacity"></div>
             <div class="absolute bottom-2 left-3 text-white text-xs">

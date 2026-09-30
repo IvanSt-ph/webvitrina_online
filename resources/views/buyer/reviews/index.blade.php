@@ -152,7 +152,7 @@
                 <article class="grid grid-cols-[72px_minmax(0,1fr)] gap-3 border-b border-gray-100 p-3 last:border-b-0 transition hover:bg-gray-50/70 sm:grid-cols-[84px_minmax(0,1fr)_auto] sm:gap-4 sm:p-4">
                     <div class="h-[72px] w-[72px] overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:h-[84px] sm:w-[84px]">
                         @if($product)
-                            <img src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
+                            <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
                         @else
                             <div class="flex h-full w-full items-center justify-center text-gray-300">
                                 <i class="ri-image-line text-2xl"></i>
@@ -211,8 +211,8 @@
                             <div class="mt-2">
                                 <div class="flex flex-wrap gap-2">
                                     @foreach($review->images as $image)
-                                        <a href="{{ asset('storage/' . $image->path) }}" target="_blank" rel="noopener noreferrer" class="block">
-                                            <img src="{{ $image->thumb_url }}"
+                                        <a href="{{ $image->url }}" target="_blank" rel="noopener noreferrer" class="block">
+                                            <img data-image-candidates="{{ json_encode($image->thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image->thumb_url }}"
                                                  alt="Фото из вашего отзыва"
                                                  class="h-12 w-12 rounded-lg border border-gray-200 object-cover transition hover:border-indigo-300"
                                                  title="Фото из вашего отзыва">

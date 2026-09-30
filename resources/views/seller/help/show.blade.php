@@ -18,7 +18,7 @@
 
     <!-- 🖼️ Обложка статьи -->
     <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-8">
-      <img src="{{ $image }}" alt="Совет продавцу" class="w-full h-60 sm:h-80 object-cover">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="Совет продавцу" class="w-full h-60 sm:h-80 object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent"></div>
       <div class="absolute bottom-4 left-6 text-white">
         <h1 class="text-2xl sm:text-3xl font-bold">{{ $news['title'] }}</h1>

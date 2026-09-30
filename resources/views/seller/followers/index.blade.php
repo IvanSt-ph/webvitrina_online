@@ -85,7 +85,7 @@
                                         <a href="{{ route('users.public.show', $follower) }}"
                                            class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-base font-bold text-slate-600 ring-1 ring-slate-200">
                                             @if($follower->avatar)
-                                                <img src="{{ asset('storage/' . $follower->avatar) }}"
+                                                <img data-image-candidates="{{ json_encode($follower->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $follower->avatar_url }}"
                                                      alt="{{ $follower->name }}"
                                                      class="h-full w-full object-cover">
                                             @else

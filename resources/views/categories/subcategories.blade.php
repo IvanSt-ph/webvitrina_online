@@ -62,25 +62,22 @@
 
               @if(!empty($child->image))
                   <picture>
-                      <source srcset="{{ $child->image_thumb_url }}" type="image/webp">
-                      <img
+                      <img data-image-candidates="{{ json_encode($child->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                           src="{{ $child->image_thumb_url }}"
                           alt="{{ $child->name }}"
                           class="h-full w-full object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-105"
                           loading="lazy"
                           decoding="async"
-                          onload="this.style.opacity=1"
-                          onerror="this.src='/images/no-image.webp'">
+                          onload="this.style.opacity=1">
                   </picture>
 
               @elseif(!empty($child->icon))
-                  <img
+                  <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                       src="{{ $child->icon_url }}"
                       alt="{{ $child->name }}"
                       class="h-16 w-16 object-contain opacity-60 transition-transform duration-500 group-hover:scale-110 sm:h-20 sm:w-20"
                       loading="lazy"
-                      decoding="async"
-                      onerror="this.src='/images/no-image.webp'">
+                      decoding="async">
 
               @else
                   <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5"

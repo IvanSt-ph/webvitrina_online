@@ -240,7 +240,7 @@
                                     <div class="mt-3 flex flex-wrap gap-3">
                                         @foreach ($myReview->images as $img)
                                             <a href="{{ $img->url }}" target="_blank" rel="noopener noreferrer">
-                                                <img src="{{ $img->thumb_url }}" class="h-24 w-24 rounded-xl border object-cover transition hover:scale-105" alt="">
+                                                <img data-image-candidates="{{ json_encode($img->thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $img->thumb_url }}" class="h-24 w-24 rounded-xl border object-cover transition hover:scale-105" alt="">
                                             </a>
                                         @endforeach
                                     </div>
@@ -379,7 +379,7 @@
                             <div class="mt-3 flex flex-wrap gap-3">
                                 @foreach ($r->images as $img)
                                     <a href="{{ $img->url }}" target="_blank" rel="noopener noreferrer">
-                                        <img src="{{ $img->thumb_url }}" class="h-24 w-24 rounded-xl border object-cover transition hover:scale-105" alt="">
+                                        <img data-image-candidates="{{ json_encode($img->thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $img->thumb_url }}" class="h-24 w-24 rounded-xl border object-cover transition hover:scale-105" alt="">
                                     </a>
                                 @endforeach
                             </div>

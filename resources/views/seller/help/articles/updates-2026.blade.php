@@ -9,7 +9,7 @@
 
     {{-- 🖼️ Обложка --}}
     <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-10">
-      <img src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent"></div>
       <div class="absolute bottom-6 left-8 text-white">
         <h1 class="text-3xl sm:text-4xl font-bold drop-shadow-lg">{{ $news['title'] }}</h1>
@@ -33,7 +33,7 @@
           <li>Тёмный режим (бета)</li>
           <li>Мгновенные переходы между страницами</li>
         </ul>
-        <img src="{{ asset('images/help/new-dashboard.jpg') }}" alt="Интерфейс панели" class="rounded-2xl shadow-md mt-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Интерфейс панели" class="rounded-2xl shadow-md mt-6">
       </x-help-section>
 
       {{-- Совет --}}
@@ -44,8 +44,8 @@
       <x-help-section icon="ri-bar-chart-box-line" title="Новая аналитика продавца">
         <p>Добавлены графики и фильтры для отслеживания просмотров, заказов и конверсии по любому периоду.</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6">
-          <img src="{{ asset('images/help/analytics-dashboard.jpg') }}" class="rounded-2xl shadow-md">
-          <img src="{{ asset('images/help/analytics-charts.jpg') }}" class="rounded-2xl shadow-md">
+          <img src="{{ asset('images/image-placeholder.svg') }}" class="rounded-2xl shadow-md">
+          <img src="{{ asset('images/image-placeholder.svg') }}" class="rounded-2xl shadow-md">
         </div>
       </x-help-section>
 
@@ -55,7 +55,7 @@
 
       <x-help-section icon="ri-chat-1-line" title="Обновлённая система отзывов">
         <p>Добавлена возможность отмечать отзывы как решённые и получать уведомления прямо в панели продавца.</p>
-        <img src="{{ asset('images/help/reviews-dashboard.jpg') }}" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" class="rounded-2xl shadow-md my-6">
       </x-help-section>
 
       <x-help-tip color="yellow" icon="ri-timer-flash-line">
@@ -76,7 +76,7 @@
 
       <x-help-section icon="ri-global-line" title="Расширение географии">
         <p>Теперь WebVitrina официально работает в <strong>Молдове, Украине и Приднестровье</strong>.</p>
-        <img src="{{ asset('images/help/countries-update.jpg') }}" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" class="rounded-2xl shadow-md my-6">
       </x-help-section>
 
       <x-help-note color="green" icon="ri-map-pin-2-line">

@@ -123,26 +123,27 @@ class Category extends Model
      | 🖼 АКСЕССОРЫ
      ============================================================ */
 
-    public function getIconUrlAttribute()
+    public function getIconUrlAttribute(): string
     {
-        if (!$this->icon) {
-            return asset('images/categories/default.png');
+        $path = $this->icon;
+        if ($path && !str_contains($path, '/')) {
+            $path = 'categories/icons/' . $path;
         }
-
-        if (str_contains($this->icon, '/')) {
-            return asset('storage/' . $this->icon);
-        }
-
-        return asset('storage/categories/icons/' . $this->icon);
+        return \App\Support\PublicImage::url($path, 'images/image-placeholder.svg');
     }
 
     public function getImageUrlAttribute(): string
     {
-        if ($this->image) {
-            return asset('storage/' . $this->image);
-        }
+        return $this->image_candidates[0];
+    }
 
-        return $this->icon_url;
+    public function getImageCandidatesAttribute(): array
+    {
+        $icon = $this->icon;
+        if ($icon && !str_contains($icon, '/')) {
+            $icon = 'categories/icons/' . $icon;
+        }
+        return \App\Support\PublicImage::candidatesFromPaths([$this->image, $icon], 'images/image-placeholder.svg');
     }
 
     public function getImageThumbUrlAttribute(): string

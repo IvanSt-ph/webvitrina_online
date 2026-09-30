@@ -32,7 +32,7 @@
                         <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                             <div class="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
                                 <div class="relative mx-auto h-24 w-24 shrink-0 sm:mx-0">
-                                    <img src="{{ $user->avatar_url }}"
+                                    <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}"
                                          alt="{{ $user->name }}"
                                          class="h-24 w-24 rounded-2xl border border-slate-200 bg-slate-100 object-cover shadow-sm">
                                     <span class="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl border-4 border-white {{ $user->isSeller() ? 'bg-indigo-600' : 'bg-emerald-600' }} text-white">
@@ -182,7 +182,7 @@
                     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                             <div class="flex min-w-0 gap-4">
-                                <img src="{{ $shop->banner_url }}"
+                                <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $shop->banner_url }}"
                                      alt="{{ $shop->name ?? 'Магазин' }}"
                                      class="h-20 w-20 shrink-0 rounded-2xl border border-slate-200 object-cover">
                                 <div class="min-w-0">

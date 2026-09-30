@@ -319,7 +319,7 @@
                             @endphp
                             <article class="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-indigo-200 hover:shadow-sm">
                                 <div class="relative aspect-[4/3] bg-slate-50">
-                                    <img src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
+                                    <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
                                     <div class="absolute left-2 top-2 flex flex-wrap gap-2">
                                         <span class="rounded-full border {{ $statusClass }} px-2 py-1 text-xs font-medium">{{ $statusLabel }}</span>
                                         @if($p->stock <= 0)
@@ -397,7 +397,7 @@
                             @endphp
                             <div class="grid gap-3 px-4 py-3 transition hover:bg-slate-50 lg:grid-cols-[1fr_170px_120px_130px] lg:items-center">
                                 <div class="flex min-w-0 items-center gap-3">
-                                    <img src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-12 w-12 shrink-0 rounded-lg border border-slate-200 object-cover">
+                                    <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-12 w-12 shrink-0 rounded-lg border border-slate-200 object-cover">
                                     <div class="min-w-0">
                                         <div class="flex min-w-0 flex-wrap items-center gap-2">
                                             <h3 class="truncate text-sm font-semibold text-slate-950">{{ $p->title }}</h3>

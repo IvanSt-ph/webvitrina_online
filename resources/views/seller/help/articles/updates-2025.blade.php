@@ -9,7 +9,7 @@
 
     {{-- 🖼️ Обложка --}}
     <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-10">
-      <img src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent"></div>
       <div class="absolute bottom-6 left-8 text-white">
         <h1 class="text-3xl sm:text-4xl font-bold drop-shadow-lg">{{ $news['title'] }}</h1>
@@ -37,7 +37,7 @@
           <li>Мгновенные переходы между разделами.</li>
         </ul>
 
-        <img src="{{ asset('images/help/new-dashboard.jpg') }}" alt="Интерфейс панели продавца" class="rounded-2xl shadow-md mt-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Интерфейс панели продавца" class="rounded-2xl shadow-md mt-6">
 
         <x-help-tip color="indigo" icon="ri-lightbulb-flash-line">
           Закрепляйте часто используемые страницы — теперь панель поддерживает быстрые закладки!
@@ -49,8 +49,8 @@
         <p>Добавлены детальные графики и фильтры — отслеживайте эффективность товаров по любому периоду.</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6">
-          <img src="{{ asset('images/help/analytics-dashboard.jpg') }}" alt="Аналитика продавца" class="rounded-2xl shadow-md">
-          <img src="{{ asset('images/help/analytics-charts.jpg') }}" alt="Графики продаж" class="rounded-2xl shadow-md">
+          <img src="{{ asset('images/image-placeholder.svg') }}" alt="Аналитика продавца" class="rounded-2xl shadow-md">
+          <img src="{{ asset('images/image-placeholder.svg') }}" alt="Графики продаж" class="rounded-2xl shadow-md">
         </div>
 
         <ul class="list-disc pl-6 text-gray-700 space-y-1">
@@ -74,7 +74,7 @@
           <li>Оповещения о новых оценках.</li>
         </ul>
 
-        <img src="{{ asset('images/help/reviews-dashboard.jpg') }}" alt="Система отзывов" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Система отзывов" class="rounded-2xl shadow-md my-6">
 
         <x-help-tip color="yellow" icon="ri-timer-flash-line">
           Отвечайте на отзывы оперативно — активность продавца теперь влияет на позицию товара в поиске.
@@ -103,7 +103,7 @@
           Добавлены локальные валюты, языки и флаги в интерфейсе.
         </p>
 
-        <img src="{{ asset('images/help/countries-update.jpg') }}" alt="Мультивалютность и регионы" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Мультивалютность и регионы" class="rounded-2xl shadow-md my-6">
 
         <x-help-note color="green" icon="ri-map-pin-2-line">
           Реализовано автоматическое определение региона по IP и показ цен в локальной валюте.

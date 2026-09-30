@@ -177,7 +177,7 @@
                     <a href="{{ route('chats.index') }}" class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 lg:hidden">
                         <i class="ri-arrow-left-line text-lg"></i>
                     </a>
-                    <img src="{{ $other->avatar_url }}" alt="{{ $other->name }}" class="h-12 w-12 rounded-2xl object-cover">
+                    <img data-image-candidates="{{ json_encode($other->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $other->avatar_url }}" alt="{{ $other->name }}" class="h-12 w-12 rounded-2xl object-cover">
                     <div class="min-w-0 flex-1">
                         <div class="truncate font-semibold text-slate-900">{{ $other->name }}</div>
                         <div class="text-sm text-slate-500">

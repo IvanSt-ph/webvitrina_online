@@ -167,8 +167,8 @@
                     @if($review->images->isNotEmpty())
                         <div class="mt-2 flex gap-1.5">
                             @foreach($review->images->take(4) as $image)
-                                <button type="button" class="h-9 w-9 overflow-hidden rounded-md border border-gray-200" @click.stop="openImage('{{ asset('storage/' . $image->path) }}')">
-                                    <img src="{{ $image->thumb_url }}" alt="Фото отзыва" class="h-full w-full object-cover">
+                                <button type="button" class="h-9 w-9 overflow-hidden rounded-md border border-gray-200" @click.stop="openImage('{{ $image->url }}')">
+                                    <img data-image-candidates="{{ json_encode($image->thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image->thumb_url }}" alt="Фото отзыва" class="h-full w-full object-cover">
                                 </button>
                             @endforeach
                         </div>
@@ -306,8 +306,8 @@
                             <div class="mb-2 text-sm font-semibold text-gray-900">Фото покупателя из отзыва</div>
                             <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
                                 <template x-for="img in modal.data.images" :key="img.id">
-                                    <button type="button" class="aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-50" @click.stop="openImage('/storage/' + img.path)">
-                                        <img :src="'/storage/' + img.path" alt="Фото отзыва" class="h-full w-full object-cover">
+                                    <button type="button" class="aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-50" @click.stop="openImage(img.url)">
+                                        <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :src="img.url" alt="Фото отзыва" class="h-full w-full object-cover">
                                     </button>
                                 </template>
                             </div>
@@ -364,7 +364,7 @@
                 <button type="button" @click="lightbox.open = false" class="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-gray-700 hover:bg-white" title="Закрыть">
                     <i class="ri-close-line text-xl"></i>
                 </button>
-                <img :src="lightbox.url" alt="Фото отзыва" class="max-h-[86vh] rounded-lg bg-white object-contain">
+                <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :src="lightbox.url" alt="Фото отзыва" class="max-h-[86vh] rounded-lg bg-white object-contain">
             </div>
         </div>
     </template>

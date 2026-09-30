@@ -7,7 +7,6 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Models\{
@@ -21,7 +20,6 @@ use App\Models\{
 
 use App\Notifications\VerifyEmail;
 use App\Notifications\ResetPasswordNotification;
-use App\Services\ImageService;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -204,23 +202,14 @@ class User extends Authenticatable implements MustVerifyEmail
     | 🖼 AVATAR
     |--------------------------------------------------------------------------
     */
-    public function getAvatarUrlAttribute()
+    public function getAvatarUrlAttribute(): string
     {
-        if ($this->avatar) {
-            $path = ltrim(str_replace(['storage/', '/storage/'], '', $this->avatar), '/');
-            $thumb = ImageService::thumbPath($path);
+        return $this->avatar_candidates[0];
+    }
 
-            if (Storage::disk('public')->exists($thumb)) {
-                return Storage::url($thumb);
-            }
-
-            if (Storage::disk('public')->exists($path)) {
-                return Storage::url($path);
-            }
-        }
-        
-        // Аватар по умолчанию на основе имени
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+    public function getAvatarCandidatesAttribute(): array
+    {
+        return \App\Support\PublicImage::candidates($this->avatar, 'images/avatar-placeholder.svg', thumb: true);
     }
 
     /*

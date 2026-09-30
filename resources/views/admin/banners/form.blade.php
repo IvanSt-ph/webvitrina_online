@@ -7,14 +7,10 @@
 @section('content')
 @php
   $isEdit = $banner->exists;
-  $initialPreview = $banner->image_desktop
-      ? asset('storage/'.$banner->image_desktop)
-      : ($banner->image_tablet
-          ? asset('storage/'.$banner->image_tablet)
-          : ($banner->image_mobile
-              ? asset('storage/'.$banner->image_mobile)
-              : ($banner->image ? asset('storage/'.$banner->image) : '')));
-  $initialMobilePreview = $banner->image_mobile ? asset('storage/'.$banner->image_mobile) : $initialPreview;
+  $cropSources = $banner->cropSources();
+  $initialPreview = ($banner->image_desktop || $banner->image_tablet || $banner->image_mobile || $banner->image)
+      ? ($cropSources['main'] ?? asset('images/image-placeholder.svg')) : '';
+  $initialMobilePreview = $initialPreview ? ($cropSources['mobile'] ?? asset('images/image-placeholder.svg')) : '';
 
   $previewSlots = [
       ['key' => 'desktop', 'label' => 'Десктоп', 'icon' => 'ri-computer-line', 'size' => '2400 x 720', 'aspect' => 'aspect-[30/9]'],
@@ -228,11 +224,11 @@
               </label>
 
               <div id="banner-main-preview" class="{{ $initialPreview ? '' : 'hidden' }} mt-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 aspect-[30/9]">
-                <img src="{{ $initialPreview }}" alt="Предпросмотр баннера" class="h-full w-full object-cover" data-banner-preview>
+                <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $initialPreview }}" alt="Предпросмотр баннера" class="h-full w-full object-cover" data-banner-preview>
               </div>
 
               <button type="button" id="banner-open-crop"
-                      class="{{ $initialPreview ? '' : 'hidden' }} mt-3 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50">
+                      class="{{ $cropSources['main'] ? '' : 'hidden' }} mt-3 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50">
                 <i class="ri-crop-line mr-1"></i>
                 Настроить кадр
               </button>
@@ -267,7 +263,7 @@
               </div>
 
               <button type="button" id="banner-mobile-open-crop"
-                      class="{{ $initialMobilePreview ? '' : 'hidden' }} mt-3 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                      class="{{ $cropSources['mobile'] ? '' : 'hidden' }} mt-3 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
                 <i class="ri-crop-line mr-1"></i>
                 Настроить мобильный кадр
               </button>
@@ -290,7 +286,7 @@
                   <span class="text-gray-400">{{ $slot['size'] }}</span>
                 </div>
                 <div class="relative overflow-hidden rounded-lg border border-gray-200 bg-gray-100 {{ $slot['aspect'] }}">
-                  <img src="{{ $slot['key'] === 'mobile' ? $initialMobilePreview : $initialPreview }}" alt="{{ $slot['label'] }}"
+                  <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $slot['key'] === 'mobile' ? $initialMobilePreview : $initialPreview }}" alt="{{ $slot['label'] }}"
                        class="{{ $initialPreview ? '' : 'hidden' }} h-full w-full object-cover"
                        data-banner-device-preview="{{ $slot['key'] }}">
                   <div class="{{ $initialPreview ? 'hidden' : '' }} absolute inset-0 flex items-center justify-center text-xs text-gray-400" data-banner-empty>
@@ -368,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
       previewHeight: 300,
       uploadWidth: 2400,
       uploadHeight: 720,
-      existingUrl: @js($initialPreview),
+      existingUrl: @js($cropSources['main']),
       recropInput: document.getElementById('banner-recrop-existing'),
       image: null,
       file: null,
@@ -391,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
       previewHeight: 480,
       uploadWidth: 960,
       uploadHeight: 480,
-      existingUrl: @js($initialMobilePreview),
+      existingUrl: @js($cropSources['mobile']),
       recropInput: document.getElementById('banner-mobile-recrop-existing'),
       image: null,
       file: null,

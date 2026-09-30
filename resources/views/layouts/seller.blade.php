@@ -78,7 +78,7 @@
     <div class="shrink-0 px-6 py-4 border-t border-neutral-100">
         <div class="flex items-center gap-3">
             @if(auth()->user()->avatar)
-                <img
+                <img data-image-candidates="{{ json_encode(auth()->user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}"
                     src="{{ auth()->user()->avatar_url }}"
                     class="w-9 h-9 rounded-full border border-neutral-200 object-cover"
                     alt="avatar"

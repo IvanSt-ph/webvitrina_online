@@ -182,6 +182,7 @@ class AuthenticatedSessionController extends Controller
                     'email' => $device->user->email,
                     'role' => $device->user->role,
                     'avatar_url' => $device->user->avatar_url,
+                    'avatar_candidates' => $device->user->avatar_candidates,
                 ];
             })
             ->filter()

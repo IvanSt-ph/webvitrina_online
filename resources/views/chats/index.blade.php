@@ -99,7 +99,7 @@
                     x-init="$nextTick(() => { $refs.thread?.scrollTo({ top: $refs.thread.scrollHeight, behavior: 'auto' }) })"
                     class="hidden min-h-0 min-w-0 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm lg:flex lg:h-full lg:flex-col">
                     <header class="flex shrink-0 items-center gap-3 border-b border-slate-100 bg-white/95 px-4 py-4">
-                        <img src="{{ $other->avatar_url }}" alt="{{ $other->name }}" class="h-12 w-12 rounded-2xl object-cover">
+                        <img data-image-candidates="{{ json_encode($other->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $other->avatar_url }}" alt="{{ $other->name }}" class="h-12 w-12 rounded-2xl object-cover">
                         <div class="min-w-0 flex-1">
                             <div class="truncate font-semibold text-slate-900">{{ $other->name }}</div>
                             <div class="text-sm text-slate-500">

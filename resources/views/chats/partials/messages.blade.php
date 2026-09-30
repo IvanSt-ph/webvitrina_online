@@ -175,7 +175,7 @@
                    target="_blank"
                    rel="noopener noreferrer"
                    class="mb-2 block overflow-hidden rounded-2xl bg-black/5">
-                    <img src="{{ route($imageRouteName, [$conversation, $message]) }}"
+                    <img data-image-unavailable="Изображение недоступно" src="{{ route($imageRouteName, [$conversation, $message]) }}"
                          alt="Фото в сообщении"
                          loading="lazy"
                          class="max-h-80 w-full object-cover">

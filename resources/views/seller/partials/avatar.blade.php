@@ -2,8 +2,8 @@
 <div x-data="avatarCropper()" class="relative group">
     <!-- Текущий аватар -->
     <div class="relative">
-        <img x-ref="avatarImage"
-             src="{{ Auth::user()->avatar ? Storage::url(Auth::user()->avatar) : 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&color=7F9CF5&background=EBF4FF' }}"
+        <img data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" x-ref="avatarImage"
+             src="{{ Auth::user()->avatar_url }}"
              alt="Аватар"
              class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg object-cover">
         

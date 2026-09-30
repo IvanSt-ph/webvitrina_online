@@ -9,7 +9,7 @@
 
     {{-- 🖼️ Обложка --}}
     <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-10">
-      <img src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent"></div>
       <div class="absolute bottom-6 left-8 text-white">
         <h1 class="text-3xl sm:text-4xl font-bold drop-shadow-lg">{{ $news['title'] }}</h1>
@@ -34,7 +34,7 @@
           Главное — реагировать быстро и корректно.
         </p>
 
-        <img src="{{ asset('images/help/reviews-chart.jpg') }}" alt="Влияние отзывов" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Влияние отзывов" class="rounded-2xl shadow-md my-6">
 
         <x-help-note color="indigo" icon="ri-information-line">
           Товары с рейтингом выше 4.5 и более чем 10 отзывами продаются на <strong>28%</strong> лучше, чем товары без отзывов.
@@ -60,7 +60,7 @@
           Ваше мнение помогает нам становиться лучше.”
         </x-help-tip>
 
-        <img src="{{ asset('images/help/review-reply-example.jpg') }}" alt="Пример ответа" class="rounded-2xl shadow-md mt-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Пример ответа" class="rounded-2xl shadow-md mt-6">
       </x-help-section>
 
       {{-- Раздел 3 --}}
@@ -75,8 +75,8 @@
         </ul>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6">
-          <img src="{{ asset('images/help/reviews-dashboard.jpg') }}" alt="Панель отзывов" class="rounded-2xl shadow-md">
-          <img src="{{ asset('images/help/review-statistics.jpg') }}" alt="Статистика рейтинга" class="rounded-2xl shadow-md">
+          <img src="{{ asset('images/image-placeholder.svg') }}" alt="Панель отзывов" class="rounded-2xl shadow-md">
+          <img src="{{ asset('images/image-placeholder.svg') }}" alt="Статистика рейтинга" class="rounded-2xl shadow-md">
         </div>
 
       <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
@@ -116,7 +116,7 @@
           <li>Предлагайте бонусы или скидку на следующий заказ.</li>
         </ul>
 
-        <img src="{{ asset('images/help/review-card-example.jpg') }}" alt="Открытка с QR-кодом" class="rounded-2xl shadow-md my-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Открытка с QR-кодом" class="rounded-2xl shadow-md my-6">
 
         <x-help-tip color="indigo" icon="ri-lightbulb-flash-line">
           Активные продавцы, получающие 5 отзывов в неделю, растут по выдаче в среднем на 15%.

@@ -12,9 +12,7 @@
         x-data="{
             activeImage: '',
             images: [
-                @if ($product->image)
-                    '{{ $product->image_url }}',
-                @endif
+                '{{ $product->image_url }}',
                 @foreach ($galleryItems as $img)
                     '{{ \App\Models\Product::storageImageUrl($img) }}',
                 @endforeach
@@ -69,7 +67,7 @@
             x-on:touchstart="handleTouchStart($event)"
             x-on:touchend="handleTouchEnd($event)"
         >
-            <img
+            <img alt="{{ $product->title }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                 :src="activeImage"
                 loading="eager"
                 class="w-full h-full object-contain transition-transform duration-300 ease-in-out"
@@ -114,7 +112,7 @@
                         :style="{ transform: `translateY(-${startIndex * 108}px)` }"
                     >
                         <template x-for="(img, i) in images" :key="i">
-                            <img
+                            <img alt="{{ $product->title }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                                 :src="img"
                                 loading="lazy"
                                 @mouseover="activeImage = img"
@@ -152,7 +150,7 @@
                        aspect-square h-[520px] lg:h-[580px] xl:h-[620px]
                        overflow-hidden w-full relative"
             >
-                <img
+                <img alt="{{ $product->title }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                     :src="activeImage"
                     loading="eager"
                     class="object-contain w-full h-full transition-transform duration-300 hover:scale-105"

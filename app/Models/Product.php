@@ -5,8 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Services\ImageService;
-use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -237,50 +235,35 @@ class Product extends Model
         return $this->storageImageUrl($this->image);
     }
 
-public function getImageThumbUrlAttribute(): string
-{
-    if ($this->image && ! self::isDefaultImagePath($this->image)) {
-        $thumbPath = ImageService::thumbPath($this->image);
-
-        if (Storage::disk('public')->exists($thumbPath)) {
-            return asset('storage/' . $thumbPath);
-        }
+    public function getImageThumbUrlAttribute(): string
+    {
+        return self::storageThumbUrl($this->image);
     }
 
-    return $this->image_url;
-}
-
-public static function storageImageUrl(?string $path): string
-{
-    if (
-        $path &&
-        ! self::isDefaultImagePath($path) &&
-        Storage::disk('public')->exists($path)
-    ) {
-        return asset('storage/' . $path);
+    public static function storageImageUrl(?string $path): string
+    {
+        return \App\Support\PublicImage::url(self::isDefaultImagePath($path ?? '') ? null : $path);
     }
-
-    return asset('storage/' . self::DEFAULT_IMAGE_PATH);
-}
 
     public static function storageThumbUrl(?string $path): string
     {
-        if ($path && ! self::isDefaultImagePath($path)) {
-            return asset('storage/' . ImageService::thumbPath($path));
-        }
+        return self::storageThumbCandidates($path)[0];
+    }
 
-        return self::storageImageUrl($path);
+    public function getImageThumbCandidatesAttribute(): array
+    {
+        return self::storageThumbCandidates($this->image);
+    }
+
+    public static function storageThumbCandidates(?string $path): array
+    {
+        return \App\Support\PublicImage::candidates(self::isDefaultImagePath($path ?? '') ? null : $path, thumb: true);
     }
 
     private static function isDefaultImagePath(string $path): bool
     {
-        $clean = ltrim(str_replace(['storage/', '/storage/'], '', $path), '/');
-
-        return in_array($clean, [
-            'no-image.png',
-            self::DEFAULT_IMAGE_PATH,
-            'default-product.png',
-            'placeholder.png',
+        return in_array(\App\Support\PublicImage::path($path), [
+            'no-image.png', self::DEFAULT_IMAGE_PATH, 'default-product.png', 'placeholder.png',
         ], true);
     }
 

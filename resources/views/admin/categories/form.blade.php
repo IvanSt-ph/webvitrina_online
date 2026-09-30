@@ -76,11 +76,11 @@
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 p-4" x-data="imagePreview(@js($category->image ? asset('storage/'.$category->image) : null))">
+        <div class="rounded-2xl border border-slate-200 p-4" x-data="imagePreview(@js($category->image ? $category->image_url : null))">
           <div class="flex items-start gap-4">
             <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <template x-if="preview">
-                <img :src="preview" alt="" class="h-full w-full object-cover">
+                <img data-image-candidates="{{ json_encode($category->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :src="preview" alt="" class="h-full w-full object-cover">
               </template>
               <template x-if="!preview">
                 <i class="ri-image-line text-3xl text-slate-300"></i>
@@ -96,11 +96,11 @@
           </div>
         </div>
 
-        <div class="rounded-2xl border border-slate-200 p-4" x-data="imagePreview(@js($category->icon ? asset('storage/'.$category->icon) : null))">
+        <div class="rounded-2xl border border-slate-200 p-4" x-data="imagePreview(@js($category->icon ? $category->icon_url : null))">
           <div class="flex items-start gap-4">
             <div class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
               <template x-if="preview">
-                <img :src="preview" alt="" class="h-16 w-16 object-contain">
+                <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :src="preview" alt="" class="h-16 w-16 object-contain">
               </template>
               <template x-if="!preview">
                 <i class="ri-folder-image-line text-3xl text-slate-300"></i>

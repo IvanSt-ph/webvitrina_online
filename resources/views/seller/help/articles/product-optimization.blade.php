@@ -9,7 +9,7 @@
 
     {{-- 🖼️ Обложка --}}
     <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-10">
-      <img src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent"></div>
       <div class="absolute bottom-6 left-8 text-white">
         <h1 class="text-3xl sm:text-4xl font-bold drop-shadow-lg">{{ $news['title'] }}</h1>
@@ -42,7 +42,7 @@
           Используйте 2–3 ключевые фразы и не повторяйте одно и то же слово — алгоритм сочтёт это спамом.
         </x-help-tip>
 
-        <img src="{{ asset('images/help/product-title-example.jpg') }}" alt="Пример хорошего заголовка" class="rounded-2xl shadow-md mt-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Пример хорошего заголовка" class="rounded-2xl shadow-md mt-6">
       </x-help-section>
 
       {{-- Раздел 2 --}}
@@ -62,7 +62,7 @@
           Регулярно обновляйте фотографии — это помогает системе считать товар активным и актуальным.
         </x-help-tip>
 
-        <img src="{{ asset('images/help/product-photos-example.jpg') }}" alt="Пример фото карточки" class="rounded-2xl shadow-md mt-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Пример фото карточки" class="rounded-2xl shadow-md mt-6">
       </x-help-section>
 
       {{-- Раздел 3 --}}
@@ -81,7 +81,7 @@
           Хорошее описание продаёт так же эффективно, как и красивая фотография.
         </x-help-note>
 
-        <img src="{{ asset('images/help/product-description-example.jpg') }}" alt="Описание товара пример" class="rounded-2xl shadow-md mt-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Описание товара пример" class="rounded-2xl shadow-md mt-6">
       </x-help-section>
 
       {{-- Раздел 4 --}}

@@ -1,6 +1,6 @@
 @if($conversation->product)
     <div class="flex shrink-0 items-center gap-3 border-b border-indigo-100 bg-indigo-50/70 px-4 py-3 sm:px-5">
-        <img src="{{ $conversation->product->image_thumb_url }}"
+        <img data-image-candidates="{{ json_encode($conversation->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $conversation->product->image_thumb_url }}"
              alt="{{ $conversation->product->title }}"
              class="h-12 w-12 shrink-0 rounded-xl border border-indigo-100 object-cover">
         <span class="min-w-0 flex-1">

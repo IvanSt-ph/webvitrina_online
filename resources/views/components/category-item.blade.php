@@ -22,22 +22,20 @@
       @endif
         <span data-category-media class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-slate-100 text-sm font-black text-indigo-600 shadow-sm ring-1 ring-slate-100">
           @if(filled($category->icon))
-            <img
+            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
               src="{{ $category->icon_url }}"
               alt="{{ $category->name }}"
               class="h-6 w-6 object-contain"
               loading="lazy"
               decoding="async"
-              onerror="this.closest('[data-category-media]').classList.add('category-menu-media-failed'); this.remove();"
             >
           @elseif(filled($category->image))
-            <img
+            <img data-image-candidates="{{ json_encode($category->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
               src="{{ $category->image_thumb_url }}"
               alt="{{ $category->name }}"
               class="h-full w-full object-cover"
               loading="lazy"
               decoding="async"
-              onerror="this.closest('[data-category-media]').classList.add('category-menu-media-failed'); this.remove();"
             >
           @endif
 

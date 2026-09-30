@@ -229,7 +229,7 @@ class ProductController extends Controller
             ->limit(10)
             ->get();
 
-        return response()->json($products);
+        return response()->json($products->each->append(['image_thumb_url', 'image_thumb_candidates']));
     }
 
     /** 🖼️ Удаление изображения из галереи товара (AJAX) - ИСПРАВЛЕНО */

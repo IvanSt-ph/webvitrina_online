@@ -476,7 +476,7 @@
           </button>
           @if($product->image)
             <div class="mt-3 max-w-72">
-              <img src="{{ $product->image_thumb_url }}" class="w-full rounded-xl border border-gray-200 object-cover" style="aspect-ratio: 4 / 3.2" alt="Текущее главное фото">
+              <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" class="w-full rounded-xl border border-gray-200 object-cover" style="aspect-ratio: 4 / 3.2" alt="Текущее главное фото">
               <p class="mt-2 text-xs text-gray-500">Текущее главное фото. Новый кадр можно выбрать после загрузки нового файла.</p>
             </div>
           @endif
@@ -504,7 +504,7 @@
               @foreach($gallery as $img)
                 @if($img)
                   <div class="relative group rounded-lg overflow-hidden border border-gray-200">
-                    <img src="{{ \App\Models\Product::storageThumbUrl($img) }}" alt="Фото" class="w-20 h-20 object-cover">
+                    <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($img)) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ \App\Models\Product::storageThumbUrl($img) }}" alt="Фото" class="w-20 h-20 object-cover">
                     <button type="button" data-path="{{ $img }}"
                             class="absolute top-1 right-1 bg-gray-800 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
                       ✕

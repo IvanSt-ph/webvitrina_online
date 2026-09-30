@@ -48,12 +48,12 @@
                     <a href="{{ route('product.show', $item->product->slug) }}"
                        class="relative z-10 shrink-0"
                        title="Открыть товар">
-                        <img src="{{ $item->product->image_thumb_url }}"
+                        <img data-image-candidates="{{ json_encode($item->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->product->image_thumb_url }}"
                              alt="{{ $item->product->title }}"
                              class="h-12 w-12 rounded-2xl object-cover ring-1 ring-indigo-200 transition group-hover:ring-indigo-300">
                     </a>
                 @else
-                    <img src="{{ $other->avatar_url }}"
+                    <img data-image-candidates="{{ json_encode($other->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $other->avatar_url }}"
                          alt="{{ $other->name }}"
                          class="h-12 w-12 rounded-2xl object-cover ring-1 ring-slate-900/5">
                 @endif

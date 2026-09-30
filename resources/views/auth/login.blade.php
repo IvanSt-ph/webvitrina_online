@@ -137,7 +137,7 @@
                                             <input type="hidden" name="token" value="{{ $account['token'] }}">
                                             <button type="submit" class="flex w-full min-w-0 items-center gap-3 rounded-xl p-1 text-left transition hover:bg-indigo-50">
                                                 @if(!empty($account['avatar_url']))
-                                                    <img src="{{ $account['avatar_url'] }}" alt="{{ $account['name'] }}" class="h-10 w-10 shrink-0 rounded-2xl object-cover" loading="lazy" decoding="async">
+                                                    <img data-image-candidates="{{ json_encode($account['avatar_candidates'] ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $account['avatar_url'] }}" alt="{{ $account['name'] }}" class="h-10 w-10 shrink-0 rounded-2xl object-cover" loading="lazy" decoding="async">
                                                 @else
                                                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-sm font-bold text-white">
                                                         {{ mb_substr($account['name'], 0, 1) }}

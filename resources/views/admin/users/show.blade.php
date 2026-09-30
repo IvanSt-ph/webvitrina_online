@@ -58,7 +58,7 @@
     <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-center xl:justify-between">
             <div class="flex min-w-0 items-center gap-4">
-                <img src="{{ $user->avatar_url }}"
+                <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}"
                      class="h-16 w-16 shrink-0 rounded-2xl border border-slate-200 object-cover"
                      alt="Аватар {{ $user->name }}">
                 <div class="min-w-0">
@@ -235,7 +235,7 @@
                         <div class="mt-3 overflow-hidden rounded-2xl border border-slate-200">
                             @if($user->shop)
                                 <div class="relative min-h-[112px] overflow-hidden bg-slate-900">
-                                    <img src="{{ $user->shop->banner_url }}"
+                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $user->shop->banner_url }}"
                                          class="absolute inset-0 h-full w-full object-cover opacity-45"
                                          alt="">
                                     <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-indigo-950/35"></div>
@@ -392,7 +392,7 @@
                 <div class="divide-y divide-slate-100 rounded-xl border border-slate-100 px-3">
                     @forelse($recentProducts as $product)
                         <a href="{{ route('admin.products.edit', $product) }}" class="flex items-center gap-3 py-3 transition hover:text-indigo-700">
-                            <img src="{{ $product->image_thumb_url }}" class="h-11 w-11 rounded-lg border border-slate-100 object-cover" alt="">
+                            <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" class="h-11 w-11 rounded-lg border border-slate-100 object-cover" alt="">
                             <div class="min-w-0 flex-1">
                                 <div class="truncate text-sm font-semibold">{{ $product->title }}</div>
                                 <div class="mt-1 text-xs text-slate-500">{{ number_format((float) $product->price, 2, ',', ' ') }} {{ $product->currency_base ?? '' }} · {{ $product->stock }} шт.</div>

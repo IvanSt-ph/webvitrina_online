@@ -213,7 +213,7 @@
                         <tr class="align-top transition hover:bg-indigo-50/25">
                             <td class="px-4 py-4">
                                 <div class="flex items-center gap-3">
-                                    <img src="{{ $user->avatar_url }}"
+                                    <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}"
                                          class="h-11 w-11 rounded-full border border-slate-200 object-cover"
                                          alt="Аватар {{ $user->name }}">
                                     <div class="min-w-0">
@@ -358,7 +358,7 @@
                 <article class="p-4">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex min-w-0 items-center gap-3">
-                            <img src="{{ $user->avatar_url }}" class="h-11 w-11 rounded-full border border-slate-200 object-cover" alt="Аватар {{ $user->name }}">
+                            <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}" class="h-11 w-11 rounded-full border border-slate-200 object-cover" alt="Аватар {{ $user->name }}">
                             <div class="min-w-0">
                                 <a href="{{ route('admin.users.show', $user) }}" class="block truncate font-bold text-slate-950">{{ $user->name }}</a>
                                 <div class="mt-1 text-xs text-slate-400">ID {{ $user->id }}</div>

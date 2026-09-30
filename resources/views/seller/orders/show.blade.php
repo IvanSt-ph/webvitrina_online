@@ -123,7 +123,7 @@
                         <div class="h-28 w-28 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm lg:h-32 lg:w-32">
                             @if($product)
                                 <a href="{{ $productEditUrl }}" class="block h-full w-full" title="Открыть товар продавца">
-                                    <img src="{{ $product->image_thumb_url }}"
+                                    <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}"
                                          alt="{{ $itemTitle }}"
                                          class="h-full w-full object-cover">
                                 </a>
@@ -364,7 +364,7 @@
             {{-- Покупатель --}}
             <div class="min-w-0 overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                 <div class="flex items-start gap-4">
-                    <img src="{{ $order->user->avatar_url ?? asset('images/default-avatar.png') }}"
+                    <img data-image-candidates="{{ json_encode($order->user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $order->user->avatar_url ?? asset('images/avatar-placeholder.svg') }}"
                          class="w-14 h-14 rounded-xl object-cover border shadow-sm" alt="avatar">
 
                     <div class="min-w-0 flex-1 space-y-1">

@@ -1,4 +1,5 @@
 import './runtime-libraries';
+import './image-fallback';
 import Alpine from 'alpinejs'
 
 window.Alpine = Alpine

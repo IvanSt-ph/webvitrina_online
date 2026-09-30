@@ -135,6 +135,7 @@ class BannerController extends Controller
 
         Banner::create($data);
         cache()->forget('slides_home');
+        cache()->forget('slides_home.images-v2');
 
         return redirect()
             ->route('admin.banners.index')
@@ -189,6 +190,9 @@ class BannerController extends Controller
                 $data['image'] = null;
             } elseif ($request->boolean('recrop_existing')) {
                 $sourcePath = $this->bannerSourcePath($banner);
+                if (! $sourcePath) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['recrop_existing' => 'Исходное изображение отсутствует. Загрузите новый файл.']);
+                }
 
                 if ($sourcePath) {
                     $crop = $this->cropData($request);
@@ -223,6 +227,9 @@ class BannerController extends Controller
 
             if (! $request->hasFile('image_source') && ! $request->hasFile('image_mobile') && $request->boolean('mobile_recrop_existing')) {
                 $sourcePath = $this->mobileBannerSourcePath($banner);
+                if (! $sourcePath) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['mobile_recrop_existing' => 'Исходное изображение отсутствует. Загрузите новый файл.']);
+                }
 
                 if ($sourcePath) {
                     $replacement = $this->uploadBannerImageFromDisk(
@@ -272,6 +279,7 @@ class BannerController extends Controller
         }
 
         cache()->forget('slides_home');
+        cache()->forget('slides_home.images-v2');
 
         return redirect()
             ->route('admin.banners.index')
@@ -287,6 +295,7 @@ class BannerController extends Controller
 
         $banner->delete();
         cache()->forget('slides_home');
+        cache()->forget('slides_home.images-v2');
 
         return back()->with('success', '🗑 Баннер удалён.');
     }

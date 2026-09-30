@@ -9,7 +9,7 @@
 
     {{-- 🖼️ Обложка --}}
     <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-10">
-      <img src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent"></div>
       <div class="absolute bottom-6 left-8 text-white">
         <h1 class="text-3xl sm:text-4xl font-bold drop-shadow-lg">{{ $news['title'] }}</h1>
@@ -45,7 +45,7 @@
           это поднимет товар в поиске без рекламы.
         </x-help-tip>
 
-        <img src="{{ asset('images/help/product-card-example.jpg') }}" alt="Пример карточки товара" class="rounded-2xl shadow-md mt-6">
+        <img src="{{ asset('images/image-placeholder.svg') }}" alt="Пример карточки товара" class="rounded-2xl shadow-md mt-6">
       </x-help-section>
 
       {{-- Раздел 2 --}}
@@ -107,7 +107,7 @@
           <li>Подчеркните ваши преимущества — доставка, гарантия, оригинальность.</li>
         </ul>
 
-        <img src="{{ asset('images/help/shop-banner-example.jpg') }}" alt="Бренд магазина" class="rounded-2xl shadow-md my-6">
+        <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ asset('images/image-placeholder.svg') }}" alt="Бренд магазина" class="rounded-2xl shadow-md my-6">
       </x-help-section>
 
       {{-- Раздел 6 --}}

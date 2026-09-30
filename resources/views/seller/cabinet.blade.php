@@ -15,20 +15,10 @@
       <div class="relative w-full pt-[33%] sm:pt-[21%]">
 
         @php
-          if ($shop?->banner) {
-              if (\Illuminate\Support\Str::startsWith($shop->banner, ['http://', 'https://'])) {
-                  $bannerPath = $shop->banner;
-              } elseif (\Illuminate\Support\Facades\Storage::disk('public')->exists($shop->banner)) {
-                  $bannerPath = asset('storage/'.$shop->banner);
-              } else {
-                  $bannerPath = asset('images/default-shop-banner.jpg');
-              }
-          } else {
-              $bannerPath = asset('images/default-shop-banner.jpg');
-          }
+          $bannerPath = $shop?->banner_url ?? asset('images/image-placeholder.svg');
         @endphp
 
-        <img src="{{ $bannerPath }}"
+        <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $bannerPath }}"
              alt="Баннер магазина"
              class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-in-out hover:scale-105">
 
@@ -41,7 +31,7 @@
           <a href="{{ route('profile.edit') }}" class="block">
             <div class="flex-shrink-0 relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center text-base font-semibold aspect-square ring-2 ring-white/30">
               @if ($user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar))
-                  <img src="{{ $user->avatar_url }}" alt="Аватар продавца" class="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async">
+                  <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}" alt="Аватар продавца" class="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async">
               @else
                   <span class="text-white">{{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}</span>
               @endif

@@ -113,7 +113,7 @@
 <!-- 🔹 Слайдер баннеров магазина --> 
 <div class="relative w-full h-56 md:h-64 mt-0 md:mt-8 rounded-xl overflow-hidden shadow-lg">
     <div class="absolute inset-0 overflow-hidden rounded-xl">
-        <img src="{{ $shop->banner_url }}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" alt="Баннер магазина">
+        <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $shop->banner_url }}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" alt="Баннер магазина">
         <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/60"></div>
     </div>
 <div class="absolute bottom-4 left-4 right-4 text-white" x-data="{ expanded: false }">
@@ -144,7 +144,7 @@
             <!-- Аватар с бейджем -->
             <div class="relative flex-shrink-0">
                 <div class="w-24 h-24 rounded-2xl overflow-hidden bg-indigo-50 ring-4 ring-white shadow-xl">
-                    <img src="{{ $user->avatar_url }}" class="w-full h-full object-cover" alt="{{ $user->name }}">
+                    <img data-image-candidates="{{ json_encode($user->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" src="{{ $user->avatar_url }}" class="w-full h-full object-cover" alt="{{ $user->name }}">
                 </div>
 
                 <!-- Бейдж верификации -->

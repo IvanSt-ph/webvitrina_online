@@ -64,22 +64,20 @@
              class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg">
             <div data-category-media class="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-slate-100">
               @if($hasImage)
-                <img
+                <img data-image-candidates="{{ json_encode($cat->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                   src="{{ $cat->image_thumb_url }}"
                   alt="{{ $cat->name }}"
                   class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                   loading="lazy"
                   decoding="async"
-                  onerror="this.closest('[data-category-media]').classList.add('category-media-failed'); this.remove();"
                 >
               @elseif($hasIcon)
-                <img
+                <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                   src="{{ $cat->icon_url }}"
                   alt="{{ $cat->name }}"
                   class="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 object-contain opacity-80 transition duration-500 group-hover:scale-110"
                   loading="lazy"
                   decoding="async"
-                  onerror="this.closest('[data-category-media]').classList.add('category-media-failed'); this.remove();"
                 >
               @endif
 

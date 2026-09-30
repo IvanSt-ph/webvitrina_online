@@ -25,21 +25,7 @@ if (empty($rawGallery)) {
     $rawGallery[] = 'no-image.png'; // Добавляем имя файла заглушки
 }
 
-$gallery = array_map(function($img) {
-    // ✅ Если это наша заглушка
-    if ($img === 'no-image.png') {
-        // Встроенный SVG (работает всегда, без файлов)
-        return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3Ccircle cx="100" cy="100" r="40" fill="none" stroke="%239ca3af" stroke-width="2"/%3E%3Cpath d="M70 70L130 130M130 70L70 130" stroke="%239ca3af" stroke-width="2"/%3E%3C/svg%3E';
-    }
-    
-    // ✅ Если это полный URL
-    if (str_starts_with($img, 'http')) {
-        return $img;
-    }
-    
-    // ✅ Обычное изображение из storage
-    return \App\Models\Product::storageImageUrl($img);
-}, $rawGallery);
+$gallery = array_map(fn($img) => \App\Models\Product::storageImageUrl($img), $rawGallery);
 
     $image = $p->image_thumb_url ?? ($gallery[0] ?? null);
     $hasGallery = count($gallery) > 1;
@@ -161,7 +147,7 @@ x-data="{
         <div class="pc-skeleton" aria-hidden="true"></div>
 
         @if($image)
-            <img src="{{ $image }}" alt="{{ $p->title }}" loading="lazy" decoding="async"
+            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $p->title }}" loading="lazy" decoding="async"
                  class="pc-image"
                  onload="this.classList.add('pc-image--loaded'); this.closest('.pc-image-wrap').querySelector('.pc-skeleton').style.display='none'"/>
         @else
@@ -364,7 +350,7 @@ x-data="{
                              @touchend="onTouchEnd($event)">
                             @if(!empty($gallery))
                                 <template x-for="(src, idx) in gallery" :key="idx">
-                                    <img :src="src"
+                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :src="src"
                                          alt="{{ $p->title }}"
                                          class="pm-image"
                                          :class="current === idx ? 'pm-image--active' : ''"
@@ -448,7 +434,7 @@ x-data="{
                                         <button @click.stop="current = {{ $idx }}; $nextTick(() => { if ($refs.thumbnails) { const thumb = $refs.thumbnails.children[{{ $idx }}]; if (thumb) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } })"
                                                 class="pm-thumb"
                                                 :class="current === {{ $idx }} ? 'pm-thumb--active' : ''">
-                                            <img src="{{ $src }}" alt="" loading="lazy" decoding="async"/>
+                                            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $src }}" alt="" loading="lazy" decoding="async"/>
                                         </button>
                                     @endforeach
                                 </div>

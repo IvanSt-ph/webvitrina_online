@@ -1,5 +1,4 @@
 <?php
-
 namespace Tests\Unit;
 
 use App\Models\Product;
@@ -8,45 +7,30 @@ use Tests\TestCase;
 
 class ProductImageUrlTest extends TestCase
 {
-    public function test_default_product_image_uses_existing_default_file_for_thumb(): void
+    public function test_default_and_empty_paths_use_placeholder(): void
     {
-        $product = new Product([
-            'image' => 'default/no-image.png',
-        ]);
-
-        $this->assertStringEndsWith('/storage/default/no-image.png', $product->image_url);
-        $this->assertSame($product->image_url, $product->image_thumb_url);
+        Storage::shouldReceive('disk')->never();
+        foreach (['', 'default/no-image.png', '/storage/default/no-image.png', 'placeholder.png'] as $path) {
+            $product = new Product(['image' => $path]);
+            $this->assertSame(asset('images/image-placeholder.svg'), $product->image_url);
+            $this->assertSame([$product->image_url], $product->image_thumb_candidates);
+        }
     }
 
-    public function test_uploaded_product_image_uses_thumb_path(): void
+    public function test_medium_and_legacy_original_have_bounded_browser_hierarchy(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('products/2026/05/medium/product.webp', 'image');
-        Storage::disk('public')->put('products/2026/05/thumb/product.webp', 'thumbnail');
-        $product = new Product([
-            'image' => 'products/2026/05/medium/product.webp',
-        ]);
-
-        $this->assertStringEndsWith('/storage/products/2026/05/medium/product.webp', $product->image_url);
-        $this->assertStringEndsWith('/storage/products/2026/05/thumb/product.webp', $product->image_thumb_url);
+        Storage::shouldReceive('disk')->never();
+        $this->assertSame([
+            asset('storage/products/thumb/photo.webp'), asset('storage/products/medium/photo.webp'), asset('images/image-placeholder.svg'),
+        ], Product::storageThumbCandidates('products/medium/photo.webp'));
+        $this->assertSame([
+            asset('storage/thumb/photo.webp'), asset('storage/photo.jpg'), asset('images/image-placeholder.svg'),
+        ], Product::storageThumbCandidates('photo.jpg'));
     }
 
-    public function test_missing_thumbnail_falls_back_to_existing_image(): void
+    public function test_double_storage_prefix_is_not_normalized_twice(): void
     {
-        Storage::fake('public');
-        Storage::disk('public')->put('products/medium/product.webp', 'image');
-        $product = new Product(['image' => 'products/medium/product.webp']);
-
-        $this->assertStringEndsWith('/storage/products/medium/product.webp', $product->image_url);
-        $this->assertSame($product->image_url, $product->image_thumb_url);
-    }
-
-    public function test_missing_image_falls_back_to_default(): void
-    {
-        Storage::fake('public');
-        $product = new Product(['image' => 'products/medium/missing.webp']);
-
-        $this->assertStringEndsWith('/storage/default/no-image.png', $product->image_url);
-        $this->assertSame($product->image_url, $product->image_thumb_url);
+        $this->assertSame(asset('storage/storage/photo.jpg'), Product::storageImageUrl('/storage/storage/photo.jpg'));
+        $this->assertSame(asset('storage/storage/photo.jpg'), Product::storageThumbCandidates('/storage/storage/photo.jpg')[1]);
     }
 }

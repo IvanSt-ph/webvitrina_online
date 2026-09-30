@@ -122,6 +122,7 @@ class AdCampaignController extends Controller
                 'title' => '#' . $product->id . ' · ' . $product->title,
                 'subtitle' => $product->seller?->shop?->name ?: $product->seller?->name ?: 'Без магазина',
                 'image' => $product->image_thumb_url,
+                'image_candidates' => $product->image_thumb_candidates,
             ])->values(),
         ]);
     }
@@ -160,6 +161,7 @@ class AdCampaignController extends Controller
                 'title' => '#' . $shop->id . ' · ' . $shop->name,
                 'subtitle' => $shop->city ?: 'Магазин продавца',
                 'image' => $shop->card_image_url,
+                'image_candidates' => $shop->card_image_candidates,
             ])->values(),
         ]);
     }

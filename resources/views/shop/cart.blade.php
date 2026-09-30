@@ -187,7 +187,7 @@
                         :class="selectMode ? 'opacity-60 pointer-events-none' : ''"
                     >
                         @if($p->image)
-                            <img src="{{ $p->image_thumb_url }}"
+                            <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}"
                                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                  alt="{{ $p->title }}">
                         @else
@@ -498,7 +498,7 @@
             <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 transition-all duration-200 hover:border-indigo-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)] group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
-                        <img src="{{ $product->image_thumb_url }}" 
+                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}"
                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                              alt="{{ $product->title }}">
                     </div>
@@ -533,7 +533,7 @@
             <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 transition-all duration-200 hover:border-indigo-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)] group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
-                        <img src="{{ $product->image_thumb_url }}" 
+                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}"
                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                              alt="{{ $product->title }}">
                     </div>
