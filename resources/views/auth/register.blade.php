@@ -1,108 +1,52 @@
 <x-guest-layout>
-    {{-- Видео фон --}}
-    <div class="fixed inset-0 -z-10 overflow-hidden bg-slate-950">
-        <video
-            autoplay
-            muted
-            loop
-            playsinline
-            class="h-full w-full scale-[1.03] object-cover opacity-90 blur-[1.5px] saturate-125"
-        >
-            <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
-        </video>
+    <div class="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr]">
+        <section class="hidden flex-col justify-between gap-6 border-r border-indigo-100 bg-gradient-to-br from-indigo-50 via-indigo-50 to-violet-50 p-8 lg:flex xl:p-10">
+            <a href="{{ route('home') }}" class="relative inline-flex w-fit items-center gap-2 rounded-xl outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/20">
+                    <img src="{{ asset('images/icon.png') }}" class="h-8 w-8" alt="">
+                </span>
+                <span class="text-[15px] font-bold tracking-tight text-slate-800">WebVitrina</span>
+            </a>
 
-        {{-- Затемнение и стеклянная пленка поверх видео --}}
-        <div class="absolute inset-0 bg-slate-950/60"></div>
-        <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
-    </div>
+            <div>
+                <span class="wv-page-eyebrow"><i class="ri-user-add-line text-base"></i> Новый аккаунт</span>
+                <h1 class="mt-5 text-3xl font-bold leading-tight tracking-tight text-slate-950 xl:text-[38px]">Начните с WebVitrina.</h1>
+                <p class="mt-4 text-[17px] leading-7 text-slate-600">Выберите роль и получите доступ к покупкам или своему магазину.</p>
 
-    <div class="grid min-h-[720px] lg:h-full lg:min-h-0 lg:grid-cols-[0.88fr_1.12fr]">
-        <section class="relative hidden overflow-hidden bg-slate-950 lg:block lg:h-full">
-            <img src="{{ asset('images/help/banner.jpg') }}"
-                 class="absolute inset-0 h-full w-full object-cover opacity-80"
-                 alt="WebVitrina">
-            <div class="absolute inset-0 bg-gradient-to-br from-slate-950/90 via-slate-950/45 to-indigo-950/55"></div>
-
-            <div class="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 text-white">
-                <a href="{{ route('home') }}" class="inline-flex w-fit items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-lg backdrop-blur">
-                    <img src="{{ asset('images/logo.png') }}" class="h-9 w-9 rounded-xl bg-white object-contain p-1" alt="WebVitrina">
-                    <span class="text-lg font-extrabold tracking-tight">WebVitrina</span>
-                </a>
-
-                <div class="max-w-md">
-                    <p class="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-200/30 bg-indigo-100/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-100">
-                        <i class="ri-user-add-line text-base"></i>
-                        Новый аккаунт
-                    </p>
-                    <h1 class="text-4xl font-bold leading-tight tracking-tight xl:text-5xl">
-                        Создайте профиль для покупок или магазина.
-                    </h1>
-                    <p class="mt-5 text-base leading-7 text-white/80">
-                        Выберите роль, укажите контакты и получите доступ к заказам, чатам, подпискам и продаже товаров.
-                    </p>
-                </div>
-
-                <div class="space-y-3">
-                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-                        <div class="flex items-start gap-3">
-                            <i class="ri-shopping-bag-3-line mt-0.5 text-2xl text-indigo-100"></i>
-                            <div>
-                                <p class="text-sm font-semibold">Покупатель</p>
-                                <p class="mt-1 text-xs leading-5 text-white/70">Заказы, избранное, подписки на магазины и поддержка.</p>
-                            </div>
-                        </div>
+                <div class="mt-8 space-y-3">
+                    <div class="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-white/90 p-3 shadow-sm">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xl text-indigo-600"><i class="ri-shopping-bag-3-line"></i></span>
+                        <span class="text-[15px] font-semibold text-slate-800">Покупайте и сохраняйте избранное</span>
                     </div>
-                    <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
-                        <div class="flex items-start gap-3">
-                            <i class="ri-store-2-line mt-0.5 text-2xl text-indigo-100"></i>
-                            <div>
-                                <p class="text-sm font-semibold">Продавец</p>
-                                <p class="mt-1 text-xs leading-5 text-white/70">Магазин создаётся автоматически, детали можно заполнить позже.</p>
-                            </div>
-                        </div>
+                    <div class="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-white/90 p-3 shadow-sm">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xl text-indigo-600"><i class="ri-store-2-line"></i></span>
+                        <span class="text-[15px] font-semibold text-slate-800">Откройте и развивайте магазин</span>
                     </div>
                 </div>
             </div>
+            <a href="{{ route('home') }}" class="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-indigo-100 bg-white/70 px-4 text-sm font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-white hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
+                <i class="ri-arrow-left-line" aria-hidden="true"></i> На главную
+            </a>
         </section>
 
-        <section class="flex min-h-[720px] flex-col bg-white/85 backdrop-blur-xl lg:h-full lg:min-h-0">
-            <div class="relative h-40 overflow-hidden lg:hidden">
-                <video
-                    autoplay
-                    muted
-                    loop
-                    playsinline
-                    class="absolute inset-0 h-full w-full scale-[1.03] object-cover blur-[1.5px] saturate-125"
-                >
-                    <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
-                </video>
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/30 to-transparent"></div>
-                <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
-                <a href="{{ route('home') }}" class="absolute left-4 top-4 inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-sm font-extrabold text-slate-900 shadow-sm backdrop-blur">
-                    <img src="{{ asset('images/logo.png') }}" class="h-7 w-7 rounded-lg object-contain" alt="WebVitrina">
-                    WebVitrina
-                </a>
-            </div>
-
-            <div class="flex flex-1 items-center px-5 py-7 sm:px-8 lg:px-8 lg:py-6 xl:px-10">
-                <div class="mx-auto w-full max-w-2xl xl:max-w-3xl">
-                    <div class="mb-5">
-                        <p class="text-sm font-semibold text-indigo-600">Регистрация</p>
-                        <h2 class="mt-2 text-3xl font-bold tracking-tight text-slate-950">Создать аккаунт</h2>
-                        <p class="mt-2 text-sm leading-6 text-slate-500">
-                            Четыре коротких шага. Ничего лишнего, только данные для входа и роли.
-                        </p>
+        <section class="flex min-w-0 flex-col bg-white">
+            <div class="flex flex-1 items-center px-5 py-7 sm:px-8 lg:px-10 lg:py-8 xl:px-12">
+                <div class="mx-auto w-full min-w-0 max-w-[520px]">
+                    <div class="mb-6">
+                        <p class="text-sm font-bold text-indigo-700">Регистрация</p>
+                        <h2 class="mt-1 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-[38px]">Создать аккаунт</h2>
+                        <p class="mt-2 text-base leading-6 text-slate-600 sm:text-[17px] sm:leading-7">Четыре шага — и ваш профиль готов.</p>
                     </div>
 
-                    <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div class="mb-3 flex items-center justify-between gap-3">
+                    <div class="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                        <div class="mb-2 flex items-center justify-between gap-3">
                             <span class="text-sm font-bold text-slate-800">
                                 Шаг <span id="current-step">1</span> из 4
                             </span>
                             <span id="step-title" class="text-sm font-bold text-indigo-600">Выбор роли</span>
                         </div>
                         <div class="h-2 overflow-hidden rounded-full bg-slate-200">
-                            <div id="progress-bar" class="h-full rounded-full bg-indigo-500 transition-all duration-300" style="width: 25%"></div>
+                            <div id="progress-bar" class="h-full rounded-full bg-indigo-600 transition-all duration-300" style="width: 25%"></div>
                         </div>
                     </div>
 
@@ -126,10 +70,10 @@
                     <form method="POST" action="{{ route('register') }}" id="registration-form">
                         @csrf
 
-                        <div id="step-1" class="step-content space-y-5">
+                        <div id="step-1" class="step-content space-y-4">
                             <div>
-                                <h3 class="text-lg font-semibold text-slate-950">Как будете использовать WebVitrina?</h3>
-                                <p class="mt-1 text-sm text-slate-500">Роль можно выбрать сразу, а данные магазина продавец заполнит в кабинете.</p>
+                                <h3 class="text-lg font-semibold text-slate-950 sm:text-xl">Как будете использовать WebVitrina?</h3>
+                                <p class="mt-1 text-sm text-slate-500 sm:text-[15px] sm:leading-6">Выберите роль. Данные магазина можно заполнить позже.</p>
                             </div>
 
                             <div class="space-y-3">
@@ -140,18 +84,15 @@
                                            @checked(old('role', 'buyer') === 'buyer')
                                            class="peer sr-only"
                                            required>
-                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
-                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+                                    <div class="flex h-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
+                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
                                             <i class="ri-shopping-bag-3-line text-2xl"></i>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <p class="font-extrabold text-slate-950">Покупатель</p>
-                                            <p class="mt-1 text-sm leading-6 text-slate-500">Покупать товары, писать продавцам, сохранять избранное.</p>
-                                            <span class="mt-2 inline-flex items-center gap-1 text-sm font-bold text-indigo-600">
-                                                Выбрать
-                                                <i class="ri-arrow-right-line"></i>
-                                            </span>
+                                            <p class="text-[17px] font-bold text-slate-950">Покупатель</p>
+                                            <p class="mt-1 text-sm leading-5 text-slate-500 sm:text-[15px] sm:leading-6">Покупать товары, писать продавцам, сохранять избранное.</p>
                                         </div>
+                                        <i class="ri-arrow-right-s-line shrink-0 text-xl text-indigo-600" aria-hidden="true"></i>
                                     </div>
                                 </label>
 
@@ -161,18 +102,15 @@
                                            value="seller"
                                            @checked(old('role') === 'seller')
                                            class="peer sr-only">
-                                    <div class="flex h-full items-start gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
-                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+                                    <div class="flex h-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:ring-4 peer-checked:ring-indigo-100">
+                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
                                             <i class="ri-store-3-line text-2xl"></i>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <p class="font-extrabold text-slate-950">Продавец</p>
-                                            <p class="mt-1 text-sm leading-6 text-slate-500">Размещать товары, принимать заказы и вести магазин.</p>
-                                            <span class="mt-2 inline-flex items-center gap-1 text-sm font-bold text-indigo-600">
-                                                Выбрать
-                                                <i class="ri-arrow-right-line"></i>
-                                            </span>
+                                            <p class="text-[17px] font-bold text-slate-950">Продавец</p>
+                                            <p class="mt-1 text-sm leading-5 text-slate-500 sm:text-[15px] sm:leading-6">Размещать товары, принимать заказы и вести магазин.</p>
                                         </div>
+                                        <i class="ri-arrow-right-s-line shrink-0 text-xl text-indigo-600" aria-hidden="true"></i>
                                     </div>
                                 </label>
                             </div>
@@ -180,7 +118,7 @@
                             <div class="flex justify-end pt-2">
                                 <button type="button"
                                         onclick="goToStep(2)"
-                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                        class="wv-btn-primary h-12 px-5 text-base">
                                     Далее
                                     <i class="ri-arrow-right-line"></i>
                                 </button>
@@ -201,18 +139,18 @@
                                            name="name"
                                            required
                                            value="{{ old('name') }}"
-                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           class="wv-input h-12 w-full pl-12 pr-4 text-slate-900 placeholder:text-slate-400"
                                            placeholder="Например, Иван">
                                 </div>
                                 <x-input-error :messages="$errors->get('name')" class="mt-2 text-sm" />
                             </div>
 
                             <div class="flex justify-between gap-3 pt-2">
-                                <button type="button" onclick="goToStep(1)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-medium text-slate-700 transition hover:bg-slate-50">
+                                <button type="button" onclick="goToStep(1)" class="wv-btn-secondary h-12 px-5 text-base">
                                     <i class="ri-arrow-left-line"></i>
                                     Назад
                                 </button>
-                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                <button type="button" onclick="goToStep(3)" class="wv-btn-primary h-12 px-5 text-base">
                                     Далее
                                     <i class="ri-arrow-right-line"></i>
                                 </button>
@@ -233,7 +171,7 @@
                                            name="email"
                                            required
                                            value="{{ old('email') }}"
-                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           class="wv-input h-12 w-full pl-12 pr-4 text-slate-900 placeholder:text-slate-400"
                                            placeholder="example@email.com">
                                 </div>
                                 <x-input-error :messages="$errors->get('email')" class="mt-2 text-sm" />
@@ -248,7 +186,7 @@
                                            inputmode="tel"
                                            autocomplete="tel"
                                            value="{{ old('phone') }}"
-                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           class="wv-input h-12 w-full pr-4 text-slate-900 placeholder:text-slate-400"
                                            aria-describedby="registration-phone-hint">
                                 </div>
                                 <p id="registration-phone-hint" class="mt-2 text-xs text-slate-500">Выберите страну и введите номер без кода страны — код добавится автоматически.</p>
@@ -256,11 +194,11 @@
                             </div>
 
                             <div class="flex justify-between gap-3 pt-2">
-                                <button type="button" onclick="goToStep(2)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-medium text-slate-700 transition hover:bg-slate-50">
+                                <button type="button" onclick="goToStep(2)" class="wv-btn-secondary h-12 px-5 text-base">
                                     <i class="ri-arrow-left-line"></i>
                                     Назад
                                 </button>
-                                <button type="button" onclick="goToStep(4)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                <button type="button" onclick="goToStep(4)" class="wv-btn-primary h-12 px-5 text-base">
                                     Далее
                                     <i class="ri-arrow-right-line"></i>
                                 </button>
@@ -280,7 +218,7 @@
                                     <input :type="show ? 'text' : 'password'"
                                            name="password"
                                            required
-                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           class="wv-input h-12 w-full pl-12 pr-12 text-slate-900 placeholder:text-slate-400"
                                            placeholder="Минимум 8 символов">
                                     <button type="button"
                                             @click="show = !show"
@@ -299,7 +237,7 @@
                                     <input :type="show ? 'text' : 'password'"
                                            name="password_confirmation"
                                            required
-                                           class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-12 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                           class="wv-input h-12 w-full pl-12 pr-12 text-slate-900 placeholder:text-slate-400"
                                            placeholder="Повторите пароль">
                                     <button type="button"
                                             @click="show = !show"
@@ -320,12 +258,12 @@
                             </label>
 
                             <div class="flex justify-between gap-3 pt-2">
-                                <button type="button" onclick="goToStep(3)" class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 font-medium text-slate-700 transition hover:bg-slate-50">
+                                <button type="button" onclick="goToStep(3)" class="wv-btn-secondary h-12 px-5 text-base">
                                     <i class="ri-arrow-left-line"></i>
                                     Назад
                                 </button>
                                 <button type="submit"
-                                        class="inline-flex h-[48px] items-center justify-center gap-2 rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
+                                        class="wv-btn-primary h-12 px-5 text-base">
                                     <i class="ri-user-add-line"></i>
                                     Зарегистрироваться
                                 </button>
@@ -342,7 +280,7 @@
 
                         <div class="mt-4 text-sm">
                             <a href="{{ route('auth.google.redirect') }}"
-                               class="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                               class="wv-btn-secondary h-12 w-full text-base">
                                 <img src="{{ asset('images/icons/google.png') }}" class="h-5 w-5" alt="">
                                 Google
                             </a>
@@ -407,7 +345,7 @@
 
         document.getElementById('step-' + step).classList.remove('hidden');
 
-        const progressPercent = ((step - 1) / 3) * 100;
+        const progressPercent = (step / 4) * 100;
         document.getElementById('progress-bar').style.width = progressPercent + '%';
         document.getElementById('current-step').textContent = step;
 
