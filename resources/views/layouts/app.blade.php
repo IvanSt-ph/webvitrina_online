@@ -74,7 +74,7 @@
 @endisset
 
 {{-- Контент --}}
-<main class="w-full flex-1 overflow-x-hidden {{ $mainTopPadding }} {{ $flushMain ? 'px-0 pb-0' : (($showBuyerMobileBottomNav || $showSellerMobileBottomNav) ? 'pb-12' : 'pb-0') . ' px-0 sm:px-4 lg:px-6' }}">
+<main class="w-full flex-1 overflow-x-hidden {{ $mainTopPadding }} {{ $flushMain ? 'px-0 pb-0' : (($showBuyerMobileBottomNav || $showSellerMobileBottomNav) ? 'pb-12 md:pb-20 lg:pb-12' : 'pb-0') . ' px-0 sm:px-4 lg:px-6' }}">
     {{ $slot }}
 </main>
 
@@ -139,9 +139,9 @@
 @endunless
 
 
-{{-- Нижняя панель - только до 768px --}}
+{{-- Нижняя панель видна до появления desktop header. --}}
 @if($showBuyerMobileBottomNav)
-    <div data-mobile-bottom-nav class="block md:hidden fixed bottom-0 left-0 right-0 z-50">
+    <div data-mobile-bottom-nav class="block lg:hidden fixed bottom-0 left-0 right-0 z-50">
         @include('layouts.mobile-bottom-nav')
     </div>
 @endif
