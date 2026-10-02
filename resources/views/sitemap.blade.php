@@ -13,6 +13,12 @@
         ['route' => 'legal.privacy', 'priority' => '0.5'],
         ['route' => 'legal.delivery-returns', 'priority' => '0.5'],
         ['route' => 'legal.seller-terms', 'priority' => '0.5'],
+        ['route' => 'legal.terms', 'priority' => '0.5'],
+        ['route' => 'legal.seller-rules', 'priority' => '0.5'],
+        ['route' => 'legal.buyer-rules', 'priority' => '0.5'],
+        ['route' => 'legal.cookies', 'priority' => '0.5'],
+        ['route' => 'legal.prohibited-products', 'priority' => '0.5'],
+        ['route' => 'legal.review-rules', 'priority' => '0.5'],
     ] as $staticPage)
         <url>
             <loc>{{ route($staticPage['route']) }}</loc>

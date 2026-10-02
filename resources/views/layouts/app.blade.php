@@ -106,7 +106,8 @@
                 <div class="font-bold text-slate-900">Покупателю</div>
                 <a href="{{ route('orders.index') }}" class="block hover:text-indigo-600">Мои заказы</a>
                 <a href="{{ route('favorites.index') }}" class="block hover:text-indigo-600">Избранное</a>
-                <a href="{{ route('legal.delivery-returns') }}" class="block hover:text-indigo-600">Доставка, отмены и возвраты</a>
+                <a href="{{ route('legal.buyer-rules') }}" class="block hover:text-indigo-600">Покупки, заказы и отмены</a>
+                <a href="{{ route('legal.review-rules') }}" class="block hover:text-indigo-600">Правила отзывов</a>
                 <a href="{{ route('faq') }}#buyers" class="block hover:text-indigo-600">Помощь покупателю</a>
             </nav>
 
@@ -115,20 +116,16 @@
                 <a href="{{ route('seller.cabinet') }}" class="block hover:text-indigo-600">Кабинет продавца</a>
                 <a href="{{ route('register') }}" class="block hover:text-indigo-600">Стать продавцом</a>
                 <a href="{{ route('faq') }}#sellers" class="block hover:text-indigo-600">Помощь продавцу</a>
-                <a href="{{ route('legal.seller-terms') }}" class="block hover:text-indigo-600">Условия для продавцов</a>
+                <a href="{{ route('legal.seller-rules') }}" class="block hover:text-indigo-600">Правила для продавцов</a>
+                <a href="{{ route('legal.prohibited-products') }}" class="block hover:text-indigo-600">Запрещённые товары</a>
             </nav>
 
             <nav class="space-y-2">
                 <div class="font-bold text-slate-900">Правовая информация</div>
                 <a href="{{ route('legal.privacy') }}" class="block hover:text-indigo-600">Политика конфиденциальности</a>
-                <a href="{{ route('legal.rules') }}" class="block hover:text-indigo-600">Правила площадки</a>
-                <a href="{{ route('legal.seller-terms') }}" class="block hover:text-indigo-600">Условия для продавцов</a>
-                <a href="{{ route('legal.delivery-returns') }}" class="block hover:text-indigo-600">Доставка и возвраты</a>
-                <div class="pt-2 text-xs leading-5 text-slate-400">
-                    г. Тирасполь<br>
-                    +373 (778) 64495<br>
-                    Пн-Вс: 9:00 - 18:00
-                </div>
+                <a href="{{ route('legal.terms') }}" class="block hover:text-indigo-600">Условия использования</a>
+                <a href="{{ route('legal.cookies') }}" class="block hover:text-indigo-600">Политика cookies</a>
+                <a href="{{ route('contacts') }}" class="block hover:text-indigo-600">Контакты и реквизиты</a>
             </nav>
         </div>
         <div class="mx-auto mt-8 flex max-w-7xl flex-col gap-2 border-t border-slate-100 pt-5 pb-8 text-xs leading-5 text-slate-400 sm:flex-row sm:items-center sm:justify-between">

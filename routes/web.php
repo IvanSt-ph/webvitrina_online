@@ -173,6 +173,12 @@ Route::view('/rules', 'legal.rules')->name('legal.rules');
 Route::view('/privacy', 'legal.privacy')->name('legal.privacy');
 Route::view('/delivery-returns', 'legal.delivery-returns')->name('legal.delivery-returns');
 Route::view('/seller-terms', 'legal.seller-terms')->name('legal.seller-terms');
+Route::view('/terms', 'legal.terms')->name('legal.terms');
+Route::view('/seller-rules', 'legal.seller-terms')->name('legal.seller-rules');
+Route::view('/buyer-rules', 'legal.delivery-returns')->name('legal.buyer-rules');
+Route::view('/cookies', 'legal.cookies')->name('legal.cookies');
+Route::view('/prohibited-products', 'legal.prohibited-products')->name('legal.prohibited-products');
+Route::view('/review-rules', 'legal.review-rules')->name('legal.review-rules');
 
 // Кабинет входа
 Route::get('/cabinet', [ProfileController::class, 'cabinet'])
