@@ -100,6 +100,7 @@
         
         <!-- Модалка снизу -->
         <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl p-4 border-t border-gray-100 max-h-[90vh] overflow-y-auto mb-10 mx-1"
+             style="padding-bottom: calc(var(--seller-bottom-nav-offset, 0px) + 1rem);"
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-y-full"
              x-transition:enter-end="opacity-100 translate-y-0"
@@ -294,14 +295,15 @@
          @keydown.escape.window="settingsOpen = false">
         <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="settingsOpen = false"></div>
 
-        <div class="absolute bottom-0 left-0 right-0 mx-1 mb-10 rounded-t-3xl border-t border-gray-100 bg-white p-4 shadow-2xl"
+        <div class="absolute left-0 right-0 mx-1 flex flex-col overflow-hidden rounded-t-3xl border-t border-gray-100 bg-white p-4 shadow-2xl {{ $showSellerMobileBottomNav ? '' : 'bottom-0 mb-10' }}"
+             @if($showSellerMobileBottomNav) style="bottom: var(--seller-bottom-nav-offset); max-height: calc(100dvh - var(--seller-bottom-nav-offset));" @endif
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-y-full"
              x-transition:enter-end="opacity-100 translate-y-0"
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100 translate-y-0"
              x-transition:leave-end="opacity-0 translate-y-full">
-            <div class="mb-4 flex items-center justify-between">
+            <div class="mb-4 flex shrink-0 items-center justify-between">
                 <div>
                     <div class="text-base font-semibold text-slate-900">Настройки</div>
                     <div class="text-sm text-slate-500">Регион и валюта показа товаров</div>
@@ -314,7 +316,8 @@
                 </button>
             </div>
 
-            <button @click="settingsOpen = false; filtersOpen = true"
+            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <button @click="settingsOpen = false; filtersOpen = true"
                     class="mb-4 flex w-full items-center gap-3 rounded-2xl border border-indigo-100 bg-gradient-to-r
                            from-indigo-50 to-violet-50 px-3 py-3 text-left transition-colors hover:from-indigo-100 hover:to-violet-100">
                 <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
@@ -369,6 +372,7 @@
                         <span class="block text-sm text-slate-500">UAH</span>
                     </span>
                 </button>
+                </div>
             </div>
         </div>
     </div>

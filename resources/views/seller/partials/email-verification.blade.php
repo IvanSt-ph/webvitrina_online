@@ -1,191 +1,148 @@
 {{-- resources/views/seller/partials/email-verification.blade.php --}}
-<section class="mt-6 sm:mt-8 overflow-hidden rounded-xl sm:rounded-2xl border border-gray-200/70 bg-white shadow-sm" x-data="{ editingEmail: false }">
-    <div class="border-b border-gray-100 bg-gradient-to-r from-indigo-50/70 via-white to-slate-50 px-4 py-4 sm:px-6 sm:py-5">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                    <i class="ri-mail-check-line text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-950">Email аккаунта</h3>
-                    <p class="text-sm text-gray-500 mt-0.5">Адрес для уведомлений, восстановления доступа и доверия к магазину</p>
-                </div>
+<section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:mt-8" x-data="{ editingEmail: false }">
+    <div class="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div class="flex min-w-0 items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <i class="ri-mail-line text-xl"></i>
             </div>
-
-            @if (Auth::user()->hasVerifiedEmail())
-                <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    Подтверждён
-                </span>
-            @else
-                <span class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    Ожидает письма
-                </span>
-            @endif
+            <div class="min-w-0">
+                <h3 class="text-base font-semibold text-gray-950">Email аккаунта</h3>
+                <p class="mt-0.5 text-sm text-gray-500">Для входа, уведомлений и восстановления доступа</p>
+            </div>
         </div>
+
+        @if(Auth::user()->hasVerifiedEmail())
+            <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                Подтверждён
+            </span>
+        @else
+            <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                Ожидает письма
+            </span>
+        @endif
     </div>
 
-    <div class="p-4 sm:p-6">
-        <div class="grid lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
-            <div class="flex flex-col gap-3">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">Email и изменение</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Обновите email для входа и уведомлений</p>
-                    </div>
-                    <i class="ri-edit-line text-indigo-500 text-lg"></i>
+    <div class="p-4 sm:p-5">
+        <div x-show="!editingEmail" class="space-y-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                    <p class="text-xs font-medium text-gray-500">Текущий email</p>
+                    <p class="mt-1 break-all text-lg font-semibold text-gray-950">{{ Auth::user()->email }}</p>
                 </div>
 
-                <div x-show="!editingEmail" class="h-full rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
-                    <div class="h-full flex flex-col justify-between gap-4 sm:gap-5">
-                        <div class="flex items-start gap-4 min-w-0">
-                            <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="ri-mail-line text-xl"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Текущий email</p>
-                                <p class="text-base font-semibold text-gray-950 mt-1 break-all">{{ Auth::user()->email }}</p>
-                                <p class="text-sm text-gray-500 mt-1">Этот адрес используется для входа и системных уведомлений.</p>
-                            </div>
-                        </div>
+                <x-action-button type="button" size="sm" x-on:click="editingEmail = true" class="self-start sm:self-auto">
+                    <i class="ri-pencil-line"></i>
+                    Изменить email
+                </x-action-button>
+            </div>
 
-                        <x-action-button type="button" :full="true" x-on:click="editingEmail = true">
-                            <i class="ri-pencil-line"></i>
-                            Изменить email
+            @if(Auth::user()->hasVerifiedEmail())
+                <p class="flex items-center gap-2 border-t border-gray-100 pt-3 text-xs text-emerald-700">
+                    <i class="ri-shield-check-line text-base"></i>
+                    Email готов для системных уведомлений и восстановления доступа.
+                </p>
+            @else
+                <div class="flex flex-col gap-3 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="flex min-w-0 items-start gap-2 text-xs text-amber-700">
+                        <i class="ri-error-warning-line mt-0.5 shrink-0 text-base"></i>
+                        Перейдите по ссылке из письма, чтобы подтвердить адрес.
+                    </p>
+
+                    <form method="POST" action="{{ route('verification.send') }}" class="shrink-0">
+                        @csrf
+                        <x-action-button size="sm">
+                            <i class="ri-send-plane-line"></i>
+                            Отправить письмо
+                        </x-action-button>
+                    </form>
+                </div>
+            @endif
+        </div>
+
+        <div x-show="editingEmail" x-transition class="rounded-xl border border-gray-200 bg-gray-50/70 p-3 sm:p-4">
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-950">Изменить email</h4>
+                    <p class="mt-0.5 text-xs text-gray-500">После изменения адрес потребуется подтвердить</p>
+                </div>
+                <button type="button"
+                        @click="editingEmail = false"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition hover:bg-white hover:text-gray-700"
+                        aria-label="Закрыть форму изменения email">
+                    <i class="ri-close-line text-xl"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('profile.update') }}" class="space-y-3">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="profile_section" value="email">
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-gray-600" for="account-email">Новый email</label>
+                        <div class="relative flex items-center">
+                            <input id="account-email"
+                                   type="email"
+                                   name="email"
+                                   value="{{ old('email', Auth::user()->email) }}"
+                                   class="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-11 pr-4 shadow-sm transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                                   required>
+                            <i class="ri-mail-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm" />
+                    </div>
+
+                    @if(Auth::user()->hasLocalPassword())
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-gray-600" for="email-current-password">Текущий пароль</label>
+                            <input id="email-current-password"
+                                   type="password"
+                                   name="current_password"
+                                   class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 shadow-sm transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                                   required>
+                            <x-input-error :messages="$errors->get('current_password')" class="mt-1 text-sm" />
+                        </div>
+                    @else
+                        <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                            <i class="ri-information-line mt-0.5 text-base"></i>
+                            Чтобы изменить email, сначала установите пароль во вкладке «Безопасность».
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex flex-col gap-3 border-t border-gray-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="flex items-start gap-2 text-xs text-gray-500">
+                        <i class="ri-information-line mt-0.5 text-sm text-indigo-500"></i>
+                        Старое подтверждение будет сброшено.
+                    </p>
+
+                    <div class="flex flex-col-reverse gap-2 sm:flex-row">
+                        <button type="button"
+                                @click="editingEmail = false"
+                                class="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                            Отмена
+                        </button>
+                        <x-action-button size="sm">
+                            <i class="ri-save-line"></i>
+                            Сохранить
                         </x-action-button>
                     </div>
                 </div>
-
-                <div x-show="editingEmail"
-                     x-transition
-                     class="h-full rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 sm:space-y-5">
-                    <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <h4 class="text-sm font-semibold text-gray-950">Изменить email</h4>
-                            <p class="text-xs text-gray-500 mt-0.5">После изменения email потребуется подтверждение</p>
-                        </div>
-                        <button type="button"
-                                @click="editingEmail = false"
-                                class="w-9 h-9 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 transition flex items-center justify-center">
-                            <i class="ri-close-line text-xl"></i>
-                        </button>
-                    </div>
-
-                    <form method="POST" action="{{ route('profile.update') }}" class="space-y-5">
-                        @csrf
-                        @method('PATCH')
-                        <input type="hidden" name="profile_section" value="email">
-
-                        <div class="space-y-2">
-                            <label class="block text-sm font-semibold text-gray-900">Новый email</label>
-                            <div class="relative flex items-center">
-                                <input type="email"
-                                       name="email"
-                                       value="{{ old('email', Auth::user()->email) }}"
-                                       class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
-                                       required>
-                                <i class="ri-mail-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            </div>
-                            <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm" />
-                        </div>
-
-                        @if(Auth::user()->hasLocalPassword())
-                            <div class="space-y-2">
-                                <label class="block text-sm font-semibold text-gray-900">Текущий пароль</label>
-                                <input type="password"
-                                       name="current_password"
-                                       class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
-                                       required>
-                                <x-input-error :messages="$errors->get('current_password')" class="mt-1 text-sm" />
-                            </div>
-                        @else
-                            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-                                Чтобы изменить email, сначала установите пароль во вкладке «Безопасность».
-                            </div>
-                        @endif
-
-                        <div class="rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2.5 text-xs text-indigo-700 flex items-start gap-2">
-                            <i class="ri-information-line text-base mt-0.5"></i>
-                            <span>Старое подтверждение будет сброшено, письмо можно отправить справа.</span>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2">
-                            <button type="button"
-                                    @click="editingEmail = false"
-                                    class="h-11 px-4 bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-xl border border-gray-200 shadow-sm transition">
-                                Отмена
-                            </button>
-                            <x-action-button>
-                                <i class="ri-save-line"></i>
-                                Сохранить
-                            </x-action-button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-3">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm font-semibold text-gray-900">Подтверждение email</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Подтверждение защищает аккаунт продавца</p>
-                    </div>
-                    <i class="ri-shield-check-line text-emerald-500 text-lg"></i>
-                </div>
-
-                @if (Auth::user()->hasVerifiedEmail())
-                    <div class="h-full rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 sm:p-5 flex flex-col justify-between">
-                        <div class="flex items-start gap-4">
-                            <div class="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="ri-shield-check-line text-xl"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-gray-950">Email подтверждён</p>
-                                <p class="text-sm text-gray-600 mt-1">Адрес готов для системных уведомлений и восстановления доступа.</p>
-                            </div>
-                        </div>
-                        <div class="mt-5 rounded-xl bg-white/70 border border-emerald-100 px-3 py-2 text-xs text-emerald-700 flex items-center gap-2">
-                            <i class="ri-check-double-line"></i>
-                            Дополнительных действий не требуется
-                        </div>
-                    </div>
-                @else
-                    <div class="h-full rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 flex flex-col justify-between gap-4 sm:gap-5">
-                        <div class="flex items-start gap-4">
-                            <div class="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                <i class="ri-mail-send-line text-xl"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-gray-950">Отправьте письмо подтверждения</p>
-                                <p class="text-sm text-gray-600 mt-1">Перейдите по ссылке из письма, чтобы завершить подтверждение email.</p>
-                            </div>
-                        </div>
-
-                        <form method="POST" action="{{ route('verification.send') }}" class="w-full">
-                            @csrf
-                            <x-action-button :full="true">
-                                <i class="ri-send-plane-line"></i>
-                                Отправить письмо
-                            </x-action-button>
-                        </form>
-                    </div>
-                @endif
-            </div>
+            </form>
         </div>
 
-        @if (!Auth::user()->hasVerifiedEmail() && session('status') === 'verification-link-sent')
+        @if(!Auth::user()->hasVerifiedEmail() && session('status') === 'verification-link-sent')
             <div x-data="{ show: true }"
                  x-show="show"
                  x-init="setTimeout(() => show = false, 5000)"
                  x-transition
-                 class="mt-5 flex items-start gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700">
-                <i class="ri-check-line text-xl mt-0.5"></i>
-                <div class="flex-1">
-                    <p class="text-sm font-semibold">Письмо отправлено</p>
-                    <p class="text-xs text-emerald-600 mt-0.5">Проверьте входящие или папку спам.</p>
-                </div>
-                <button @click="show = false" class="w-8 h-8 rounded-lg hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition">
+                 class="mt-3 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                <i class="ri-check-line text-base"></i>
+                <span class="flex-1">Письмо отправлено. Проверьте входящие или папку «Спам».</span>
+                <button type="button" @click="show = false" class="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-emerald-100" aria-label="Закрыть уведомление">
                     <i class="ri-close-line"></i>
                 </button>
             </div>

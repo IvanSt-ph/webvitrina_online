@@ -1,45 +1,37 @@
+@once('seller-bottom-nav-geometry')
+  <style>
+    :root {
+      --seller-bottom-nav-height: 4.5rem;
+      --seller-bottom-nav-offset: calc(var(--seller-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+  </style>
+@endonce
+
 <div data-toast-bottom-nav data-mobile-bottom-seller-nav
   x-data="{ openOrdersMenu: false, openCabinetMenu: false }"
   @keydown.escape.window="if (openOrdersMenu) { openOrdersMenu = false; $refs.ordersToggle.focus() } else if (openCabinetMenu) { openCabinetMenu = false; $refs.cabinetToggle.focus() }"
-  class="lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-t border-neutral-200 shadow-xl" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+  class="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-200 bg-white/90 backdrop-blur-md"
+  style="padding-bottom: env(safe-area-inset-bottom, 0px);">
 
-  <nav class="flex justify-around items-center h-16 text-xs font-medium">
+  <nav class="grid grid-cols-5 items-stretch text-xs font-medium" style="height: var(--seller-bottom-nav-height);">
 
     <!-- В магазин (главная сайта) -->
     <a href="{{ url('/') }}" 
-       class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->is('/') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+       class="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->is('/') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-store-3-line text-xl"></i>
         <span>В магазин</span>
     </a>
 
     <!-- Товары -->
     <a href="{{ route('seller.products.index') }}" 
-       class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.products.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+       class="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.products.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-store-2-line text-xl"></i>
         <span>Товары</span>
     </a>
 
-    <!-- Добавить (центральная) -->
-    <a href="{{ route('seller.products.create') }}" 
-       class="relative flex h-full min-w-0 flex-1 flex-col items-center justify-center -mt-3">
-        <div class="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg border-4 border-white">
-            <i class="ri-add-line text-2xl"></i>
-        </div>
-        <span class="text-[11px] text-neutral-500 mt-1">Добавить</span>
-    </a>
-
-    <!-- Заказы (только заказы) -->
-    <button 
-      type="button" x-ref="ordersToggle" aria-controls="seller-orders-menu" :aria-expanded="openOrdersMenu"
-      @click="openOrdersMenu = !openOrdersMenu; openCabinetMenu = false"
-      class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }} relative">
-        <i class="ri-file-list-3-line text-xl"></i>
-        <span>Заказы</span>
-    </button>
-
     <!-- Чаты -->
     <a href="{{ route('chats.index') }}"
-       class="relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+       class="relative flex h-full min-w-0 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('chats.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-chat-3-line text-xl"></i>
         <span>Чаты</span>
         @if(($unreadChatsCount ?? 0) > 0)
@@ -49,11 +41,20 @@
         @endif
     </a>
 
-    <!-- Кабинет (меню) -->
+    <!-- Заказы (только заказы) -->
     <button 
+      type="button" x-ref="ordersToggle" aria-controls="seller-orders-menu" :aria-expanded="openOrdersMenu"
+      @click="openOrdersMenu = !openOrdersMenu; openCabinetMenu = false"
+      class="relative flex h-full min-w-0 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('seller.orders.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+        <i class="ri-file-list-3-line text-xl"></i>
+        <span>Заказы</span>
+    </button>
+
+    <!-- Кабинет (меню) -->
+    <button
       type="button" x-ref="cabinetToggle" aria-controls="seller-cabinet-menu" :aria-expanded="openCabinetMenu"
       @click="openCabinetMenu = !openCabinetMenu; openOrdersMenu = false"
-      class="flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet', 'seller.cabinet', 'seller.finance.*', 'seller.analytics.*', 'seller.followers.*', 'seller.plans.*', 'profile.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
+      class="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 transition-all duration-200 {{ request()->routeIs('cabinet', 'seller.cabinet', 'seller.finance.*', 'seller.analytics.*', 'seller.followers.*', 'seller.plans.*', 'profile.*') ? 'text-indigo-600' : 'text-neutral-500 hover:text-indigo-500' }}">
         <i class="ri-user-settings-line text-xl"></i>
         <span>Кабинет</span>
     </button>
@@ -70,7 +71,8 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="max-h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] overflow-y-auto overscroll-contain absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
+    class="max-h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] overflow-y-auto overscroll-contain absolute left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]"
+    style="bottom: var(--seller-bottom-nav-offset);">
 
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-base font-semibold text-neutral-800">Заказы</h3>
@@ -97,7 +99,8 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="translate-y-0 opacity-100"
     x-transition:leave-end="translate-y-full opacity-0"
-    class="max-h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] overflow-y-auto overscroll-contain absolute bottom-[calc(100%+1rem)] left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-xl">
+    class="max-h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] overflow-y-auto overscroll-contain absolute left-0 right-0 bg-white rounded-t-2xl p-5 border-t border-neutral-200 z-40 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]"
+    style="bottom: var(--seller-bottom-nav-offset);">
 
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-base font-semibold text-neutral-800">Меню кабинета</h3>

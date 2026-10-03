@@ -1,26 +1,24 @@
 {{-- resources/views/seller/partials/phone/verification-flow.blade.php --}}
-<div class="h-full flex flex-col gap-4">
+<div class="space-y-3 border-t border-gray-100 pt-3">
     <form method="POST"
           action="{{ route('shop.phone.send') }}"
           id="shop-phone-verify-form"
-          class="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5 flex-1 flex flex-col justify-between gap-4 sm:gap-5">
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         @csrf
 
-        <div class="flex items-start gap-4">
-            <div class="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <i class="ri-message-2-line text-xl"></i>
-            </div>
-            <div>
-                <p class="text-sm font-semibold text-gray-950">Подтвердите номер магазина</p>
-                <p class="text-sm text-gray-600 mt-1">
-                    Код придёт на <span class="font-semibold text-gray-900">{{ Auth::user()->shop->phone }}</span> и будет действителен 10 минут.
+        <div class="flex min-w-0 items-start gap-2.5">
+            <i class="ri-message-2-line mt-0.5 shrink-0 text-lg text-amber-500"></i>
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-gray-900">Подтвердите номер по SMS</p>
+                <p class="mt-0.5 text-xs text-gray-500">
+                    Код придёт на <span class="font-semibold text-gray-700">{{ Auth::user()->shop->phone }}</span> и действует 10 минут.
                 </p>
             </div>
         </div>
 
-        <x-action-button :full="true">
+        <x-action-button size="sm" class="shrink-0 self-start sm:self-auto">
             <i class="ri-send-plane-line"></i>
-            Отправить SMS код
+            Отправить код
         </x-action-button>
     </form>
 

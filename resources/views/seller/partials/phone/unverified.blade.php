@@ -1,36 +1,36 @@
 {{-- resources/views/seller/partials/phone/unverified.blade.php --}}
-<div class="h-full">
-    <div class="h-full rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
-        <form method="POST" action="{{ route('profile.shop.update') }}" id="shop-phone-save-form" class="h-full flex flex-col gap-4 sm:gap-5">
-            @csrf
-            @method('PATCH')
-            <input type="hidden" name="update_type" value="phone">
+<form method="POST" action="{{ route('profile.shop.update') }}" id="shop-phone-save-form" class="space-y-3">
+    @csrf
+    @method('PATCH')
+    <input type="hidden" name="update_type" value="phone">
 
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-900">Номер телефона магазина</label>
-                <div class="phone-input-shell">
-                    <input id="shop-phone-input"
-                           type="tel"
-                           name="phone"
-                           value="{{ old('phone', Auth::user()->shop?->phone) }}"
-                           placeholder="+373 777 00 000"
-                           class="w-full pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition"
-                           required>
-                </div>
+    <div>
+        <label class="mb-1.5 block text-xs font-medium text-gray-500" for="shop-phone-input">
+            {{ Auth::user()->shop?->phone ? 'Текущий номер' : 'Номер телефона магазина' }}
+        </label>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <div class="phone-input-shell min-w-0 flex-1">
+                <input id="shop-phone-input"
+                       type="tel"
+                       name="phone"
+                       value="{{ old('phone', Auth::user()->shop?->phone) }}"
+                       placeholder="+373 777 00 000"
+                       class="w-full rounded-xl border border-gray-300 bg-slate-50/70 py-2.5 pr-4 shadow-sm transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                       required>
                 <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
             </div>
 
-            <div class="mt-auto space-y-4">
-                <div class="rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2.5 text-xs text-indigo-700 flex items-start gap-2">
-                    <i class="ri-information-line text-base mt-0.5"></i>
-                    <span>После изменения номера потребуется повторная SMS-верификация.</span>
-                </div>
-
-                <x-action-button :full="true">
-                    <i class="ri-save-line"></i>
-                    Сохранить номер
-                </x-action-button>
-            </div>
-        </form>
+            <x-action-button size="sm" class="shrink-0 self-start">
+                <i class="ri-save-line"></i>
+                Сохранить номер
+            </x-action-button>
+        </div>
     </div>
-</div>
+
+    @if(Auth::user()->shop?->phone)
+        <p class="flex items-start gap-2 text-xs text-gray-500">
+            <i class="ri-information-line mt-0.5 text-sm text-indigo-500"></i>
+            После изменения номера потребуется повторная SMS-верификация.
+        </p>
+    @endif
+</form>

@@ -128,6 +128,7 @@ $firstImage = $firstBanner?->imageUrl();
   <div class="max-w-[90rem] mx-auto px-2 sm:px-4 lg:px-6 mt-6">
     @php
       $currentSort = request('sort', 'popular');
+      $showSellerCategoryButton = auth()->check() && auth()->user()->isSeller();
       $labels = [
           'popular'     => 'По популярности',
           'rating'      => 'По рейтингу',
@@ -138,11 +139,20 @@ $firstImage = $firstBanner?->imageUrl();
       ];
     @endphp
 
-    <div class="flex min-h-9 items-center justify-between gap-2 sm:gap-3">
+    <div class="flex min-h-9 {{ $showSellerCategoryButton ? 'items-end sm:items-center' : 'items-center' }} justify-between gap-2 sm:gap-3">
       <div class="min-w-0">
         <h1 class="m-0 leading-none text-xl sm:text-2xl font-semibold text-gray-900">
           Каталог товаров
         </h1>
+
+        @if($showSellerCategoryButton)
+          <button type="button"
+                  @click="open = true"
+                  class="mt-2 inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 active:bg-indigo-100 sm:hidden">
+            <i class="ri-apps-2-line text-base" aria-hidden="true"></i>
+            <span>Категории</span>
+          </button>
+        @endif
       </div>
 
       <div x-data="{ openSort: false }" class="relative shrink-0 sm:hidden">
