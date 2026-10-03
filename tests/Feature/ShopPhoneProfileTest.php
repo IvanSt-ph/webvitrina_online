@@ -140,7 +140,7 @@ class ShopPhoneProfileTest extends TestCase
         $this->assertNull($seller->email_verified_at);
     }
 
-    public function test_user_phone_change_still_requires_current_password(): void
+    public function test_user_phone_change_does_not_require_current_password(): void
     {
         $seller = User::factory()->seller()->create(['phone' => null]);
 
@@ -149,8 +149,8 @@ class ShopPhoneProfileTest extends TestCase
                 'profile_section' => 'phone',
                 'phone' => '+373 77 111 222',
             ])
-            ->assertSessionHasErrors('current_password');
+            ->assertSessionHasNoErrors();
 
-        $this->assertNull($seller->fresh()->phone);
+        $this->assertSame('+37377111222', $seller->fresh()->phone);
     }
 }

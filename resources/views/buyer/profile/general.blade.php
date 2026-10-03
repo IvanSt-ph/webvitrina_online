@@ -153,16 +153,16 @@
 
                 @if(Auth::user()->hasLocalPassword())
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Текущий пароль</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Текущий пароль для смены email</label>
                         <input type="password" name="current_password"
                                class="w-full py-3 px-4 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm
                                       focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none"
-                               placeholder="Нужен только при смене email или телефона">
+                               placeholder="Нужен только при смене email">
                         <x-input-error :messages="$errors->get('current_password')" class="mt-1 text-sm" />
                     </div>
                 @else
                     <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        Для изменения email или телефона сначала
+                        Для изменения email сначала
                         <a href="{{ route('buyer.profile.security') }}" class="font-semibold underline">установите пароль</a>.
                     </div>
                 @endif

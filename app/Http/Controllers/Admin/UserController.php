@@ -224,6 +224,7 @@ class UserController extends Controller
 
         // Нормализация телефона (единый метод)
         $phone = $this->normalizePhone($request->phone);
+        $phoneChanged = $phone !== $user->phone;
         
         // Проверка уникальности телефона после нормализации
         if ($phone && (
@@ -250,6 +251,11 @@ class UserController extends Controller
             'role'  => $request->role,
             'seller_plan' => $sellerPlan,
         ];
+
+        if ($phoneChanged) {
+            $userData['phone_verified_at'] = null;
+            $userData['phone_verification_code'] = null;
+        }
 
         $password = $request->filled('password') ? $validated['password'] : null;
 

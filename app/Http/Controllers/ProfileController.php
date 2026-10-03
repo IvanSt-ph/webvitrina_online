@@ -128,8 +128,6 @@ class ProfileController extends Controller
             $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
             
             if ($phone !== $user->phone) {
-                $this->requireCurrentPassword($request);
-
                 $userExists = User::where('phone', $phone)
                     ->where('id', '!=', $user->id)
                     ->exists();
@@ -142,6 +140,7 @@ class ProfileController extends Controller
                 $user->phone_verified_at = null;
                 $user->phone_verification_code = null;
                 $user->save();
+                $request->session()->forget('phone_verification_sent');
 
                 return back()->with('updated_fields', ['phone']);
             }
@@ -177,8 +176,6 @@ class ProfileController extends Controller
                 }
                 
                 if ($phone !== $user->phone) {
-                    $this->requireCurrentPassword($request);
-
                     $userExists = User::where('phone', $phone)
                         ->where('id', '!=', $user->id)
                         ->exists();
@@ -192,6 +189,7 @@ class ProfileController extends Controller
                     $user->phone_verification_code = null;
                     $updatedFields[] = 'phone';
                     $changed = true;
+                    $request->session()->forget('phone_verification_sent');
                 }
             }
 
@@ -246,8 +244,6 @@ class ProfileController extends Controller
             $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
             
             if ($phone !== $user->phone) {
-                $this->requireCurrentPassword($request);
-
                 $userExists = User::where('phone', $phone)
                     ->where('id', '!=', $user->id)
                     ->exists();
@@ -261,6 +257,7 @@ class ProfileController extends Controller
                 $user->phone_verification_code = null;
                 $updatedFields[] = 'phone';
                 $changed = true;
+                $request->session()->forget('phone_verification_sent');
             }
         }
 

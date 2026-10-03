@@ -54,11 +54,17 @@ class LoginRequest extends FormRequest
             }
         }
 
+        $credentials = [
+            $field => $login,
+            'password' => $this->input('password'),
+        ];
+
+        if ($field === 'phone') {
+            $credentials[] = fn ($query) => $query->whereNotNull('phone_verified_at');
+        }
+
         try {
-            $authenticated = Auth::attempt([
-                $field => $login,
-                'password' => $this->input('password'),
-            ], $this->boolean('remember'));
+            $authenticated = Auth::attempt($credentials, $this->boolean('remember'));
         } catch (RuntimeException $exception) {
             report($exception);
             $authenticated = false;

@@ -35,6 +35,38 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect();
     }
 
+    public function test_unverified_phone_cannot_be_used_to_authenticate(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '+37377111222',
+            'phone_verified_at' => null,
+        ]);
+
+        $this->post('/login', [
+            'login' => '+373 77 111 222',
+            'password' => 'password',
+        ])
+            ->assertSessionHasErrors(['login' => trans('auth.failed')]);
+
+        $this->assertGuest();
+    }
+
+    public function test_verified_phone_can_be_used_to_authenticate(): void
+    {
+        $user = User::factory()->create([
+            'phone' => '+37377111222',
+            'phone_verified_at' => now(),
+        ]);
+
+        $this->post('/login', [
+            'login' => '+373 77 111 222',
+            'password' => 'password',
+        ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_remember_me_creates_recaller_cookie(): void
     {
         $user = User::factory()->create();
