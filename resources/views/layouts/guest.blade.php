@@ -54,7 +54,7 @@
     <x-toast-stack />
 
     @if(request()->routeIs('login', 'register'))
-        <main class="mx-auto flex w-full max-w-7xl flex-col items-center justify-start gap-3 px-4 py-2.5 sm:min-h-screen sm:justify-center sm:px-6 sm:py-8 lg:px-8">
+        <main class="mx-auto flex min-h-screen min-h-[100dvh] w-full max-w-7xl flex-col items-center justify-start gap-3 px-4 py-2.5 sm:justify-center sm:px-6 sm:py-8 lg:px-8">
             <div class="w-full max-w-[1200px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)]">
                 {{ $slot }}
             </div>
