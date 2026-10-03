@@ -411,8 +411,6 @@ public function updateShop(Request $request): RedirectResponse
         
         // Если телефон изменился
         if ($phone !== $shop->phone) {
-            $this->requireCurrentPassword($request);
-
             // Проверка уникальности среди магазинов
             $shopExists = Shop::where('phone', $phone)
                 ->where('id', '!=', $shop->id)
