@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Shop;
+use App\Services\PhoneAssignmentService;
 use App\Services\SellerPlanService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
@@ -18,11 +18,13 @@ use Illuminate\Validation\ValidationException;
 
 class RegisteredUserController extends Controller
 {
-    private const PHONE_MIN_LENGTH = 7;
-    private const PHONE_MAX_LENGTH = 15;
     private const ROLE_BUYER = 'buyer';
     private const ROLE_SELLER = 'seller';
     private const DEFAULT_SHOP_NAME = 'Мой магазин';
+
+    public function __construct(private readonly PhoneAssignmentService $phones)
+    {
+    }
 
     public function create()
     {
@@ -36,50 +38,36 @@ class RegisteredUserController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
         ]);
 
-        DB::beginTransaction();
-
         try {
-            // 1. Нормализация телефона
-            $phone = $this->normalizePhone($request->input('phone'));
+            $validatedData = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+                'role' => ['required', 'in:' . self::ROLE_BUYER . ',' . self::ROLE_SELLER],
+                'terms' => ['accepted'],
+            ]);
 
-            if ($request->filled('phone') && $phone === null) {
-                throw ValidationException::withMessages([
-                    'phone' => 'Неверный формат телефона'
-                ]);
-            }
+            $user = $this->phones->run(
+                $request->input('phone'),
+                function (?string $phone, PhoneAssignmentService $phones) use ($validatedData): User {
+                    $user = $this->createUser($validatedData);
 
-            // 2. Проверка уникальности телефона
-            if ($phone && $this->isPhoneAlreadyUsed($phone)) {
-                throw ValidationException::withMessages([
-                    'phone' => 'Этот телефон уже используется другим пользователем или магазином'
-                ]);
-            }
+                    if ($phone !== null) {
+                        $phones->assertAvailableForUser($phone, $user->id, $user->id);
+                        $user->forceFill(['phone' => $phone])->save();
+                    }
 
-            // 3. Валидация основных данных
-                $validatedData = $request->validate([
-                    'name' => ['required', 'string', 'max:255'],
-                    'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
-                    'password' => ['required', 'confirmed', Rules\Password::defaults()],
-                    'role' => ['required', 'in:' . self::ROLE_BUYER . ',' . self::ROLE_SELLER],
-                    'terms' => ['accepted'],
-                ]);
+                    if ($user->role === self::ROLE_SELLER) {
+                        $phones->assertAvailableForShop($phone, $user->id);
+                        $this->createShopForSeller($user, $phone);
+                    }
 
+                    event(new Registered($user));
+                    Auth::login($user);
 
-            // 4. Создание пользователя
-            $user = $this->createUser($validatedData, $phone);
-
-            // 5. Создание магазина для продавца
-            if ($user->role === self::ROLE_SELLER) {
-                $this->createShopForSeller($user, $phone);
-            }
-
-            // 6. Событие регистрации
-            event(new Registered($user));
-
-            // 7. Авторизация
-            Auth::login($user);
-
-            DB::commit();
+                    return $user;
+                },
+            );
 
             // 8. Логирование успеха
             $this->logSuccessfulRegistration($user);
@@ -89,11 +77,9 @@ class RegisteredUserController extends Controller
                 ->with('success', $this->getWelcomeMessage($user->role));
 
         } catch (ValidationException $e) {
-            DB::rollBack();
             throw $e;
             
         } catch (\Exception $e) {
-            DB::rollBack();
             $this->logRegistrationError($e, $request);
             
             return back()
@@ -104,29 +90,7 @@ class RegisteredUserController extends Controller
         }
     }
 
-    private function normalizePhone(?string $phone): ?string
-    {
-        if (empty($phone)) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', $phone);
-        
-        if (strlen($digits) < self::PHONE_MIN_LENGTH || 
-            strlen($digits) > self::PHONE_MAX_LENGTH) {
-            return null;
-        }
-
-        return '+' . $digits;
-    }
-
-    private function isPhoneAlreadyUsed(string $phone): bool
-    {
-        return User::where('phone', $phone)->exists() || 
-               Shop::where('phone', $phone)->exists();
-    }
-
-    private function createUser(array $data, ?string $phone): User
+    private function createUser(array $data): User
     {
         return User::create([
             'name' => $data['name'],
@@ -135,7 +99,7 @@ class RegisteredUserController extends Controller
             'password_set_at' => now(),
             'role' => $data['role'],
             'seller_plan' => SellerPlanService::STARTER,
-            'phone' => $phone,
+            'phone' => null,
         ]);
     }
 

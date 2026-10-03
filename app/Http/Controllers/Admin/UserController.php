@@ -13,6 +13,7 @@ use App\Services\SellerPlanService;
 use App\Services\AdminActivityLogger;
 use App\Services\ImageService;
 use App\Services\PasswordSecurityService;
+use App\Services\PhoneAssignmentService;
 use App\Services\UserTrustService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,8 @@ class UserController extends Controller
         private readonly SellerPlanService $sellerPlans,
         private readonly AdminActivityLogger $activity,
         private readonly ImageService $images,
-        private readonly PasswordSecurityService $passwordSecurity
+        private readonly PasswordSecurityService $passwordSecurity,
+        private readonly PhoneAssignmentService $phones,
     ) {
     }
 
@@ -222,17 +224,8 @@ class UserController extends Controller
             ]);
         }
 
-        // Нормализация телефона (единый метод)
-        $phone = $this->normalizePhone($request->phone);
-        $phoneChanged = $phone !== $user->phone;
-        
-        // Проверка уникальности телефона после нормализации
-        if ($phone && (
-            User::where('phone', $phone)->where('id', '!=', $user->id)->exists()
-            || Shop::where('phone', $phone)->where('user_id', '!=', $user->id)->exists()
-        )) {
-            return back()->withErrors(['phone' => 'Этот телефон уже используется'])->withInput();
-        }
+        $phone = $this->phones->normalize($request->phone);
+        $this->phones->assertAvailableForUser($phone, $user->id, $user->id);
 
         $sellerPlan = $request->role === 'seller'
             ? ($validated['seller_plan'] ?? SellerPlanService::STARTER)
@@ -247,15 +240,9 @@ class UserController extends Controller
         $userData = [
             'name'  => $request->name,
             'email' => $request->email,
-            'phone' => $phone,
             'role'  => $request->role,
             'seller_plan' => $sellerPlan,
         ];
-
-        if ($phoneChanged) {
-            $userData['phone_verified_at'] = null;
-            $userData['phone_verification_code'] = null;
-        }
 
         $password = $request->filled('password') ? $validated['password'] : null;
 
@@ -271,11 +258,11 @@ class UserController extends Controller
 
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
 
+        $this->phones->updateUser($user, $phone, $userData);
+        $user->refresh();
+
         if ($password !== null) {
-            $user->fill($userData);
             $this->passwordSecurity->rotate($user, $password);
-        } else {
-            $user->update($userData);
         }
 
         $after = $user->fresh()->only(['name', 'email', 'phone', 'role', 'seller_plan']);
@@ -333,63 +320,52 @@ class UserController extends Controller
             'avatar'   => ImageUploadConstraints::rules(2048),
         ]);
 
-        DB::beginTransaction();
-
         try {
-            // Нормализация телефона (единый метод)
-            $phone = $this->normalizePhone($request->phone);
-            
-            // Проверка уникальности телефона после нормализации
-            if ($phone && (
-                User::where('phone', $phone)->exists()
-                || Shop::where('phone', $phone)->exists()
-            )) {
-                throw ValidationException::withMessages([
-                    'phone' => 'Этот телефон уже используется',
-                ]);
-            }
-            
-            // Подготовка данных
-            $userData = [
-                'name'     => $request->name,
-                'email'    => $request->email,
-                'phone'    => $phone,
-                'password' => Hash::make($request->password),
-                'password_set_at' => now(),
-                'role'     => $request->role,
-                'seller_plan' => SellerPlanService::STARTER,
-            ];
+            $user = $this->phones->run(
+                $request->phone,
+                function (?string $phone, PhoneAssignmentService $phones) use ($request): User {
+                    $userData = [
+                        'name'     => $request->name,
+                        'email'    => $request->email,
+                        'phone'    => null,
+                        'password' => Hash::make($request->password),
+                        'password_set_at' => now(),
+                        'role'     => $request->role,
+                        'seller_plan' => SellerPlanService::STARTER,
+                    ];
 
-            if ($request->hasFile('avatar')) {
-                $userData['avatar'] = $this->images->upload($request->file('avatar'), 'avatars');
-            }
+                    if ($request->hasFile('avatar')) {
+                        $userData['avatar'] = $this->images->upload($request->file('avatar'), 'avatars');
+                    }
 
-            // Создание пользователя
-            $user = User::create($userData);
+                    $user = User::create($userData);
 
-            // Если продавец - создаем магазин
-            if ($user->role === 'seller') {
-                $this->createShopForSeller($user, $phone);
-            }
+                    if ($phone !== null) {
+                        $phones->assertAvailableForUser($phone, $user->id, $user->id);
+                        $user->forceFill(['phone' => $phone])->save();
+                    }
 
-            $this->activity->log('user.created', $user, 'Администратор создал пользователя.', [
-                'role' => $user->role,
-            ]);
+                    if ($user->role === 'seller') {
+                        $phones->assertAvailableForShop($phone, $user->id);
+                        $this->createShopForSeller($user, $phone);
+                    }
 
-            DB::commit();
+                    $this->activity->log('user.created', $user, 'Администратор создал пользователя.', [
+                        'role' => $user->role,
+                    ]);
+
+                    return $user;
+                },
+            );
 
             return redirect()
                 ->route('admin.users.index')
                 ->with('success', "Пользователь {$user->name} успешно создан");
 
         } catch (ValidationException $e) {
-            DB::rollBack();
-
             throw $e;
 
         } catch (Throwable $e) {
-            DB::rollBack();
-
             Log::error('Admin user creation failed', [
                 'error' => $e->getMessage(),
                 'exception' => get_class($e),
@@ -399,25 +375,6 @@ class UserController extends Controller
                 ->withInput()
                 ->withErrors(['error' => 'Не удалось создать пользователя. Проверьте данные и попробуйте позже.']);
         }
-    }
-
-    // 🔧 Единый метод нормализации телефона
-    private function normalizePhone(?string $phone): ?string
-    {
-        if (empty($phone)) {
-            return null;
-        }
-
-        // Удаляем все нецифровые символы
-        $digits = preg_replace('/\D+/', '', $phone);
-        
-        // Проверка длины (7-15 цифр)
-        if (strlen($digits) < 7 || strlen($digits) > 15) {
-            return null;
-        }
-
-        // Всегда храним в формате E.164 (с +)
-        return '+' . $digits;
     }
 
     private function wouldRemoveLastAdmin(User $user, string $newRole): bool

@@ -19,11 +19,16 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
 use App\Services\ImageService;
+use App\Services\PhoneAssignmentService;
 use Throwable;
 
 class ProfileController extends Controller
 {
     private const AVATAR_MAX_FILE_KILOBYTES = ImageUploadConstraints::MAX_FILE_KILOBYTES;
+
+    public function __construct(private readonly PhoneAssignmentService $phones)
+    {
+    }
 
     /* =========================
      * ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
@@ -125,21 +130,9 @@ class ProfileController extends Controller
             ]);
 
             $submittedPhone = ($data['phone_full'] ?? null) ?: $data['phone'];
-            $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
-            
-            if ($phone !== $user->phone) {
-                $userExists = User::where('phone', $phone)
-                    ->where('id', '!=', $user->id)
-                    ->exists();
+            $phoneChanged = $this->phones->assignToUser($user, $submittedPhone);
 
-                if (($userExists || $this->phoneExistsInAnotherShop($phone, $user)) && $phone) {
-                    return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
-                }
-
-                $user->phone = $phone;
-                $user->phone_verified_at = null;
-                $user->phone_verification_code = null;
-                $user->save();
+            if ($phoneChanged) {
                 $request->session()->forget('phone_verification_sent');
 
                 return back()->with('updated_fields', ['phone']);
@@ -169,26 +162,16 @@ class ProfileController extends Controller
 
             if ($request->boolean('phone_dirty')) {
                 $submittedPhone = ($data['phone_full'] ?? null) ?: $data['phone'];
-                $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
+                $normalizedPhone = $this->phones->normalize($submittedPhone);
 
-                if ($phone && !preg_match('/^\+\d{8,15}$/', $phone)) {
+                if ($normalizedPhone !== null && ! preg_match('/^\+\d{8,15}$/', $normalizedPhone)) {
                     return back()->withErrors(['phone' => 'Введите полный номер с кодом страны'])->withInput();
                 }
-                
-                if ($phone !== $user->phone) {
-                    $userExists = User::where('phone', $phone)
-                        ->where('id', '!=', $user->id)
-                        ->exists();
 
-                    if (($userExists || $this->phoneExistsInAnotherShop($phone, $user)) && $phone) {
-                        return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
-                    }
+                $phoneChanged = $this->phones->assignToUser($user, $normalizedPhone);
 
-                    $user->phone = $phone;
-                    $user->phone_verified_at = null;
-                    $user->phone_verification_code = null;
+                if ($phoneChanged) {
                     $updatedFields[] = 'phone';
-                    $changed = true;
                     $request->session()->forget('phone_verification_sent');
                 }
             }
@@ -241,22 +224,10 @@ class ProfileController extends Controller
 
         if ($request->has('phone')) {
             $submittedPhone = ($data['phone_full'] ?? null) ?: $data['phone'];
-            $phone = $submittedPhone ? '+' . preg_replace('/\D+/', '', $submittedPhone) : null;
-            
-            if ($phone !== $user->phone) {
-                $userExists = User::where('phone', $phone)
-                    ->where('id', '!=', $user->id)
-                    ->exists();
+            $phoneChanged = $this->phones->assignToUser($user, $submittedPhone);
 
-                if (($userExists || $this->phoneExistsInAnotherShop($phone, $user)) && $phone) {
-                    return back()->withErrors(['phone' => 'Этот номер уже используется'])->withInput();
-                }
-
-                $user->phone = $phone;
-                $user->phone_verified_at = null;
-                $user->phone_verification_code = null;
+            if ($phoneChanged) {
                 $updatedFields[] = 'phone';
-                $changed = true;
                 $request->session()->forget('phone_verification_sent');
             }
         }
@@ -401,45 +372,15 @@ public function updateShop(Request $request): RedirectResponse
         $data['banner'] = $newBannerPath;
     }
 
-    // Проверка телефона магазина
-    if (array_key_exists('phone', $data)) {
-        $phone = $data['phone'] !== null && $data['phone'] !== ''
-            ? '+' . preg_replace('/\D+/', '', $data['phone'])
-            : null;
+    $hasPhone = array_key_exists('phone', $data);
+    $submittedPhone = $hasPhone ? $data['phone'] : null;
+    unset($data['phone']);
 
-        // Если телефон изменился
-        if ($phone !== $shop->phone) {
-            if ($phone !== null) {
-                // Проверка уникальности среди магазинов
-                $shopExists = Shop::where('phone', $phone)
-                    ->where('id', '!=', $shop->id)
-                    ->exists();
-
-                if ($shopExists) {
-                    return back()->withErrors(['phone' => 'Этот номер уже используется другим магазином'])->withInput();
-                }
-
-                // Проверка уникальности среди пользователей
-                $userExists = User::where('phone', $phone)
-                    ->where('id', '!=', auth()->id())
-                    ->exists();
-
-                if ($userExists) {
-                    return back()->withErrors(['phone' => 'Этот номер уже привязан к аккаунту пользователя'])->withInput();
-                }
-            }
-
-            $data['phone'] = $phone;
-            $data['phone_verified_at'] = null;
-            $data['phone_verification_code'] = null;
-            $data['phone_verification_expires_at'] = null;
-        } else {
-            unset($data['phone']); // не меняем, если тот же
-        }
+    if ($hasPhone) {
+        $this->phones->updateShop($shop, $submittedPhone, $data);
+    } else {
+        $shop->update($data);
     }
-
-    // Обновляем основные поля
-    $shop->update($data);
 
     return Redirect::route('profile.edit')->with('status', 'shop-updated');
 }
@@ -480,17 +421,6 @@ private function requireCurrentPassword(Request $request): void
         'current_password.required' => 'Для изменения контактов подтвердите текущий пароль.',
         'current_password.current_password' => 'Текущий пароль введён неверно.',
     ]);
-}
-
-private function phoneExistsInAnotherShop(?string $phone, User $user): bool
-{
-    if (! $phone) {
-        return false;
-    }
-
-    return Shop::where('phone', $phone)
-        ->when($user->shop, fn ($query, Shop $shop) => $query->where('id', '!=', $shop->id))
-        ->exists();
 }
 
 private function avatarValidationRules(bool $required = false): array
