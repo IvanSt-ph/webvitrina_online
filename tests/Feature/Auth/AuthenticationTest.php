@@ -77,7 +77,7 @@ class AuthenticationTest extends TestCase
         $loginPage = $this->withCookie($trustedCookie->getName(), $trustedCookie->getValue())
             ->get('/login')
             ->assertOk()
-            ->assertSee('Запомненные аккаунты')
+            ->assertSee('Сохранённые аккаунты')
             ->assertSee('Remembered Buyer');
 
         preg_match('/name="selector" value="([^"]+)"/', $loginPage->getContent(), $selectorMatch);

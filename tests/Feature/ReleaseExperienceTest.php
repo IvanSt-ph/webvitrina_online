@@ -779,7 +779,7 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('Вопросы и ответы')
             ->assertSee('Для покупателей')
             ->assertSee('Для продавцов')
-            ->assertSee('Является ли оплата картой безопасной транзакцией?')
+            ->assertSee('Можно ли оплатить товар банковской картой через WebVitrina?')
             ->assertSee('Как начать продавать на WebVitrina?');
 
         $this->get(route('sitemap'))
@@ -793,18 +793,18 @@ class ReleaseExperienceTest extends TestCase
     public function test_legal_documents_are_public_and_substantial(): void
     {
         $documents = [
-            ['route' => 'legal.rules', 'text' => 'Правила площадки'],
-            ['route' => 'legal.privacy', 'text' => 'Политика конфиденциальности'],
-            ['route' => 'legal.delivery-returns', 'text' => 'Доставка, отмены и возвраты'],
-            ['route' => 'legal.seller-terms', 'text' => 'Условия для продавцов'],
+            ['route' => 'legal.rules', 'text' => 'Условия использования WebVitrina', 'section' => 'Назначение платформы'],
+            ['route' => 'legal.privacy', 'text' => 'Политика конфиденциальности', 'section' => 'Какие данные обрабатываются'],
+            ['route' => 'legal.delivery-returns', 'text' => 'Правила покупок, заказов и отмен', 'section' => 'Как создаётся заказ'],
+            ['route' => 'legal.seller-terms', 'text' => 'Правила для продавцов', 'section' => 'Размещение товаров'],
         ];
 
         foreach ($documents as $document) {
             $this->get(route($document['route']))
                 ->assertOk()
                 ->assertSee($document['text'])
-                ->assertSee('Дата редакции')
-                ->assertSee('06.06.2026');
+                ->assertSee($document['section'])
+                ->assertSee('Технический проект документа');
         }
     }
 
@@ -817,8 +817,8 @@ class ReleaseExperienceTest extends TestCase
 
         $this->get(route('contacts'))
             ->assertOk()
-            ->assertSee('Связаться с WebVitrina')
-            ->assertSee('+373 (778) 64495');
+            ->assertSee('Контакты WebVitrina')
+            ->assertSee('Пользователи с аккаунтом могут обратиться через чат поддержки.');
     }
 
     public function test_product_and_category_pages_include_seo_metadata(): void
@@ -1383,7 +1383,7 @@ class ReleaseExperienceTest extends TestCase
             ]);
     }
 
-    public function test_shop_banner_url_falls_back_when_file_is_missing(): void
+    public function test_shop_banner_url_is_built_without_a_filesystem_probe(): void
     {
         Storage::fake('public');
 
@@ -1395,7 +1395,7 @@ class ReleaseExperienceTest extends TestCase
             'banner' => 'banners/medium/missing.webp',
         ]);
 
-        $this->assertSame(asset('images/default-shop-banner.jpg'), $shop->banner_url);
+        $this->assertSame(asset('storage/banners/medium/missing.webp'), $shop->banner_url);
     }
 
     public function test_shop_update_clears_retail_media_cache(): void
@@ -1491,7 +1491,12 @@ class ReleaseExperienceTest extends TestCase
             ->assertSee('weekly-shop-track', false)
             ->assertSee('weekly-shop-marquee', false)
             ->assertDontSee('aria-label="Следующий магазин"', false)
-            ->assertSee(Storage::url('avatars/medium/seller-1.webp'), false)
+            ->assertSee(asset('storage/avatars/thumb/seller-1.webp'), false)
+            ->assertSee(json_encode([
+                asset('storage/avatars/thumb/seller-1.webp'),
+                asset('storage/avatars/medium/seller-1.webp'),
+                asset('images/avatar-placeholder.svg'),
+            ]))
             ->assertDontSee(Storage::url('banners/medium/shop-1.webp'), false);
     }
 
