@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class PhoneVerificationController extends Controller
 {
@@ -94,6 +95,13 @@ class PhoneVerificationController extends Controller
         ]);
 
         $user = Auth::user();
+        $expectedPhone = $this->normalizePhone($user->phone);
+
+        if ($expectedPhone === null) {
+            throw ValidationException::withMessages([
+                'code' => 'Номер телефона изменился или указан неверно. Запросите новый код.',
+            ]);
+        }
 
         if (!config('services.twilio.sid') || !config('services.twilio.token') || !$this->verifySid()) {
             throw ValidationException::withMessages([
@@ -119,13 +127,24 @@ class PhoneVerificationController extends Controller
                 ->services($this->verifySid())
                 ->verificationChecks
                 ->create([
-                    'to' => $user->phone,
+                    'to' => $expectedPhone,
                     'code' => $request->code
                 ]);
 
             if ($check->status === 'approved') {
-                $user->phone_verified_at = now();
-                $user->save();
+                $updated = User::query()
+                    ->whereKey($user->getKey())
+                    ->where('phone', $expectedPhone)
+                    ->update([
+                        'phone_verified_at' => now(),
+                        'phone_verification_code' => null,
+                    ]);
+
+                if ($updated !== 1) {
+                    return back()->withErrors([
+                        'code' => 'Номер телефона изменился. Запросите новый код для текущего номера.',
+                    ]);
+                }
 
                 // Очищаем сессию
                 session()->forget('phone_verification_sent');
@@ -151,5 +170,20 @@ class PhoneVerificationController extends Controller
                 'code' => 'Не удалось проверить код. Попробуйте позже.'
             ]);
         }
+    }
+
+    private function normalizePhone(?string $phone): ?string
+    {
+        if ($phone === null || $phone === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if ($digits === null || strlen($digits) < 7 || strlen($digits) > 15) {
+            return null;
+        }
+
+        return '+' . $digits;
     }
 }

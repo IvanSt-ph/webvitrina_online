@@ -402,32 +402,37 @@ public function updateShop(Request $request): RedirectResponse
     }
 
     // Проверка телефона магазина
-    $phoneChanged = false;
-    if (!empty($data['phone'])) {
-        $phone = '+' . preg_replace('/\D+/', '', $data['phone']);
-        
+    if (array_key_exists('phone', $data)) {
+        $phone = $data['phone'] !== null && $data['phone'] !== ''
+            ? '+' . preg_replace('/\D+/', '', $data['phone'])
+            : null;
+
         // Если телефон изменился
         if ($phone !== $shop->phone) {
-            // Проверка уникальности среди магазинов
-            $shopExists = Shop::where('phone', $phone)
-                ->where('id', '!=', $shop->id)
-                ->exists();
+            if ($phone !== null) {
+                // Проверка уникальности среди магазинов
+                $shopExists = Shop::where('phone', $phone)
+                    ->where('id', '!=', $shop->id)
+                    ->exists();
 
-            if ($shopExists) {
-                return back()->withErrors(['phone' => 'Этот номер уже используется другим магазином'])->withInput();
+                if ($shopExists) {
+                    return back()->withErrors(['phone' => 'Этот номер уже используется другим магазином'])->withInput();
+                }
+
+                // Проверка уникальности среди пользователей
+                $userExists = User::where('phone', $phone)
+                    ->where('id', '!=', auth()->id())
+                    ->exists();
+
+                if ($userExists) {
+                    return back()->withErrors(['phone' => 'Этот номер уже привязан к аккаунту пользователя'])->withInput();
+                }
             }
 
-            // Проверка уникальности среди пользователей
-            $userExists = User::where('phone', $phone)
-                ->where('id', '!=', auth()->id())
-                ->exists();
-
-            if ($userExists) {
-                return back()->withErrors(['phone' => 'Этот номер уже привязан к аккаунту пользователя'])->withInput();
-            }
-            
             $data['phone'] = $phone;
-            $phoneChanged = true;
+            $data['phone_verified_at'] = null;
+            $data['phone_verification_code'] = null;
+            $data['phone_verification_expires_at'] = null;
         } else {
             unset($data['phone']); // не меняем, если тот же
         }
@@ -435,15 +440,6 @@ public function updateShop(Request $request): RedirectResponse
 
     // Обновляем основные поля
     $shop->update($data);
-
-    // Если телефон изменился, сбрасываем верификацию через метод модели
-    if ($phoneChanged) {
-        $shop->update([
-            'phone_verified_at' => null,
-            'phone_verification_code' => null,
-            'phone_verification_expires_at' => null,
-        ]);
-    }
 
     return Redirect::route('profile.edit')->with('status', 'shop-updated');
 }

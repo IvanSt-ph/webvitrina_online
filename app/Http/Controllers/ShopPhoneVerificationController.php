@@ -105,6 +105,14 @@ class ShopPhoneVerificationController extends Controller
             ]);
         }
 
+        $expectedPhone = $this->normalizePhone($shop->phone);
+
+        if ($expectedPhone === null) {
+            throw ValidationException::withMessages([
+                'code' => 'Номер телефона магазина изменился или указан неверно. Запросите новый код.',
+            ]);
+        }
+
         if (!config('services.twilio.sid') || !config('services.twilio.token') || !$this->verifySid()) {
             throw ValidationException::withMessages([
                 'code' => 'SMS-подтверждение не настроено. Проверьте настройки Twilio.'
@@ -128,13 +136,25 @@ class ShopPhoneVerificationController extends Controller
                 ->services($this->verifySid())
                 ->verificationChecks
                 ->create([
-                    'to' => $shop->phone,
+                    'to' => $expectedPhone,
                     'code' => $request->code
                 ]);
 
             if ($check->status === 'approved') {
-                $shop->phone_verified_at = now();
-                $shop->save();
+                $updated = Shop::query()
+                    ->whereKey($shop->getKey())
+                    ->where('phone', $expectedPhone)
+                    ->update([
+                        'phone_verified_at' => now(),
+                        'phone_verification_code' => null,
+                        'phone_verification_expires_at' => null,
+                    ]);
+
+                if ($updated !== 1) {
+                    return back()->withErrors([
+                        'code' => 'Номер телефона магазина изменился. Запросите новый код для текущего номера.',
+                    ]);
+                }
 
                 session()->forget('shop_phone_verification_sent');
 
@@ -159,5 +179,20 @@ class ShopPhoneVerificationController extends Controller
                 'code' => 'Не удалось проверить код. Попробуйте позже.'
             ]);
         }
+    }
+
+    private function normalizePhone(?string $phone): ?string
+    {
+        if ($phone === null || $phone === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if ($digits === null || strlen($digits) < 7 || strlen($digits) > 15) {
+            return null;
+        }
+
+        return '+' . $digits;
     }
 }
