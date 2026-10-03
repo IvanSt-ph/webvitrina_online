@@ -17,9 +17,39 @@
     @endonce
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <style>
+        .auth-page-background {
+            background-color: #f8fafc;
+            background-image:
+                linear-gradient(rgba(248, 250, 252, 0.55), rgba(248, 250, 252, 0.55)),
+                url('/images/auth/webvitrina_auth_background_4k.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+        }
+
+        @media (max-width: 639px) {
+            .auth-page-background {
+                background-image:
+                    linear-gradient(rgba(248, 250, 252, 0.68), rgba(248, 250, 252, 0.68)),
+                    url('/images/auth/webvitrina_auth_background_4k.jpg');
+            }
+
+            .auth-register-page {
+                background-position: center center, right center;
+            }
+
+            .auth-register-page > main {
+                min-height: 100vh;
+                min-height: 100dvh;
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 
-<body class="overflow-x-hidden bg-slate-50 font-sans text-slate-900 antialiased">
+<body class="overflow-x-hidden bg-slate-50 font-sans text-slate-900 antialiased {{ request()->routeIs('login', 'register') ? 'auth-page-background' : '' }} {{ request()->routeIs('register') ? 'auth-register-page' : '' }}">
 
     <x-toast-stack />
 
