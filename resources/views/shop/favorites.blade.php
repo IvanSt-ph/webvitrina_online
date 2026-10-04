@@ -26,21 +26,19 @@
         this.selected = [];
       }
     }"
-    class="favorites-mobile-safe wv-page-shell max-w-none overflow-x-hidden pb-[5.5rem] sm:pb-8">
+    class="favorites-mobile-safe min-h-screen w-full space-y-5 overflow-x-hidden bg-white px-4 py-5 pb-24 text-neutral-800 sm:space-y-6 sm:px-6 sm:py-7 sm:pb-24 lg:px-8 lg:pb-8">
 
-    <header class="wv-page-header">
+    <header class="flex flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
       <div class="min-w-0">
-        <span class="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-rose-600 ring-1 ring-rose-100">
+        <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
           <i class="ri-heart-3-line"></i>
           Избранное
         </span>
-        <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Сохранённые товары</h1>
-        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Быстро возвращайтесь к товарам, добавляйте выбранное в корзину и отдельно видите позиции, которые больше нельзя купить.
-        </p>
+        <h1 class="mt-1 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-[28px]">Сохранённые товары</h1>
+        <p class="mt-1 max-w-2xl text-sm leading-6 text-neutral-500">Возвращайтесь к понравившимся товарам и добавляйте нужное в корзину.</p>
       </div>
 
-      <div class="grid w-full grid-cols-2 gap-2 lg:w-auto">
+      <div class="grid w-full grid-cols-2 gap-2 sm:w-auto">
         @if($items->isNotEmpty())
           <x-secondary-action type="button" @click="selectMode ? closeSelection() : selectMode = true">
             <span x-show="!selectMode" class="inline-flex items-center gap-2">
@@ -63,28 +61,28 @@
             <span>Корзина</span>
           </x-secondary-action>
         @else
-          <a href="{{ route('home') }}" class="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700 lg:w-44">
+          <x-action-button as="a" :href="route('home')" class="col-span-2 sm:w-44">
             <i class="ri-store-3-line"></i>
             Найти товары
-          </a>
+          </x-action-button>
         @endif
       </div>
     </header>
 
     @if($items->isNotEmpty())
-      <section x-show="selectMode" x-cloak class="rounded-2xl border border-indigo-100 bg-indigo-50 p-3 shadow-sm shadow-indigo-950/5 sm:p-4">
+      <section x-show="selectMode" x-cloak class="rounded-2xl border border-brand-100 bg-brand-50/70 p-3 shadow-sm shadow-brand-100/50 sm:p-4">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm font-semibold text-indigo-950">
+            <p class="text-sm font-semibold text-brand-950">
               <span x-text="selected.length"></span> выбрано
             </p>
-            <p class="mt-1 text-xs leading-5 text-indigo-700">
+            <p class="mt-1 text-xs leading-5 text-brand-700">
               Добавим выбранные товары в корзину. В избранном они останутся, чтобы вы могли вернуться к ним позже.
             </p>
           </div>
 
           <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-            <button type="button" @click="selectAll" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100">
+            <button type="button" @click="selectAll" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">
               <i class="ri-checkbox-circle-line"></i>
               <span x-text="selected.length === allIds.length ? 'Снять всё' : 'Выбрать всё'"></span>
             </button>
@@ -105,7 +103,7 @@
     @endif
 
     @if($unavailableItems->isNotEmpty())
-      <section class="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70">
+      <section class="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/70">
         <div class="border-b border-amber-100 px-4 py-3 sm:px-5">
           <h2 class="font-semibold text-amber-900">Больше недоступны</h2>
           <p class="mt-1 text-sm text-amber-700">Эти товары сохранены в избранном, но сейчас их нельзя купить.</p>
@@ -138,14 +136,10 @@
          title="{{ $unavailableItems->isNotEmpty() ? 'Нет доступных товаров' : 'Здесь пока пусто' }}"
          description="{{ $unavailableItems->isNotEmpty() ? 'Недоступные позиции сохранены выше, пока вы сами их не удалите.' : 'Сохраняйте понравившиеся товары, чтобы быстро вернуться к ним.' }}"
       >
-        <a href="{{ route('home') }}"
-           class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:px-8">
-          <span class="relative z-10 flex items-center gap-2">
-            <i class="ri-arrow-left-s-line"></i>
-            <span>В каталог</span>
-          </span>
-          <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-        </a>
+        <x-action-button as="a" :href="route('home')">
+          <i class="ri-arrow-left-s-line"></i>
+          <span>В каталог</span>
+        </x-action-button>
       </x-empty-state>
 
     @else
@@ -167,78 +161,65 @@
             $itemCurrencySymbol = $currentPrice['symbol'] ?? $currencySymbol;
           @endphp
 
-          <div class="fav-card group relative min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-200 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-950/5"
-               :class="selectMode && selected.includes('{{ $f->id }}') ? 'border-indigo-300 bg-indigo-50/60 shadow-md' : ''"
+          <div class="fav-card group relative min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-all duration-200 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-100/40"
+               :class="selectMode && selected.includes('{{ $f->id }}') ? 'border-brand-300 bg-brand-50/60 shadow-md' : ''"
                data-fav-card data-id="{{ $p->id }}" data-favorite-id="{{ $f->id }}">
 
-            {{-- Мобильная версия: фото 50px, справа название+цена, внизу кнопки --}}
+            {{-- Мобильная версия --}}
             <div class="block sm:hidden">
-              <div class="p-3">
-                {{-- Верхняя строка: фото + информация --}}
-                <div class="grid min-w-0 grid-cols-[auto_48px_minmax(0,1fr)_auto] gap-3">
-                  <button type="button"
-                          x-show="selectMode"
-                          x-cloak
-                          @click="toggleSelect('{{ $f->id }}')"
-                          class="mt-2 flex h-8 w-8 items-center justify-center rounded-xl border bg-white shadow-sm transition"
-                          :class="selected.includes('{{ $f->id }}') ? 'border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400'">
-                    <i :class="selected.includes('{{ $f->id }}') ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
-                  </button>
+              <div class="relative p-3">
+                <button type="button"
+                        x-show="selectMode"
+                        x-cloak
+                        @click="toggleSelect('{{ $f->id }}')"
+                        class="absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-xl border bg-white shadow-md transition"
+                        :class="selected.includes('{{ $f->id }}') ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-200 text-neutral-400'">
+                  <i :class="selected.includes('{{ $f->id }}') ? 'ri-check-line' : 'ri-checkbox-blank-line'"></i>
+                </button>
 
-                  {{-- Фото 50x50 --}}
+                <div class="grid min-w-0 grid-cols-[76px_minmax(0,1fr)] gap-3">
                   <a href="{{ route('product.show', $p) }}"
-                     class="relative flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
+                     class="relative h-[76px] w-[76px] flex-shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50">
                     @if($p->image)
                       <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}"
-                           class="w-full h-full object-cover"
+                           class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                            alt="{{ $p->title }}">
                     @else
-                      <div class="w-full h-full flex items-center justify-center text-lg text-gray-300">
+                      <div class="flex h-full w-full items-center justify-center text-xl text-neutral-300">
                         <i class="ri-image-line"></i>
                       </div>
                     @endif
 
                     @if($addedId === (int) $p->id)
-                      <div class="absolute -top-1 -right-1 bg-emerald-500 text-white text-[8px] font-medium px-1 py-0.5 rounded-full">
-                        ✓
-                      </div>
+                      <span class="absolute bottom-1 left-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">В корзине</span>
+                    @endif
+                    @if($discountPercent)
+                      <span class="absolute right-1 top-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[9px] font-bold text-white">-{{ $discountPercent }}%</span>
                     @endif
                   </a>
 
-                  {{-- Название и цена --}}
-                  <div class="flex-1 min-w-0">
+                  <div class="min-w-0">
                     <a href="{{ route('product.show', $p) }}"
-                       class="text-sm font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug"
+                       class="line-clamp-2 break-words text-base font-medium leading-snug text-neutral-900 transition hover:text-brand-600"
                        style="overflow-wrap: anywhere;">
                       {{ $shortProductTitle }}
                     </a>
-                    <div class="mt-1">
+                    <div class="mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
                       @if($oldPrice && $oldPrice > $price)
-                        <span class="text-[9px] text-gray-400 line-through mr-1">
+                        <span class="text-xs text-neutral-400 line-through">
                           {{ number_format($oldPrice, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
                         </span>
                       @endif
-                      <span class="text-sm font-bold text-gray-900">
-                        {{ number_format($price, 0, ',', ' ') }}
+                      <span class="text-lg font-bold text-neutral-900">
+                        {{ number_format($price, 0, ',', ' ') }} <span class="text-xs font-normal text-neutral-500">{{ $itemCurrencySymbol }}</span>
                       </span>
-                  <span class="text-[9px] text-gray-400">{{ $itemCurrencySymbol }}</span>
-                      <span class="ml-1 text-[10px] text-gray-400">за шт.</span>
+                      <span class="text-xs text-neutral-400">за шт.</span>
                     </div>
                   </div>
-
-                  {{-- Discount badge если есть --}}
-                  @if($discountPercent)
-                    <div class="flex-shrink-0">
-                      <span class="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                        -{{ $discountPercent }}%
-                      </span>
-                    </div>
-                  @endif
                 </div>
 
-                {{-- Кнопки под информацией на всю ширину --}}
-                <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-2 mt-3">
-                  <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form flex-1">
+                <div class="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_40px] items-center gap-2 border-t border-neutral-100 pt-3">
+                  <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form min-w-0">
                     @csrf
                     <x-action-button size="sm" :full="true">
                       <i class="ri-shopping-cart-line text-sm"></i>
@@ -246,11 +227,9 @@
                     </x-action-button>
                   </form>
 
-                  <form method="POST" action="{{ route('checkout.quick', $p->id) }}" class="flex-1">
+                  <form method="POST" action="{{ route('checkout.quick', $p->id) }}" class="min-w-0">
                     @csrf
-                    <button class="w-full py-2 flex items-center justify-center gap-1.5
-                                   border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 
-                                   text-gray-600 rounded-xl transition-all duration-200 hover:bg-indigo-50 text-xs font-semibold">
+                    <button class="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-2 text-xs font-semibold text-neutral-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
                       <i class="ri-flashlight-line text-sm"></i>
                       <span>Купить</span>
                     </button>
@@ -259,7 +238,7 @@
                   <form method="POST" action="{{ route('favorites.toggle', $p) }}" class="js-fav-remove-form">
                     @csrf
                     <button type="submit"
-                      class="w-8 h-8 flex items-center justify-center text-rose-500 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all duration-200 rounded-xl">
+                      class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-500 transition hover:bg-rose-100">
                       <i class="ri-delete-bin-6-line text-sm"></i>
                     </button>
                   </form>
@@ -268,19 +247,19 @@
             </div>
 
             {{-- Десктопная версия: строка --}}
-            <div class="hidden sm:flex items-center gap-3 p-4">
+            <div class="hidden items-center gap-4 p-4 sm:flex lg:p-5">
               <button type="button"
                       x-show="selectMode"
                       x-cloak
                       @click="toggleSelect('{{ $f->id }}')"
                       class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm transition"
-                      :class="selected.includes('{{ $f->id }}') ? 'border-indigo-500 text-indigo-600' : 'border-slate-200 text-slate-400'">
-                <i :class="selected.includes('{{ $f->id }}') ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
+                      :class="selected.includes('{{ $f->id }}') ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-200 text-neutral-400'">
+                <i :class="selected.includes('{{ $f->id }}') ? 'ri-check-line' : 'ri-checkbox-blank-line'"></i>
               </button>
               
               {{-- Product image --}}
               <a href="{{ route('product.show', $p) }}"
-                 class="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-100">
+                 class="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50 lg:h-24 lg:w-24">
                 @if($p->image)
                   <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}"
                        class="w-full h-full object-cover transition-transform duration-400 group-hover:scale-105"
@@ -307,13 +286,13 @@
               {{-- Product info --}}
               <div class="flex-1 min-w-0">
                 <a href="{{ route('product.show', $p) }}"
-                   class="text-base font-medium text-gray-800 hover:text-indigo-600 transition line-clamp-2 break-words leading-snug"
+                   class="line-clamp-2 break-words text-base font-medium leading-snug text-neutral-900 transition hover:text-brand-600 lg:text-lg"
                    style="overflow-wrap: anywhere;">
                   {{ $p->title }}
                 </a>
                 
                 @if($p->short_description)
-                  <p class="text-xs text-gray-400 line-clamp-1 mt-0.5">
+                  <p class="mt-1 line-clamp-1 text-xs text-neutral-500">
                     {{ Str::limit($p->short_description, 60) }}
                   </p>
                 @endif
@@ -324,7 +303,7 @@
                       {{ number_format($oldPrice, 0, ',', ' ') }} {{ $itemCurrencySymbol }}
                     </span>
                   @endif
-                  <span class="text-xl font-bold text-gray-900">
+                  <span class="text-xl font-bold text-neutral-900">
                     {{ number_format($price, 0, ',', ' ') }}
                   </span>
                   <span class="text-xs text-gray-400">{{ $itemCurrencySymbol }}</span>
@@ -333,7 +312,7 @@
               </div>
 
               {{-- Actions --}}
-              <div class="flex items-center gap-2 flex-shrink-0">
+              <div class="flex flex-shrink-0 items-center gap-2">
                 <form method="POST" action="{{ route('cart.add', $p->id) }}" class="js-add-to-cart-form">
                   @csrf
                   <x-action-button size="sm">
@@ -344,9 +323,7 @@
 
                 <form method="POST" action="{{ route('checkout.quick', $p->id) }}">
                   @csrf
-                  <button class="px-3 py-2 flex items-center justify-center gap-1.5
-                                 border border-gray-200 hover:border-indigo-300 hover:text-indigo-600 
-                                 text-gray-600 rounded-xl transition-all duration-200 hover:bg-indigo-50 text-sm font-semibold">
+                  <button class="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-600 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700">
                     <i class="ri-flashlight-line text-sm"></i>
                     <span>Купить</span>
                   </button>
@@ -355,7 +332,7 @@
                 <form method="POST" action="{{ route('favorites.toggle', $p) }}" class="js-fav-remove-form">
                   @csrf
                   <button type="submit"
-                    class="w-9 h-9 flex items-center justify-center text-rose-500 bg-rose-50 border border-rose-100 hover:bg-rose-100 transition-all duration-200 rounded-xl">
+                    class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-500 transition hover:bg-rose-100">
                     <i class="ri-delete-bin-6-line text-base"></i>
                   </button>
                 </form>

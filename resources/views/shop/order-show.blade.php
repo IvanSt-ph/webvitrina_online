@@ -10,7 +10,7 @@
         'completed'   => 6,
     ];
 
-    $active = $steps[$order->status] ?? 1;
+    $active = $order->status === \App\Models\Order::STATUS_CANCELED ? 0 : ($steps[$order->status] ?? 1);
 
     $stepLabels = [
         1 => 'Новый заказ',
@@ -61,7 +61,7 @@
 @endphp
 
 
-<div class="order-show-mobile-safe wv-page min-h-screen w-full max-w-full overflow-x-hidden pb-[5.5rem]" style="max-width:100vw;">
+<div class="order-show-mobile-safe min-h-screen w-full max-w-full overflow-x-hidden bg-white px-4 py-5 pb-24 text-neutral-900 sm:px-6 sm:py-7 sm:pb-24 lg:px-8 lg:pb-8" style="max-width:100vw;">
 <div class="w-full max-w-none space-y-5 overflow-hidden sm:space-y-6">
 
     <!-- 🔙 Навигация -->
@@ -72,38 +72,39 @@
             ['label' => 'Заказ ' . $order->number],
         ]" />
 
-        <span class="min-w-0 truncate text-xs text-slate-400">
+        <span class="min-w-0 truncate text-xs text-neutral-400">
             Создан: {{ $order->created_at->format('d.m.Y H:i') }}
         </span>
     </div>
 
 
     <!-- 🧾 Заголовок заказа -->
-    <div class="wv-page-header grid w-full max-w-full min-w-0 overflow-hidden sm:flex">
+    <header class="flex w-full max-w-full min-w-0 flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
 
         <div class="flex min-w-0 items-start gap-3">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-xl text-white shadow-sm shadow-indigo-600/20">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-xl text-white shadow-md shadow-brand-200">
                 <i class="ri-shopping-bag-3-line text-xl"></i>
             </div>
             <div class="min-w-0">
-            <h1 class="truncate text-2xl font-bold text-slate-950">
+            <div class="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">Детали заказа</div>
+            <h1 class="mt-0.5 truncate text-2xl font-semibold tracking-tight text-neutral-900 sm:text-[28px]">
                 Заказ {{ $order->number }}
             </h1>
 
-            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-slate-500">
+            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-neutral-500">
                 Статус:
                 <x-status-badge :status="$order->status" class="max-w-full truncate px-2 sm:px-3" />
             </div>
             </div>
         </div>
 
-        <div class="min-w-0 sm:shrink-0 sm:text-right">
-            <div class="text-sm text-slate-500">Итоговая сумма:</div>
-            <div class="mt-1 truncate text-2xl font-bold text-slate-950">
+        <div class="min-w-0 rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 sm:shrink-0 sm:text-right">
+            <div class="text-xs font-medium text-brand-600">Итоговая сумма</div>
+            <div class="mt-0.5 truncate text-2xl font-bold text-brand-900">
                 {{ number_format($order->total_price, 2, ',', ' ') }} {{ $order->currency }}
             </div>
         </div>
-    </div>
+    </header>
 
 
     <!-- 🔵 Прогресс бар (6 шагов) -->
@@ -112,14 +113,18 @@
         <div class="sm:hidden">
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">Статус заказа</div>
-                    <div class="mt-1 text-base font-bold text-slate-950">{{ $stepLabels[$active] ?? $order->status_ru }}</div>
+                    <div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Статус заказа</div>
+                    <div class="mt-1 text-base font-semibold text-neutral-900">{{ $stepLabels[$active] ?? $order->status_ru }}</div>
                 </div>
-                <div class="rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">{{ $active }}/6</div>
+                @if($active > 0)
+                    <div class="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{{ $active }}/6</div>
+                @else
+                    <div class="rounded-full bg-rose-50 px-3 py-1 text-sm font-bold text-rose-700">Отменён</div>
+                @endif
             </div>
             <div class="mt-4 grid grid-cols-6 gap-1">
                 @foreach($stepLabels as $step => $text)
-                    <div class="h-2 rounded-full {{ $step <= $active ? 'bg-indigo-600' : 'bg-slate-200' }}"></div>
+                    <div class="h-2 rounded-full {{ $step <= $active ? 'bg-brand-500' : 'bg-neutral-200' }}"></div>
                 @endforeach
             </div>
         </div>
@@ -130,7 +135,7 @@
 
                 <div>
                     <div class="w-10 h-10 mx-auto flex items-center justify-center rounded-full
-                        {{ $step <= $active ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500' }}">
+                        {{ $step <= $active ? 'bg-brand-500 text-white' : 'bg-neutral-200 text-neutral-500' }}">
                         {{ $step }}
                     </div>
 
@@ -144,7 +149,7 @@
         <!-- Полоски между кружками -->
         <div class="hidden sm:flex justify-between -mt-5 px-4">
             @foreach(range(1,5) as $line)
-                <div class="w-1/5 h-1 {{ $line < $active ? 'bg-indigo-600' : 'bg-gray-200' }}"></div>
+                <div class="h-1 w-1/5 {{ $line < $active ? 'bg-brand-500' : 'bg-neutral-200' }}"></div>
             @endforeach
         </div>
 
@@ -153,12 +158,12 @@
 
     <x-order-timeline :order="$order" />
 
-    <section class="rounded-2xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/60 p-4 shadow-sm sm:p-6">
+    <section class="rounded-2xl border border-brand-100 bg-brand-50/60 p-4 sm:p-5">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="min-w-0">
-                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Что делать дальше</p>
-                <h2 class="mt-1 text-xl font-bold text-slate-950">{{ $nextActionTitle }}</h2>
-                <p class="mt-2 max-w-3xl text-sm text-slate-600">{{ $nextActionHint }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">Что делать дальше</p>
+                <h2 class="mt-1 text-xl font-semibold text-neutral-900">{{ $nextActionTitle }}</h2>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">{{ $nextActionHint }}</p>
             </div>
 
             <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
@@ -172,14 +177,14 @@
                     </form>
                 @elseif($canReview)
                     <a href="{{ $order->items->first()?->product ? route('product.show', $order->items->first()->product->slug) . '#reviews' : route('orders.index') }}"
-                       class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+                       class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-200 transition hover:bg-brand-600">
                         <i class="ri-star-line"></i>
                         Оставить отзыв
                     </a>
                 @elseif($primaryChatProduct)
                     <form method="POST" action="{{ route('orders.chat.product', [$order, $primaryChatProduct]) }}" class="w-full sm:w-auto">
                         @csrf
-                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto">
+                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-200 transition hover:bg-brand-600 sm:w-auto">
                             <i class="ri-chat-3-line"></i>
                             Написать продавцу
                         </button>
@@ -187,7 +192,7 @@
                 @else
                     <form method="POST" action="{{ route('orders.support', $order) }}" class="w-full sm:w-auto">
                         @csrf
-                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto">
+                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-200 transition hover:bg-brand-600 sm:w-auto">
                             <i class="ri-customer-service-2-line"></i>
                             Поддержка
                         </button>
@@ -199,19 +204,19 @@
 
 
     <!-- ℹ Информация магазина / доставка / оплата -->
-    <div class="grid w-full min-w-0 gap-4 overflow-hidden sm:grid-cols-3 sm:gap-6">
+    <div class="grid w-full min-w-0 gap-4 overflow-hidden md:grid-cols-3">
 
 <!-- Магазин -->
-<div class="wv-card min-w-0 p-4 sm:p-6">
-    <h3 class="mb-3 flex items-center gap-2 font-semibold text-slate-950">
-        <i class="ri-store-2-line text-indigo-500"></i>
+<div class="wv-card min-w-0 p-4 sm:p-5">
+    <h3 class="mb-3 flex items-center gap-2 font-semibold text-neutral-900">
+        <i class="ri-store-2-line text-brand-500"></i>
         Продавец
     </h3>
 
     @if($order->seller)
-        <p class="break-words text-sm font-semibold text-slate-800">{{ $shop?->name ?? $order->seller->name }}</p>
+        <p class="break-words text-sm font-semibold text-neutral-800">{{ $shop?->name ?? $order->seller->name }}</p>
         @if($shop)
-            <a href="{{ route('seller.show', $shop->slug) }}" class="mt-2 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700">
+            <a href="{{ route('seller.show', $shop->slug) }}" class="mt-2 inline-flex text-sm font-medium text-brand-600 hover:text-brand-700">
                 Открыть магазин
             </a>
         @endif
@@ -222,9 +227,9 @@
 
 
         <!-- Доставка -->
-        <div class="wv-card min-w-0 max-w-full overflow-hidden p-4 sm:p-6">
-            <h3 class="mb-3 flex items-center gap-2 font-semibold text-slate-950">
-                <i class="ri-truck-line text-indigo-500"></i>
+        <div class="wv-card min-w-0 max-w-full overflow-hidden p-4 sm:p-5">
+            <h3 class="mb-3 flex items-center gap-2 font-semibold text-neutral-900">
+                <i class="ri-truck-line text-brand-500"></i>
                 Доставка
             </h3>
 
@@ -250,9 +255,9 @@
         </div>
 
         <!-- Оплата -->
-        <div class="wv-card min-w-0 max-w-full overflow-hidden p-4 sm:p-6">
-            <h3 class="mb-3 flex items-center gap-2 font-semibold text-slate-950">
-                <i class="ri-bank-card-line text-indigo-500"></i>
+        <div class="wv-card min-w-0 max-w-full overflow-hidden p-4 sm:p-5">
+            <h3 class="mb-3 flex items-center gap-2 font-semibold text-neutral-900">
+                <i class="ri-bank-card-line text-brand-500"></i>
                 Оплата
             </h3>
             <p class="break-words text-sm text-slate-700">
@@ -272,8 +277,8 @@
     <!-- 🛒 Состав заказа -->
     <div class="wv-card w-full max-w-full overflow-hidden">
 
-        <div class="px-4 sm:px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-slate-950">Товары в заказе</h3>
+        <div class="border-b border-neutral-200 px-4 py-4 sm:px-5">
+            <h3 class="text-lg font-semibold text-neutral-900">Товары в заказе</h3>
         </div>
 
         <div class="divide-y">
@@ -282,12 +287,12 @@
                     $itemTitle = $item->product->title ?? 'Товар удалён';
                     $shortItemTitle = \Illuminate\Support\Str::limit($itemTitle, 14);
                 @endphp
-                <div class="grid w-full min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:flex sm:items-center sm:gap-4 sm:p-6">
+                <div class="grid w-full min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:flex sm:items-center sm:gap-4 sm:p-5">
 
                     @if($item->product)
                         <img data-image-candidates="{{ json_encode($item->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->product->image_thumb_url }}"
                              alt="{{ $item->product->title }}"
-                             class="w-16 h-16 sm:w-24 sm:h-24 rounded-xl object-cover border shrink-0">
+                             class="h-16 w-16 shrink-0 rounded-xl border border-neutral-200 object-cover sm:h-24 sm:w-24">
                     @else
                         <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-xl border bg-gray-100 flex items-center justify-center shrink-0 text-gray-400">
                             <i class="ri-image-off-line text-2xl"></i>
@@ -328,9 +333,9 @@
             @endforeach
         </div>
 
-        <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-6">
-            <div class="text-sm text-slate-500">Итого:</div>
-            <div class="min-w-0 truncate text-right text-xl font-bold text-slate-950">
+        <div class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-brand-100 bg-brand-50/60 px-4 py-4 sm:px-5">
+            <div class="text-sm text-neutral-500">Итого:</div>
+            <div class="min-w-0 truncate text-right text-xl font-bold text-neutral-900">
                 {{ number_format($order->total_price, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}
             </div>
         </div>
@@ -342,23 +347,23 @@
     <div class="grid w-full min-w-0 max-w-full grid-cols-1 gap-3 overflow-hidden sm:flex sm:flex-row sm:flex-wrap">
 
         <a href="{{ route('orders.index') }}"
-           class="flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 sm:w-auto sm:px-5">
+           class="flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 shadow-sm transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 sm:w-auto sm:px-5">
             <i class="ri-arrow-left-line shrink-0"></i>
             <span class="min-w-0 truncate">Назад</span>
         </a>
 
-        @if($chatProducts->count() === 1)
+        @if($chatProducts->count() === 1 && ($canConfirmDelivery || $canReview))
             <form method="POST" action="{{ route('orders.chat.product', [$order, $chatProducts->first()]) }}" class="w-full sm:w-auto">
                 @csrf
                 <button type="submit"
-                        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:px-5">
+                        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-200 transition hover:bg-brand-600 sm:px-5">
                     <i class="ri-chat-3-line shrink-0"></i>
                     <span>Написать продавцу</span>
                 </button>
             </form>
         @elseif($chatProducts->count() > 1)
             <a href="#order-product-chats"
-               class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto sm:px-5">
+               class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-200 transition hover:bg-brand-600 sm:w-auto sm:px-5">
                 <i class="ri-chat-3-line shrink-0"></i>
                 <span>Написать о товаре</span>
             </a>
@@ -367,22 +372,11 @@
         <form method="POST" action="{{ route('orders.support', $order) }}" class="w-full sm:w-auto">
             @csrf
             <button type="submit"
-                    class="flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 sm:px-5">
+                    class="flex h-11 w-full max-w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 shadow-sm transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 sm:px-5">
                 <i class="ri-customer-service-2-line shrink-0"></i>
                 <span>Обратиться в поддержку</span>
             </button>
         </form>
-
-        @if($canConfirmDelivery)
-            <form method="POST" action="{{ route('orders.confirmDelivery', $order) }}" class="w-full sm:w-auto">
-                @csrf
-                <button type="submit"
-                        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 sm:px-5">
-                    <i class="ri-checkbox-circle-line shrink-0"></i>
-                    <span>Подтвердить получение</span>
-                </button>
-            </form>
-        @endif
 
     </div>
 
@@ -395,14 +389,14 @@
             @endif
         </section>
     @elseif($canRequestCancellation)
-        <section class="wv-card p-4 sm:p-6">
-            <h3 class="font-semibold text-slate-950">Нужно отменить заказ?</h3>
-            <p class="mt-1 text-sm text-slate-500">Пока товар не отправлен, можно направить продавцу запрос на отмену.</p>
+        <section class="wv-card p-4 sm:p-5">
+            <h3 class="font-semibold text-neutral-900">Нужно отменить заказ?</h3>
+            <p class="mt-1 text-sm text-neutral-500">Пока товар не отправлен, можно направить продавцу запрос на отмену.</p>
             <form method="POST" action="{{ route('orders.requestCancellation', $order) }}" class="mt-4 max-w-xl space-y-3">
                 @csrf
                 <textarea name="cancellation_reason" rows="3" required maxlength="700"
                           placeholder="Напишите причину отмены"
-                          class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">{{ old('cancellation_reason') }}</textarea>
+                          class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100">{{ old('cancellation_reason') }}</textarea>
                 @error('cancellation_reason')
                     <p class="text-sm text-rose-600">{{ $message }}</p>
                 @enderror
@@ -425,11 +419,11 @@
             @endif
         </section>
     @else
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+        <section class="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <h3 class="font-semibold text-slate-900">Возникла проблема с заказом?</h3>
-                    <p class="mt-1 max-w-2xl text-sm text-slate-500">
+                    <h3 class="font-semibold text-neutral-900">Возникла проблема с заказом?</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-neutral-500">
                         Если отмены или обычного сообщения продавцу недостаточно, откройте спор. Его увидят продавец и поддержка.
                     </p>
                 </div>
@@ -437,9 +431,9 @@
                     <summary class="cursor-pointer rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-center text-sm font-semibold text-rose-700">
                         Открыть спор
                     </summary>
-                    <form method="POST" action="{{ route('orders.disputes.store', $order) }}" class="mt-3 space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <form method="POST" action="{{ route('orders.disputes.store', $order) }}" class="mt-3 space-y-3 rounded-xl border border-neutral-100 bg-neutral-50 p-3">
                         @csrf
-                        <select name="reason" required class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
+                        <select name="reason" required class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100">
                             <option value="">Выберите причину</option>
                             <option value="Товар не получен">Товар не получен</option>
                             <option value="Товар не соответствует описанию">Товар не соответствует описанию</option>
@@ -448,7 +442,7 @@
                             <option value="Другое">Другое</option>
                         </select>
                         <textarea name="details" rows="3" maxlength="1200" placeholder="Опишите ситуацию для поддержки"
-                                  class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"></textarea>
+                                  class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100"></textarea>
                         <button class="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700">
                             Отправить спор
                         </button>
@@ -459,15 +453,15 @@
     @endif
 
     @if($chatProducts->count() > 1)
-        <section id="order-product-chats" class="w-full max-w-full overflow-hidden rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
-            <h3 class="font-semibold text-gray-900">Написать продавцу о товаре</h3>
-            <p class="mt-1 text-sm text-gray-500">Выберите позицию: её карточка и ссылка сразу появятся в чате.</p>
+        <section id="order-product-chats" class="w-full max-w-full overflow-hidden rounded-2xl border border-brand-100 bg-brand-50/50 p-4 shadow-sm sm:p-5">
+            <h3 class="font-semibold text-neutral-900">Написать продавцу о товаре</h3>
+            <p class="mt-1 text-sm text-neutral-500">Выберите позицию: её карточка и ссылка сразу появятся в чате.</p>
             <div class="mt-4 grid gap-2 sm:grid-cols-2">
                 @foreach($chatProducts as $product)
                     <form method="POST" action="{{ route('orders.chat.product', [$order, $product]) }}">
                         @csrf
                         <button type="submit"
-                                class="flex h-12 w-full min-w-0 items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-left text-sm font-medium text-indigo-700 transition hover:bg-indigo-100">
+                                class="flex h-12 w-full min-w-0 items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 text-left text-sm font-medium text-brand-700 transition hover:bg-brand-100">
                             <i class="ri-chat-3-line shrink-0"></i>
                             <span class="truncate">{{ $product->title }}</span>
                         </button>
@@ -478,14 +472,14 @@
     @endif
 
     @if($canReview)
-        <section class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-6">
-            <h3 class="font-semibold text-slate-950">Оставить отзыв о покупке</h3>
-            <p class="mt-1 text-sm text-slate-500">Выберите товар, чтобы оценить его на странице товара.</p>
+        <section class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-5">
+            <h3 class="font-semibold text-neutral-900">Оставить отзыв о покупке</h3>
+            <p class="mt-1 text-sm text-neutral-500">Выберите товар, чтобы оценить его на странице товара.</p>
             <div class="mt-4 flex flex-wrap gap-2">
                 @foreach($order->items as $item)
                     @if($item->product)
                         <a href="{{ route('product.show', $item->product->slug) }}#reviews"
-                           class="inline-flex h-10 max-w-full items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-sm font-medium text-indigo-700 hover:bg-indigo-100">
+                           class="inline-flex h-10 max-w-full items-center gap-2 rounded-xl border border-brand-100 bg-brand-50 px-3 text-sm font-medium text-brand-700 hover:bg-brand-100">
                             <i class="ri-star-line shrink-0"></i>
                             <span class="truncate">{{ $item->product->title }}</span>
                         </a>
@@ -495,24 +489,24 @@
         </section>
     @endif
 
-    <section class="w-full max-w-full overflow-hidden rounded-xl border border-indigo-100 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+    <section class="w-full max-w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="flex items-center justify-between gap-3">
             <div>
-                <h3 class="font-semibold text-gray-900">Продолжить покупки</h3>
-                <p class="mt-1 text-sm text-gray-500">Похожие товары, магазин продавца и чат всегда под рукой.</p>
+                <h3 class="font-semibold text-neutral-900">Продолжить покупки</h3>
+                <p class="mt-1 text-sm text-neutral-500">Похожие товары, магазин продавца и чат всегда под рукой.</p>
             </div>
             @if($shop)
-                <a href="{{ route('seller.show', $shop->slug) }}" class="hidden text-sm font-semibold text-indigo-600 hover:text-indigo-700 sm:inline-flex">
+                <a href="{{ route('seller.show', $shop->slug) }}" class="hidden text-sm font-semibold text-brand-600 hover:text-brand-700 sm:inline-flex">
                     Магазин продавца
                 </a>
             @endif
         </div>
         <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @forelse(($continueProducts ?? collect()) as $product)
-                <a href="{{ route('product.show', $product->slug) }}" class="group rounded-xl border border-slate-100 bg-slate-50 p-3 transition hover:border-indigo-200 hover:bg-indigo-50">
+                <a href="{{ route('product.show', $product->slug) }}" class="group rounded-xl border border-neutral-100 bg-neutral-50 p-3 transition hover:border-brand-200 hover:bg-brand-50">
                     <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-28 w-full rounded-lg object-cover">
-                    <div class="mt-2 line-clamp-2 text-sm font-semibold text-slate-900 group-hover:text-indigo-700">{{ $product->title }}</div>
-                    <div class="mt-1 text-sm font-bold text-indigo-700">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
+                    <div class="mt-2 line-clamp-2 text-sm font-semibold text-neutral-900 group-hover:text-brand-700">{{ $product->title }}</div>
+                    <div class="mt-1 text-sm font-bold text-brand-700">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
                 </a>
             @empty
                 <div class="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 sm:col-span-2 lg:col-span-4">
@@ -521,7 +515,7 @@
             @endforelse
         </div>
         <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-            <a href="{{ route('home') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+            <a href="{{ route('home') }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-200 transition hover:bg-brand-600">
                 <i class="ri-store-3-line"></i>
                 На витрину
             </a>

@@ -6,39 +6,37 @@
     $cartTotal = $total;
 @endphp
 
-<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe wv-page-shell max-w-none overflow-x-hidden {{ $items->isNotEmpty() ? 'pb-28 sm:pb-8' : '' }}">
+<div x-data="cartSelection({{ $cartTotal }}, {{ $items->sum('qty') }}, {{ $freeShippingThreshold }})" x-init="init" class="cart-mobile-safe min-h-screen w-full space-y-5 overflow-x-hidden bg-white px-4 py-5 text-neutral-800 sm:space-y-6 sm:px-6 sm:py-7 lg:px-8 {{ $items->isNotEmpty() ? 'pb-44 lg:pb-8' : 'pb-24 lg:pb-8' }}">
 
-    <header class="wv-page-header grid lg:grid-cols-[minmax(0,1fr)_340px]">
+    <header class="flex flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
-            <span class="wv-page-eyebrow">
+            <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
                 <i class="ri-shopping-cart-2-line"></i>
                 Корзина
             </span>
-            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Проверьте товары перед оформлением</h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                Здесь видны доступные товары, недоступные позиции и сумма заказа до перехода к подтверждению.
-            </p>
+            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-[28px]">Моя корзина</h1>
+            <p class="mt-1 max-w-2xl text-sm leading-6 text-neutral-500">Проверьте товары, количество и итоговую сумму перед оформлением.</p>
         </div>
 
-        <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-            <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-brand-100 bg-brand-50 px-4 py-2.5 sm:flex-none">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-lg text-brand-600 shadow-sm">
+                    <i class="ri-shopping-bag-3-line"></i>
+                </div>
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">В корзине</p>
-                    <p class="mt-1 text-2xl font-bold text-slate-950">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-brand-500">В корзине</p>
+                    <p class="text-lg font-semibold leading-5 text-brand-800">
                         @if($items->isNotEmpty())
-                            <span x-text="totalQty"></span>
+                            <span x-text="totalQty"></span> шт.
                         @else
-                            0
+                            0 шт.
                         @endif
                     </p>
-                </div>
-                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl text-indigo-600 shadow-sm">
-                    <i class="ri-shopping-bag-3-line"></i>
                 </div>
             </div>
 
             @if($items->isNotEmpty())
-                <div class="mt-4 grid grid-cols-2 gap-2">
+                <div class="shrink-0">
                     <x-secondary-action type="button" @click="toggleSelectMode">
                         <span x-show="!selectMode" class="inline-flex items-center gap-2">
                             <i class="ri-checkbox-multiple-line"></i>
@@ -50,19 +48,12 @@
                         </span>
                     </x-secondary-action>
 
-                    <form method="POST" action="{{ route('checkout.prepare') }}" class="min-w-0">
-                        @csrf
-                        <x-action-button :full="true">
-                            <i class="ri-bank-card-line"></i>
-                            Оформить
-                        </x-action-button>
-                    </form>
                 </div>
             @else
-                <a href="{{ route('home') }}" class="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                <x-action-button as="a" :href="route('home')">
                     <i class="ri-store-3-line"></i>
                     В каталог
-                </a>
+                </x-action-button>
             @endif
         </div>
     </header>
@@ -109,39 +100,35 @@
             icon="ri-shopping-cart-2-line"
             title="{{ $unavailableItems->isNotEmpty() ? 'Нет товаров для оформления' : 'Ваша корзина пуста' }}"
             description="{{ $unavailableItems->isNotEmpty() ? 'Недоступные позиции сохранены выше, но оформить их сейчас нельзя.' : 'Добавьте товары из каталога, чтобы оформить заказ.' }}"
-            class="py-16 sm:py-24"
+            class="py-14 sm:py-16"
         >
-            <a href="{{ route('home') }}"
-               class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
-                <span class="relative z-10 flex items-center gap-2">
-                    <i class="ri-arrow-left-line"></i>
-                    Перейти в каталог
-                </span>
-                <span class="absolute inset-0 bg-indigo-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-            </a>
+            <x-action-button as="a" :href="route('home')">
+                <i class="ri-arrow-left-line"></i>
+                Перейти в каталог
+            </x-action-button>
         </x-empty-state>
 
     @else
 
     <!-- 🚚 Текущий режим доставки -->
-    <div class="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
+    <div class="rounded-2xl border border-brand-100 bg-brand-50/70 p-4">
         <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl bg-white text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-100 bg-white text-brand-600">
                 <i class="ri-truck-line text-xl"></i>
             </div>
             <div class="flex-1">
-                <div class="text-sm font-semibold text-indigo-900">Доставка согласуется с продавцом</div>
-                <div class="mt-1 text-xs leading-5 text-indigo-700">
+                <div class="text-sm font-semibold text-brand-900">Доставка согласуется с продавцом</div>
+                <div class="mt-1 text-xs leading-5 text-brand-700">
                     Сейчас сайт не выполняет доставку как отдельную услугу. При оформлении заказа вы выберете удобный вариант, а продавец подтвердит стоимость, срок и способ передачи товара.
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+    <div class="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
 
     <!-- 📜 Список товаров -->
-    <div class="min-w-0 space-y-3" :class="selectMode && selected.length > 0 ? 'mb-36' : 'mb-0'">
+    <div class="min-w-0 space-y-3">
         @foreach($items as $i)
         @php
             $p = $i->product;
@@ -154,29 +141,29 @@
 
         <div 
             x-data="{ qty: {{ $i->qty }}, savedQty: {{ $i->qty }}, updating: false }"
-            class="cart-item group relative min-w-0 overflow-hidden rounded-2xl border bg-white transition-all duration-200 hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-950/5"
+            class="cart-item group relative min-w-0 overflow-hidden rounded-2xl border bg-white transition-all duration-200 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-100/40"
             :class="{
-                'border-indigo-300 shadow-md bg-indigo-50/50': selectMode && selected.includes('{{ $i->id }}'),
-                'border-slate-200': !selectMode || !selected.includes('{{ $i->id }}')
+                'border-brand-300 shadow-md bg-brand-50/50': selectMode && selected.includes('{{ $i->id }}'),
+                'border-neutral-200': !selectMode || !selected.includes('{{ $i->id }}')
             }"
             data-cart-id="{{ $i->id }}"
             data-cart-qty="{{ $i->qty }}"
             data-cart-price="{{ $price }}"
         >
             <div 
-                class="grid min-w-0 grid-cols-[80px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:gap-4 sm:p-5"
+                class="grid min-w-0 grid-cols-[80px_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[96px_minmax(0,1fr)] sm:p-4 lg:flex lg:gap-5 lg:p-5"
                 :class="selectMode ? 'cursor-pointer' : ''"
                 @click="if(selectMode) toggleSelect('{{ $i->id }}', Number(qty) * {{ $price }})"
             >
 
                 <!-- Чекбокс -->
-                <div x-show="selectMode" class="col-span-2 flex-shrink-0 pt-1 sm:col-span-1" @click.stop>
+                <div x-show="selectMode" class="col-span-2 flex-shrink-0 pt-1 lg:col-span-1" @click.stop>
                     <div class="relative">
                         <input 
                             type="checkbox" 
                             :checked="selected.includes('{{ $i->id }}')"
                             @change="toggleSelect('{{ $i->id }}', Number(qty) * {{ $price }})"
-                            class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 focus:ring-2 transition-all">
+                            class="h-5 w-5 rounded border-neutral-300 text-brand-600 transition-all focus:ring-2 focus:ring-brand-500">
                     </div>
                 </div>
 
@@ -209,12 +196,12 @@
                 </div>
 
                 <!-- Информация -->
-                <div class="min-w-0 sm:flex-1">
+                <div class="min-w-0 lg:flex-1">
                     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div class="flex-1 min-w-0">
                             <!-- Название -->
                             <a href="{{ route('product.show',$p) }}"
-                               class="text-base sm:text-lg font-medium text-gray-900 hover:text-indigo-600 transition-colors duration-200 line-clamp-2 break-words"
+                               class="line-clamp-2 break-words text-base font-medium text-neutral-900 transition-colors duration-200 hover:text-brand-600 sm:text-lg"
                                :class="selectMode ? 'opacity-60 pointer-events-none' : ''"
                                style="word-break: break-word; overflow-wrap: anywhere;">
                                 <span class="sm:hidden">{{ $shortProductTitle }}</span>
@@ -256,44 +243,46 @@
                         </div>
                     </div>
 
-                    <!-- Управление -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4"
-                         :class="selectMode ? 'opacity-50 pointer-events-none' : ''">
+                </div>
 
-                        <!-- Количество -->
-                        <div class="flex min-w-0 flex-wrap items-center gap-2">
-                            <label class="text-sm text-gray-500">Кол-во:</label>
-                            <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
+                <!-- Управление: снизу на мобильном, справа на широком экране -->
+                <div class="col-span-2 flex min-w-0 items-center justify-between gap-2 border-t border-neutral-100 pt-3 lg:col-span-1 lg:w-auto lg:flex-col lg:items-end lg:justify-center lg:border-t-0 lg:pt-0"
+                     :class="selectMode ? 'opacity-50 pointer-events-none' : ''">
+
+                    <!-- Количество -->
+                    <div class="relative flex min-w-0 flex-col items-end gap-1">
+                            <div class="flex items-center overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
                                 <button type="button" 
                                         @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Math.max(1, Number(qty) - 1), savedQty, {{ $price }}, $event, $data)"
                                         :disabled="updating || Number(qty) <= 1"
                                         aria-label="Уменьшить количество"
-                                        class="w-11 h-11 sm:w-9 sm:h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
+                                        class="flex h-10 w-9 items-center justify-center transition-colors hover:bg-neutral-50 disabled:opacity-50">
                                     <i class="ri-subtract-line text-gray-500"></i>
                                 </button>
                                 <input type="number" min="1" aria-label="Количество товара"
                                        x-model="qty"
                                        @blur="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', qty, savedQty, {{ $price }}, $event, $data)"
-                                       class="w-14 text-center border-x border-gray-200 py-2 text-sm focus:outline-none">
+                                       class="h-10 w-10 border-x border-neutral-200 p-0 text-center text-sm focus:outline-none focus:ring-0">
                                 <button type="button"
                                         @click="updateQuantity('{{ route('cart.update', $i) }}', '{{ $i->id }}', Number(qty) + 1, savedQty, {{ $price }}, $event, $data)"
                                         :disabled="updating"
                                         aria-label="Увеличить количество"
-                                        class="w-11 h-11 sm:w-9 sm:h-9 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center justify-center">
+                                        class="flex h-10 w-9 items-center justify-center transition-colors hover:bg-neutral-50 disabled:opacity-50">
                                     <i class="ri-add-line text-gray-500"></i>
                                 </button>
                             </div>
-                            <div x-show="updating" class="text-xs text-indigo-600">Сохранение...</div>
-                        </div>
+                            <div x-show="updating" class="hidden text-xs text-brand-600 lg:block">Сохранение...</div>
+                    </div>
 
-                        <!-- Действия -->
-                        <div class="grid w-full grid-cols-[minmax(0,1fr)_40px] items-center gap-2 sm:flex sm:w-auto">
+                    <!-- Действия -->
+                    <div class="flex min-w-0 items-center gap-2">
                             <form method="POST" action="{{ route('checkout.quick',$p->id) }}" class="min-w-0">
                                 @csrf
                                 <input type="hidden" name="qty" :value="qty">
-                                <x-action-button size="sm">
-                                    <i class="ri-bank-card-line"></i>
-                                    Купить сейчас
+                                <x-action-button size="sm" class="px-3">
+                                    <i class="ri-bank-card-line hidden min-[360px]:inline"></i>
+                                    <span class="sm:hidden">Купить</span>
+                                    <span class="hidden sm:inline">Купить сейчас</span>
                                 </x-action-button>
                             </form>
 
@@ -311,7 +300,6 @@
                                     </svg>
                                 </x-danger-action>
                             </form>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -326,7 +314,7 @@
                     <h2 class="text-lg font-semibold text-gray-900">Сводка заказа</h2>
                     <p class="text-xs text-gray-500 mt-1" x-text="selectMode && selected.length > 0 ? 'По выбранным товарам' : 'По всей корзине'"></p>
                 </div>
-                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <i class="ri-receipt-line text-xl"></i>
                 </div>
             </div>
@@ -358,7 +346,7 @@
                     </div>
                 </div>
 
-                <div class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-700">
+                <div class="mt-3 rounded-xl border border-brand-100 bg-brand-50 p-3 text-xs text-brand-700">
                     В итог ниже входит только стоимость товаров. Доставка и способ оплаты подтверждаются после создания заказа.
                 </div>
             </div>
@@ -378,11 +366,11 @@
 
     </div>
 
-    <div x-show="!selectMode"
+    <div x-cloak
+         x-show="!selectMode"
          x-transition
-         class="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:hidden"
-         style="padding-bottom: env(safe-area-inset-bottom, 0px);">
-        <div class="w-full max-w-none px-3 py-3 sm:py-4 mb-16 sm:mb-0">
+         class="fixed bottom-[calc(60px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 border-t border-neutral-200 bg-white/95 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:hidden">
+        <div class="w-full px-4 py-3 sm:px-6">
             <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                 <div class="min-w-0">
                     <div class="text-xs text-gray-500">
@@ -404,54 +392,48 @@
         </div>
     </div>
 
-    <!-- Футер внизу страницы для мобильных и десктопа -->
-    <div x-show="selectMode && selected.length > 0" 
+    <!-- Панель выбранных товаров: над мобильной навигацией, у края экрана на десктопе -->
+    <div x-cloak
+         x-show="selectMode && selected.length > 0"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform translate-y-full"
          x-transition:enter-end="opacity-100 transform translate-y-0"
-         class="fixed bottom-0 left-0 right-0 z-50 border-t border-indigo-100 bg-white/95 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl"
-         style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+         class="fixed bottom-[calc(60px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 border-t border-brand-100 bg-white/95 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:hidden">
         
-        <div class="px-3 py-3 sm:py-4 mb-12 pb-10">
+        <div class="px-4 py-3 sm:px-6 sm:py-4">
             <div class="w-full max-w-none">
                 <!-- Мобильная версия -->
                 <div class="block sm:hidden">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
-                                <i class="ri-checkbox-multiple-line text-indigo-600"></i>
+                    <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+                        <div class="flex min-w-0 items-center gap-2">
+                            <div class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-100 min-[360px]:flex">
+                                <i class="ri-checkbox-multiple-line text-brand-600"></i>
                             </div>
-                            <div>
-                                <div class="text-xs text-gray-500">Выбрано</div>
-                                <div class="text-lg font-bold text-gray-900 leading-tight">
-                                    <span x-text="selected.length"></span> <span class="text-xs font-normal">шт.</span>
+                            <div class="min-w-0">
+                                <div class="text-xs text-neutral-500"><span x-text="selected.length"></span> шт. выбрано</div>
+                                <div class="truncate text-lg font-bold leading-tight text-brand-600">
+                                    <span x-text="formatPrice(selectedTotal)"></span> <span class="text-xs font-normal">{{ $currencySymbol }}</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-xs text-gray-500">Сумма</div>
-                            <div class="text-lg font-bold text-indigo-600 leading-tight">
-                                <span x-text="formatPrice(selectedTotal)"></span> <span class="text-xs font-normal">{{ $currencySymbol }}</span>
-                            </div>
-                        </div>
+                        <form method="POST" action="{{ route('checkout.prepare') }}" class="shrink-0">
+                            @csrf
+                            <template x-for="id in selected">
+                                <input type="hidden" name="selected_items[]" :value="id">
+                            </template>
+                            <x-action-button size="sm" class="px-3">
+                                Оформить (<span x-text="selected.length"></span>)
+                            </x-action-button>
+                        </form>
                     </div>
-                    <form method="POST" action="{{ route('checkout.prepare') }}">
-                        @csrf
-                        <template x-for="id in selected">
-                            <input type="hidden" name="selected_items[]" :value="id">
-                        </template>
-                        <x-action-button :full="true">
-                            Оформить выбранные (<span x-text="selected.length"></span>)
-                        </x-action-button>
-                    </form>
                 </div>
                 
                 <!-- Десктопная версия -->
                 <div class="hidden sm:flex sm:items-center sm:justify-between gap-4">
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                                <i class="ri-checkbox-multiple-line text-indigo-600 text-lg"></i>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
+                                <i class="ri-checkbox-multiple-line text-lg text-brand-600"></i>
                             </div>
                             <div>
                                 <div class="text-xs text-gray-500">Выбрано товаров:</div>
@@ -465,7 +447,7 @@
                         
                         <div>
                             <div class="text-xs text-gray-500">Сумма выбранных:</div>
-                            <div class="text-xl font-bold text-indigo-600 leading-tight">
+                            <div class="text-xl font-bold leading-tight text-brand-600">
                                 <span x-text="formatPrice(selectedTotal)"></span> <span class="text-sm font-normal">{{ $currencySymbol }}</span>
                             </div>
                         </div>

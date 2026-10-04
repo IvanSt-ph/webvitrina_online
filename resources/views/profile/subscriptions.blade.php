@@ -1,143 +1,160 @@
 <x-buyer-layout title="Мои подписки">
-    <div class="px-3 py-4 pb-24 sm:px-6 sm:py-8 md:pb-8">
-        <div class="space-y-6">
-            <section class="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
-                <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                    <div>
-                        <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-                            <i class="ri-user-follow-line"></i>
-                            Любимые магазины
-                        </div>
-                        <h1 class="mt-3 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Мои подписки</h1>
-                        <p class="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-                            Магазины, на которые вы подписались. Здесь удобно возвращаться к продавцам, за обновлениями которых хочется следить.
-                        </p>
+    <div class="min-h-screen bg-white pb-24 text-neutral-800 md:pb-0">
+        <header class="border-b border-neutral-200 bg-white">
+            <div class="flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+                <div class="min-w-0">
+                    <div class="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
+                        <i class="ri-user-follow-line text-base" aria-hidden="true"></i>
+                        Любимые магазины
                     </div>
-
-                    <div class="flex flex-col gap-2 sm:flex-row">
-                        <a href="{{ route('home') }}"
-                           class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
-                            <i class="ri-store-3-line"></i>
-                            Найти магазины
-                        </a>
-                    </div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-[28px]">Мои подписки</h1>
+                    <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">
+                        Все продавцы, за которыми вы следите, собраны в одном месте.
+                    </p>
                 </div>
 
-                <form method="GET" action="{{ route('subscriptions.index') }}" class="mt-5 flex flex-col gap-2 sm:flex-row">
-                    <label class="relative flex-1">
-                        <span class="sr-only">Поиск по подпискам</span>
-                        <i class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input
-                            type="search"
-                            name="q"
-                            value="{{ $search }}"
-                            placeholder="Найти магазин по названию или городу"
-                            class="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
-                        >
-                    </label>
-                    <button type="submit" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
-                        <i class="ri-search-line"></i>
-                        Найти
-                    </button>
-                    @if($search !== '')
-                        <a href="{{ route('subscriptions.index') }}" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 text-sm font-semibold text-gray-600 transition hover:bg-gray-50">
-                            <i class="ri-close-line"></i>
-                            Сбросить
-                        </a>
-                    @endif
-                </form>
+                <x-action-button as="a" :href="route('home')" class="shrink-0">
+                    <i class="ri-store-3-line" aria-hidden="true"></i>
+                    Найти магазины
+                </x-action-button>
+            </div>
+        </header>
 
-                <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p class="text-xs font-semibold text-gray-500">Всего подписок</p>
-                        <p class="mt-2 text-2xl font-bold text-gray-900">{{ $subscriptionsCount }}</p>
+        <main class="w-full space-y-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+            <section class="grid overflow-hidden rounded-2xl border border-brand-100 bg-brand-50/50 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <div class="flex flex-col justify-center p-5 sm:p-6 lg:p-7">
+                    <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm ring-1 ring-brand-100">
+                        <i class="ri-heart-3-line text-xl" aria-hidden="true"></i>
                     </div>
-                    <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                        <p class="text-xs font-semibold text-gray-500">{{ $search === '' ? 'На странице' : 'Найдено' }}</p>
-                        <p class="mt-2 text-2xl font-bold text-indigo-700">{{ $search === '' ? $shops->count() : $shops->total() }}</p>
+                    <h2 class="mt-4 text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">Магазины, которые вам нравятся</h2>
+                    <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
+                        Возвращайтесь к знакомым продавцам, смотрите новые товары и управляйте подписками без лишних поисков.
+                    </p>
+
+                    <form method="GET" action="{{ route('subscriptions.index') }}" class="mt-5 flex max-w-3xl flex-col gap-3 sm:flex-row">
+                        <label class="relative min-w-0 flex-1">
+                            <span class="sr-only">Поиск по подпискам</span>
+                            <i class="ri-search-line pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-neutral-400" aria-hidden="true"></i>
+                            <input type="search" name="q" value="{{ $search }}" placeholder="Название магазина или город"
+                                   class="h-12 w-full rounded-xl border-neutral-200 bg-white pl-11 pr-4 text-sm text-neutral-800 shadow-sm transition placeholder:text-neutral-400 hover:border-brand-200 focus:border-brand-400 focus:ring-4 focus:ring-brand-100">
+                        </label>
+                        <x-action-button type="submit" class="h-12 px-6">
+                            <i class="ri-search-line" aria-hidden="true"></i>
+                            Найти
+                        </x-action-button>
+                        @if($search !== '')
+                            <x-secondary-action as="a" :href="route('subscriptions.index')" class="h-12">
+                                <i class="ri-close-line" aria-hidden="true"></i>
+                                Сбросить
+                            </x-secondary-action>
+                        @endif
+                    </form>
+                </div>
+
+                <div class="grid grid-cols-2 border-t border-brand-100 bg-white/60 lg:border-l lg:border-t-0">
+                    <div class="flex flex-col justify-center border-r border-brand-100 p-5 sm:p-6">
+                        <span class="text-3xl font-semibold tracking-tight text-neutral-900">{{ $subscriptionsCount }}</span>
+                        <span class="mt-2 text-sm font-medium text-neutral-500">Всего подписок</span>
                     </div>
-                    <div class="col-span-2 rounded-xl border border-gray-100 bg-gray-50 p-4 sm:col-span-1">
-                        <p class="text-xs font-semibold text-gray-500">Последнее обновление</p>
-                        <p class="mt-2 truncate text-sm font-semibold text-gray-900">{{ now()->format('d.m.Y H:i') }}</p>
+                    <div class="flex flex-col justify-center p-5 sm:p-6">
+                        <span class="text-3xl font-semibold tracking-tight text-brand-600">{{ $search === '' ? $shops->count() : $shops->total() }}</span>
+                        <span class="mt-2 text-sm font-medium text-neutral-500">{{ $search === '' ? 'На странице' : 'Найдено' }}</span>
                     </div>
                 </div>
             </section>
 
-            @if($shops->isEmpty())
-                <section class="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-14 text-center shadow-sm">
-                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-                        <i class="ri-user-heart-line text-2xl"></i>
+            @if($search !== '')
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-neutral-900">Результаты поиска</h2>
+                        <p class="mt-1 text-sm text-neutral-500">По запросу «{{ $search }}» найдено: {{ $shops->total() }}</p>
                     </div>
-                    <h2 class="mt-4 text-lg font-semibold text-gray-900">{{ $search === '' ? 'Подписок пока нет' : 'Ничего не найдено' }}</h2>
-                    <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+                    <x-secondary-action as="a" :href="route('subscriptions.index')" size="sm">
+                        Показать все
+                    </x-secondary-action>
+                </div>
+            @else
+                <div class="border-b border-neutral-200 pb-4">
+                    <h2 class="text-lg font-semibold text-neutral-900">Ваши магазины</h2>
+                    <p class="mt-1 text-sm text-neutral-500">Новые подписки отображаются здесь автоматически.</p>
+                </div>
+            @endif
+
+            @if($shops->isEmpty())
+                <section class="rounded-3xl border border-dashed border-neutral-300 bg-neutral-50/60 px-6 py-16 text-center sm:py-20">
+                    <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-600 ring-8 ring-white">
+                        <i class="{{ $search === '' ? 'ri-user-heart-line' : 'ri-search-eye-line' }} text-3xl" aria-hidden="true"></i>
+                    </div>
+                    <h2 class="mt-6 text-xl font-semibold text-neutral-900">{{ $search === '' ? 'Подписок пока нет' : 'Ничего не найдено' }}</h2>
+                    <p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-500">
                         @if($search === '')
-                            На странице магазина нажмите “Подписаться”, и он появится здесь. Так не придется искать продавца заново.
+                            Подпишитесь на понравившийся магазин, и он появится здесь. Так вы сможете быстро вернуться к любимым продавцам.
                         @else
-                            Попробуйте другое название или город. Подписки никуда не исчезли, просто под этот запрос нет совпадений.
+                            Попробуйте изменить название или город. Ваши подписки остались на месте — под этот запрос просто нет совпадений.
                         @endif
                     </p>
-                    <div class="mt-5 flex justify-center gap-3">
+                    <div class="mt-7 flex justify-center">
                         @if($search !== '')
-                            <a href="{{ route('subscriptions.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
-                                Сбросить поиск
-                                <i class="ri-close-line"></i>
-                            </a>
+                            <x-secondary-action as="a" :href="route('subscriptions.index')">
+                                <i class="ri-arrow-left-line" aria-hidden="true"></i>
+                                Ко всем подпискам
+                            </x-secondary-action>
                         @else
-                            <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+                            <x-action-button as="a" :href="route('home')">
+                                <i class="ri-store-3-line" aria-hidden="true"></i>
                                 Перейти к витрине
-                                <i class="ri-arrow-right-line"></i>
-                            </a>
+                            </x-action-button>
                         @endif
                     </div>
                 </section>
             @else
-                <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <section class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label="Список подписок">
                     @foreach($shops as $shop)
-                        <article class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                            <a href="{{ route('seller.show', $shop->slug) }}" class="block">
-                                <div class="aspect-[16/7] overflow-hidden bg-gray-50">
-                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $shop->banner_url }}" alt="{{ $shop->name }}" class="h-full w-full object-cover transition duration-300 hover:scale-105">
+                        <article class="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-100/50">
+                            <a href="{{ route('seller.show', $shop->slug) }}" class="relative block overflow-hidden bg-neutral-100">
+                                <div class="aspect-[16/7]">
+                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $shop->banner_url }}" alt="{{ $shop->name }}"
+                                         class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                                 </div>
+                                <span class="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/90 px-3 py-1.5 text-xs font-semibold text-brand-700 shadow-sm backdrop-blur">
+                                    <i class="ri-check-line" aria-hidden="true"></i>
+                                    Вы подписаны
+                                </span>
                             </a>
 
-                            <div class="space-y-4 p-4">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div class="min-w-0">
-                                        <a href="{{ route('seller.show', $shop->slug) }}" class="block truncate text-base font-semibold text-gray-900 hover:text-indigo-700">
-                                            {{ $shop->name }}
-                                        </a>
-                                        <p class="mt-1 truncate text-xs text-gray-500">
-                                            {{ $shop->city ?: 'Город не указан' }}
-                                        </p>
-                                    </div>
-                                    <span class="shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-                                        Подписка
-                                    </span>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                                    <div class="rounded-xl bg-gray-50 p-3">
-                                        <div class="font-semibold text-gray-900">{{ $shop->products_count }}</div>
-                                        <div>товаров</div>
-                                    </div>
-                                    <div class="rounded-xl bg-gray-50 p-3">
-                                        <div class="font-semibold text-gray-900">{{ $shop->followers_count }}</div>
-                                        <div>подписчиков</div>
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-col gap-2 sm:flex-row">
-                                    <a href="{{ route('seller.show', $shop->slug) }}"
-                                       class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
-                                        <i class="ri-arrow-right-up-line"></i>
-                                        Открыть
+                            <div class="flex flex-1 flex-col p-5">
+                                <div class="min-w-0">
+                                    <a href="{{ route('seller.show', $shop->slug) }}" class="block truncate text-lg font-semibold text-neutral-900 transition hover:text-brand-700">
+                                        {{ $shop->name }}
                                     </a>
-                                    <form method="POST" action="{{ route('shops.follow', $shop) }}" class="sm:w-auto">
+                                    <p class="mt-1 flex items-center gap-1.5 truncate text-sm text-neutral-500">
+                                        <i class="ri-map-pin-line shrink-0" aria-hidden="true"></i>
+                                        {{ $shop->city ?: 'Город не указан' }}
+                                    </p>
+                                </div>
+
+                                <div class="my-5 grid grid-cols-2 divide-x divide-neutral-200 rounded-xl bg-neutral-50 py-3 text-center">
+                                    <div class="px-3">
+                                        <div class="text-base font-semibold text-neutral-900">{{ $shop->products_count }}</div>
+                                        <div class="mt-0.5 text-xs text-neutral-500">товаров</div>
+                                    </div>
+                                    <div class="px-3">
+                                        <div class="text-base font-semibold text-neutral-900">{{ $shop->followers_count }}</div>
+                                        <div class="mt-0.5 text-xs text-neutral-500">подписчиков</div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-auto flex flex-col gap-2 sm:flex-row">
+                                    <x-action-button as="a" :href="route('seller.show', $shop->slug)" full size="sm">
+                                        Открыть магазин
+                                        <i class="ri-arrow-right-up-line" aria-hidden="true"></i>
+                                    </x-action-button>
+                                    <form method="POST" action="{{ route('shops.follow', $shop) }}" class="shrink-0">
                                         @csrf
-                                        <button type="submit"
-                                                class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600">
-                                            <i class="ri-user-unfollow-line"></i>
-                                            Отписаться
+                                        <button type="submit" title="Отписаться от магазина" aria-label="Отписаться от {{ $shop->name }}"
+                                                class="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-600 transition hover:border-danger-200 hover:bg-danger-50 hover:text-danger-600 sm:w-10 sm:px-0">
+                                            <i class="ri-user-unfollow-line text-lg" aria-hidden="true"></i>
+                                            <span class="sm:sr-only">Отписаться</span>
                                         </button>
                                     </form>
                                 </div>
@@ -146,11 +163,13 @@
                     @endforeach
                 </section>
 
-                <div>
-                    {{ $shops->links() }}
-                </div>
+                @if($shops->hasPages())
+                    <div class="border-t border-neutral-200 pt-6">
+                        {{ $shops->links() }}
+                    </div>
+                @endif
             @endif
-        </div>
+        </main>
     </div>
 
     @include('layouts.mobile-bottom-nav')

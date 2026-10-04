@@ -1,336 +1,171 @@
 @extends('buyer.profile')
 
 @section('profile_content')
-<section class="bg-white border border-gray-100 rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-8 space-y-6">
+@php $fields = session('updated_fields', []); @endphp
 
-    {{-- Уведомления профиля --}}
-    @php $fields = session('updated_fields', []); @endphp
-    <div class="space-y-2">
-        @if(in_array('name', $fields))
-            <div class="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 shadow-sm">
-                <i class="ri-user-line text-green-500"></i> Имя успешно изменено
+<div class="space-y-8">
+    <section class="grid items-center gap-8 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
+        <div class="max-w-xl">
+            <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#e8f0fe] text-[#1967d2]"><i class="ri-user-settings-line text-xl"></i></div>
+            <h2 class="text-2xl font-normal tracking-tight text-[#202124] sm:text-3xl">Личная информация</h2>
+            <p class="mt-3 max-w-lg text-base leading-7 text-[#5f6368]">Управляйте основной информацией аккаунта и контактами, по которым с вами могут связаться.</p>
+            <p class="mt-4 text-sm text-[#5f6368]">Последнее обновление: {{ Auth::user()->updated_at?->diffForHumans() ?? '—' }}</p>
+        </div>
+        <div class="flex min-h-40 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafd] p-5">
+            <div class="relative">
+                <div class="absolute -inset-6 rounded-full bg-[#e8f0fe]"></div>
+                <img data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}"
+                     src="{{ Auth::user()->avatar_url }}" alt="Аватар пользователя" class="relative h-24 w-24 rounded-full border-4 border-white object-cover shadow-sm sm:h-28 sm:w-28">
             </div>
-        @endif
-        @if(in_array('email', $fields))
-            <div class="flex items-center gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 shadow-sm">
-                <i class="ri-mail-line text-blue-500"></i> Email успешно изменён
-            </div>
-        @endif
-        @if(in_array('phone', $fields))
-            <div class="flex items-center gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 shadow-sm">
-                <i class="ri-phone-line text-yellow-500"></i> Телефон успешно изменён
-            </div>
-        @endif
-        @if(in_array('avatar', $fields))
-            <div class="flex items-center gap-2 p-3 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 shadow-sm">
-                <i class="ri-image-line text-purple-500"></i> Аватар успешно изменён
-            </div>
-        @endif
+        </div>
+    </section>
 
-        {{-- Статус подтверждения email --}}
+    <div class="space-y-3" role="status">
+        @foreach(['name' => ['ri-user-line', 'Имя успешно изменено'], 'email' => ['ri-mail-line', 'Email успешно изменён'], 'phone' => ['ri-phone-line', 'Телефон успешно изменён'], 'avatar' => ['ri-image-line', 'Аватар успешно изменён']] as $field => [$icon, $message])
+            @if(in_array($field, $fields))
+                <div class="flex items-center gap-3 rounded-2xl border border-[#ceead6] bg-[#e6f4ea] px-4 py-3 text-sm text-[#137333]"><i class="{{ $icon }} text-lg"></i><span>{{ $message }}</span></div>
+            @endif
+        @endforeach
         @if(session('status') === 'verification-link-sent')
-            <div class="flex items-center gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 shadow-sm">
-                <i class="ri-mail-line text-blue-500"></i> Письмо для подтверждения email отправлено
-            </div>
+            <div class="flex items-center gap-3 rounded-2xl border border-[#d2e3fc] bg-[#e8f0fe] px-4 py-3 text-sm text-[#1967d2]"><i class="ri-mail-send-line text-lg"></i><span>Письмо для подтверждения email отправлено</span></div>
         @endif
-
-        {{-- Статус подтверждения телефона --}}
         @if(session('phone_sent'))
-            <div class="flex items-center gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 shadow-sm">
-                <i class="ri-phone-line text-yellow-500"></i> Сообщение для подтверждения телефона отправлено
-            </div>
+            <div class="flex items-center gap-3 rounded-2xl border border-[#fde293] bg-[#fef7e0] px-4 py-3 text-sm text-[#7a4f01]"><i class="ri-message-2-line text-lg"></i><span>Сообщение для подтверждения телефона отправлено</span></div>
         @endif
     </div>
 
-    {{-- Заголовок --}}
-    <div class="flex items-center justify-between flex-wrap gap-2">
-        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <i class="ri-user-line text-indigo-500 text-xl"></i> Личная информация
-        </h2>
-        <span class="text-xs text-gray-400">
-            Обновлено: {{ Auth::user()->updated_at?->diffForHumans() ?? '—' }}
-        </span>
-    </div>
-
-    <div class="grid lg:grid-cols-2 gap-6">
-        {{-- Имя и аватар --}}
-        <form method="POST" action="{{ route('buyer.profile.update') }}" enctype="multipart/form-data" class="border border-gray-100 rounded-xl p-4 sm:p-5 space-y-5">
-            @csrf
-            @method('PATCH')
+    <div class="grid gap-6 xl:grid-cols-2">
+        <form method="POST" action="{{ route('buyer.profile.update') }}" enctype="multipart/form-data" class="flex flex-col rounded-2xl border border-[#dadce0] bg-white">
+            @csrf @method('PATCH')
             <input type="hidden" name="profile_section" value="personal">
-
-            <div class="flex items-center gap-2">
-                <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <i class="ri-user-smile-line text-lg"></i>
+            <div class="border-b border-[#dadce0] px-5 py-5 sm:px-7">
+                <h3 class="text-xl font-normal text-[#202124]">Основная информация</h3>
+                <p class="mt-1 text-sm text-[#5f6368]">Имя и фотография вашего профиля</p>
+            </div>
+            <div class="flex-1 space-y-7 p-5 sm:p-7">
+                <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+                    <div class="relative w-fit shrink-0">
+                        <img data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}"
+                             src="{{ Auth::user()->avatar_url }}" alt="Аватар пользователя" class="h-24 w-24 rounded-full border border-[#dadce0] object-cover">
+                        <label class="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#1a73e8] text-white shadow-sm transition hover:bg-[#1765cc]" title="Изменить фото">
+                            <i class="ri-camera-fill"></i><span class="sr-only">Выбрать новое фото</span><input type="file" name="avatar" class="hidden" accept="image/jpeg,image/png,image/webp">
+                        </label>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-[#202124]">Фотография профиля</p>
+                        <p class="mt-1 text-sm leading-5 text-[#5f6368]">JPG, PNG или WebP. До 8 МБ и 16 мегапикселей.</p>
+                        <x-input-error :messages="$errors->get('avatar')" class="mt-2 text-sm" />
+                    </div>
                 </div>
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-900">Имя и аватар</h3>
-                    <p class="text-xs text-gray-500">Основная информация профиля</p>
+                    <label for="profile-name" class="mb-2 block text-sm font-medium text-[#3c4043]">Имя пользователя</label>
+                    <input id="profile-name" type="text" name="name" value="{{ old('name', Auth::user()->name) }}" class="h-14 w-full rounded-lg border-[#dadce0] bg-white px-4 text-base text-[#202124] shadow-none transition hover:border-[#bdc1c6] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]">
+                    <x-input-error :messages="$errors->get('name')" class="mt-2 text-sm" />
                 </div>
             </div>
-
-            <div class="flex flex-col sm:flex-row items-center gap-5">
-                <div class="relative shrink-0">
-                    <img data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" alt="Аватар пользователя" src="{{ Auth::user()->avatar_url }}" class="w-24 h-24 rounded-full border border-gray-200 shadow-sm object-cover" />
-                    <label class="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-indigo-500/90 hover:bg-indigo-600 text-white cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center border border-indigo-400/30">
-                        <i class="ri-camera-line"></i>
-                        <input type="file" name="avatar" class="hidden" accept="image/jpeg,image/png,image/webp">
-                    </label>
-                </div>
-
-                <div class="flex-1 w-full">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Имя пользователя</label>
-                    <input type="text" name="name" value="{{ old('name', Auth::user()->name) }}"
-                           class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
-                    <x-input-error :messages="$errors->get('name')" class="mt-1 text-sm" />
-                </div>
-            </div>
-
-            <p class="text-xs text-gray-500">JPG, PNG или WebP, до 8 МБ и 16 мегапикселей.</p>
-            <x-input-error :messages="$errors->get('avatar')" class="text-sm" />
-
-            <div class="flex justify-end border-t border-gray-100 pt-4">
-                <x-action-button>
-                    <i class="ri-save-line"></i>
-                    Сохранить имя и аватар
+            <div class="flex justify-end border-t border-[#dadce0] px-5 py-4 sm:px-7">
+                <x-action-button type="submit">
+                    <i class="ri-save-line" aria-hidden="true"></i>
+                    Сохранить
                 </x-action-button>
             </div>
         </form>
 
-        {{-- Контакты --}}
-        <form method="POST" action="{{ route('buyer.profile.update') }}" class="border border-gray-100 rounded-xl p-4 sm:p-5 space-y-5">
-            @csrf
-            @method('PATCH')
-            <input type="hidden" name="profile_section" value="contacts">
-            <input type="hidden" id="phone_dirty" name="phone_dirty" value="0">
-
-            <div class="flex items-center gap-2">
-                <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <i class="ri-contacts-line text-lg"></i>
-                </div>
-                <div>
-                    <h3 class="text-sm font-semibold text-gray-900">Email и телефон</h3>
-                    <p class="text-xs text-gray-500">Контакты и подтверждение аккаунта</p>
-                </div>
+        <form method="POST" action="{{ route('buyer.profile.update') }}" class="flex flex-col rounded-2xl border border-[#dadce0] bg-white">
+            @csrf @method('PATCH')
+            <input type="hidden" name="profile_section" value="contacts"><input type="hidden" id="phone_dirty" name="phone_dirty" value="0">
+            <div class="border-b border-[#dadce0] px-5 py-5 sm:px-7">
+                <h3 class="text-xl font-normal text-[#202124]">Контактная информация</h3>
+                <p class="mt-1 text-sm text-[#5f6368]">Email и номер телефона аккаунта</p>
             </div>
-
-            <div class="space-y-5">
+            <div class="flex-1 space-y-6 p-5 sm:p-7">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Email
-                        @if(Auth::user()->hasVerifiedEmail())
-                           <span class="inline-flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-blue-500">
-                                <i class="ri-check-line text-white text-xs"></i>
-                            </span>
-                        @endif
+                    <label for="profile-email" class="mb-2 flex items-center gap-2 text-sm font-medium text-[#3c4043]">Email
+                        @if(Auth::user()->hasVerifiedEmail())<span class="inline-flex items-center gap-1 rounded-full bg-[#e6f4ea] px-2 py-0.5 text-[11px] font-medium text-[#137333]"><i class="ri-check-line"></i> Подтверждён</span>@endif
                     </label>
-                    <div class="relative flex items-center">
-                        <input type="email" name="email" value="{{ old('email', Auth::user()->email) }}"
-                               class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none">
-                        <i class="ri-mail-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    </div>
-                    <x-input-error :messages="$errors->get('email')" class="mt-1 text-sm" />
+                    <div class="relative"><i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-[#5f6368]"></i><input id="profile-email" type="email" name="email" value="{{ old('email', Auth::user()->email) }}" class="h-14 w-full rounded-lg border-[#dadce0] bg-white pl-12 pr-4 text-base text-[#202124] shadow-none transition hover:border-[#bdc1c6] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"></div>
+                    <x-input-error :messages="$errors->get('email')" class="mt-2 text-sm" />
                 </div>
-
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Телефон
-                        @if(Auth::user()->hasVerifiedPhone())
-                           <span class="inline-flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-blue-500">
-                                <i class="ri-check-line text-white text-xs"></i>
-                            </span>
-                        @endif
+                    <label for="phone" class="mb-2 flex items-center gap-2 text-sm font-medium text-[#3c4043]">Телефон
+                        @if(Auth::user()->hasVerifiedPhone())<span class="inline-flex items-center gap-1 rounded-full bg-[#e6f4ea] px-2 py-0.5 text-[11px] font-medium text-[#137333]"><i class="ri-check-line"></i> Подтверждён</span>@endif
                     </label>
-                    <input type="tel" id="phone" name="phone"
-                           data-intl-manual="true"
-                           value="{{ old('phone', Auth::user()->phone) }}"
-                           class="w-full py-3 px-4 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm
-                                  focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none"
-                           placeholder="+373..."
-                           title="Введите номер телефона">
-                    <x-input-error :messages="$errors->get('phone')" class="mt-1 text-sm" />
+                    <input type="tel" id="phone" name="phone" data-intl-manual="true" value="{{ old('phone', Auth::user()->phone) }}" placeholder="+373..." title="Введите номер телефона" class="h-14 w-full rounded-lg border-[#dadce0] bg-white px-4 text-base text-[#202124] shadow-none transition hover:border-[#bdc1c6] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]">
+                    <x-input-error :messages="$errors->get('phone')" class="mt-2 text-sm" />
                 </div>
-
                 @if(Auth::user()->hasLocalPassword())
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Текущий пароль для смены email</label>
-                        <input type="password" name="current_password"
-                               class="w-full py-3 px-4 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm
-                                      focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none"
-                               placeholder="Нужен только при смене email">
-                        <x-input-error :messages="$errors->get('current_password')" class="mt-1 text-sm" />
+                        <label for="current-password" class="mb-2 block text-sm font-medium text-[#3c4043]">Текущий пароль</label>
+                        <input id="current-password" type="password" name="current_password" placeholder="Только если меняете email" class="h-14 w-full rounded-lg border-[#dadce0] bg-white px-4 text-base text-[#202124] shadow-none transition placeholder:text-[#80868b] hover:border-[#bdc1c6] focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]">
+                        <p class="mt-2 text-xs text-[#5f6368]">Нужен для защиты аккаунта при смене email.</p><x-input-error :messages="$errors->get('current_password')" class="mt-2 text-sm" />
                     </div>
                 @else
-                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        Для изменения email сначала
-                        <a href="{{ route('buyer.profile.security') }}" class="font-semibold underline">установите пароль</a>.
-                    </div>
+                    <div class="rounded-xl bg-[#fef7e0] px-4 py-3 text-sm leading-6 text-[#5f4200]">Для изменения email сначала <a href="{{ route('buyer.profile.security') }}" class="font-medium text-[#1967d2] hover:underline">установите пароль</a>.</div>
                 @endif
             </div>
-
-            <div class="flex justify-end border-t border-gray-100 pt-4">
-                <x-action-button>
-                    <i class="ri-save-line"></i>
-                    Сохранить контакты
+            <div class="flex justify-end border-t border-[#dadce0] px-5 py-4 sm:px-7">
+                <x-action-button type="submit">
+                    <i class="ri-save-line" aria-hidden="true"></i>
+                    Сохранить
                 </x-action-button>
             </div>
         </form>
     </div>
 
-    {{-- Блок подтверждения данных с улучшенным дизайном --}}
-    <div class="mt-8 pt-6 border-t border-gray-100">
-        <h3 class="text-sm font-medium text-gray-700 mb-4 flex items-center gap-2">
-            <i class="ri-shield-check-line text-gray-400"></i> Подтверждение данных
-        </h3>
-        
-        <div class="space-y-4">
-            {{-- Подтверждение email --}}
-            @if(!Auth::user()->hasVerifiedEmail())
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <i class="ri-mail-line text-blue-500"></i>
-                            <span class="text-sm font-medium text-gray-700">Email не подтверждён</span>
-                        </div>
-                        <p class="text-xs text-gray-500">Для полного доступа к функциям подтвердите email</p>
-                    </div>
-                    <form method="POST" action="{{ route('verification.send') }}" class="shrink-0">
+    <section class="rounded-2xl border border-[#dadce0] bg-white">
+        <div class="border-b border-[#dadce0] px-5 py-5 sm:px-7"><h3 class="text-xl font-normal text-[#202124]">Подтверждение данных</h3><p class="mt-1 text-sm text-[#5f6368]">Подтверждённые контакты помогают защитить и восстановить аккаунт</p></div>
+        <div class="divide-y divide-[#dadce0]">
+            <div class="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:px-7">
+                <div class="flex min-w-0 flex-1 items-center gap-4"><div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f0fe] text-xl text-[#1967d2]"><i class="ri-mail-line"></i></div><div><p class="text-sm font-medium text-[#202124]">Email</p><p class="mt-0.5 text-sm text-[#5f6368]">{{ Auth::user()->hasVerifiedEmail() ? 'Адрес электронной почты подтверждён' : 'Подтвердите email для полного доступа к функциям' }}</p></div></div>
+                @if(!Auth::user()->hasVerifiedEmail())
+                    <form method="POST" action="{{ route('verification.send') }}">
                         @csrf
-                        <x-action-button size="sm">
-                            <i class="ri-send-plane-line"></i>
-                            Подтвердить email
+                        <x-secondary-action type="submit" size="sm">
+                            <i class="ri-mail-send-line" aria-hidden="true"></i>
+                            Подтвердить
+                        </x-secondary-action>
+                    </form>
+                @else<span class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-[#137333]"><i class="ri-checkbox-circle-fill"></i> Подтверждён</span>@endif
+            </div>
+            <div class="px-5 py-5 sm:px-7">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div class="flex min-w-0 flex-1 items-center gap-4"><div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f0fe] text-xl text-[#1967d2]"><i class="ri-phone-line"></i></div><div><p class="text-sm font-medium text-[#202124]">Телефон</p><p class="mt-0.5 text-sm text-[#5f6368]">{{ Auth::user()->hasVerifiedPhone() ? 'Номер телефона подтверждён' : 'Подтвердите телефон для безопасности аккаунта' }}</p></div></div>
+                    @if(!Auth::user()->hasVerifiedPhone())
+                        <form method="POST" action="{{ route('phone.send') }}">
+                            @csrf
+                            <x-secondary-action type="submit" size="sm">
+                                <i class="ri-message-2-line" aria-hidden="true"></i>
+                                Отправить SMS
+                            </x-secondary-action>
+                        </form>
+                    @else<span class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-[#137333]"><i class="ri-checkbox-circle-fill"></i> Подтверждён</span>@endif
+                </div>
+                @if(!Auth::user()->hasVerifiedPhone() && session('phone_sent'))
+                    <form method="POST" action="{{ route('phone.verify') }}" class="mt-5 flex max-w-xl flex-col gap-3 rounded-xl bg-[#f8fafd] p-4 sm:flex-row">
+                        @csrf
+                        <input type="text" name="code" placeholder="6-значный код" maxlength="6" autocomplete="one-time-code" class="h-11 flex-1 rounded-lg border-[#dadce0] bg-white px-4 shadow-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]">
+                        <x-action-button type="submit">
+                            <i class="ri-check-line" aria-hidden="true"></i>
+                            Подтвердить код
                         </x-action-button>
                     </form>
-                </div>
-            @else
-                <div class="flex items-center justify-between p-4 bg-green-50/50 rounded-xl border border-green-100">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <i class="ri-check-double-line text-green-600"></i>
-                        </div>
-                        <div>
-                            <span class="text-sm font-medium text-gray-700">Email подтверждён</span>
-                            <p class="text-xs text-gray-500">Ваш email успешно верифицирован</p>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            {{-- Подтверждение телефона --}}
-            @if(!Auth::user()->hasVerifiedPhone())
-                <div class="space-y-3">
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-yellow-50/50 rounded-xl border border-yellow-100">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <i class="ri-phone-line text-yellow-500"></i>
-                                <span class="text-sm font-medium text-gray-700">Телефон не подтверждён</span>
-                            </div>
-                            <p class="text-xs text-gray-500">Подтвердите телефон для безопасности аккаунта</p>
-                        </div>
-                        <form method="POST" action="{{ route('phone.send') }}" class="shrink-0">
-                            @csrf
-                            <x-action-button size="sm">
-                                <i class="ri-message-2-line"></i>
-                                Отправить SMS код
-                            </x-action-button>
-                        </form>
-                    </div>
-
-                    {{-- Форма ввода кода --}}
-                    @if(session('phone_sent'))
-                        <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                            <p class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                                <i class="ri-key-line text-gray-500"></i>
-                                Введите код из SMS
-                            </p>
-                            <form method="POST" action="{{ route('phone.verify') }}" class="flex flex-col sm:flex-row gap-3">
-                                @csrf
-                                <div class="relative flex-1">
-                                    <input type="text" name="code" 
-                                           placeholder="6-значный код"
-                                           class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 bg-slate-50/70 shadow-sm focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition outline-none"
-                                           maxlength="6"
-                                           autocomplete="off">
-                                    <i class="ri-shield-keyhole-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                </div>
-                                <x-action-button>
-                                    <i class="ri-check-line"></i>
-                                    Подтвердить код
-                                </x-action-button>
-                            </form>
-                            <p class="text-xs text-gray-400 mt-2">Код действителен в течение 10 минут</p>
-                        </div>
-                    @endif
-                </div>
-            @else
-                <div class="flex items-center justify-between p-4 bg-green-50/50 rounded-xl border border-green-100">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <i class="ri-phone-fill text-green-600"></i>
-                        </div>
-                        <div>
-                            <span class="text-sm font-medium text-gray-700">Телефон подтверждён</span>
-                            <p class="text-xs text-gray-500">Ваш номер телефона успешно верифицирован</p>
-                        </div>
-                    </div>
-                </div>
-            @endif
+                @endif
+            </div>
         </div>
-    </div>
+    </section>
+</div>
 
-    {{-- Инициализация intl-tel-input для телефона покупателя --}}
-    <style>
-        .iti { width: 100%; }
-        .iti input { width: 100%; }
-    </style>
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const phoneInput = document.querySelector('#phone');
-        if (!phoneInput) return;
-        if (phoneInput.closest('.iti')) return;
-        if (!window.intlTelInput) return;
-
-        const iti = window.intlTelInput(phoneInput, {
-            initialCountry: "md",
-            separateDialCode: false,
-            nationalMode: false,
-            hiddenInput: function () {
-                return {
-                    phone: "phone_full",
-                };
-            },
-            placeholderNumberType: "MOBILE",
-            dropdownContainer: document.body,
-            loadUtils: window.loadIntlTelInputUtils,
-        });
-
-        const savedPhone = phoneInput.value.trim();
-        if (savedPhone) {
-            iti.setNumber(savedPhone);
-        }
-
-        const phoneDirtyInput = document.querySelector('#phone_dirty');
-        const markPhoneDirty = function () {
-            if (phoneDirtyInput) {
-                phoneDirtyInput.value = '1';
-            }
-        };
-
-        phoneInput.addEventListener('input', markPhoneDirty);
-        phoneInput.addEventListener('countrychange', markPhoneDirty);
-
-        const form = phoneInput.closest('form');
-        if (form) {
-            form.addEventListener('submit', function () {
-                const fullPhone = iti.getNumber();
-
-                if (fullPhone) {
-                    phoneInput.value = fullPhone;
-                }
-            });
-        }
-    });
-    </script>
-
-</section>
+<style>.iti { width: 100%; } .iti input { width: 100%; }</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const phoneInput = document.querySelector('#phone');
+    if (!phoneInput || phoneInput.closest('.iti') || !window.intlTelInput) return;
+    const iti = window.intlTelInput(phoneInput, { initialCountry: 'md', separateDialCode: false, nationalMode: false, hiddenInput: function () { return { phone: 'phone_full' }; }, placeholderNumberType: 'MOBILE', dropdownContainer: document.body, loadUtils: window.loadIntlTelInputUtils });
+    const savedPhone = phoneInput.value.trim(); if (savedPhone) iti.setNumber(savedPhone);
+    const phoneDirtyInput = document.querySelector('#phone_dirty');
+    const markPhoneDirty = function () { if (phoneDirtyInput) phoneDirtyInput.value = '1'; };
+    phoneInput.addEventListener('input', markPhoneDirty); phoneInput.addEventListener('countrychange', markPhoneDirty);
+    const form = phoneInput.closest('form'); if (form) form.addEventListener('submit', function () { const fullPhone = iti.getNumber(); if (fullPhone) phoneInput.value = fullPhone; });
+});
+</script>
 @endsection
