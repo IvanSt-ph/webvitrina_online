@@ -14,20 +14,20 @@
         : asset('images/help/help-banner.webp');
   @endphp
 
-  <section class="pt-2 pb-10 space-y-10 px-4 sm:px-6 lg:px-8">
+  <section class="w-full space-y-6 bg-white px-3 py-4 pb-28 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
 
     <!-- 🖼️ Обложка статьи -->
-    <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-8">
-      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="Совет продавцу" class="w-full h-60 sm:h-80 object-cover">
+    <div class="relative mb-6 overflow-hidden rounded-2xl border border-neutral-200">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="Совет продавцу" class="h-56 w-full object-cover sm:h-80">
       <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent"></div>
-      <div class="absolute bottom-4 left-6 text-white">
-        <h1 class="text-2xl sm:text-3xl font-bold">{{ $news['title'] }}</h1>
-        <p class="text-sm text-gray-200">{{ $news['date'] }}</p>
+      <div class="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7">
+        <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">{{ $news['title'] }}</h1>
+        <p class="mt-1 text-sm text-neutral-200">{{ $news['date'] }}</p>
       </div>
     </div>
 
     <!-- 📄 Основной контент статьи -->
-    <article class="bg-gradient-to-br from-white to-indigo-50/30 rounded-3xl shadow-sm border border-gray-100 p-6 md:p-10 leading-relaxed text-gray-800 space-y-6">
+    <article class="space-y-6 rounded-2xl border border-neutral-200 bg-white p-5 leading-relaxed text-neutral-800 sm:p-7 lg:p-8">
 
       {{-- Вступительный абзац --}}
       <p>
@@ -46,8 +46,8 @@
       </div>
 
       {{-- Раздел: советы по карточкам товаров --}}
-      <h2 class="text-xl font-semibold text-indigo-600">Как улучшить карточку товара</h2>
-      <ul class="list-disc pl-6 space-y-2 text-gray-700">
+      <h2 class="text-xl font-semibold text-neutral-950">Как улучшить карточку товара</h2>
+      <ul class="list-disc space-y-2 pl-6 text-neutral-700">
         <li>Используйте фотографии высокого качества и на белом фоне.</li>
         <li>Добавляйте 3–5 изображений товара с разных ракурсов.</li>
         <li>Указывайте реальные характеристики — без “воды”.</li>
@@ -55,25 +55,25 @@
       </ul>
 
       {{-- Вставка цитаты --}}
-      <blockquote class="border-l-4 border-indigo-500 pl-4 text-gray-600 italic">
+      <blockquote class="rounded-r-xl border-l-4 border-brand-500 bg-brand-50 px-4 py-3 text-neutral-600 italic">
         “Хорошо оформленная карточка увеличивает вероятность покупки на 30–50%.”
       </blockquote>
 
       {{-- Раздел: работа с отзывами --}}
-      <h2 class="text-xl font-semibold text-indigo-600">Работа с отзывами</h2>
+      <h2 class="text-xl font-semibold text-neutral-950">Работа с отзывами</h2>
       <p>
         Отвечайте на отзывы оперативно и вежливо. Даже если отзыв негативный — покажите, что вы готовы помочь.
         Это повышает доверие покупателей и рейтинг магазина.
       </p>
 
       {{-- Вставка блока-совета --}}
-      <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-800">
+      <div class="rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-800">
         💡 <strong>Совет:</strong> если покупатель доволен заказом, предложите ему оставить отзыв — 
         это поднимет ваш товар в поиске WebVitrina.
       </div>
 
       {{-- Раздел: чек-лист --}}
-      <h2 class="text-xl font-semibold text-indigo-600">Чек-лист для проверки карточки</h2>
+      <h2 class="text-xl font-semibold text-neutral-950">Чек-лист для проверки карточки</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         <div class="flex items-center gap-2">
           <i class="ri-checkbox-circle-line text-green-500"></i>
@@ -96,16 +96,16 @@
     </article>
 
     <!-- 🔙 Навигация между статьями -->
-    <div class="mt-8 flex items-center justify-between text-sm">
+    <div class="flex items-center justify-between gap-3 border-t border-neutral-200 pt-5 text-sm">
       {{-- Кнопка: назад к панели продавца --}}
       <a href="{{ route('seller.cabinet') }}"
-         class="text-gray-500 hover:text-indigo-600 flex items-center gap-1">
+         class="flex items-center gap-1 text-neutral-500 hover:text-brand-600">
         <i class="ri-arrow-left-line"></i> Назад к панели продавца
       </a>
 
       {{-- Кнопка: следующая статья (пример) --}}
       <a href="{{ route('seller.help', ['slug' => 'product-optimization']) }}"
-         class="text-gray-500 hover:text-indigo-600 flex items-center gap-1">
+         class="flex items-center gap-1 text-right text-neutral-500 hover:text-brand-600">
         Следующая статья <i class="ri-arrow-right-line"></i>
       </a>
     </div>

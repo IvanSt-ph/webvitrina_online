@@ -5,20 +5,20 @@
     $image = asset("images/help/{$slug}.webp");
   @endphp
 
-  <section class="pt-2 pb-16 space-y-10 px-4 sm:px-6 lg:px-8">
+  <section class="w-full space-y-6 bg-white px-3 py-4 pb-28 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
 
     {{-- 🖼️ Обложка --}}
-    <div class="relative rounded-3xl overflow-hidden shadow-md border border-gray-100 mb-10">
-      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}" class="w-full h-64 sm:h-96 object-cover">
+    <div class="relative mb-6 overflow-hidden rounded-2xl border border-neutral-200">
+      <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $news['title'] }}" class="h-56 w-full object-cover sm:h-80">
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent"></div>
-      <div class="absolute bottom-6 left-8 text-white">
-        <h1 class="text-3xl sm:text-4xl font-bold drop-shadow-lg">{{ $news['title'] }}</h1>
-        <p class="text-sm text-gray-200 mt-1">{{ $news['date'] }}</p>
+      <div class="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7">
+        <h1 class="text-2xl font-semibold tracking-tight sm:text-3xl">{{ $news['title'] }}</h1>
+        <p class="mt-1 text-sm text-neutral-200">{{ $news['date'] }}</p>
       </div>
     </div>
 
     {{-- 📄 Контент --}}
-    <article class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-10 leading-relaxed text-gray-800 space-y-10">
+    <article class="space-y-8 rounded-2xl border border-neutral-200 bg-white p-5 leading-relaxed text-neutral-800 sm:p-7 lg:p-8">
 
       <p class="text-lg">
         В <strong>2025 году</strong> WebVitrina вышла на новый уровень.  
@@ -127,11 +127,11 @@
     </article>
 
     {{-- 🔙 Навигация --}}
-    <div class="mt-10 flex items-center justify-between text-sm text-gray-500">
-      <a href="{{ route('seller.help', ['slug' => 'product-optimization']) }}" class="hover:text-indigo-600 flex items-center gap-1">
+    <div class="flex items-center justify-between gap-3 border-t border-neutral-200 pt-5 text-sm text-neutral-500">
+      <a href="{{ route('seller.help', ['slug' => 'product-optimization']) }}" class="flex items-center gap-1 hover:text-brand-600">
         <i class="ri-arrow-left-line"></i> Предыдущая статья
       </a>
-      <a href="{{ route('seller.help', ['slug' => 'reviews-and-rating']) }}" class="hover:text-indigo-600 flex items-center gap-1">
+      <a href="{{ route('seller.help', ['slug' => 'reviews-and-rating']) }}" class="flex items-center gap-1 text-right hover:text-brand-600">
         Следующая статья <i class="ri-arrow-right-line"></i>
       </a>
     </div>

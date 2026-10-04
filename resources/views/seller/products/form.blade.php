@@ -1,7 +1,7 @@
 {{-- resources/views/seller/products/form.blade.php --}}
 <x-seller-layout :title="$product->exists ? 'Редактирование товара' : 'Добавление товара'">
 
-<div class="seller-product-page pt-4 pb-28 px-3 sm:px-6 lg:px-8"
+<div class="seller-product-page min-h-screen w-full bg-white px-3 py-4 pb-28 text-neutral-900 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8"
      data-country="{{ old('country_id', optional($product->city)->country_id) }}"
      data-city="{{ old('city_id', $product->city_id) }}">
 
@@ -55,39 +55,43 @@
 
 
     {{-- ===== Заголовок ===== --}}
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div>
+    <div class="mb-5 flex flex-col gap-4 sm:mb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div class="min-w-0">
         <a href="{{ route('seller.products.index') }}"
-           class="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition">
-          <span aria-hidden="true">←</span>
+           class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 transition hover:text-brand-600">
+          <i class="ri-arrow-left-line" aria-hidden="true"></i>
           <span>Назад к товарам</span>
         </a>
-        <h1 class="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-gray-950">
+        <div class="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
+          <i class="ri-box-3-line"></i>
+          Карточка товара
+        </div>
+        <h1 class="mt-2 text-2xl font-semibold tracking-tight text-neutral-950 sm:text-[28px]">
           {{ $product->exists ? 'Редактирование товара' : 'Новый товар' }}
         </h1>
-        <p class="mt-1 max-w-2xl text-sm text-gray-500 leading-6">
+        <p class="mt-1 max-w-3xl text-sm leading-6 text-neutral-500">
           Собери карточку товара без спешки: сначала основные данные, затем цена, остаток и фото.
           Черновик можно сохранить сейчас, а опубликовать позже.
         </p>
       </div>
 
-      <div class="hidden lg:grid min-w-80 grid-cols-3 overflow-hidden rounded-xl border border-gray-100/80 bg-white/80 text-center text-xs font-semibold text-gray-600 shadow-sm backdrop-blur-sm">
-        <div class="border-r border-gray-200 px-3 py-3">
-          <span class="block text-indigo-600">1</span>
+      <div class="hidden min-w-80 grid-cols-3 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 text-center text-xs font-semibold text-neutral-600 lg:grid">
+        <div class="border-r border-neutral-200 px-3 py-3">
+          <span class="block text-brand-600">1</span>
           Данные
         </div>
-        <div class="border-r border-gray-200 px-3 py-3">
-          <span class="block text-indigo-600">2</span>
+        <div class="border-r border-neutral-200 px-3 py-3">
+          <span class="block text-brand-600">2</span>
           Цена
         </div>
         <div class="px-3 py-3">
-          <span class="block text-indigo-600">3</span>
+          <span class="block text-brand-600">3</span>
           Фото
         </div>
       </div>
     </div>
 
-    <div class="mb-5 rounded-2xl border p-4 shadow-sm {{ $sellerPlanProfile['class'] }}">
+    <div class="mb-5 rounded-2xl border p-4 sm:p-5 {{ $sellerPlanProfile['class'] }}">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="text-xs font-bold uppercase tracking-wide opacity-70">Статус продавца</div>
@@ -99,7 +103,7 @@
             {{ $sellerPlanProfile['used'] }} / {{ $sellerPlanProfile['limit_label'] }} товаров
           </div>
           <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/70">
-            <div class="h-full rounded-full bg-indigo-500" style="width: {{ $sellerPlanProfile['percent'] }}%"></div>
+            <div class="h-full rounded-full bg-brand-500" style="width: {{ $sellerPlanProfile['percent'] }}%"></div>
           </div>
         </div>
       </div>
@@ -114,7 +118,7 @@
 
     <form method="POST" enctype="multipart/form-data"
           action="{{ $product->exists ? route('seller.products.update',$product) : route('seller.products.store') }}"
-          class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       @csrf
       @if($product->exists) @method('PUT') @endif
 
@@ -166,7 +170,7 @@
 @endif
 
   <div id="categories-wrapper" class="space-y-2">
-    <label class="block text-sm font-medium text-gray-600">Выберите категорию</label>
+    <label class="block text-sm font-medium text-neutral-600">Выберите категорию</label>
 
     <select name="category_level_1" id="category-root"
             class="seller-input category-select">
@@ -226,11 +230,11 @@
                   placeholder="Опишите товар, комплектацию, состояние, размеры, сценарии применения, гарантию и важные нюансы..."
                   class="seller-input min-h-44 resize-y">{{ old('description',$product->description) }}</textarea>
         <div class="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-gray-500">
+          <p class="text-sm text-neutral-500">
             Хорошее описание отвечает на вопросы покупателя до чата: что входит в комплект, есть ли дефекты, кому подходит товар.
           </p>
           <div class="shrink-0 text-sm font-semibold"
-               :class="count() > max * 0.9 ? 'text-amber-600' : 'text-gray-400'">
+               :class="count() > max * 0.9 ? 'text-amber-600' : 'text-neutral-400'">
             <span x-text="count()"></span>/<span x-text="max"></span>
           </div>
         </div>
@@ -251,7 +255,7 @@
         {{-- Страна --}}
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Страна</label>
+          <label class="mb-1 block text-sm font-medium text-neutral-700">Страна</label>
           <select id="country" name="country_id"
                   class="seller-input">
             <option value="">-- выберите страну --</option>
@@ -267,7 +271,7 @@
 
         {{-- Город --}}
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Город</label>
+          <label class="mb-1 block text-sm font-medium text-neutral-700">Город</label>
           <select id="city" name="city_id"
                   class="seller-input">
             <option value="">-- выберите город --</option>
@@ -278,7 +282,7 @@
 
         {{-- Адрес --}}
         <div class="mt-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Адрес</label>
+          <label class="mb-1 block text-sm font-medium text-neutral-700">Адрес</label>
           <div class="flex flex-col gap-3 sm:flex-row">
             <input id="address" name="address" type="text"
                    placeholder="Например: ул. Ленина, 2"
@@ -295,12 +299,12 @@
 
         {{-- Карта --}}
         <div class="mt-2 ">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Карта</label>
+          <label class="mb-2 block text-sm font-medium text-neutral-700">Карта</label>
           <div id="map"
                data-lat="{{ $product->latitude ?? 47.0105 }}"
                data-lng="{{ $product->longitude ?? 28.8638 }}"
                data-zoom="{{ $product->latitude ? 14 : 7 }}"
-               class="w-full h-72 rounded-lg border border-gray-200 overflow-hidden bg-gray-100"></div>
+               class="h-72 w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100"></div>
 
           <input type="hidden" id="latitude" name="latitude"
                  value="{{ old('latitude', $product->latitude) }}">
@@ -322,59 +326,59 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+            <label class="mb-1 block text-sm font-medium text-neutral-700">Цена</label>
 <input id="base-price" name="price" type="number" step="0.01" min="0" max="1000000"
        value="{{ old('price',$product->price) }}"
        oninput="if(this.value.length > 10) this.value=this.value.slice(0,10)"
        class="seller-input text-lg font-semibold">
 
-            <p class="text-sm text-gray-500 mt-1">Введите цену в валюте своей страны.</p>
+            <p class="mt-1 text-sm text-neutral-500">Введите цену в валюте своей страны.</p>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Старая цена</label>
+            <label class="mb-1 block text-sm font-medium text-neutral-700">Старая цена</label>
             <input id="old-price" name="old_price" type="number" step="0.01" min="0" max="1000000"
                    value="{{ old('old_price', $product->old_price) }}"
                    oninput="if(this.value.length > 10) this.value=this.value.slice(0,10)"
                    class="seller-input text-lg font-semibold">
-            <p class="text-sm text-gray-500 mt-1">Только если была цена выше текущей.</p>
+            <p class="mt-1 text-sm text-neutral-500">Только если была цена выше текущей.</p>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Базовая валюта</label>
+            <label class="mb-1 block text-sm font-medium text-neutral-700">Базовая валюта</label>
             <select id="currency_base" name="currency_base"
                     class="seller-input">
               <option value="PRB" @selected(old('currency_base', $product->currency_base) === 'PRB')>₽ Рубль ПМР</option>
               <option value="MDL" @selected(old('currency_base', $product->currency_base) === 'MDL')>L Молдавский Лей</option>
               <option value="UAH" @selected(old('currency_base', $product->currency_base) === 'UAH')>₴ Украинская Гривна</option>
             </select>
-            <p class="text-sm text-gray-500 mt-1">Определяется автоматически по стране.</p>
+            <p class="mt-1 text-sm text-neutral-500">Определяется автоматически по стране.</p>
           </div>
         </div>
 
-        <hr class="my-4 border-gray-100">
+        <hr class="my-4 border-neutral-100">
 
         {{-- Автоматически пересчитанные цены --}}
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">₽ ПМР</label>
+            <label class="mb-1 block text-sm font-medium text-neutral-700">₽ ПМР</label>
             <input id="price_prb" name="price_prb" type="number" step="0.01"
                    value="{{ old('price_prb',$product->price_prb) }}"
-                   class="seller-input bg-gray-50 text-gray-600" readonly>
+                   class="seller-input bg-neutral-50 text-neutral-600" readonly>
             <input name="old_price_prb" type="hidden" value="{{ old('old_price_prb', $product->old_price_prb) }}">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">L Молдова</label>
+            <label class="mb-1 block text-sm font-medium text-neutral-700">L Молдова</label>
             <input id="price_mdl" name="price_mdl" type="number" step="0.01"
                    value="{{ old('price_mdl',$product->price_mdl) }}"
-                   class="seller-input bg-gray-50 text-gray-600" readonly>
+                   class="seller-input bg-neutral-50 text-neutral-600" readonly>
             <input name="old_price_mdl" type="hidden" value="{{ old('old_price_mdl', $product->old_price_mdl) }}">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">₴ Украина</label>
+            <label class="mb-1 block text-sm font-medium text-neutral-700">₴ Украина</label>
             <input id="price_uah" name="price_uah" type="number" step="0.01"
                    value="{{ old('price_uah',$product->price_uah) }}"
-                   class="seller-input bg-gray-50 text-gray-600" readonly>
+                   class="seller-input bg-neutral-50 text-neutral-600" readonly>
             <input name="old_price_uah" type="hidden" value="{{ old('old_price_uah', $product->old_price_uah) }}">
           </div>
         </div>
@@ -392,7 +396,7 @@
         </div>
         <input name="stock" type="number" min="0" value="{{ old('stock',$product->stock) }}"
                class="seller-input max-w-xs text-lg font-semibold">
-        <p class="text-sm text-gray-500 mt-1">Количество товара в наличии.</p>
+        <p class="mt-1 text-sm text-neutral-500">Количество товара в наличии.</p>
       </section>
 
       </div>
@@ -429,23 +433,23 @@
             <input type="radio" name="status" value="draft" class="sr-only peer" @checked($statusValue === 'draft')>
             <span class="seller-status-dot bg-amber-400"></span>
             <span>
-              <span class="block font-semibold text-gray-900">Черновик</span>
-              <span class="text-xs text-gray-500">Виден только тебе, можно дополнять позже.</span>
+              <span class="block font-semibold text-neutral-900">Черновик</span>
+              <span class="text-xs text-neutral-500">Виден только тебе, можно дополнять позже.</span>
             </span>
           </label>
           <label class="seller-status-option">
             <input type="radio" name="status" value="active" class="sr-only peer" @checked($statusValue === 'active')>
             <span class="seller-status-dot bg-emerald-500"></span>
             <span>
-              <span class="block font-semibold text-gray-900">Опубликовать</span>
-              <span class="text-xs text-gray-500">Товар появится на витрине после сохранения.</span>
+              <span class="block font-semibold text-neutral-900">Опубликовать</span>
+              <span class="text-xs text-neutral-500">Товар появится на витрине после сохранения.</span>
             </span>
           </label>
         </div>
         @endif
         @error('status') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
         @unless($product->isBlocked())
-          <div class="mt-3 rounded-lg bg-indigo-50 p-3 text-xs text-indigo-800">
+          <div class="mt-3 rounded-xl bg-brand-50 p-3 text-xs leading-5 text-brand-800">
             Черновик не виден покупателям. Опубликованный товар сразу появится на витрине.
           </div>
         @endunless
@@ -462,33 +466,33 @@
         </div>
 
         <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Главное изображение</label>
+          <label class="mb-1 block text-sm font-medium text-neutral-700">Главное изображение</label>
           <label class="seller-upload-zone">
             <input type="file" name="image" class="sr-only" data-main-crop="true" data-preview-target="main-image-preview" accept="image/jpeg,image/png,image/webp">
             <span class="seller-upload-icon"><i class="ri-image-add-line"></i></span>
-            <span class="font-semibold text-gray-900">Выбрать главное фото</span>
-            <span class="text-xs text-gray-500">После выбора можно настроить кадр для карточки товара.</span>
+            <span class="font-semibold text-neutral-900">Выбрать главное фото</span>
+            <span class="text-xs text-neutral-500">После выбора можно настроить кадр для карточки товара.</span>
           </label>
           <div id="main-image-preview" class="seller-preview-grid mt-3 hidden"></div>
-          <button type="button" id="main-image-open-crop" class="mt-3 hidden rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+          <button type="button" id="main-image-open-crop" class="mt-3 hidden rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-100">
             <i class="ri-crop-line mr-1"></i>
             Настроить кадр карточки
           </button>
           @if($product->image)
             <div class="mt-3 max-w-72">
-              <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" class="w-full rounded-xl border border-gray-200 object-cover" style="aspect-ratio: 4 / 3.2" alt="Текущее главное фото">
-              <p class="mt-2 text-xs text-gray-500">Текущее главное фото. Новый кадр можно выбрать после загрузки нового файла.</p>
+              <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" class="w-full rounded-xl border border-neutral-200 object-cover" style="aspect-ratio: 4 / 3.2" alt="Текущее главное фото">
+              <p class="mt-2 text-xs text-neutral-500">Текущее главное фото. Новый кадр можно выбрать после загрузки нового файла.</p>
             </div>
           @endif
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Галерея</label>
+          <label class="mb-1 block text-sm font-medium text-neutral-700">Галерея</label>
           <label class="seller-upload-zone">
             <input type="file" name="gallery[]" multiple class="sr-only" data-preview-target="gallery-preview" accept="image/jpeg,image/png,image/webp">
             <span class="seller-upload-icon"><i class="ri-gallery-upload-line"></i></span>
-            <span class="font-semibold text-gray-900">Добавить фото в галерею</span>
-            <span class="text-xs text-gray-500">Можно выбрать сразу несколько файлов.</span>
+            <span class="font-semibold text-neutral-900">Добавить фото в галерею</span>
+            <span class="text-xs text-neutral-500">Можно выбрать сразу несколько файлов.</span>
           </label>
           <div id="gallery-preview" class="seller-preview-grid mt-3 hidden"></div>
           @php
@@ -503,10 +507,10 @@
                  class="flex gap-3 mt-3 flex-wrap">
               @foreach($gallery as $img)
                 @if($img)
-                  <div class="relative group rounded-lg overflow-hidden border border-gray-200">
+                  <div class="group relative overflow-hidden rounded-xl border border-neutral-200">
                     <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($img)) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ \App\Models\Product::storageThumbUrl($img) }}" alt="Фото" class="w-20 h-20 object-cover">
                     <button type="button" data-path="{{ $img }}"
-                            class="absolute top-1 right-1 bg-gray-800 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
+                            class="absolute right-1 top-1 rounded bg-neutral-800 px-1.5 py-0.5 text-xs text-white opacity-0 transition group-hover:opacity-100">
                       ✕
                     </button>
                   </div>
@@ -514,7 +518,7 @@
               @endforeach
             </div>
           @else
-            <p class="text-gray-400 text-sm mt-2">Нет загруженных изображений</p>
+            <p class="mt-2 text-sm text-neutral-400">Нет загруженных изображений</p>
           @endif
         </div>
       </section>
@@ -526,26 +530,26 @@
             <h2 class="seller-section-title">Качество карточки</h2>
           </div>
           <div class="shrink-0 text-right">
-            <div class="text-lg font-semibold text-slate-950">{{ $qualityDone }}/{{ $qualityTotal }}</div>
-            <div class="text-xs text-slate-500">готово</div>
+            <div class="text-lg font-semibold text-neutral-950">{{ $qualityDone }}/{{ $qualityTotal }}</div>
+            <div class="text-xs text-neutral-500">готово</div>
           </div>
         </div>
         <div class="mb-4">
-          <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div class="h-full rounded-full {{ $qualityPercent >= 80 ? 'bg-emerald-500' : ($qualityPercent >= 50 ? 'bg-amber-500' : 'bg-indigo-500') }}" style="width: {{ $qualityPercent }}%"></div>
+          <div class="h-2 overflow-hidden rounded-full bg-neutral-100">
+            <div class="h-full rounded-full {{ $qualityPercent >= 80 ? 'bg-emerald-500' : ($qualityPercent >= 50 ? 'bg-amber-500' : 'bg-brand-500') }}" style="width: {{ $qualityPercent }}%"></div>
           </div>
-          <p class="mt-2 text-xs text-slate-500">
+          <p class="mt-2 text-xs text-neutral-500">
             {{ $qualityPercent >= 80 ? 'Карточка выглядит уверенно.' : 'Заполните недостающие пункты, чтобы товар выглядел убедительнее.' }}
           </p>
         </div>
-        <ul class="space-y-2 text-sm text-slate-600">
+        <ul class="space-y-2 text-sm text-neutral-600">
           @foreach($qualityChecks as $check)
-            <li class="rounded-xl border {{ $check['done'] ? 'border-emerald-100 bg-emerald-50/70' : 'border-slate-200 bg-white' }} px-3 py-2">
+            <li class="rounded-xl border {{ $check['done'] ? 'border-emerald-100 bg-emerald-50/70' : 'border-neutral-200 bg-white' }} px-3 py-2">
               <div class="flex gap-2">
-                <i class="{{ $check['done'] ? 'ri-checkbox-circle-fill text-emerald-600' : 'ri-circle-line text-slate-300' }} mt-0.5"></i>
+                <i class="{{ $check['done'] ? 'ri-checkbox-circle-fill text-emerald-600' : 'ri-circle-line text-neutral-300' }} mt-0.5"></i>
                 <div>
-                  <div class="font-medium {{ $check['done'] ? 'text-emerald-800' : 'text-slate-800' }}">{{ $check['label'] }}</div>
-                  <div class="mt-0.5 text-xs {{ $check['done'] ? 'text-emerald-700' : 'text-slate-500' }}">{{ $check['hint'] }}</div>
+                  <div class="font-medium {{ $check['done'] ? 'text-emerald-800' : 'text-neutral-800' }}">{{ $check['label'] }}</div>
+                  <div class="mt-0.5 text-xs {{ $check['done'] ? 'text-emerald-700' : 'text-neutral-500' }}">{{ $check['hint'] }}</div>
                 </div>
               </div>
             </li>
@@ -561,7 +565,7 @@
           <i class="ri-save-3-line mr-1"></i>
           {{ $product->exists ? 'Сохранить изменения' : 'Создать товар' }}
         </button>
-        <p class="mt-3 text-center text-xs text-gray-500">Перед публикацией проверь цену, город и главное фото.</p>
+        <p class="mt-3 text-center text-xs text-neutral-500">Перед публикацией проверь цену, город и главное фото.</p>
       </div>
 
       </aside>
@@ -569,33 +573,33 @@
     </form>
   </div>
 
-  <div id="main-image-cropper" class="seller-cropper fixed inset-0 z-[80] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-    <div class="w-full max-w-2xl rounded-2xl border border-gray-200/70 bg-white p-5 shadow-2xl">
+  <div id="main-image-cropper" class="seller-cropper fixed inset-0 z-[80] hidden items-center justify-center bg-neutral-950/55 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl">
       <div class="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900">Кадр карточки товара</h2>
-          <p class="mt-1 text-sm text-gray-500">Перетащи фото и выбери, как оно будет выглядеть в карточке и списках.</p>
+          <h2 class="text-lg font-semibold text-neutral-900">Кадр карточки товара</h2>
+          <p class="mt-1 text-sm text-neutral-500">Перетащи фото и выбери, как оно будет выглядеть в карточке и списках.</p>
         </div>
-        <button type="button" data-crop-cancel class="h-9 w-9 rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800">
+        <button type="button" data-crop-cancel class="h-9 w-9 rounded-xl text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800">
           <i class="ri-close-line text-xl"></i>
         </button>
       </div>
 
       <div class="mx-auto w-full max-w-[560px]">
-        <canvas id="main-image-crop-canvas" width="500" height="400" class="w-full cursor-move rounded-xl border border-gray-200 bg-gray-100" style="aspect-ratio: 4 / 3.2"></canvas>
-        <p class="mt-2 text-center text-xs text-gray-500">Оптимально загружать фото от 1200 x 960 px: товар крупно, без важного текста у краёв.</p>
+        <canvas id="main-image-crop-canvas" width="500" height="400" class="w-full cursor-move rounded-xl border border-neutral-200 bg-neutral-100" style="aspect-ratio: 4 / 3.2"></canvas>
+        <p class="mt-2 text-center text-xs text-neutral-500">Оптимально загружать фото от 1200 x 960 px: товар крупно, без важного текста у краёв.</p>
       </div>
 
-      <label class="mt-4 block text-sm font-medium text-gray-700">
+      <label class="mt-4 block text-sm font-medium text-neutral-700">
         Масштаб
-        <input id="main-image-crop-zoom" type="range" min="1" max="3" step="0.01" value="1" class="mt-2 w-full accent-indigo-600">
+        <input id="main-image-crop-zoom" type="range" min="1" max="3" step="0.01" value="1" class="mt-2 w-full accent-brand-600">
       </label>
 
       <div class="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button type="button" data-crop-cancel class="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100">
+        <button type="button" data-crop-cancel class="rounded-xl px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100">
           Отмена
         </button>
-        <button type="button" id="main-image-crop-fit" class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
+        <button type="button" id="main-image-crop-fit" class="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100">
           Вписать целиком
         </button>
         <button type="button" id="main-image-crop-apply" class="seller-primary-button px-5 py-2.5">
@@ -609,22 +613,17 @@
 
   <style>
     .seller-product-page {
-      background:
-        linear-gradient(180deg, #f8fafc 0%, #ffffff 42%);
+      background: #fff;
     }
     .seller-form-card {
-      border: 1px solid rgba(226, 232, 240, 0.82);
+      border: 1px solid #e5e5e5;
       border-radius: 16px;
-      background: rgba(255,255,255,0.88);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-      padding: 22px;
-      backdrop-filter: blur(8px);
-      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+      background: #fff;
+      padding: 20px;
+      transition: border-color .18s ease, background-color .18s ease;
     }
     .seller-form-card:hover {
-      background: #fff;
-      border-color: rgba(199, 210, 254, 0.72);
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+      border-color: #d4d4d4;
     }
     .seller-section-head {
       display: flex;
@@ -635,20 +634,20 @@
     }
     .seller-section-kicker {
       margin: 0 0 3px;
-      color: #6366f1;
+      color: #4f46e5;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .08em;
     }
     .seller-section-title {
-      color: #0f172a;
+      color: #171717;
       font-size: 18px;
       font-weight: 650;
     }
     .seller-section-hint {
       max-width: 300px;
-      color: #64748b;
+      color: #737373;
       font-size: 13px;
       line-height: 1.45;
       text-align: right;
@@ -656,10 +655,10 @@
     .seller-input {
       width: 100%;
       border-radius: 12px;
-      border: 1px solid rgba(226, 232, 240, 0.9);
-      background-color: rgba(255, 255, 255, 0.86);
+      border: 1px solid #e5e5e5;
+      background-color: #fff;
       padding: 12px 14px;
-      color: #0f172a;
+      color: #171717;
       transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
     }
     .seller-input:focus {
@@ -675,17 +674,16 @@
       justify-content: center;
       gap: 5px;
       cursor: pointer;
-      border: 1.5px dashed #cbd5e1;
+      border: 1.5px dashed #d4d4d4;
       border-radius: 14px;
-      background: rgba(248, 250, 252, 0.9);
+      background: #fafafa;
       padding: 18px;
       text-align: center;
-      transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+      transition: border-color .18s ease, background-color .18s ease;
     }
     .seller-upload-zone:hover {
-      border-color: #818cf8;
+      border-color: #a5b4fc;
       background: #eef2ff;
-      transform: translateY(-1px);
     }
     .seller-upload-icon {
       display: inline-flex;
@@ -704,7 +702,7 @@
       align-items: flex-start;
       gap: 12px;
       cursor: pointer;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #e5e5e5;
       border-radius: 14px;
       background: #fff;
       padding: 13px;
@@ -715,9 +713,9 @@
       outline-offset: 2px;
     }
     .seller-status-option:has(input:checked) {
-      border-color: #818cf8;
+      border-color: #a5b4fc;
       background: #eef2ff;
-      box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.12);
+      box-shadow: 0 0 0 4px rgba(199, 210, 254, 0.45);
     }
     .seller-status-option::after {
       content: "";
@@ -728,7 +726,7 @@
       flex: 0 0 auto;
       align-items: center;
       justify-content: center;
-      border: 2px solid #cbd5e1;
+      border: 2px solid #d4d4d4;
       border-radius: 999px;
       background: #fff;
       transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
@@ -746,9 +744,9 @@
       border-radius: 999px;
     }
     .seller-empty-state {
-      border: 1px dashed #cbd5e1;
+      border: 1px dashed #d4d4d4;
       border-radius: 14px;
-      background: #f8fafc;
+      background: #fafafa;
       padding: 26px;
       text-align: center;
     }
@@ -773,7 +771,7 @@
       aspect-ratio: 1 / 1;
       width: 100%;
       border-radius: 12px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #e5e5e5;
       object-fit: cover;
     }
     #main-image-preview {
@@ -793,18 +791,16 @@
       position: relative;
       overflow: hidden;
       border-radius: 12px;
-      border: 1px solid rgba(129, 140, 248, 0.35);
-      background: rgba(99, 102, 241, 0.92);
+      border: 1px solid #6366f1;
+      background: #6366f1;
       color: #fff;
       font-size: 14px;
       font-weight: 600;
-      box-shadow: 0 8px 18px rgba(79, 70, 229, 0.16);
-      transition: transform .2s ease, background-color .2s ease, box-shadow .2s ease;
+      transition: background-color .18s ease, border-color .18s ease;
     }
     .seller-primary-button:hover {
-      transform: translateY(-2px);
       background: #4f46e5;
-      box-shadow: 0 14px 24px rgba(79, 70, 229, 0.22);
+      border-color: #4f46e5;
     }
     .seller-upload-zone input[type="file"] {
       position: absolute;

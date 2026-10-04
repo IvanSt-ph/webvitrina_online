@@ -281,30 +281,32 @@
                         </a>
                     </div>
 
-                    <div class="inline-flex w-fit overflow-hidden rounded-xl border border-neutral-200 bg-white">
+                    <div class="inline-flex w-full overflow-hidden rounded-xl border border-neutral-200 bg-white sm:w-auto" aria-label="Вид списка товаров">
                         <button
                             type="button"
-                            title="Плитка"
+                            title="Показать товары адаптивной сеткой"
                             @click="viewMode = 'grid'; localStorage.setItem('seller_view', 'grid')"
                             :class="viewMode === 'grid' ? 'bg-brand-50 text-brand-700' : 'text-neutral-500 hover:bg-neutral-50'"
-                            class="flex h-10 w-11 items-center justify-center transition"
+                            class="flex h-10 flex-1 items-center justify-center gap-2 px-3 text-sm font-semibold transition sm:flex-none"
                         >
                             <i class="ri-layout-grid-fill text-lg"></i>
+                            <span>Сетка</span>
                         </button>
                         <button
                             type="button"
                             title="Список"
                             @click="viewMode = 'list'; localStorage.setItem('seller_view', 'list')"
                             :class="viewMode === 'list' ? 'bg-brand-50 text-brand-700' : 'text-neutral-500 hover:bg-neutral-50'"
-                            class="flex h-10 w-11 items-center justify-center border-l border-neutral-200 transition"
+                            class="flex h-10 flex-1 items-center justify-center gap-2 border-l border-neutral-200 px-3 text-sm font-semibold transition sm:flex-none"
                         >
                             <i class="ri-list-unordered text-lg"></i>
+                            <span>Список</span>
                         </button>
                     </div>
                 </div>
 
                 @if($products->count())
-                    <div x-show="viewMode === 'grid'" x-cloak class="grid gap-3 bg-neutral-50/60 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                    <div x-show="viewMode === 'grid'" x-cloak class="grid grid-cols-2 gap-2 bg-neutral-50/60 p-2 sm:gap-3 sm:p-4 lg:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
                         @foreach($products as $p)
                             @php
                                 $statusLabel = $statusLabels[$p->status] ?? 'Неизвестный статус';
@@ -316,63 +318,64 @@
                                 if (($p->attribute_values_count ?? 0) === 0) $qualityHints->push('Нет характеристик');
                                 if ($p->stock <= 0) $qualityHints->push('Нет остатков');
                             @endphp
-                            <article class="group overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:border-brand-200 hover:shadow-md">
-                                <div class="relative aspect-[4/3] bg-neutral-50">
+                            <article class="group min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:border-brand-200 hover:shadow-md">
+                                <div class="relative aspect-square bg-neutral-50 sm:aspect-[4/3]">
                                     <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
-                                    <div class="absolute left-2 top-2 flex flex-wrap gap-2">
-                                        <span class="rounded-full border {{ $statusClass }} px-2 py-1 text-xs font-medium">{{ $statusLabel }}</span>
+                                    <div class="absolute left-1.5 right-1.5 top-1.5 flex flex-wrap gap-1 sm:left-2 sm:right-2 sm:top-2 sm:gap-2">
+                                        <span class="rounded-full border {{ $statusClass }} px-2 py-0.5 text-[10px] font-medium sm:py-1 sm:text-xs">{{ $statusLabel }}</span>
                                         @if($p->stock <= 0)
-                                            <span class="rounded-full border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700">Нет в наличии</span>
+                                            <span class="rounded-full border border-rose-200 bg-white px-2 py-0.5 text-[10px] font-medium text-rose-700 sm:py-1 sm:text-xs">Нет в наличии</span>
                                         @endif
                                         @if($p->discount_percent)
-                                            <span class="rounded-full border border-red-200 bg-red-500 px-2 py-1 text-xs font-bold text-white">-{{ $p->discount_percent }}%</span>
+                                            <span class="rounded-full border border-red-200 bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white sm:py-1 sm:text-xs">-{{ $p->discount_percent }}%</span>
                                         @endif
                                     </div>
                                 </div>
 
-                                <div class="space-y-3 p-3">
+                                <div class="space-y-2 p-2.5 sm:space-y-3 sm:p-3">
                                     <div>
-                                        <h3 class="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-5 text-neutral-950">{{ $p->title }}</h3>
-                                        <p class="mt-1 truncate text-xs text-neutral-500">{{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }}</p>
+                                        <h3 class="line-clamp-2 min-h-[2.25rem] text-xs font-semibold leading-[1.125rem] text-neutral-950 sm:min-h-[2.5rem] sm:text-sm sm:leading-5">{{ $p->title }}</h3>
+                                        <p class="mt-1 truncate text-[10px] text-neutral-500 sm:text-xs">{{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }}</p>
                                         @if($qualityHints->isNotEmpty())
-                                            <div class="mt-2 flex flex-wrap gap-1">
+                                            <div class="mt-2 hidden flex-wrap gap-1 sm:flex">
                                                 @foreach($qualityHints as $hint)
                                                     <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $hint }}</span>
                                                 @endforeach
                                             </div>
                                         @endif
                                         @if($p->status === 'blocked')
-                                            <div class="mt-2 rounded-xl border border-rose-100 bg-rose-50 p-2 text-xs leading-5 text-rose-800">
+                                            <div class="mt-2 hidden rounded-xl border border-rose-100 bg-rose-50 p-2 text-xs leading-5 text-rose-800 sm:block">
                                                 <span class="font-bold">Заблокирован админом.</span>
                                                 Исправьте карточку и напишите в поддержку/админу: самостоятельно опубликовать нельзя.
                                             </div>
                                         @endif
                                     </div>
 
-                                    <div class="flex items-end justify-between gap-3">
-                                        <div>
-                                            <div class="text-base font-bold text-neutral-950">{{ number_format($p->price, 0, ',', ' ') }} ₽</div>
+                                    <div class="flex items-end justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <div class="truncate text-sm font-bold text-neutral-950 sm:text-base">{{ number_format($p->price, 0, ',', ' ') }} ₽</div>
                                             @if($p->old_price && $p->old_price > $p->price)
-                                                <div class="text-xs text-neutral-400 line-through">{{ number_format($p->old_price, 0, ',', ' ') }} ₽</div>
+                                                <div class="truncate text-[10px] text-neutral-400 line-through sm:text-xs">{{ number_format($p->old_price, 0, ',', ' ') }} ₽</div>
                                             @endif
-                                            <div class="text-xs text-neutral-500">Остаток: {{ $p->stock }}</div>
+                                            <div class="text-[10px] text-neutral-500 sm:text-xs">Остаток: {{ $p->stock }}</div>
                                         </div>
-                                        <div class="text-right text-xs text-neutral-500">
+                                        <div class="shrink-0 text-right text-[10px] text-neutral-500 sm:text-xs">
                                             <div class="font-semibold text-neutral-700">{{ number_format($p->views_sum ?? 0, 0, ',', ' ') }}</div>
                                             <div>просм.</div>
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-[1fr_auto] gap-2 pt-1">
-                                        <a href="{{ route('seller.products.edit', $p) }}" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-500 px-3 text-sm font-semibold text-white transition hover:bg-brand-600">
+                                    <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-1.5 pt-1 sm:gap-2">
+                                        <a href="{{ route('seller.products.edit', $p) }}" class="inline-flex h-9 min-w-0 items-center justify-center gap-1 rounded-xl bg-brand-500 px-2 text-xs font-semibold text-white transition hover:bg-brand-600 sm:h-10 sm:gap-2 sm:px-3 sm:text-sm">
                                             <i class="ri-edit-line"></i>
-                                            Редактировать
+                                            <span class="truncate sm:hidden">Изменить</span>
+                                            <span class="hidden sm:inline">Редактировать</span>
                                         </a>
                                         <button
                                             type="button"
                                             title="Удалить"
                                             @click="productId = {{ $p->id }}; productTitle = @js($p->title); showConfirm = true"
-                                            class="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 text-rose-600 transition hover:bg-rose-50"
+                                            class="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 text-rose-600 transition hover:bg-rose-50 sm:h-10 sm:w-10"
                                         >
                                             <i class="ri-delete-bin-6-line"></i>
                                         </button>
@@ -382,7 +385,7 @@
                         @endforeach
                     </div>
 
-                    <div x-show="viewMode === 'list'" x-cloak class="grid gap-3 bg-neutral-50/60 p-3 sm:p-4">
+                    <div x-show="viewMode === 'list'" x-cloak class="grid gap-2 bg-neutral-50/60 p-2 sm:p-3">
                         @foreach($products as $p)
                             @php
                                 $statusLabel = $statusLabels[$p->status] ?? 'Неизвестный статус';
@@ -394,61 +397,41 @@
                                 if (($p->attribute_values_count ?? 0) === 0) $qualityHints->push('Нет характеристик');
                                 if ($p->stock <= 0) $qualityHints->push('Нет остатков');
                             @endphp
-                            <div class="grid gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm lg:grid-cols-[1fr_170px_120px_130px] lg:items-center">
-                                <div class="flex min-w-0 items-center gap-3">
-                                    <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-12 w-12 shrink-0 rounded-xl border border-neutral-200 object-cover">
-                                    <div class="min-w-0">
-                                        <div class="flex min-w-0 flex-wrap items-center gap-2">
-                                            <h3 class="truncate text-sm font-semibold text-neutral-950">{{ $p->title }}</h3>
-                                            <span class="rounded-full border {{ $statusClass }} px-2 py-0.5 text-xs font-medium">{{ $statusLabel }}</span>
-                                            @if($p->discount_percent)
-                                                <span class="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">-{{ $p->discount_percent }}%</span>
-                                            @endif
-                                        </div>
-                                        <div class="mt-1 truncate text-xs text-neutral-500">
-                                            {{ $p->category->name ?? 'Без категории' }} · {{ $p->city->name ?? 'Город не указан' }} · {{ $p->created_at->format('d.m.Y') }}
-                                        </div>
-                                        @if($qualityHints->isNotEmpty())
-                                            <div class="mt-2 flex flex-wrap gap-1">
-                                                @foreach($qualityHints as $hint)
-                                                    <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{{ $hint }}</span>
-                                                @endforeach
-                                            </div>
+                            <article class="flex min-w-0 items-center gap-2 rounded-xl border border-neutral-200 bg-white p-2 transition hover:border-brand-200 sm:gap-3">
+                                <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-11 w-11 shrink-0 rounded-lg border border-neutral-200 object-cover sm:h-12 sm:w-12">
+
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex min-w-0 items-center gap-1.5">
+                                        <h3 class="min-w-0 flex-1 truncate text-sm font-semibold text-neutral-950">{{ $p->title }}</h3>
+                                        @if($p->discount_percent)
+                                            <span class="shrink-0 rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-600">-{{ $p->discount_percent }}%</span>
                                         @endif
-                                        @if($p->status === 'blocked')
-                                            <div class="mt-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-800">
-                                                <span class="font-bold">Заблокирован администратором.</span>
-                                                Можно исправить данные, но публикацию вернёт только админ.
-                                            </div>
+                                    </div>
+
+                                    <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px] leading-4 text-neutral-500 sm:text-xs">
+                                        <span class="rounded-full border {{ $statusClass }} px-1.5 py-0.5 font-medium">{{ $statusLabel }}</span>
+                                        <span class="whitespace-nowrap font-bold text-neutral-900">{{ number_format($p->price, 0, ',', ' ') }} ₽</span>
+                                        @if($p->old_price && $p->old_price > $p->price)
+                                            <span class="whitespace-nowrap text-neutral-400 line-through">{{ number_format($p->old_price, 0, ',', ' ') }} ₽</span>
                                         @endif
+                                        <span class="whitespace-nowrap {{ $p->stock > 0 ? 'text-neutral-500' : 'font-semibold text-rose-600' }}">Остаток: {{ $p->stock }}</span>
                                     </div>
                                 </div>
 
-                                <div class="text-sm text-neutral-600">
-                                    <span class="font-semibold text-neutral-950">{{ number_format($p->price, 0, ',', ' ') }} ₽</span>
-                                    @if($p->old_price && $p->old_price > $p->price)
-                                        <span class="ml-1 text-xs text-neutral-400 line-through">{{ number_format($p->old_price, 0, ',', ' ') }} ₽</span>
-                                    @endif
-                                </div>
-
-                                <div class="text-sm {{ $p->stock > 0 ? 'text-neutral-600' : 'text-rose-600' }}">
-                                    Остаток: <span class="font-semibold">{{ $p->stock }}</span>
-                                </div>
-
-                                <div class="flex items-center gap-2 lg:justify-end">
-                                    <a href="{{ route('seller.products.edit', $p) }}" class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-700 transition hover:bg-brand-100" title="Редактировать">
+                                <div class="flex shrink-0 items-center gap-1.5">
+                                    <a href="{{ route('seller.products.edit', $p) }}" class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700 transition hover:bg-brand-100" title="Редактировать">
                                         <i class="ri-edit-line"></i>
                                     </a>
                                     <button
                                         type="button"
                                         title="Удалить"
                                         @click="productId = {{ $p->id }}; productTitle = @js($p->title); showConfirm = true"
-                                        class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600 transition hover:bg-rose-100"
                                     >
                                         <i class="ri-delete-bin-6-line"></i>
                                     </button>
                                 </div>
-                            </div>
+                            </article>
                         @endforeach
                     </div>
 

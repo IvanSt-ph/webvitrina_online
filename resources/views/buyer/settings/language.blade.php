@@ -1,40 +1,65 @@
 @php
-    $current = old('locale', auth()->user()->locale ?? session('locale', 'ru'));
+    $user = auth()->user();
+    $current = old('locale', $user->locale ?? session('locale', 'ru'));
+    $settingsLayout = $user->isSeller() ? 'seller-layout' : 'buyer-layout';
+    $languages = [
+        'ru' => ['🇷🇺', 'Русский', 'Русский язык интерфейса'],
+        'en' => ['🇬🇧', 'English', 'English interface language'],
+        'uk' => ['🇺🇦', 'Українська', 'Українська мова інтерфейсу'],
+        'ro' => ['🇷🇴', 'Română', 'Limba română a interfeței'],
+    ];
 @endphp
 
-<x-buyer-layout title="Язык интерфейса">
-    <div class="w-full max-w-none space-y-5 bg-white px-3 py-4 pb-24 sm:px-6 sm:py-8">
-        <header class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <span class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-indigo-600">
-                <i class="ri-translate-2"></i>
-                Язык
-            </span>
-            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Язык интерфейса</h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Настройка сохраняется в профиле. Полный перевод интерфейса можно расширять постепенно.</p>
-        </header>
+<x-dynamic-component :component="$settingsLayout" title="Язык интерфейса">
+    <div class="min-h-screen w-full overflow-x-hidden bg-white px-3 py-4 pb-28 text-neutral-900 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
+        <div class="w-full space-y-5">
+            <header class="min-w-0">
+                <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
+                    <i class="ri-translate-2" aria-hidden="true"></i>
+                    Региональные настройки
+                </div>
+                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-neutral-950 sm:text-[28px]">Язык интерфейса</h1>
+                <p class="mt-1 max-w-3xl text-sm leading-6 text-neutral-500">Настройка сохраняется в профиле и применяется к доступным переводам интерфейса.</p>
+            </header>
 
-        <form method="POST" action="{{ route('settings.language.update') }}" class="space-y-4">
-            @csrf
-            @method('PATCH')
-            <div class="divide-y rounded-xl border border-slate-200 bg-white shadow-sm">
-                @foreach([
-                    'ru' => ['🇷🇺', 'Русский'],
-                    'en' => ['🇬🇧', 'English'],
-                    'uk' => ['🇺🇦', 'Українська'],
-                    'ro' => ['🇷🇴', 'Română'],
-                ] as $code => [$flag, $label])
-                    <label class="flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-slate-50">
-                        <span class="flex items-center gap-3">
-                            <span class="text-xl">{{ $flag }}</span>
-                            <span class="font-medium text-slate-800">{{ $label }}</span>
-                        </span>
-                        <input type="radio" name="locale" value="{{ $code }}" @checked($current === $code) class="text-indigo-600 focus:ring-indigo-500">
-                    </label>
-                @endforeach
-            </div>
-            <button class="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
-                Сохранить язык
-            </button>
-        </form>
+            @if(session('success'))
+                <div class="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status">
+                    <i class="ri-checkbox-circle-fill text-lg"></i>{{ session('success') }}
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('settings.language.update') }}" class="space-y-5">
+                @csrf
+                @method('PATCH')
+
+                <section class="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                    <div class="border-b border-neutral-100 px-4 py-4 sm:px-5">
+                        <h2 class="font-semibold text-neutral-950">Язык WebVitrina</h2>
+                        <p class="mt-1 text-sm text-neutral-500">Некоторые разделы могут переводиться постепенно.</p>
+                    </div>
+                    <div class="divide-y divide-neutral-100">
+                        @foreach($languages as $code => [$short, $label, $description])
+                            <label class="group flex cursor-pointer items-center gap-4 px-4 py-4 transition hover:bg-neutral-50 sm:px-5">
+                                <input type="radio" name="locale" value="{{ $code }}" @checked($current === $code) class="peer sr-only">
+                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xs font-bold text-neutral-600 transition peer-checked:bg-brand-50 peer-checked:text-brand-700">{{ $short }}</span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block text-sm font-semibold text-neutral-900">{{ $label }}</span>
+                                    <span class="mt-0.5 block text-xs text-neutral-500">{{ $description }}</span>
+                                </span>
+                                <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-neutral-300 transition peer-checked:border-brand-500 peer-checked:bg-brand-500">
+                                    <i class="ri-check-line text-sm text-white" aria-hidden="true"></i>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                </section>
+
+                <div class="flex justify-end border-t border-neutral-200 pt-5">
+                    <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 text-sm font-semibold text-white transition hover:bg-brand-600 sm:w-auto">
+                        <i class="ri-save-3-line"></i>Сохранить язык
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-</x-buyer-layout>
+</x-dynamic-component>

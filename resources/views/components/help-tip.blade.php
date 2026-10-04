@@ -1,7 +1,6 @@
 @props(['color' => 'indigo', 'icon' => 'ri-lightbulb-line'])
 
-<div class="border-l-4 rounded-xl px-4 py-3 text-sm flex items-start gap-2
-     bg-{{ $color }}-50 border-{{ $color }}-200 text-{{ $color }}-800 shadow-sm">
+<div class="flex items-start gap-2 rounded-xl border border-{{ $color }}-200 bg-{{ $color }}-50 px-4 py-3 text-sm text-{{ $color }}-800">
   <i class="{{ $icon }} text-lg mt-0.5"></i>
   <div>{{ $slot }}</div>
 </div>

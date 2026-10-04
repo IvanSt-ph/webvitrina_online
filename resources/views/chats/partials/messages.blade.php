@@ -73,7 +73,7 @@
                         </div>
                     </div>
 
-                    <div class="space-y-2 px-4 py-3 text-sm leading-6 text-slate-700">
+                    <div class="space-y-2 px-4 py-3 text-sm leading-6 text-neutral-700">
                         @foreach(preg_split("/\r\n|\n|\r/", $message->body) as $line)
                             @if(trim($line) !== '')
                                 @php
@@ -83,10 +83,10 @@
                                 @endphp
                                 <div class="{{ $label === 'Подробности' ? 'rounded-xl border border-amber-100 bg-amber-50 px-3 py-2' : '' }}">
                                     @if($label)
-                                        <span class="font-bold text-slate-500">{{ $label }}:</span>
-                                        <span class="break-words text-slate-800">{{ $value }}</span>
+                                        <span class="font-bold text-neutral-500">{{ $label }}:</span>
+                                        <span class="break-words text-neutral-800">{{ $value }}</span>
                                     @else
-                                        <span class="break-words font-semibold text-slate-900">{{ $value }}</span>
+                                        <span class="break-words font-semibold text-neutral-900">{{ $value }}</span>
                                     @endif
                                 </div>
                             @endif
@@ -100,12 +100,12 @@
                                 @foreach($relatedOrder->items as $orderItem)
                                     @if($orderItem->product && ! $orderItem->product->trashed() && $orderItem->product->status === 'active')
                                         <a href="{{ route('product.show', $orderItem->product->slug) }}"
-                                           class="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-amber-100 hover:bg-indigo-50">
+                                           class="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-amber-100 hover:bg-brand-50">
                                             <i class="ri-shopping-bag-line"></i>
                                             <span class="truncate">{{ $orderItem->product->title }}</span>
                                         </a>
                                     @else
-                                        <span class="inline-flex max-w-full items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 ring-1 ring-amber-100">
+                                        <span class="inline-flex max-w-full items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-500 ring-1 ring-amber-100">
                                             {{ $orderItem->product?->title ?? 'Товар удалён' }}
                                         </span>
                                     @endif
@@ -117,14 +117,14 @@
                     <div class="flex flex-wrap items-center gap-2 border-t border-amber-100 px-4 py-3 text-xs font-semibold">
                         @if($relatedBuyerUrl)
                             <a href="{{ $relatedBuyerUrl }}"
-                               class="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700">
+                               class="inline-flex h-8 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-neutral-600 transition hover:border-brand-200 hover:text-brand-700">
                                 <i class="ri-user-line"></i>
                                 Покупатель
                             </a>
                         @endif
                         @if($relatedSellerUrl)
                             <a href="{{ $relatedSellerUrl }}"
-                               class="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700">
+                               class="inline-flex h-8 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-neutral-600 transition hover:border-brand-200 hover:text-brand-700">
                                 <i class="ri-store-2-line"></i>
                                 Продавец
                             </a>
@@ -143,7 +143,7 @@
                                 Исходный диалог
                             </a>
                         @endif
-                        <span class="ml-auto text-slate-500">
+                        <span class="ml-auto text-neutral-500">
                         <span>{{ $message->created_at->isToday() ? 'Сегодня, ' . $message->created_at->format('H:i') : $message->created_at->format('d.m H:i') }}</span>
                         </span>
                     </div>
@@ -161,12 +161,12 @@
         @endif
         @continue
     @endif
-    <div class="flex w-full {{ $mine ? 'justify-end' : 'justify-start' }}"
+    <div class="flex w-full min-w-0 {{ $mine ? 'justify-end' : 'justify-start' }}"
          @if($mine) data-message-id="{{ $message->id }}" @endif>
-        <div class="max-w-[92%] rounded-[1.4rem] px-4 py-3 shadow-sm sm:max-w-[84%]
-                    {{ $mine ? 'rounded-br-md bg-indigo-600 text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-800' }}">
+        <div class="min-w-0 max-w-[88%] rounded-2xl px-3.5 py-2.5 sm:max-w-[76%] sm:px-4
+                    {{ $mine ? 'rounded-br-md bg-brand-500 text-white' : 'rounded-bl-md border border-neutral-200 bg-white text-neutral-800' }}">
             @if($showSenderLabels && ! $mine)
-                <div class="mb-1 truncate text-xs font-semibold text-slate-500">
+                <div class="mb-1 truncate text-xs font-semibold text-neutral-500">
                     {{ $message->sender?->name ?? 'Пользователь' }} · {{ $senderRole }}
                 </div>
             @endif
@@ -174,7 +174,7 @@
                 <a href="{{ route($imageRouteName, [$conversation, $message]) }}"
                    target="_blank"
                    rel="noopener noreferrer"
-                   class="mb-2 block overflow-hidden rounded-2xl bg-black/5">
+                   class="mb-2 block overflow-hidden rounded-xl bg-black/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-200">
                     <img data-image-unavailable="Изображение недоступно" src="{{ route($imageRouteName, [$conversation, $message]) }}"
                          alt="Фото в сообщении"
                          loading="lazy"
@@ -184,7 +184,7 @@
             @if($message->body !== '')
                 <div class="whitespace-pre-wrap break-words text-sm leading-6">{{ $message->body }}</div>
             @endif
-            <div class="mt-1 flex items-center gap-1.5 text-[11px] {{ $mine ? 'text-indigo-100' : 'text-slate-400' }}">
+            <div class="mt-1 flex items-center gap-1.5 text-[11px] {{ $mine ? 'text-brand-100' : 'text-neutral-400' }}">
                 <span>
                     {{ $message->created_at->isToday() ? 'Сегодня, ' . $message->created_at->format('H:i') : $message->created_at->format('d.m H:i') }}
                 </span>

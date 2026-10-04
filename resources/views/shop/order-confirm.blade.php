@@ -1,258 +1,332 @@
 <x-buyer-layout title="Подтверждение заказа">
 
-<div class="checkout-confirm-safe wv-page-shell max-w-none overflow-x-hidden pb-[5.5rem] sm:pb-8">
+<div class="checkout-confirm-safe min-h-screen w-full overflow-x-hidden bg-white px-3 py-4 pb-28 text-neutral-900 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
+    <div class="w-full space-y-5 sm:space-y-6">
 
-    <!-- 🔙 Назад в корзину -->
-    <a href="{{ route('cart.index') }}"
-       class="inline-flex max-w-full items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600">
-        <i class="ri-arrow-left-line"></i> Вернуться в корзину
-    </a>
+        <header class="min-w-0">
+            <a href="{{ route('cart.index') }}"
+               class="inline-flex min-h-10 items-center gap-2 rounded-xl px-1 text-sm font-medium text-neutral-500 transition hover:text-brand-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-100">
+                <i class="ri-arrow-left-line" aria-hidden="true"></i>
+                Вернуться в корзину
+            </a>
 
-    <!-- 🧾 Заголовок -->
-    <div class="wv-page-header">
-        <div>
-        <span class="wv-page-eyebrow">
-            <i class="ri-bank-card-line"></i>
-            Оформление
-        </span>
-        <h1 class="mt-3 text-2xl font-semibold text-slate-950 sm:text-3xl">Подтверждение заказа</h1>
-        <p class="mt-1 text-sm text-slate-500">
-            Проверьте товары перед оформлением. Для каждого магазина будет создан отдельный заказ.
-        </p>
-        </div>
-    </div>
+            <div class="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
+                <i class="ri-bank-card-line" aria-hidden="true"></i>
+                Оформление
+            </div>
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-neutral-950 sm:text-[28px]">Подтверждение заказа</h1>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-neutral-500">
+                Проверьте товары и выберите удобные условия. Для каждого магазина будет создан отдельный заказ.
+            </p>
+        </header>
 
-    @if(session('error'))
-        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {{ session('error') }}
-        </div>
-    @endif
+        @if(session('error'))
+            <div class="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800" role="alert">
+                <i class="ri-error-warning-line mt-0.5 shrink-0 text-lg" aria-hidden="true"></i>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
 
-    @if($errors->any())
-        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {{ $errors->first() }}
-        </div>
-    @endif
+        @if($errors->any())
+            <div class="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800" role="alert">
+                <i class="ri-error-warning-line mt-0.5 shrink-0 text-lg" aria-hidden="true"></i>
+                <span>{{ $errors->first() }}</span>
+            </div>
+        @endif
 
-    @if($pricesUpdated)
-        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Цена одного или нескольких товаров изменилась. Ниже показана актуальная сумма; подтвердите заказ с новой ценой.
-        </div>
-    @endif
+        @if($pricesUpdated)
+            <div class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900" role="status">
+                <i class="ri-price-tag-3-line mt-0.5 shrink-0 text-lg" aria-hidden="true"></i>
+                <span>Цена одного или нескольких товаров изменилась. Ниже показана актуальная сумма — проверьте её перед оформлением.</span>
+            </div>
+        @endif
 
-    <!-- 📦 Заказы по магазинам -->
-    <div class="space-y-4">
-        @foreach($orderGroups as $group)
-            <section class="wv-card w-full max-w-full overflow-hidden">
-                <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 sm:px-5">
-                    <div class="min-w-0 text-sm font-semibold text-slate-950">
-                        <i class="ri-store-2-line mr-1 text-indigo-500"></i>
-                        <span class="break-words">{{ $group['seller_name'] }}</span>
-                    </div>
-                    <span class="shrink-0 text-xs text-slate-500">Отдельный заказ</span>
-                </div>
-                <div class="divide-y">
-                    @foreach($group['items'] as $item)
-                        @php
-                            $itemTitle = $item['title'] ?? 'Товар';
-                            $shortItemTitle = Str::limit($itemTitle, 18);
-                        @endphp
-                        <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-center sm:gap-4 sm:p-5">
-                            <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($item['image'] ?? null)) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ \App\Models\Product::storageThumbUrl($item['image'] ?? null) }}"
-                                 class="h-16 w-16 rounded-xl border border-slate-200 object-cover sm:h-20 sm:w-20"
-                                 alt="{{ $itemTitle }}">
+        <form action="{{ route('checkout.create') }}" method="POST" class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+            @csrf
+            <input type="hidden" name="checkout_token" value="{{ $checkoutToken }}">
 
-                            <div class="min-w-0 sm:flex-1">
-                                <p class="line-clamp-2 text-sm font-medium text-slate-950 sm:text-base" style="overflow-wrap: anywhere; word-break: break-word;">
-                                    <span class="sm:hidden">{{ $shortItemTitle }}</span>
-                                    <span class="hidden sm:inline">{{ $itemTitle }}</span>
-                                </p>
-                                <p class="mt-1 text-xs text-slate-500 sm:text-sm">
-                                    Кол-во: <span class="font-semibold text-slate-800">{{ $item['qty'] }}</span>
-                                </p>
-                            </div>
-
-                            <div class="col-span-2 min-w-0 rounded-xl bg-slate-50 px-3 py-2 text-left sm:col-span-1 sm:min-w-[110px] sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
-                                <div class="text-base font-semibold text-slate-950 sm:text-lg">
-                                    {{ number_format($item['price'] * $item['qty'], 2, ',', ' ') }} {{ $currencySymbol }}
-                                </div>
-                                <div class="text-xs text-slate-400">
-                                    {{ number_format($item['price'], 2, ',', ' ') }} {{ $currencySymbol }} / шт
-                                </div>
+            <div class="min-w-0 space-y-5">
+                {{-- Товары по магазинам --}}
+                <section class="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                    <div class="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-4 sm:px-5">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                                <i class="ri-shopping-bag-3-line text-lg" aria-hidden="true"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <h2 class="font-semibold text-neutral-950">Ваш заказ</h2>
+                                <p class="mt-0.5 text-xs text-neutral-500">{{ collect($cart)->sum('qty') }} шт. · {{ $orderCount }} {{ trans_choice('заказ|заказа|заказов', $orderCount) }}</p>
                             </div>
                         </div>
-                    @endforeach
+                    </div>
+
+                    <div class="divide-y divide-neutral-100">
+                        @foreach($orderGroups as $group)
+                            <article>
+                                <div class="flex items-center justify-between gap-3 bg-neutral-50/80 px-4 py-3 sm:px-5">
+                                    <div class="flex min-w-0 items-center gap-2 text-sm font-semibold text-neutral-900">
+                                        <i class="ri-store-2-line shrink-0 text-brand-500" aria-hidden="true"></i>
+                                        <span class="truncate">{{ $group['seller_name'] }}</span>
+                                    </div>
+                                    <span class="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500 ring-1 ring-neutral-200">Отдельный заказ</span>
+                                </div>
+
+                                <div class="divide-y divide-neutral-100">
+                                    @foreach($group['items'] as $item)
+                                        @php
+                                            $itemTitle = $item['title'] ?? 'Товар';
+                                            $shortItemTitle = Str::limit($itemTitle, 18);
+                                        @endphp
+                                        <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 px-4 py-4 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center sm:gap-4 sm:px-5">
+                                            <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($item['image'] ?? null)) }}"
+                                                 data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                                                 src="{{ \App\Models\Product::storageThumbUrl($item['image'] ?? null) }}"
+                                                 class="h-16 w-16 rounded-xl border border-neutral-200 object-cover sm:h-[72px] sm:w-[72px]"
+                                                 alt="{{ $itemTitle }}">
+
+                                            <div class="min-w-0">
+                                                <p class="line-clamp-2 text-sm font-semibold leading-5 text-neutral-900 sm:text-base" style="overflow-wrap: anywhere; word-break: break-word;">
+                                                    <span class="sm:hidden">{{ $shortItemTitle }}</span>
+                                                    <span class="hidden sm:inline">{{ $itemTitle }}</span>
+                                                </p>
+                                                <p class="mt-1 text-xs text-neutral-500">
+                                                    Количество: <span class="font-semibold text-neutral-700">{{ $item['qty'] }}</span>
+                                                </p>
+                                            </div>
+
+                                            <div class="col-span-2 min-w-0 rounded-xl bg-neutral-50 px-3 py-2 sm:col-span-1 sm:bg-transparent sm:p-0 sm:text-right">
+                                                <div class="break-words text-base font-semibold text-neutral-950 sm:text-lg">
+                                                    {{ number_format($item['price'] * $item['qty'], 2, ',', ' ') }} {{ $currencySymbol }}
+                                                </div>
+                                                <div class="text-xs text-neutral-400">
+                                                    {{ number_format($item['price'], 2, ',', ' ') }} {{ $currencySymbol }} / шт.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="flex items-center justify-between gap-3 border-t border-neutral-100 px-4 py-3 text-sm sm:px-5">
+                                    <span class="text-neutral-500">Товары магазина</span>
+                                    <span class="font-semibold text-neutral-950">{{ number_format($group['subtotal'], 2, ',', ' ') }} {{ $currencySymbol }}</span>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                </section>
+
+                @if($orderCount > 1)
+                    <div class="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm leading-6 text-brand-800">
+                        <i class="ri-information-line mt-0.5 shrink-0 text-lg" aria-hidden="true"></i>
+                        <span>Будет создано заказов: <strong>{{ $orderCount }}</strong>. Доставка и оплата согласуются отдельно с каждым продавцом.</span>
+                    </div>
+                @endif
+
+                <div class="grid min-w-0 gap-5 lg:grid-cols-2">
+                    {{-- Доставка --}}
+                    <section class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+                        <div class="mb-4 flex items-center gap-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                                <i class="ri-truck-line text-lg" aria-hidden="true"></i>
+                            </span>
+                            <div>
+                                <h2 class="font-semibold text-neutral-950">Способ доставки</h2>
+                                <p class="mt-0.5 text-xs text-neutral-500">Выберите предпочтительный вариант</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            @if(isset($deliveryMethods) && count($deliveryMethods))
+                                @foreach($deliveryMethods as $key => $label)
+                                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
+                                        <input type="radio" name="delivery_method" value="{{ $key }}"
+                                               class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
+                                               {{ $loop->first ? 'checked' : '' }} required>
+                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            @else
+                                @foreach([
+                                    'courier' => 'Доставка продавцом по договорённости',
+                                    'pickup' => 'Самовывоз по договорённости с продавцом',
+                                    'post' => 'Отправка почтой по договорённости',
+                                ] as $key => $label)
+                                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
+                                        <input type="radio" name="delivery_method" value="{{ $key }}"
+                                               class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
+                                               {{ $loop->first ? 'checked' : '' }} required>
+                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            @endif
+                        </div>
+
+                        <p class="mt-3 text-xs leading-5 text-neutral-500">Стоимость, срок и способ передачи товара продавец подтвердит в заказе или чате.</p>
+                    </section>
+
+                    {{-- Оплата --}}
+                    <section class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+                        <div class="mb-4 flex items-center gap-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                                <i class="ri-wallet-3-line text-lg" aria-hidden="true"></i>
+                            </span>
+                            <div>
+                                <h2 class="font-semibold text-neutral-950">Способ оплаты</h2>
+                                <p class="mt-0.5 text-xs text-neutral-500">Сообщим выбранный вариант продавцу</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            @if(isset($paymentMethods) && count($paymentMethods))
+                                @foreach($paymentMethods as $key => $label)
+                                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
+                                        <input type="radio" name="payment_method" value="{{ $key }}"
+                                               class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
+                                               {{ $loop->first ? 'checked' : '' }} required>
+                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            @else
+                                @foreach([
+                                    'cash' => 'Наличными при получении или передаче товара',
+                                    'card' => 'Картой при получении',
+                                    'bank_transfer' => 'Перевод по согласованию с продавцом',
+                                ] as $key => $label)
+                                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
+                                        <input type="radio" name="payment_method" value="{{ $key }}"
+                                               class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
+                                               {{ $loop->first ? 'checked' : '' }} required>
+                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            @endif
+                        </div>
+
+                        <p class="mt-3 text-xs leading-5 text-neutral-500">Онлайн-платёж на сайте пока не выполняется. Расчёт подтверждается с продавцом.</p>
+                    </section>
                 </div>
-                <div class="flex justify-between gap-3 border-t border-slate-100 px-4 py-3 text-sm sm:px-5">
-                    <span class="text-slate-500">Товары магазина:</span>
-                    <span class="font-semibold text-slate-950">{{ number_format($group['subtotal'], 2, ',', ' ') }} {{ $currencySymbol }}</span>
+
+                <div class="grid min-w-0 gap-5 lg:grid-cols-2">
+                    {{-- Получатель --}}
+                    <section class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+                        <div class="mb-4 flex items-center gap-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                                <i class="ri-user-3-line text-lg" aria-hidden="true"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <h2 class="font-semibold text-neutral-950">Получатель</h2>
+                                <p class="mt-0.5 text-xs text-neutral-500">Контактные данные из вашего профиля</p>
+                            </div>
+                        </div>
+
+                        <dl class="space-y-3 text-sm">
+                            <div class="flex min-w-0 items-start justify-between gap-3">
+                                <dt class="shrink-0 text-neutral-500">Имя</dt>
+                                <dd class="min-w-0 break-words text-right font-semibold text-neutral-900">{{ auth()->user()->name }}</dd>
+                            </div>
+                            <div class="flex min-w-0 items-start justify-between gap-3">
+                                <dt class="shrink-0 text-neutral-500">Телефон</dt>
+                                <dd class="min-w-0 break-words text-right font-semibold text-neutral-900">{{ auth()->user()->phone ?: 'Не указан' }}</dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    {{-- Адрес --}}
+                    <section class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+                        <div class="mb-4 flex items-center gap-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                                <i class="ri-map-pin-line text-lg" aria-hidden="true"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <h2 class="font-semibold text-neutral-950">Адрес доставки</h2>
+                                <p class="mt-0.5 text-xs text-neutral-500">Для самовывоза адрес не обязателен</p>
+                            </div>
+                        </div>
+
+                        @if($addresses->count())
+                            <select id="checkout-address" name="address_id" aria-label="Адрес доставки" class="h-12 w-full min-w-0 rounded-xl border-neutral-200 bg-white px-3 text-sm text-neutral-700 focus:border-brand-300 focus:ring-4 focus:ring-brand-100">
+                                @foreach($addresses as $address)
+                                    <option value="{{ $address->id }}" {{ ($defaultAddressId == $address->id) ? 'selected' : '' }}>
+                                        {{ $address->country }}, {{ $address->city }}, {{ $address->street }} {{ $address->house }}, кв. {{ $address->apartment }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p class="mt-2 text-xs leading-5 text-neutral-500">Основной адрес выбран по умолчанию. При необходимости укажите другой.</p>
+                        @else
+                            <div class="flex flex-col gap-3 rounded-xl bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                <p class="text-sm text-neutral-600">У вас пока нет сохранённых адресов.</p>
+                                <a href="{{ route('addresses.index') }}" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-100">
+                                    Добавить адрес
+                                </a>
+                            </div>
+                        @endif
+                    </section>
                 </div>
-            </section>
-        @endforeach
-    </div>
-
-    @if($orderCount > 1)
-        <div class="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
-            Будет создано заказов: <strong>{{ $orderCount }}</strong>. Условия передачи, доставки и оплаты согласуются отдельно с каждым продавцом.
-        </div>
-    @endif
-
-    <!-- 📝 Форма оформления заказа -->
-    <form action="{{ route('checkout.create') }}" method="POST" class="space-y-6">
-        @csrf
-        <input type="hidden" name="checkout_token" value="{{ $checkoutToken }}">
-
-<!-- 📍 Доставка и оплата (теперь внутри формы!) -->
-<div class="grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-6">
-    <!-- 🚚 Выбор способа доставки -->
-    <div class="wv-card min-w-0 p-4 sm:p-6">
-        <h3 class="mb-3 text-lg font-semibold text-slate-950">Способ доставки</h3>
-        
-        @if(isset($deliveryMethods) && count($deliveryMethods))
-            <div class="space-y-2">
-                @foreach($deliveryMethods as $key => $label)
-                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 transition-colors hover:bg-slate-50">
-                        <input type="radio" 
-                               name="delivery_method" 
-                               value="{{ $key }}"
-                               class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600"
-                               {{ $loop->first ? 'checked' : '' }}
-                               required>
-                        <span class="min-w-0 text-sm leading-snug text-slate-800" style="overflow-wrap: anywhere;">{{ $label }}</span>
-                    </label>
-                @endforeach
             </div>
-        @else
-            <div class="space-y-2">
-                <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-                    <input type="radio" name="delivery_method" value="courier" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" checked required>
-                    <span class="min-w-0 text-sm text-slate-800">🚚 Доставка продавцом по договорённости</span>
-                </label>
-                <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-                    <input type="radio" name="delivery_method" value="pickup" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-sm text-slate-800">🏪 Самовывоз по договорённости с продавцом</span>
-                </label>
-                <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-                    <input type="radio" name="delivery_method" value="post" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-sm text-slate-800">📮 Отправка почтой по договорённости</span>
-                </label>
-            </div>
-        @endif
-        
-        <p class="mt-3 text-xs text-slate-500">
-            Сайт фиксирует выбранный вариант, но доставку как услугу пока не выполняет. Стоимость и сроки продавец подтвердит в заказе или чате.
-        </p>
-    </div>
 
-    <!-- 💳 Выбор способа оплаты -->
-    <div class="wv-card min-w-0 p-4 sm:p-6">
-        <h3 class="mb-3 text-lg font-semibold text-slate-950">Способ оплаты</h3>
-        
-        @if(isset($paymentMethods) && count($paymentMethods))
-            <div class="space-y-2">
-                @foreach($paymentMethods as $key => $label)
-                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 transition-colors hover:bg-slate-50">
-                        <input type="radio" 
-                               name="payment_method" 
-                               value="{{ $key }}"
-                               class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600"
-                               {{ $loop->first ? 'checked' : '' }}
-                               required>
-                        <span class="min-w-0 text-sm leading-snug text-slate-800" style="overflow-wrap: anywhere;">{{ $label }}</span>
-                    </label>
-                @endforeach
-            </div>
-        @else
-            <div class="space-y-2">
-                <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-                    <input type="radio" name="payment_method" value="cash" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" checked required>
-                    <span class="min-w-0 text-sm text-slate-800">💵 Наличными при получении или передаче товара</span>
-                </label>
-                <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-                    <input type="radio" name="payment_method" value="card" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-sm text-slate-800">💳 Картой при получении (онлайн-оплата на сайте пока не выполняется)</span>
-                </label>
-                <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50">
-                    <input type="radio" name="payment_method" value="bank_transfer" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600">
-                    <span class="min-w-0 text-sm text-slate-800">🏦 Перевод по согласованию с продавцом</span>
-                </label>
-            </div>
-        @endif
-        
-        <p class="mt-3 text-xs text-slate-500">
-            Онлайн-платёж на сайте пока не выполняется. Выбранный вариант нужен, чтобы продавец понимал ожидаемый способ расчёта.
-        </p>
+            {{-- Сводка --}}
+            <aside class="min-w-0 xl:sticky xl:top-6">
+                <section class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+                    <div class="flex items-center gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                            <i class="ri-file-list-3-line text-xl" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <h2 class="font-semibold text-neutral-950">Сводка заказа</h2>
+                            <p class="mt-0.5 text-xs text-neutral-500">По всем магазинам</p>
+                        </div>
+                    </div>
+
+                    <dl class="mt-5 space-y-3 text-sm">
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-neutral-500">Товаров</dt>
+                            <dd class="font-semibold text-neutral-900">{{ collect($cart)->sum('qty') }} шт.</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-neutral-500">Заказов</dt>
+                            <dd class="font-semibold text-neutral-900">{{ $orderCount }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-neutral-500">Валюта</dt>
+                            <dd class="font-semibold text-neutral-900">{{ $checkoutCurrency }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-neutral-500">Сумма товаров</dt>
+                            <dd id="subtotal" class="font-semibold text-neutral-900">{{ number_format($total, 2, ',', ' ') }} {{ $currencySymbol }}</dd>
+                        </div>
+                        <div class="flex items-start justify-between gap-3">
+                            <dt class="text-neutral-500">Доставка</dt>
+                            <dd id="delivery-cost" class="max-w-[190px] text-right font-medium text-neutral-500">Согласуется с продавцом</dd>
+                        </div>
+                    </dl>
+
+                    <div class="my-4 border-t border-neutral-100"></div>
+
+                    <div class="flex items-end justify-between gap-3">
+                        <span class="text-sm font-medium text-neutral-500">Итого</span>
+                        <span id="total-with-delivery" class="text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">
+                            {{ number_format($totalWithDelivery, 2, ',', ' ') }} {{ $currencySymbol }}
+                        </span>
+                    </div>
+
+                    <div class="mt-4 rounded-xl bg-brand-50 px-3 py-3 text-xs leading-5 text-brand-800">
+                        В итог входит стоимость товаров. Доставка и способ оплаты окончательно подтверждаются продавцом.
+                    </div>
+
+                    <button type="submit"
+                            class="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 text-base font-semibold text-white transition hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:bg-neutral-300">
+                        <i class="ri-bank-card-line" aria-hidden="true"></i>
+                        Оформить заказ
+                    </button>
+                </section>
+            </aside>
+        </form>
     </div>
 </div>
 
-<!-- 💰 Итоги -->
-<div class="wv-card min-w-0 space-y-4 p-4 sm:p-6">
-    <div class="flex min-w-0 justify-between gap-3 text-sm text-slate-700">
-<span>
-    Товаров:
-    {{ collect($cart)->sum('qty') }}
-</span>
-
-        <span id="subtotal" class="shrink-0">{{ number_format($total, 2, ',', ' ') }} {{ $currencySymbol }}</span>
-    </div>
-
-    <div class="flex min-w-0 justify-between gap-3 text-sm text-slate-700">
-        <span>Доставка:</span>
-        <span id="delivery-cost" class="shrink-0 text-right font-medium text-slate-500">
-            Согласуется с продавцом
-        </span>
-    </div>
-
-    <hr class="border-slate-200">
-
-    <div class="flex min-w-0 items-start justify-between gap-3">
-        <span class="min-w-0 text-base font-semibold text-slate-950 sm:text-lg">Итого за товары</span>
-        <span id="total-with-delivery" class="shrink-0 text-xl font-semibold text-slate-950 sm:text-2xl">
-            {{ number_format($totalWithDelivery, 2, ',', ' ') }} {{ $currencySymbol }}
-        </span>
-    </div>
-</div>
-
-<!-- 📍 Выбор адреса -->
-        <div class="wv-card min-w-0 space-y-3 p-4 sm:p-6">
-            <h2 class="font-semibold text-slate-950">Адрес доставки</h2>
-
-            @if($addresses->count())
-                <select name="address_id"
-                        class="wv-field max-w-full min-w-0 text-slate-700">
-                    @foreach($addresses as $address)
-                        <option value="{{ $address->id }}"
-                            {{ ($defaultAddressId == $address->id) ? 'selected' : '' }}>
-                            {{ $address->country }}, {{ $address->city }},
-                            {{ $address->street }} {{ $address->house }},
-                            кв. {{ $address->apartment }}
-                        </option>
-                    @endforeach
-                </select>
-                <p class="text-xs text-slate-500">
-                    Основной адрес отмечен по умолчанию. Вы можете выбрать другой.
-                </p>
-            @else
-                <p class="text-sm text-slate-500">
-                    У вас нет сохранённых адресов.
-                    <a href="{{ route('addresses.index') }}" class="text-indigo-600">
-                        Добавить адрес
-                    </a>
-                </p>
-            @endif
-        </div>
-
-<!-- Кнопка подтверждения -->
-<button
-    type="submit"
-    class="w-full max-w-full rounded-xl bg-indigo-600 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-400">
-    Оформить заказ
-</button>
-
-    </form>
-
-    
-
+@once('remixicon-4.1.0')
+    @vite('resources/css/remixicon.css')
+@endonce
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -267,15 +341,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const deliveryEl = document.getElementById('delivery-cost');
     const totalEl = document.getElementById('total-with-delivery');
 
-    const format = v =>
-        v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currencySymbol;
+    const format = value =>
+        value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currencySymbol;
 
     function updateTotal(radio) {
         if (!radio) return;
 
         const price = Number(prices[radio.value] ?? 0) * orderCount;
         deliveryEl.textContent = price > 0 ? format(price) : 'Согласуется с продавцом';
-        deliveryEl.className = price > 0 ? 'font-medium' : 'shrink-0 text-right font-medium text-slate-500';
+        deliveryEl.className = price > 0
+            ? 'max-w-[190px] text-right font-semibold text-neutral-900'
+            : 'max-w-[190px] text-right font-medium text-neutral-500';
         totalEl.textContent = format(subtotal + price);
     }
 
@@ -292,8 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     deliveryRadios.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            updateTotal(e.target);
+        radio.addEventListener('change', event => {
+            updateTotal(event.target);
             updateButtonState();
         });
     });
@@ -307,32 +383,16 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.textContent = 'Оформляем заказ...';
     });
 
-    // Инициализация при загрузке страницы
     const checkedRadio = document.querySelector('input[name="delivery_method"]:checked');
     updateTotal(checkedRadio);
     updateButtonState();
 });
 </script>
 
-
-
-
-
-
-</div>
-
-@once('remixicon-4.1.0')
-    @vite('resources/css/remixicon.css')
-@endonce
-
 <style>
     .checkout-confirm-safe,
     .checkout-confirm-safe * {
         box-sizing: border-box;
-    }
-
-    .checkout-confirm-safe {
-        max-width: 100vw;
     }
 
     .checkout-confirm-safe .line-clamp-2 {
