@@ -5,7 +5,7 @@
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform -translate-y-2"
          x-transition:enter-end="opacity-100 transform translate-y-0"
-         class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm">
+         class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                 <i class="ri-check-line text-emerald-600"></i>

@@ -1,11 +1,12 @@
 @php
-    $chatLayout = auth()->user()->isSeller() ? 'seller-layout' : 'buyer-layout';
+    $isSeller = auth()->user()->isSeller();
+    $chatLayout = $isSeller ? 'seller-layout' : 'buyer-layout';
 @endphp
 
 <x-dynamic-component :component="$chatLayout" title="Чаты" :chat-mode="true">
     <div class="flex h-full w-full min-w-0 flex-col overflow-hidden bg-white px-4 py-5 pb-24 sm:px-6 lg:px-8 lg:pb-6">
         <div class="sticky top-0 z-20 mb-4 shrink-0 border-b border-neutral-200 bg-white/95 pb-4 backdrop-blur">
-            @if(auth()->user()->isSeller())
+            @if($isSeller)
                 <a href="{{ route('seller.cabinet') }}"
                    class="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 transition hover:text-brand-600 lg:hidden">
                     <i class="ri-arrow-left-line"></i>
@@ -14,10 +15,10 @@
             @endif
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0">
-                    <div class="mb-1 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600"><i class="ri-chat-3-line text-base"></i>Сообщения</div>
+                    <div class="mb-1 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600"><i class="ri-chat-3-line text-base"></i>{{ $isSeller ? 'Связь с покупателями' : 'Сообщения' }}</div>
                     <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-                        <h1 class="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-[28px]">Мои чаты</h1>
-                        <p class="min-w-0 truncate text-sm text-neutral-500 sm:max-w-xl">Товары, заказы и поддержка</p>
+                        <h1 class="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-[28px]">{{ $isSeller ? 'Чаты с покупателями' : 'Мои чаты' }}</h1>
+                        <p class="min-w-0 truncate text-sm text-neutral-500 sm:max-w-xl">{{ $isSeller ? 'Заказы, вопросы о товарах и поддержка' : 'Товары, заказы и поддержка' }}</p>
                     </div>
                 </div>
 
@@ -49,7 +50,7 @@
                                 type="search"
                                 name="q"
                                 value="{{ $search }}"
-                                placeholder="Поиск: покупатель, магазин, товар, заказ или текст сообщения"
+                                placeholder="{{ $isSeller ? 'Поиск: покупатель, товар, заказ или сообщение' : 'Поиск: магазин, товар, заказ или сообщение' }}"
                                 class="h-11 w-full rounded-xl border border-neutral-200 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
                             >
                             @if($activeFilter)
@@ -81,7 +82,7 @@
             </details>
         </div>
 
-        <div class="grid min-h-0 min-w-0 flex-1 gap-5 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div class="grid min-h-0 min-w-0 flex-1 gap-5 overflow-hidden lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)]">
             <section class="min-h-0 min-w-0 overflow-y-auto rounded-2xl border border-neutral-200 bg-neutral-50 p-2 lg:h-full">
                 @include('chats.partials.list', ['currentConversation' => $selectedConversation, 'inlineDesktop' => true])
                 @if(method_exists($conversations, 'links'))
@@ -174,15 +175,23 @@
                         <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-xl shadow-brand-500/20">
                             <i class="ri-chat-3-line text-3xl"></i>
                         </div>
-                        <h2 class="mt-5 text-xl font-semibold text-neutral-900">Диалогов пока нет</h2>
-                        <p class="mt-2 max-w-md text-sm text-neutral-500">Откройте страницу магазина или товара и нажмите «Написать», чтобы начать разговор.</p>
+                        <h2 class="mt-5 text-xl font-semibold text-neutral-900">{{ $conversations->isEmpty() ? 'Диалогов пока нет' : 'Выберите диалог' }}</h2>
+                        <p class="mt-2 max-w-md text-sm text-neutral-500">
+                            @if($conversations->isNotEmpty())
+                                Выберите чат слева, чтобы увидеть историю сообщений и ответить.
+                            @elseif($isSeller)
+                                Здесь появятся обращения покупателей по вашим товарам и заказам.
+                            @else
+                                Откройте страницу магазина или товара и нажмите «Написать», чтобы начать разговор.
+                            @endif
+                        </p>
                     </div>
                 </section>
             @endif
         </div>
     </div>
 
-    @if(auth()->user()->isSeller())
+    @if($isSeller)
         @include('layouts.mobile-bottom-seller-nav')
     @endif
 </x-dynamic-component>

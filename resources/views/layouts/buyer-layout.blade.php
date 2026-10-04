@@ -8,19 +8,22 @@
         <div class="shrink-0 border-b border-neutral-200 bg-white px-3 py-2 md:hidden">
             <button type="button" x-ref="buyerMenuToggle" @click="buyerMenuOpen = !buyerMenuOpen"
                     :aria-expanded="buyerMenuOpen" aria-expanded="false" aria-controls="buyer-sidebar"
-                    class="wv-buyer-menu-toggle flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-neutral-800">
-                <i class="ri-menu-line text-xl" aria-hidden="true"></i>
+                    class="wv-buyer-menu-toggle flex min-h-11 w-full items-center gap-3 rounded-xl px-2 text-sm font-semibold text-neutral-800 transition hover:bg-brand-50">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><i class="ri-menu-line text-xl" aria-hidden="true"></i></span>
                 <span>Меню кабинета</span>
                 <i class="ri-arrow-down-s-line ml-auto text-xl" :class="{ 'rotate-180': buyerMenuOpen }" aria-hidden="true"></i>
             </button>
         </div>
         <!-- 🧭 Sidebar -->
-        <aside id="buyer-sidebar" class="wv-buyer-sidebar wv-sidebar flex-col justify-between border-r border-slate-200 md:fixed md:inset-y-0 md:left-0 md:w-64">
+        <aside id="buyer-sidebar" class="wv-buyer-sidebar wv-sidebar flex-col justify-between border-r border-neutral-200 md:fixed md:inset-y-0 md:left-0 md:w-64">
             <div>
                 <!-- Логотип -->
-                <div class="flex items-center gap-2 border-b border-neutral-100 px-6 py-6">
-                    <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-8 w-8 rounded-lg shadow-sm">
-                    <span class="text-sm font-semibold tracking-tight text-neutral-800">WebVitrina</span>
+                <div class="flex items-center gap-3 border-b border-neutral-100 px-4 py-4">
+                    <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-10 w-10 rounded-xl shadow-sm ring-1 ring-neutral-200">
+                    <div class="min-w-0">
+                        <div class="truncate text-sm font-semibold tracking-tight text-neutral-900">WebVitrina</div>
+                        <div class="mt-0.5 text-[11px] font-medium text-neutral-500">Кабинет покупателя</div>
+                    </div>
                 </div>
 
                 @php
@@ -46,16 +49,16 @@
                     ];
                 @endphp
 
-                <nav class="py-4" aria-label="Кабинет покупателя">
-                    <div class="mx-3 mb-4 border-b border-neutral-200 pb-4">
-                        <a href="{{ route('home') }}" class="wv-buyer-store-link flex min-h-11 items-center gap-3 rounded-xl border border-neutral-200 px-3 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100">
-                            <i class="ri-arrow-left-line text-xl" aria-hidden="true"></i>
+                <nav class="py-3" aria-label="Кабинет покупателя">
+                    <div class="mx-3 mb-4 border-b border-neutral-100 pb-4">
+                        <a href="{{ route('home') }}" class="wv-buyer-store-link flex min-h-11 items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-3 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-brand-200 hover:bg-brand-100">
+                            <i class="ri-arrow-left-line text-lg" aria-hidden="true"></i>
                             <span>К витрине</span>
                         </a>
                     </div>
                     @foreach($menuGroups as $group => $items)
                         <section class="wv-buyer-menu-group" aria-labelledby="buyer-menu-group-{{ $loop->index }}">
-                            <h2 id="buyer-menu-group-{{ $loop->index }}" class="px-6 pb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-500">{{ $group }}</h2>
+                            <h2 id="buyer-menu-group-{{ $loop->index }}" class="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">{{ $group }}</h2>
                             <ul class="space-y-1">
                                 @foreach($items as $item)
                                     @php $isActive = request()->routeIs($item[1]); @endphp
@@ -80,10 +83,10 @@
             </div>
 
             <!-- Аккаунт покупателя -->
-            <div class="shrink-0 border-t border-neutral-100 px-6 py-4">
-                <div class="flex items-start gap-3">
+            <div class="shrink-0 px-3 pb-3 pt-2">
+                <div class="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-3">
                     {{-- Аватар --}}
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-50 text-brand-600 ring-1 ring-brand-100">
                         @php $avatar = auth()->user()->avatar; @endphp
 
                         @if($avatar && Storage::disk('public')->exists($avatar))
@@ -95,20 +98,20 @@
                         @endif
                     </div>
 
-                    <div class="flex min-w-0 flex-col break-words leading-tight">
-                        <span class="text-sm font-semibold text-neutral-800">
+                    <div class="flex min-w-0 flex-1 flex-col leading-tight">
+                        <span class="truncate text-sm font-semibold text-neutral-900">
                             {{ auth()->user()->name }}
                         </span>
 
-                        <span class="text-xs text-neutral-500">{{ auth()->user()->email }}</span>
-
-                        <form method="POST" action="{{ route('logout') }}" class="mt-1">
-                            @csrf
-                            <button class="min-h-11 rounded text-sm text-danger-500 hover:text-danger-600">
-                                Выйти
-                            </button>
-                        </form>
+                        <span class="mt-1 truncate text-[11px] text-neutral-500">{{ auth()->user()->email }}</span>
                     </div>
+
+                    <form method="POST" action="{{ route('logout') }}" class="shrink-0">
+                        @csrf
+                        <button class="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label="Выйти из аккаунта" title="Выйти">
+                            <i class="ri-logout-box-r-line text-lg" aria-hidden="true"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
         </aside>

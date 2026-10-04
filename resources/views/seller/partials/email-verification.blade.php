@@ -1,13 +1,13 @@
 {{-- resources/views/seller/partials/email-verification.blade.php --}}
-<section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:mt-8" x-data="{ editingEmail: false }">
-    <div class="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+<section class="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white" x-data="{ editingEmail: false }">
+    <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div class="flex min-w-0 items-center gap-3">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                 <i class="ri-mail-line text-xl"></i>
             </div>
             <div class="min-w-0">
-                <h3 class="text-base font-semibold text-gray-950">Email аккаунта</h3>
-                <p class="mt-0.5 text-sm text-gray-500">Для входа, уведомлений и восстановления доступа</p>
+                <h3 class="text-base font-semibold text-neutral-950">Email аккаунта</h3>
+                <p class="mt-0.5 text-sm text-neutral-500">Для входа, уведомлений и восстановления доступа</p>
             </div>
         </div>
 
@@ -28,8 +28,8 @@
         <div x-show="!editingEmail" class="space-y-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0">
-                    <p class="text-xs font-medium text-gray-500">Текущий email</p>
-                    <p class="mt-1 break-all text-lg font-semibold text-gray-950">{{ Auth::user()->email }}</p>
+                    <p class="text-xs font-medium text-neutral-500">Текущий email</p>
+                    <p class="mt-1 break-all text-lg font-semibold text-neutral-950">{{ Auth::user()->email }}</p>
                 </div>
 
                 <x-action-button type="button" size="sm" x-on:click="editingEmail = true" class="self-start sm:self-auto">
@@ -61,11 +61,11 @@
             @endif
         </div>
 
-        <div x-show="editingEmail" x-transition class="rounded-xl border border-gray-200 bg-gray-50/70 p-3 sm:p-4">
+        <div x-show="editingEmail" x-transition class="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 sm:p-4">
             <div class="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <h4 class="text-sm font-semibold text-gray-950">Изменить email</h4>
-                    <p class="mt-0.5 text-xs text-gray-500">После изменения адрес потребуется подтвердить</p>
+                    <h4 class="text-sm font-semibold text-neutral-950">Изменить email</h4>
+                    <p class="mt-0.5 text-xs text-neutral-500">После изменения адрес потребуется подтвердить</p>
                 </div>
                 <button type="button"
                         @click="editingEmail = false"
@@ -88,7 +88,7 @@
                                    type="email"
                                    name="email"
                                    value="{{ old('email', Auth::user()->email) }}"
-                                   class="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-11 pr-4 shadow-sm transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                                   class="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-11 pr-4 transition focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
                                    required>
                             <i class="ri-mail-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         </div>
@@ -101,7 +101,7 @@
                             <input id="email-current-password"
                                    type="password"
                                    name="current_password"
-                                   class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 shadow-sm transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                                   class="w-full rounded-xl border border-neutral-200 bg-white px-4 py-2.5 transition focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
                                    required>
                             <x-input-error :messages="$errors->get('current_password')" class="mt-1 text-sm" />
                         </div>

@@ -2,7 +2,8 @@
     $currentId = $currentConversation?->id ?? null;
     $inlineDesktop = $inlineDesktop ?? false;
     $listQuery = array_filter(request()->only(['q', 'filter']));
-    $pinColumn = auth()->user()->isSeller() ? 'seller_pinned_at' : 'buyer_pinned_at';
+    $isSeller = auth()->user()->isSeller();
+    $pinColumn = $isSeller ? 'seller_pinned_at' : 'buyer_pinned_at';
 @endphp
 
 <div class="min-w-0 space-y-1.5">
@@ -12,7 +13,7 @@
                 <i class="ri-chat-3-line text-2xl"></i>
             </div>
             <div class="font-semibold text-neutral-800">У вас пока нет диалогов</div>
-            <div class="mt-1 leading-6">Откройте товар или магазин и напишите продавцу.</div>
+            <div class="mt-1 leading-6">{{ $isSeller ? 'Новые обращения покупателей появятся здесь.' : 'Откройте товар или магазин и напишите продавцу.' }}</div>
         </div>
     @else
     @foreach($conversations as $item)

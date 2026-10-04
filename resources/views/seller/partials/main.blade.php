@@ -1,5 +1,5 @@
 {{-- resources/views/seller/partials/main.blade.php --}}
-<section class="bg-transparent sm:bg-white border-0 sm:border sm:border-gray-100 rounded-none sm:rounded-2xl shadow-none sm:shadow-sm p-0 sm:p-8 space-y-6 sm:space-y-8">
+<section class="space-y-6 rounded-none border-0 bg-transparent p-0 sm:rounded-2xl sm:border sm:border-neutral-200 sm:bg-white sm:p-6 lg:p-8">
 
     {{-- 🔹 Заголовок --}}
     @include('seller.partials.header')
@@ -8,18 +8,18 @@
     @include('seller.partials.success-notification')
 
     {{-- 🔹 Основная форма в карточках --}}
-    <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-8">
+    <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
         @method('PATCH')
 
         {{-- 🎭 Аватар и имя --}}
-        <div class="bg-gray-50 rounded-xl p-4 sm:p-6 space-y-5 sm:space-y-6">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <i class="ri-image-line text-indigo-500"></i>
+        <div class="space-y-5 rounded-2xl bg-neutral-50 p-4 sm:p-6">
+            <h3 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                <i class="ri-image-line text-brand-500"></i>
                 Личные данные
             </h3>
             
-            <div class="flex flex-col lg:flex-row items-center gap-8">
+            <div class="flex flex-col items-center gap-6 lg:flex-row lg:items-start">
                 @include('seller.partials.avatar')
                 @include('seller.partials.personal-fields')
             </div>

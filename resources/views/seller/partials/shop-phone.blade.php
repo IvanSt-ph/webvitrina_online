@@ -1,14 +1,14 @@
 {{-- resources/views/seller/partials/shop-phone.blade.php --}}
 @if (Auth::user()->shop)
-    <section class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:mt-8">
-        <div class="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <section class="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+        <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <i class="ri-phone-line text-xl"></i>
                 </div>
                 <div class="min-w-0">
-                    <h3 class="text-base font-semibold text-gray-950">Телефон магазина</h3>
-                    <p class="mt-0.5 text-sm text-gray-500">Контактный номер для покупателей</p>
+                    <h3 class="text-base font-semibold text-neutral-950">Телефон магазина</h3>
+                    <p class="mt-0.5 text-sm text-neutral-500">Контактный номер для покупателей</p>
                 </div>
             </div>
 

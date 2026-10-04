@@ -1,7 +1,7 @@
 <x-seller-layout title="Аналитика продавца" :hideHeader="true">
 
-<div class="min-h-screen overflow-x-hidden bg-slate-50 px-3 py-4 pb-[5.5rem] text-slate-900 sm:px-5 sm:py-6 lg:px-6">
-<div class="w-full max-w-none space-y-5">
+<div class="min-h-screen w-full overflow-x-hidden bg-white px-3 py-4 pb-28 text-neutral-900 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
+<div class="w-full space-y-5 sm:space-y-6">
 
 @php
     function delta($now, $prev) {
@@ -11,14 +11,14 @@
     }
 @endphp
 
-<header class="grid gap-4 wv-panel lg:grid-cols-[1fr_420px] lg:items-center">
-    <div>
-        <div class="wv-eyebrow">
+<header class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end">
+    <div class="min-w-0">
+        <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
             <i class="ri-line-chart-line"></i>
             Аналитика продавца
         </div>
-        <h1 class="mt-3 text-2xl font-bold text-slate-950 sm:text-3xl">Понимайте, что происходит с товарами</h1>
-        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+        <h1 class="mt-2 text-2xl font-semibold tracking-tight text-neutral-950 sm:text-[28px]">Понимайте, что происходит с товарами</h1>
+        <p class="mt-1 max-w-3xl text-sm leading-6 text-neutral-500">
             Смотрите просмотры, избранное, добавления в корзину и динамику за выбранный период. Данные помогают понять, какие карточки стоит улучшить первыми.
         </p>
         <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -26,24 +26,24 @@
                 <i class="ri-vip-crown-line"></i>
                 {{ $sellerPlanProfile['label'] }}
             </span>
-            <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+            <span class="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-semibold text-neutral-600">
                 <i class="ri-calendar-line"></i>
                 {{ $from }} - {{ $to }}
             </span>
         </div>
     </div>
 
-    <form method="GET" class="wv-soft-panel p-3">
+    <form method="GET" class="rounded-2xl border border-neutral-200 bg-white p-3 sm:p-4">
         <div class="grid grid-cols-3 gap-2">
             @foreach([7,14,30] as $p)
                 <button
                     type="submit"
                     name="period"
                     value="{{ $p }}"
-                    class="h-10 rounded-lg border text-xs font-bold transition sm:text-sm
+                    class="h-10 rounded-xl border text-xs font-semibold transition sm:text-sm
                            {{ $period == $p
-                                ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:text-indigo-700' }}">
+                                ? 'border-brand-500 bg-brand-500 text-white'
+                                : 'border-neutral-200 bg-white text-neutral-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700' }}">
                     {{ $p }} дней
                 </button>
             @endforeach
@@ -57,7 +57,7 @@
                    class="h-10 min-w-0 wv-input px-2 text-xs sm:text-sm">
 
             <button type="submit"
-                    class="h-10 rounded-xl bg-slate-950 px-4 text-xs font-bold text-white transition hover:bg-indigo-600 sm:text-sm">
+                    class="h-10 rounded-xl bg-brand-500 px-4 text-xs font-semibold text-white transition hover:bg-brand-600 sm:text-sm">
                 Обновить
             </button>
         </div>
@@ -66,7 +66,7 @@
 
 
 {{-- KPI --}}
-<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+<section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 
     {{-- Суммарная активность --}}
     @php
@@ -75,77 +75,98 @@
         $d = delta($totalNow, $totalPrev);
     @endphp
 
-    <div class="wv-card p-4">
-        <p class="text-xs text-gray-500">Суммарная активность</p>
-        <h2 class="text-2xl font-bold mt-1 text-gray-900">{{ $totalNow }}</h2>
-        <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
-            <span class="w-1.5 h-1.5 rounded-full {{ str_starts_with($d,'+')?'bg-green-500':'bg-red-500' }}"></span>
+    <div class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+            <p class="text-xs font-medium leading-5 text-neutral-500 sm:text-sm">Суммарная активность</p>
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><i class="ri-pulse-line text-lg"></i></span>
+        </div>
+        <h2 class="mt-2 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">{{ $totalNow }}</h2>
+        <p class="mt-1 flex items-center gap-1 text-[11px] leading-4 sm:text-xs {{ str_starts_with($d,'+')?'text-emerald-600':'text-rose-600' }}">
+            <span class="h-1.5 w-1.5 shrink-0 rounded-full {{ str_starts_with($d,'+')?'bg-emerald-500':'bg-rose-500' }}"></span>
             {{ $d }} к прошлому периоду
         </p>
     </div>
 
     {{-- Просмотры --}}
     @php $d = delta($summary->views,$prev->views); @endphp
-    <div class="wv-card p-4">
-        <p class="text-xs text-gray-500">Просмотры</p>
-        <h2 class="text-2xl font-bold mt-1">{{ $summary->views }}</h2>
-        <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
-            <span class="w-1.5 h-1.5 rounded-full {{ str_starts_with($d,'+')?'bg-green-500':'bg-red-500' }}"></span>
+    <div class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+            <p class="text-xs font-medium leading-5 text-neutral-500 sm:text-sm">Просмотры</p>
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600"><i class="ri-eye-line text-lg"></i></span>
+        </div>
+        <h2 class="mt-2 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">{{ $summary->views }}</h2>
+        <p class="mt-1 flex items-center gap-1 text-[11px] leading-4 sm:text-xs {{ str_starts_with($d,'+')?'text-emerald-600':'text-rose-600' }}">
+            <span class="h-1.5 w-1.5 shrink-0 rounded-full {{ str_starts_with($d,'+')?'bg-emerald-500':'bg-rose-500' }}"></span>
             {{ $d }} к прошлому периоду
         </p>
     </div>
 
     {{-- Избранное --}}
     @php $d = delta($summary->favorites,$prev->favorites); @endphp
-    <div class="wv-card p-4">
-        <p class="text-xs text-gray-500">Избранное</p>
-        <h2 class="text-2xl font-bold mt-1">{{ $summary->favorites }}</h2>
-        <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
-            <span class="w-1.5 h-1.5 rounded-full {{ str_starts_with($d,'+')?'bg-green-500':'bg-red-500' }}"></span>
+    <div class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+            <p class="text-xs font-medium leading-5 text-neutral-500 sm:text-sm">Избранное</p>
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600"><i class="ri-heart-line text-lg"></i></span>
+        </div>
+        <h2 class="mt-2 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">{{ $summary->favorites }}</h2>
+        <p class="mt-1 flex items-center gap-1 text-[11px] leading-4 sm:text-xs {{ str_starts_with($d,'+')?'text-emerald-600':'text-rose-600' }}">
+            <span class="h-1.5 w-1.5 shrink-0 rounded-full {{ str_starts_with($d,'+')?'bg-emerald-500':'bg-rose-500' }}"></span>
             {{ $d }} к прошлому периоду
         </p>
     </div>
 
     {{-- Корзины --}}
     @php $d = delta($summary->carts,$prev->carts); @endphp
-    <div class="wv-card p-4">
-        <p class="text-xs text-gray-500">Корзины</p>
-        <h2 class="text-2xl font-bold mt-1">{{ $summary->carts }}</h2>
-        <p class="text-xs mt-1 flex items-center gap-1 {{ str_starts_with($d,'+')?'text-green-600':'text-red-600' }}">
-            <span class="w-1.5 h-1.5 rounded-full {{ str_starts_with($d,'+')?'bg-green-500':'bg-red-500' }}"></span>
+    <div class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-2">
+            <p class="text-xs font-medium leading-5 text-neutral-500 sm:text-sm">Корзины</p>
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><i class="ri-shopping-cart-2-line text-lg"></i></span>
+        </div>
+        <h2 class="mt-2 text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl">{{ $summary->carts }}</h2>
+        <p class="mt-1 flex items-center gap-1 text-[11px] leading-4 sm:text-xs {{ str_starts_with($d,'+')?'text-emerald-600':'text-rose-600' }}">
+            <span class="h-1.5 w-1.5 shrink-0 rounded-full {{ str_starts_with($d,'+')?'bg-emerald-500':'bg-rose-500' }}"></span>
             {{ $d }} к прошлому периоду
         </p>
     </div>
 </section>
 
 @if($sellerPlanProfile['analytics_enabled'] && $advanced)
-    <section class="grid grid-cols-1 gap-4 mb-10 md:grid-cols-3">
-        <div class="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 shadow-sm">
-            <p class="text-xs font-semibold text-cyan-700">Конверсия в избранное</p>
-            <h2 class="mt-1 text-2xl font-bold text-cyan-950">{{ $advanced['favorite_rate'] }}%</h2>
-            <p class="mt-1 text-xs text-cyan-700">Доля добавлений в избранное от просмотров</p>
+    <section class="grid gap-3 md:grid-cols-3">
+        <div class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-sm font-medium text-neutral-500">Конверсия в избранное</p>
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600"><i class="ri-heart-add-line text-lg"></i></span>
+            </div>
+            <h2 class="mt-2 text-2xl font-bold text-neutral-950">{{ $advanced['favorite_rate'] }}%</h2>
+            <p class="mt-1 text-xs leading-5 text-neutral-500">Доля добавлений в избранное от просмотров</p>
         </div>
 
-        <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-            <p class="text-xs font-semibold text-indigo-700">Конверсия в корзину</p>
-            <h2 class="mt-1 text-2xl font-bold text-indigo-950">{{ $advanced['cart_rate'] }}%</h2>
-            <p class="mt-1 text-xs text-indigo-700">Показывает товары с реальным покупательским интересом</p>
+        <div class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-sm font-medium text-neutral-500">Конверсия в корзину</p>
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><i class="ri-shopping-cart-line text-lg"></i></span>
+            </div>
+            <h2 class="mt-2 text-2xl font-bold text-neutral-950">{{ $advanced['cart_rate'] }}%</h2>
+            <p class="mt-1 text-xs leading-5 text-neutral-500">Показывает товары с реальным покупательским интересом</p>
         </div>
 
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-            <p class="text-xs font-semibold text-amber-700">Без просмотров</p>
-            <h2 class="mt-1 text-2xl font-bold text-amber-950">{{ $advanced['inactive_products'] }}</h2>
-            <p class="mt-1 text-xs text-amber-700">{{ $advanced['products_with_cart_interest'] }} товаров попадали в корзину</p>
+        <div class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-sm font-medium text-neutral-500">Без просмотров</p>
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><i class="ri-eye-off-line text-lg"></i></span>
+            </div>
+            <h2 class="mt-2 text-2xl font-bold text-neutral-950">{{ $advanced['inactive_products'] }}</h2>
+            <p class="mt-1 text-xs leading-5 text-neutral-500">{{ $advanced['products_with_cart_interest'] }} товаров попадали в корзину</p>
         </div>
     </section>
 @else
-    <section class="mb-10 wv-soft-panel">
+    <section class="rounded-2xl border border-brand-100 bg-brand-50 p-4 sm:p-5">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h2 class="font-semibold text-slate-900">Расширенная аналитика доступна с Pro</h2>
-                <p class="mt-1 text-sm text-slate-500">Конверсия в корзину, товары без просмотров и дополнительные сигналы помогают быстрее понимать, что улучшать.</p>
+                <h2 class="font-semibold text-brand-950">Расширенная аналитика доступна с Pro</h2>
+                <p class="mt-1 text-sm leading-6 text-brand-800/80">Конверсия в корзину, товары без просмотров и дополнительные сигналы помогают быстрее понимать, что улучшать.</p>
             </div>
-            <a href="{{ route('seller.plans.index') }}" class="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+            <a href="{{ route('seller.plans.index') }}" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white transition hover:bg-brand-600">
                 Посмотреть уровни магазина
             </a>
         </div>
@@ -154,11 +175,14 @@
 
 
 {{-- Пончики и ТОП --}}
-<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+<section class="grid gap-5 lg:grid-cols-3">
 
     {{-- Пончик --}}
-    <div class="wv-card p-4">
-        <h2 class="text-base font-semibold mb-4">Распределение активности</h2>
+    <div class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="mb-4 flex items-center gap-3">
+            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><i class="ri-pie-chart-2-line text-lg"></i></span>
+            <h2 class="text-base font-semibold text-neutral-950">Распределение активности</h2>
+        </div>
 
         <div class="relative w-full overflow-x-hidden" style="min-height:240px;">
             <canvas id="donutChart" class="w-full max-w-full"></canvas>
@@ -166,33 +190,37 @@
     </div>
 
     {{-- ТОП --}}
-    <div class="wv-card p-4 lg:col-span-2">
-        <h2 class="text-base font-semibold mb-4">ТОП по просмотрам</h2>
+    <div class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 lg:col-span-2">
+        <div class="mb-4 flex items-center gap-3">
+            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600"><i class="ri-bar-chart-horizontal-line text-lg"></i></span>
+            <h2 class="text-base font-semibold text-neutral-950">ТОП по просмотрам</h2>
+        </div>
 
         @if($topProducts->count())
             <div class="relative w-full overflow-x-hidden" style="min-height:{{ max($topProducts->count(),3)*42 }}px;">
                 <canvas id="barChart"></canvas>
             </div>
-            <p class="text-xs text-gray-400 mt-2">Клик по полосе → карточка товара</p>
+            <p class="mt-2 text-xs text-neutral-400">Клик по полосе → карточка товара</p>
         @else
-            <p class="text-sm text-gray-500">Нет данных</p>
+            <div class="flex min-h-60 items-center justify-center rounded-xl bg-neutral-50 px-4 text-sm text-neutral-500">Нет данных за выбранный период</div>
         @endif
     </div>
 </section>
 
 
 {{-- Таймлайн --}}
-<section>
-    <div class="wv-card mb-10 p-4">
-        <div class="flex items-center justify-between mb-2">
-            <h2 class="text-base font-semibold">Активность по дням</h2>
-            <p class="text-xs text-gray-400">Клик по точке → детали дня</p>
+<section class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><i class="ri-line-chart-line text-lg"></i></span>
+                <h2 class="text-base font-semibold text-neutral-950">Активность по дням</h2>
+            </div>
+            <p class="text-xs text-neutral-400">Клик по точке → детали дня</p>
         </div>
 
         <div class="relative w-full overflow-x-hidden" style="min-height:260px;">
             <canvas id="timelineChart"></canvas>
         </div>
-    </div>
 </section>
 
 </div>

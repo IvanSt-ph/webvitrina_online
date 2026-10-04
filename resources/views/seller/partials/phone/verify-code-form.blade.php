@@ -1,7 +1,7 @@
 {{-- resources/views/seller/partials/phone/verify-code-form.blade.php --}}
 <form method="POST"
       action="{{ route('shop.phone.verify') }}"
-      class="space-y-3 rounded-xl border border-gray-200 bg-gray-50/70 p-3 sm:p-4"
+      class="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 sm:p-4"
       x-data="{ timer: 600, formattedTime: '10:00' }"
       x-init="
         let interval = setInterval(() => {
@@ -16,10 +16,10 @@
 
     <div class="flex items-center justify-between gap-3">
         <div>
-            <p class="text-sm font-semibold text-gray-950">Код из SMS</p>
-            <p class="mt-0.5 text-xs text-gray-500">Введите 6 цифр из сообщения</p>
+            <p class="text-sm font-semibold text-neutral-950">Код из SMS</p>
+            <p class="mt-0.5 text-xs text-neutral-500">Введите 6 цифр из сообщения</p>
         </div>
-        <span class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600">
+        <span class="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-600">
             <i class="ri-time-line"></i>
             <span x-text="formattedTime"></span>
         </span>
@@ -32,9 +32,9 @@
                    placeholder="000000"
                    maxlength="6"
                    autocomplete="off"
-                   class="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-11 pr-4 text-base font-semibold tracking-[0.2em] shadow-sm focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                   class="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-11 pr-4 text-base font-semibold tracking-[0.2em] focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
                    required>
-            <i class="ri-shield-keyhole-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <i class="ri-shield-keyhole-line absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"></i>
         </div>
 
         <x-action-button size="sm" class="shrink-0">

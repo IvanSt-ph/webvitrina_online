@@ -1,12 +1,20 @@
 @php
     $user = auth()->user();
     $isSeller = $user?->isSeller();
-    $topics = [
-        ['value' => 'Проблема с заказом', 'icon' => 'ri-shopping-bag-3-line', 'title' => 'Заказ', 'text' => 'Статус, отмена, оплата, доставка или возврат.'],
-        ['value' => 'Проблема с товаром', 'icon' => 'ri-box-3-line', 'title' => 'Товар', 'text' => 'Карточка, фото, цена, остатки или модерация.'],
-        ['value' => 'Спор с участником', 'icon' => 'ri-shield-user-line', 'title' => 'Спор', 'text' => 'Конфликт с покупателем или продавцом.'],
-        ['value' => 'Безопасность', 'icon' => 'ri-shield-check-line', 'title' => 'Безопасность', 'text' => 'Подозрительные ссылки, спам или просьбы уйти с сайта.'],
-    ];
+    $topics = $isSeller
+        ? [
+            ['value' => 'Проблема с заказом', 'icon' => 'ri-shopping-bag-3-line', 'title' => 'Заказы', 'text' => 'Обработка, отмена, доставка или общение с покупателем.'],
+            ['value' => 'Проблема с товаром', 'icon' => 'ri-box-3-line', 'title' => 'Товары', 'text' => 'Карточка, фото, цена, остатки или публикация.'],
+            ['value' => 'Финансы и уровень магазина', 'icon' => 'ri-wallet-3-line', 'title' => 'Финансы и уровень', 'text' => 'Расчёты, показатели и возможности магазина.'],
+            ['value' => 'Спор с покупателем', 'icon' => 'ri-shield-user-line', 'title' => 'Спор', 'text' => 'Конфликтная ситуация или вопрос по обращению.'],
+            ['value' => 'Безопасность', 'icon' => 'ri-shield-check-line', 'title' => 'Безопасность', 'text' => 'Подозрительные ссылки, спам или доступ к аккаунту.'],
+        ]
+        : [
+            ['value' => 'Проблема с заказом', 'icon' => 'ri-shopping-bag-3-line', 'title' => 'Заказ', 'text' => 'Статус, отмена, оплата, доставка или возврат.'],
+            ['value' => 'Проблема с товаром', 'icon' => 'ri-box-3-line', 'title' => 'Товар', 'text' => 'Карточка, фото, цена, остатки или модерация.'],
+            ['value' => 'Спор с участником', 'icon' => 'ri-shield-user-line', 'title' => 'Спор', 'text' => 'Конфликт с покупателем или продавцом.'],
+            ['value' => 'Безопасность', 'icon' => 'ri-shield-check-line', 'title' => 'Безопасность', 'text' => 'Подозрительные ссылки, спам или просьбы уйти с сайта.'],
+        ];
     $statusItems = [
         ['label' => 'Канал', 'value' => 'Внутренний чат', 'icon' => 'ri-message-3-line'],
         ['label' => 'Ваш профиль', 'value' => $isSeller ? 'Продавец' : 'Покупатель', 'icon' => $isSeller ? 'ri-store-2-line' : 'ri-user-3-line'],
@@ -21,10 +29,10 @@
                 <div class="min-w-0">
                     <div class="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
                         <i class="ri-customer-service-2-line text-base" aria-hidden="true"></i>
-                        WebVitrina support
+                        {{ $isSeller ? 'Поддержка продавцов' : 'WebVitrina support' }}
                     </div>
                     <h1 class="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-[28px]">Служба поддержки</h1>
-                    <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">Поможем с заказом, товаром, безопасностью или спорной ситуацией.</p>
+                    <p class="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">{{ $isSeller ? 'Поможем с заказами, товарами, магазином, финансами или спорной ситуацией.' : 'Поможем с заказом, товаром, безопасностью или спорной ситуацией.' }}</p>
                 </div>
                 @if($supportConversation)
                     <x-action-button as="a" :href="route('chats.show', $supportConversation)" class="shrink-0">
@@ -40,14 +48,14 @@
             </div>
         </header>
 
-        <main class="w-full space-y-8 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+        <main class="w-full space-y-5 px-4 py-5 sm:space-y-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
             <section class="grid overflow-hidden rounded-2xl border border-brand-100 bg-brand-50/50 lg:grid-cols-[minmax(0,1fr)_360px]">
                 <div class="flex flex-col justify-center p-5 sm:p-6 lg:p-7">
                     <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-brand-600 shadow-sm ring-1 ring-brand-100">
                         <i class="ri-shield-check-line text-xl" aria-hidden="true"></i>
                     </div>
-                    <h2 class="mt-4 text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">Мы рядом, когда нужна помощь</h2>
-                    <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">Выберите тему и кратко опишите ситуацию. Мы откроем приватный чат, где администратор увидит контекст обращения.</p>
+                    <h2 class="mt-4 text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl">{{ $isSeller ? 'Поможем решить вопрос магазина' : 'Мы рядом, когда нужна помощь' }}</h2>
+                    <p class="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">{{ $isSeller ? 'Выберите рабочую тему и кратко опишите ситуацию. Администратор получит обращение в приватном чате.' : 'Выберите тему и кратко опишите ситуацию. Мы откроем приватный чат, где администратор увидит контекст обращения.' }}</p>
                 </div>
                 <div class="flex flex-col justify-center border-t border-brand-100 bg-white/60 p-5 sm:p-6 lg:border-l lg:border-t-0">
                     <div class="flex items-start gap-4">
@@ -70,7 +78,7 @@
 
             <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <section class="min-w-0 rounded-2xl border border-neutral-200 bg-white">
-                    <form method="POST" action="{{ route('support.start') }}" x-data="{ topic: @js(old('topic', 'Проблема с заказом')) }" class="p-5 sm:p-7">
+                    <form method="POST" action="{{ route('support.start') }}" x-data="{ topic: @js(old('topic', 'Проблема с заказом')) }" class="p-5 sm:p-6">
                         @csrf
                         <div class="flex items-start justify-between gap-4 border-b border-neutral-100 pb-5">
                             <div>
@@ -158,9 +166,11 @@
         </main>
     </div>
 
-    @unless($isSeller)
+    @if($isSeller)
+        @include('layouts.mobile-bottom-seller-nav')
+    @else
         @include('layouts.mobile-bottom-nav')
-    @endunless
+    @endif
 
     <style>
         .support-mobile-safe, .support-mobile-safe * { box-sizing: border-box; }

@@ -3,23 +3,38 @@
 {{-- resources/views/layouts/seller.blade.php --}}
 <x-seller-base :title="$title ?? 'Панель продавца'">
 
-<div class="flex min-h-screen overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-800">
+<div class="wv-buyer-shell flex {{ $chatMode ? 'h-dvh overflow-hidden' : 'min-h-screen' }} flex-col bg-neutral-50 text-neutral-800 md:flex-row"
+     x-data="{ sellerMenuOpen: false }" :data-menu-open="sellerMenuOpen"
+     @keydown.escape="if (sellerMenuOpen) { sellerMenuOpen = false; $refs.sellerMenuToggle.focus() }">
+
+    <div class="shrink-0 border-b border-neutral-200 bg-white px-3 py-2 md:hidden">
+        <button type="button" x-ref="sellerMenuToggle" @click="sellerMenuOpen = !sellerMenuOpen"
+                :aria-expanded="sellerMenuOpen" aria-expanded="false" aria-controls="seller-sidebar"
+                class="wv-buyer-menu-toggle flex min-h-11 w-full items-center gap-3 rounded-xl px-2 text-sm font-semibold text-neutral-800 transition hover:bg-brand-50">
+            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><i class="ri-menu-line text-xl" aria-hidden="true"></i></span>
+            <span>Меню продавца</span>
+            <i class="ri-arrow-down-s-line ml-auto text-xl transition-transform" :class="{ 'rotate-180': sellerMenuOpen }" aria-hidden="true"></i>
+        </button>
+    </div>
 
     <!-- Sidebar -->
-<aside class="fixed bottom-0 left-0 top-0 z-30 hidden w-64 flex-col overflow-y-auto border-r border-slate-200 wv-sidebar lg:flex">
+<aside id="seller-sidebar" class="wv-buyer-sidebar wv-sidebar flex-col justify-between border-r border-neutral-200 md:fixed md:inset-y-0 md:left-0 md:w-64">
 
     <!-- ВЕРХ -->
-    <div class="flex-1 flex flex-col shrink-0">
-        <div class="flex items-center gap-2 px-6 py-6 border-b border-neutral-100">
-            <a href="{{ route('seller.cabinet') }}" class="flex items-center gap-2">
-                <img src="{{ asset('images/icon.png') }}" class="w-8 h-8 rounded-lg shadow-sm" alt="WebVitrina">
-                <span class="font-semibold text-neutral-900 text-sm tracking-tight">Панель продавца</span>
+    <div class="flex flex-1 shrink-0 flex-col">
+        <div class="flex items-center gap-3 border-b border-neutral-100 px-4 py-4">
+            <a href="{{ route('seller.cabinet') }}" class="flex min-w-0 items-center gap-3">
+                <img src="{{ asset('images/icon.png') }}" class="h-10 w-10 rounded-xl shadow-sm ring-1 ring-neutral-200" alt="WebVitrina">
+                <span class="min-w-0">
+                    <span class="block truncate text-sm font-semibold tracking-tight text-neutral-900">WebVitrina</span>
+                    <span class="mt-0.5 block text-[11px] font-medium text-neutral-500">Панель продавца</span>
+                </span>
             </a>
         </div>
 
         @php
             $active = 'wv-sidebar-link-active';
-            $link   = 'wv-sidebar-link';
+            $link = 'wv-sidebar-link';
             $shop = auth()->user()->shop;
             $storefrontUrl = $shop?->slug
                 ? route('seller.show', ['identifier' => $shop->slug])
@@ -49,65 +64,70 @@
             ];
         @endphp
 
-        <nav class="mt-5 flex flex-col text-[15px] font-normal text-slate-700" aria-label="Кабинет продавца">
+        <nav class="py-3" aria-label="Кабинет продавца">
             @foreach($sellerMenu as $section => $items)
-                <div class="{{ $loop->first ? '' : 'mt-4' }} px-6 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                    {{ $section }}
-                </div>
-                @foreach($items as $item)
-                    <a href="{{ $item['url'] ?? route($item['route']) }}"
-                       class="{{ request()->routeIs($item['active']) ? $active : '' }} {{ $link }}"
-                       @if(request()->routeIs($item['active'])) aria-current="page" @endif>
-                        <i class="{{ $item['icon'] }}" aria-hidden="true"></i>
-                        <span class="min-w-0 break-words">{{ $item['label'] }}</span>
-                        @if(($item['badge'] ?? 0) > 0)
-                            <span class="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
-                                {{ min($item['badge'], 99) }}
-                            </span>
-                        @endif
-                        @if($item['external'] ?? false)
-                            <i class="ri-arrow-right-up-line ml-auto text-[16px] text-slate-400"></i>
-                        @endif
-                    </a>
-                @endforeach
+                <section class="wv-buyer-menu-group" aria-labelledby="seller-menu-group-{{ $loop->index }}">
+                    <h2 id="seller-menu-group-{{ $loop->index }}" class="px-5 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">{{ $section }}</h2>
+                    <ul class="space-y-1">
+                        @foreach($items as $item)
+                            @php $isActive = request()->routeIs($item['active']); @endphp
+                            <li>
+                                <a href="{{ $item['url'] ?? route($item['route']) }}"
+                                   class="{{ $isActive ? $active : '' }} {{ $link }}"
+                                   @if($isActive) aria-current="page" @endif>
+                                    <i class="{{ $item['icon'] }}" aria-hidden="true"></i>
+                                    <span class="min-w-0 flex-1 break-words">{{ $item['label'] }}</span>
+                                    @if(($item['badge'] ?? 0) > 0)
+                                        <span class="wv-buyer-badge" aria-label="{{ min($item['badge'], 99) }} непрочитанных">
+                                            {{ min($item['badge'], 99) }}
+                                        </span>
+                                    @endif
+                                    @if($item['external'] ?? false)
+                                        <i class="ri-arrow-right-up-line ml-auto text-base text-neutral-400"></i>
+                                    @endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
             @endforeach
         </nav>
     </div>
 
     <!-- НИЗ (ПРИЖАТ К НИЗУ) -->
-    <div class="shrink-0 px-6 py-4 border-t border-neutral-100">
-        <div class="flex items-center gap-3">
+    <div class="shrink-0 px-3 pb-3 pt-2">
+        <div class="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-3">
             @if(auth()->user()->avatar)
                 <img data-image-candidates="{{ json_encode(auth()->user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}"
                     src="{{ auth()->user()->avatar_url }}"
-                    class="w-9 h-9 rounded-full border border-neutral-200 object-cover"
+                    class="h-10 w-10 shrink-0 rounded-xl border border-neutral-200 object-cover"
                     alt="avatar"
                     loading="lazy"
                     decoding="async">
             @else
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-indigo-50 text-sm font-semibold text-indigo-700">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-semibold text-brand-700 ring-1 ring-brand-100">
                     {{ mb_substr(auth()->user()->name ?? 'U', 0, 1) }}
                 </div>
             @endif
 
-            <div class="min-w-0 break-words text-sm">
-                <div class="font-semibold text-neutral-800">{{ auth()->user()->name ?? 'Продавец' }}</div>
-                <div class="text-neutral-400">{{ auth()->user()->email }}</div>
-
-                <form method="POST" action="{{ route('logout') }}" class="mt-4">
-                    @csrf
-                    <button type="submit" class="text-sm text-danger-600 hover:text-danger-800 transition">
-                        Выйти
-                    </button>
-                </form>
+            <div class="min-w-0 flex-1 text-sm leading-tight">
+                <div class="truncate font-semibold text-neutral-900">{{ auth()->user()->name ?? 'Продавец' }}</div>
+                <div class="mt-1 truncate text-[11px] text-neutral-500">{{ auth()->user()->email }}</div>
             </div>
+
+            <form method="POST" action="{{ route('logout') }}" class="shrink-0">
+                @csrf
+                <button type="submit" class="flex h-9 w-9 items-center justify-center rounded-xl text-neutral-400 transition hover:bg-rose-50 hover:text-rose-600" aria-label="Выйти из аккаунта" title="Выйти">
+                    <i class="ri-logout-box-r-line text-lg" aria-hidden="true"></i>
+                </button>
+            </form>
         </div>
     </div>
 
 </aside>
 
             <!-- 🌤 Контент -->
-        <main class="flex flex-1 flex-col overflow-hidden bg-slate-50 lg:ml-64 {{ $chatMode ? 'h-dvh p-0' : (($flushContent ? 'min-h-screen p-0' : 'min-h-screen px-3 sm:px-6 py-6')) }}">
+        <main class="flex min-w-0 flex-1 flex-col bg-neutral-50 {{ $chatMode ? 'min-h-0 overflow-hidden p-0 md:ml-64' : (($flushContent ? 'min-h-screen p-0 md:ml-64' : 'min-h-screen px-3 py-6 sm:px-6 md:ml-64')) }}">
 
             <div class="{{ $chatMode ? 'min-h-0 flex-1' : 'flex-1' }}">
                 {{ $slot }}

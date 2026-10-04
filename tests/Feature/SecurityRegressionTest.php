@@ -2175,6 +2175,25 @@ class SecurityRegressionTest extends TestCase
             ->assertDontSee('+37377777777');
     }
 
+    public function test_public_user_page_uses_the_authenticated_users_cabinet_navigation(): void
+    {
+        $profileOwner = User::factory()->create(['role' => 'buyer']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $this->actingAs($buyer)
+            ->get(route('users.public.show', $profileOwner))
+            ->assertOk()
+            ->assertSee('Кабинет покупателя')
+            ->assertDontSee('Панель продавца');
+
+        $this->actingAs($seller)
+            ->get(route('users.public.show', $profileOwner))
+            ->assertOk()
+            ->assertSee('Панель продавца')
+            ->assertDontSee('Кабинет покупателя');
+    }
+
     public function test_account_phone_cannot_duplicate_another_users_shop_phone(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);

@@ -5,7 +5,7 @@
         <img data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}" x-ref="avatarImage"
              src="{{ Auth::user()->avatar_url }}"
              alt="Аватар"
-             class="w-32 h-32 rounded-2xl border-4 border-white shadow-lg object-cover">
+             class="h-28 w-28 rounded-2xl border border-neutral-200 object-cover sm:h-32 sm:w-32">
         
         <!-- Оверлей при наведении -->
         <div class="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 
@@ -20,11 +20,10 @@
     
     
     <!-- Кнопка загрузки -->
-    <label class="absolute -bottom-2 -right-2 bg-white border border-gray-200 shadow-lg 
-                  rounded-full w-10 h-10 flex items-center justify-center cursor-pointer 
-                  hover:bg-indigo-50 hover:border-indigo-200 transition-all duration-200 
+    <label class="absolute -bottom-2 -right-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-neutral-200 bg-white shadow-sm
+                  transition-all duration-200 hover:border-brand-200 hover:bg-brand-50
                   group-hover:scale-110 z-10">
-        <i class="ri-camera-line text-gray-600 group-hover:text-indigo-600"></i>
+        <i class="ri-camera-line text-neutral-600 group-hover:text-brand-600"></i>
         <input type="file" 
                x-ref="fileInput"
                @change="openCropper($event)"
@@ -43,7 +42,7 @@
          x-transition:leave-end="opacity-0 scale-95"
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+        <div class="w-full max-w-md rounded-2xl bg-white shadow-xl">
             <!-- Заголовок -->
             <div class="flex items-center justify-between p-4 border-b">
                 <h3 class="text-lg font-semibold text-gray-900">Обрезка аватара</h3>
