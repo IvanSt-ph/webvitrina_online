@@ -1,76 +1,82 @@
 <x-guest-layout>
-    <div class="grid min-h-[560px] lg:grid-cols-[0.95fr_1.05fr]">
-        <section class="relative hidden overflow-hidden bg-slate-950 lg:block">
-            <video autoplay muted loop playsinline class="absolute inset-0 h-full w-full scale-[1.03] object-cover opacity-80 blur-[1.5px] saturate-125">
-                <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
-            </video>
-            <div class="absolute inset-0 bg-slate-950/65"></div>
-            <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
-            <div class="relative z-10 flex h-full flex-col justify-between p-8 xl:p-10 text-white">
-                <a href="{{ route('home') }}" class="inline-flex w-fit items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-lg backdrop-blur">
-                    <img src="{{ asset('images/logo.png') }}" class="h-9 w-9 rounded-xl bg-white object-contain p-1" alt="WebVitrina">
-                    <span class="text-lg font-extrabold tracking-tight">WebVitrina</span>
-                </a>
-                <div class="max-w-md">
-                    <p class="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-200/30 bg-indigo-100/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-100">
-                        <i class="ri-key-2-line text-base"></i>
-                        Восстановление доступа
-                    </p>
-                    <h1 class="text-4xl font-extrabold leading-tight tracking-tight">Вернём доступ к аккаунту.</h1>
-                    <p class="mt-5 text-base leading-7 text-white/80">Укажите email, и мы отправим ссылку для сброса пароля.</p>
-                </div>
-                <div class="rounded-2xl border border-white/15 bg-white/10 p-4 text-sm text-white/75 backdrop-blur">
-                    <i class="ri-shield-check-line mr-2 text-indigo-100"></i>
-                    Ссылка работает ограниченное время и отправляется только на ваш email.
+    <div class="grid min-h-[620px] grid-cols-1 lg:grid-cols-[0.82fr_1.18fr]">
+        <section class="hidden flex-col justify-between gap-6 border-r border-neutral-200 bg-neutral-50 p-8 lg:flex xl:p-10">
+            <a href="{{ route('home') }}" class="relative inline-flex w-fit items-center gap-2 rounded-xl outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">
+                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500">
+                    <img src="{{ asset('images/icon.png') }}" class="h-8 w-8" alt="">
+                </span>
+                <span class="text-[15px] font-bold tracking-tight text-neutral-800">WebVitrina</span>
+            </a>
+
+            <div>
+                <span class="wv-page-eyebrow"><i class="ri-key-2-line text-base" aria-hidden="true"></i> Восстановление доступа</span>
+                <h1 class="mt-5 text-3xl font-semibold leading-tight tracking-tight text-neutral-950 xl:text-[36px]">Вернём доступ к аккаунту.</h1>
+                <p class="mt-3 text-base leading-7 text-neutral-600">Укажите email, привязанный к профилю. Мы отправим на него ссылку для создания нового пароля.</p>
+
+                <div class="mt-8 space-y-3">
+                    <div class="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl text-brand-600"><i class="ri-mail-send-line" aria-hidden="true"></i></span>
+                        <span class="text-[15px] font-semibold text-neutral-800">Инструкции придут на ваш email</span>
+                    </div>
+                    <div class="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl text-brand-600"><i class="ri-shield-check-line" aria-hidden="true"></i></span>
+                        <span class="text-[15px] font-semibold text-neutral-800">Ссылка действует ограниченное время</span>
+                    </div>
                 </div>
             </div>
+
+            <a href="{{ route('home') }}" class="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-600 transition hover:border-brand-200 hover:text-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600">
+                <i class="ri-arrow-left-line" aria-hidden="true"></i> На главную
+            </a>
         </section>
 
-        <section class="flex min-h-[560px] flex-col bg-white/85 backdrop-blur-xl">
-            <div class="relative h-36 overflow-hidden lg:hidden">
-                <video autoplay muted loop playsinline class="absolute inset-0 h-full w-full scale-[1.03] object-cover blur-[1.5px] saturate-125">
-                    <source src="{{ asset('videos/login-bg.mp4') }}" type="video/mp4">
-                </video>
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/30 to-transparent"></div>
-                <div class="absolute inset-0 bg-white/[0.03] backdrop-blur-[2px]"></div>
-                <a href="{{ route('home') }}" class="absolute left-4 top-4 inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-sm font-extrabold text-slate-900 shadow-sm backdrop-blur">
-                    <img src="{{ asset('images/logo.png') }}" class="h-7 w-7 rounded-lg object-contain" alt="WebVitrina">
-                    WebVitrina
-                </a>
-            </div>
-
-            <div class="flex flex-1 items-center px-5 py-7 sm:px-8 lg:px-10 xl:px-12">
-                <div class="mx-auto w-full max-w-md">
-                    <div class="mb-7">
-                        <p class="text-sm font-semibold text-indigo-600">Восстановление пароля</p>
-                        <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Отправить ссылку</h2>
-                        <p class="mt-2 text-sm leading-6 text-slate-500">Введите email от аккаунта, мы пришлём инструкции.</p>
+        <section class="flex min-w-0 flex-col bg-white">
+            <div class="flex flex-1 items-center px-5 py-8 sm:px-8 lg:px-10 lg:py-9 xl:px-12">
+                <div class="mx-auto w-full min-w-0 max-w-[500px]">
+                    <div class="mb-6">
+                        <p class="text-sm font-semibold text-brand-700">Поможем войти</p>
+                        <h2 class="mt-1 text-3xl font-semibold tracking-tight text-neutral-950 sm:text-[36px]">Восстановление пароля</h2>
+                        <p class="mt-2 text-base leading-6 text-neutral-600">Введите email от аккаунта — на него придут дальнейшие инструкции.</p>
                     </div>
 
                     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-                    <form method="POST" action="{{ route('password.email') }}" class="space-y-5">
+                    <form method="POST" action="{{ route('password.email') }}" class="space-y-4">
                         @csrf
+
                         <div>
-                            <label class="mb-2 block text-sm font-bold text-slate-800">Email</label>
+                            <label for="email" class="mb-2 block text-sm font-medium text-neutral-800">Email</label>
                             <div class="relative">
-                                <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400"></i>
-                                <input type="email" name="email" required value="{{ old('email') }}"
-                                       class="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50/80 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                                <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-neutral-400" aria-hidden="true"></i>
+                                <input id="email"
+                                       type="email"
+                                       name="email"
+                                       required
+                                       autofocus
+                                       autocomplete="email"
+                                       value="{{ old('email') }}"
+                                       class="wv-input h-12 w-full pl-12 pr-4 text-neutral-900 placeholder:text-neutral-400"
                                        placeholder="example@email.com">
                             </div>
                             <x-input-error :messages="$errors->get('email')" class="mt-2 text-sm" />
                         </div>
 
-                        <button type="submit" class="group relative flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border border-indigo-400/30 bg-indigo-500/90 px-5 py-3.5 font-bold text-white shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600">
-                            <i class="ri-send-plane-line text-lg"></i>
+                        <button type="submit" class="wv-btn-primary h-12 w-full text-base">
+                            <i class="ri-send-plane-line text-lg" aria-hidden="true"></i>
                             Отправить ссылку
                         </button>
                     </form>
 
-                    <p class="mt-7 text-center text-sm text-slate-600">
+                    <div class="mt-5 rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
+                        <div class="flex items-start gap-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-lg text-brand-600"><i class="ri-lock-2-line" aria-hidden="true"></i></span>
+                            <p class="pt-0.5 text-sm leading-6 text-neutral-600">Никому не передавайте ссылку из письма. Поддержка WebVitrina никогда не запрашивает пароль или код из SMS.</p>
+                        </div>
+                    </div>
+
+                    <p class="mt-6 text-center text-sm text-neutral-600">
                         Вспомнили пароль?
-                        <a href="{{ route('login') }}" class="font-bold text-indigo-600 hover:text-indigo-800">Войти</a>
+                        <a href="{{ route('login') }}" class="font-bold text-brand-600 hover:text-brand-800">Вернуться ко входу</a>
                     </p>
                 </div>
             </div>
