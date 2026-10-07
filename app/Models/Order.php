@@ -93,10 +93,10 @@ class Order extends Model
     public static function deliveryMethodLabels(): array
     {
         return [
-            'courier' => 'Доставка продавцом по договорённости',
-            'pickup' => 'Самовывоз по договорённости с продавцом',
-            'post' => 'Отправка почтой по договорённости',
-            'express' => 'Экспресс-доставка/такси по договорённости',
+            'courier' => 'Доставка продавцом',
+            'pickup' => 'Самовывоз',
+            'post' => 'Отправка почтой',
+            'express' => 'Экспресс-доставка/такси',
         ];
     }
 
@@ -225,6 +225,16 @@ public function markAsPaid(): void
     public function getFormattedTotalPriceAttribute()
     {
         return number_format($this->total_price, 2, ',', ' ') . ' ' . Product::currencySymbol($this->currency);
+    }
+
+    public function getItemsSubtotalAttribute(): float
+    {
+        return round($this->items->sum(fn (OrderItem $item) => (float) $item->total), 2, PHP_ROUND_HALF_UP);
+    }
+
+    public function getDeliveryCostAttribute(): float
+    {
+        return max(0, round((float) $this->total_price - $this->items_subtotal, 2, PHP_ROUND_HALF_UP));
     }
 
     public function getPaymentMethodLabelAttribute(): string

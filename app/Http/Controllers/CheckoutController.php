@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\CurrencyService;
 use App\Services\UserNotificationService;
+use App\Support\MoneyLimits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -28,10 +29,10 @@ class CheckoutController extends Controller
     ];
 
     private const DELIVERY_METHODS = [
-        'courier' => '🚚 Доставка продавцом по договорённости',
-        'pickup' => '🏪 Самовывоз по договорённости с продавцом',
-        'post' => '📮 Отправка почтой по договорённости',
-        'express' => '⚡ Экспресс-доставка/такси по договорённости',
+        'courier' => '🚚 Доставка продавцом',
+        'pickup' => '🏪 Самовывоз',
+        'post' => '📮 Отправка почтой',
+        'express' => '⚡ Экспресс-доставка/такси',
     ];
 
     private const DELIVERY_PRICES = [
@@ -250,6 +251,7 @@ return redirect()
             'paymentMethods'      => self::PAYMENT_METHODS,
             'deliveryMethods'     => self::DELIVERY_METHODS,
             'deliveryPrices'      => $deliveryPrices,
+            'deliveryCost'        => $deliveryCost,
             'totalDeliveryCost'   => $totalDeliveryCost,
             'totalWithDelivery'   => $totalWithDelivery,
             'pricesUpdated'       => $pricesUpdated,
@@ -392,11 +394,6 @@ return redirect()
                 ->with('error', 'Цена одного или нескольких товаров изменилась. Проверьте обновлённую сумму и подтвердите заказ снова.');
         }
 
-        if (! Cache::add('checkout:used:' . hash('sha256', $expectedToken), true, now()->addMinutes(10))) {
-            return redirect()->route('checkout.confirm')
-                ->with('error', 'Этот заказ уже отправлен. Проверьте список заказов перед повторным оформлением.');
-        }
-
         $deliveryCost = $this->currency->convert(
             (float) self::DELIVERY_PRICES[$deliveryMethod],
             'PRB',
@@ -404,7 +401,7 @@ return redirect()
         );
 
         // Добавляем seller_id к каждой позиции (уже проверили товары выше)
-        $cartWithSellers = collect($cart)->map(function ($row) use ($products) {
+        $cartWithSellers = collect($updatedCart)->map(function ($row) use ($products) {
             $product = $products[$row['product_id']];
             $row['seller_id'] = $product->user_id;
             return $row;
@@ -412,14 +409,23 @@ return redirect()
 
         // Группируем корзину по продавцу
         $groups = $cartWithSellers->groupBy('seller_id');
+        $this->assertOrderAmountsFitStorage($groups, $deliveryCost);
+
+        $checkoutCacheKey = 'checkout:used:' . hash('sha256', $expectedToken);
+        if (! Cache::add($checkoutCacheKey, true, now()->addMinutes(10))) {
+            return redirect()->route('checkout.confirm')
+                ->with('error', 'Этот заказ уже отправлен. Проверьте список заказов перед повторным оформлением.');
+        }
+
         $createdOrders = [];
 
-        DB::transaction(function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, &$createdOrders, $userId, $checkoutCurrency) {
-            foreach ($groups as $sellerId => $items) {
-                $total = $items->sum(fn ($item) => $this->lineTotal($item));
-                
-                // ✅ ИТОГ С УЧЕТОМ ДОСТАВКИ
-                $totalWithDelivery = round($total + $deliveryCost, 2, PHP_ROUND_HALF_UP);
+        try {
+            DB::transaction(function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, &$createdOrders, $userId, $checkoutCurrency) {
+                foreach ($groups as $sellerId => $items) {
+                    $totalCents = $items->sum(fn ($item) => $this->lineTotalCents($item));
+
+                    // ✅ ИТОГ С УЧЕТОМ ДОСТАВКИ
+                    $totalWithDelivery = ($totalCents + $this->moneyToCents($deliveryCost)) / 100;
 
                 // Создаём сам заказ
                 $order = Order::create([
@@ -478,33 +484,40 @@ return redirect()
                     }
                 }
 
-                $createdOrders[] = $order;
+                    $createdOrders[] = $order;
 
                 // Keep both the site notification and email dispatch outside all
                 // checkout transactions; rollback discards this callback.
-                DB::afterCommit(function () use ($order): void {
-                    try {
-                        app(UserNotificationService::class)->create(
-                            $order->seller,
-                            'order_created',
-                            'Новый заказ',
-                            "Поступил новый заказ {$order->number}.",
-                            route('seller.orders.show', $order, false),
-                            ['order_id' => $order->id],
-                        );
-                    } catch (\Throwable $exception) {
-                        // The order is committed. Do not fail checkout or prevent
-                        // callbacks for the remaining sellers from running.
-                        Log::error('Seller new-order notification failed', [
-                            'order_id' => $order->id,
-                            'seller_id' => $order->seller_id,
-                            'exception' => get_class($exception),
-                            'message' => $exception->getMessage(),
-                        ]);
-                    }
-                });
-            }
-        });
+                    DB::afterCommit(function () use ($order): void {
+                        try {
+                            app(UserNotificationService::class)->create(
+                                $order->seller,
+                                'order_created',
+                                'Новый заказ',
+                                "Поступил новый заказ {$order->number}.",
+                                route('seller.orders.show', $order, false),
+                                ['order_id' => $order->id],
+                            );
+                        } catch (\Throwable $exception) {
+                            // The order is committed. Do not fail checkout or prevent
+                            // callbacks for the remaining sellers from running.
+                            Log::error('Seller new-order notification failed', [
+                                'order_id' => $order->id,
+                                'seller_id' => $order->seller_id,
+                                'exception' => get_class($exception),
+                                'message' => $exception->getMessage(),
+                            ]);
+                        }
+                    });
+                }
+            });
+        } catch (\Throwable $exception) {
+            // A reservation prevents concurrent duplicates, but a rolled-back
+            // checkout must remain retryable with the same confirmation token.
+            Cache::forget($checkoutCacheKey);
+
+            throw $exception;
+        }
 
         // Чистим "корзину для оформления"
         session()->forget(['checkout_cart', 'checkout_token']);
@@ -544,6 +557,51 @@ return redirect()
 
     private function lineTotal(array $item): float
     {
-        return round((float) $item['price'] * (int) $item['qty'], 2, PHP_ROUND_HALF_UP);
+        return $this->lineTotalCents($item) / 100;
+    }
+
+    private function lineTotalCents(array $item): int
+    {
+        return $this->moneyToCents((float) $item['price']) * (int) $item['qty'];
+    }
+
+    private function moneyToCents(float $amount): int
+    {
+        if (! is_finite($amount) || $amount < 0 || $amount > PHP_INT_MAX / 100) {
+            $this->moneyLimitExceeded();
+        }
+
+        return (int) round($amount * 100, 0, PHP_ROUND_HALF_UP);
+    }
+
+    private function assertOrderAmountsFitStorage($groups, float $deliveryCost): void
+    {
+        $deliveryCents = $this->moneyToCents($deliveryCost);
+
+        foreach ($groups as $items) {
+            $orderTotalCents = $deliveryCents;
+
+            foreach ($items as $item) {
+                $priceCents = $this->moneyToCents((float) $item['price']);
+                $lineTotalCents = $priceCents * (int) $item['qty'];
+
+                if ($priceCents > MoneyLimits::DECIMAL_10_2_MAX_CENTS
+                    || $lineTotalCents > MoneyLimits::DECIMAL_10_2_MAX_CENTS) {
+                    $this->moneyLimitExceeded();
+                }
+
+                $orderTotalCents += $lineTotalCents;
+                if ($orderTotalCents > MoneyLimits::DECIMAL_10_2_MAX_CENTS) {
+                    $this->moneyLimitExceeded();
+                }
+            }
+        }
+    }
+
+    private function moneyLimitExceeded(): never
+    {
+        throw ValidationException::withMessages([
+            'cart' => 'Сумма заказа превышает допустимый предел. Уменьшите количество товаров или разделите покупку.',
+        ]);
     }
 }

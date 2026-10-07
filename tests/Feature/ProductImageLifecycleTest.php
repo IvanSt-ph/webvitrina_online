@@ -259,7 +259,10 @@ class ProductImageLifecycleTest extends TestCase
                 $inputs[] = $input;
                 $processes[] = $process;
                 $process->start();
-                $expected = $mode === 'first' ? 'LOCKED' : 'ATTEMPT';
+                // ATTEMPT is emitted before ProductService enters its transaction.
+                // Wait for the database hook so lock observation starts only when
+                // the second worker is dispatching the actual SELECT ... FOR UPDATE.
+                $expected = $mode === 'first' ? 'LOCKED' : 'LOCK_QUERY';
                 $deadline = microtime(true) + 10;
                 while (! str_contains($process->getOutput(), $expected) && $process->isRunning() && microtime(true) < $deadline) {
                     usleep(20000);

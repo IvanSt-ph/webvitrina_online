@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Rules\ImageUploadConstraints;
+use App\Support\MoneyLimits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,8 +21,8 @@ public function rules(): array
         'title'       => ['required', 'string', 'max:255'],
         'slug'        => ['nullable', 'string', 'max:255'],
         'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku'],
-        'price'       => ['required', 'numeric', 'min:0'],
-        'old_price'   => ['nullable', 'numeric', 'min:0', 'gt:price'],
+        'price'       => ['required', 'numeric', 'min:0', 'max:' . MoneyLimits::PRODUCT_PRICE_MAX],
+        'old_price'   => ['nullable', 'numeric', 'min:0', 'max:' . MoneyLimits::PRODUCT_PRICE_MAX, 'gt:price'],
         'stock'       => ['required', 'integer', 'min:0'],
         'user_id'     => ['required', Rule::exists('users', 'id')->where('role', 'seller')],
         'category_id' => ['required', 'exists:categories,id'],
@@ -41,5 +42,4 @@ public function rules(): array
 }
 
 }
-
 

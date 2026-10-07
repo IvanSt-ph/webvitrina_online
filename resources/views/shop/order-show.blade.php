@@ -251,7 +251,8 @@
                 <p class="text-sm font-semibold text-slate-800">{{ $order->delivery_method_label }}</p>
                 <p class="mt-1 text-sm text-gray-400">Адрес не указан</p>
             @endif
-            <p class="mt-3 text-xs text-slate-500">Стоимость и сроки подтверждает продавец.</p>
+            <p class="mt-3 text-sm font-semibold text-slate-800">Стоимость: {{ number_format($order->delivery_cost, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}</p>
+            <p class="mt-1 text-xs text-slate-500">Срок и детали передачи уточняются у продавца.</p>
         </div>
 
         <!-- Оплата -->

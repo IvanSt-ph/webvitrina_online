@@ -73,7 +73,7 @@ class GoogleController extends Controller
             $user->sendEmailVerificationNotification();
         }
 
-        Auth::login($user, true);
+        Auth::login($user, false);
 
         if (!$user->email_verified_at) {
             return redirect()->route('verification.notice');

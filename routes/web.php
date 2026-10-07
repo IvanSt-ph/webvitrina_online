@@ -215,7 +215,7 @@ Route::get('/profile/edit',  [ProfileController::class, 'edit'])
     // Shop info (продавец)
     Route::patch('/profile/shop', [ProfileController::class, 'updateShop'])
         ->name('profile.shop.update')
-        ->middleware('role:seller');
+        ->middleware(['role:seller', 'verified']);
 
 
 
@@ -246,16 +246,16 @@ Route::middleware('role:buyer')->group(function () {
     Route::view('/my-questions', 'buyer.questions.index')->name('questions.index');
     Route::get('/my-chats', [ChatController::class, 'index'])->name('chats.index');
     Route::post('/seller/{shop:slug}/chat', [ChatController::class, 'start'])
-        ->middleware('throttle:20,1')
+        ->middleware(['verified', 'throttle:20,1'])
         ->name('chats.start');
     Route::post('/shops/{shop:slug}/follow', [ShopFollowController::class, 'toggle'])
         ->middleware('throttle:30,1')
         ->name('shops.follow');
     Route::post('/p/{product:slug}/chat', [ChatController::class, 'startForProduct'])
-        ->middleware('throttle:20,1')
+        ->middleware(['verified', 'throttle:20,1'])
         ->name('chats.product.start');
     Route::post('/orders/{order}/chat/{product}', [ChatController::class, 'startForOrderProduct'])
-        ->middleware('throttle:20,1')
+        ->middleware(['verified', 'throttle:20,1'])
         ->name('orders.chat.product');
     Route::get('/my-chats/{conversation}', [ChatController::class, 'show'])->name('chats.show');
     Route::post('/my-chats/{conversation}/pin', [ChatController::class, 'togglePin'])
@@ -272,10 +272,10 @@ Route::middleware('role:buyer')->group(function () {
         ->middleware('throttle:120,1')
         ->name('chats.messages.image');
     Route::post('/my-chats/{conversation}/messages', [ChatController::class, 'store'])
-        ->middleware('throttle:30,1')
+        ->middleware(['verified', 'throttle:30,1'])
         ->name('chats.messages.store');
     Route::post('/my-chats/{conversation}/support', [ChatController::class, 'openSupportFromConversation'])
-        ->middleware('throttle:10,1')
+        ->middleware(['verified', 'throttle:10,1'])
         ->name('chats.support.dispute');
     Route::get('/notifications', [UserNotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllRead'])->name('notifications.readAll');
@@ -288,10 +288,10 @@ Route::middleware('role:buyer')->group(function () {
     Route::patch('/settings/currency', [UserSettingsController::class, 'updateCurrency'])->name('settings.currency.update');
     Route::get('/support', [ChatController::class, 'support'])->name('support');
     Route::post('/support/start', [ChatController::class, 'startSupport'])
-        ->middleware('throttle:10,1')
+        ->middleware(['verified', 'throttle:10,1'])
         ->name('support.start');
     Route::post('/orders/{order}/support', [ChatController::class, 'startSupportForOrder'])
-        ->middleware('throttle:10,1')
+        ->middleware(['verified', 'throttle:10,1'])
         ->name('orders.support');
     Route::delete('/favorites/{favorite}', [FavoriteController::class, 'remove'])
         ->name('favorites.remove');
@@ -364,15 +364,19 @@ Route::middleware('role:buyer')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::post('/checkout/quick/{product}', [CheckoutController::class, 'quick'])
+        ->middleware('verified')
         ->name('checkout.quick');
 
     Route::post('/checkout/confirm', [CheckoutController::class, 'prepare'])
+        ->middleware('verified')
         ->name('checkout.prepare');
 
     Route::get('/checkout/confirm',  [CheckoutController::class, 'confirm'])
+        ->middleware('verified')
         ->name('checkout.confirm');
 
     Route::post('/checkout/create',  [CheckoutController::class, 'create'])
+        ->middleware('verified')
         ->name('checkout.create');
 
 
@@ -383,12 +387,12 @@ Route::middleware('role:buyer')->group(function () {
     */
     Route::post('/orders/{order}/confirm-delivery',
         [OrderStatusController::class, 'confirmDelivery']
-    )->name('orders.confirmDelivery');
+    )->middleware('verified')->name('orders.confirmDelivery');
     Route::post('/orders/{order}/request-cancellation',
         [OrderStatusController::class, 'requestCancellation']
-    )->middleware('throttle:5,1')->name('orders.requestCancellation');
+    )->middleware(['verified', 'throttle:5,1'])->name('orders.requestCancellation');
     Route::post('/orders/{order}/disputes', [OrderDisputeController::class, 'store'])
-        ->middleware('throttle:5,10')
+        ->middleware(['verified', 'throttle:5,10'])
         ->name('orders.disputes.store');
 
     /*
@@ -397,13 +401,13 @@ Route::middleware('role:buyer')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('/addresses',               [UserAddressController::class, 'index'])->name('addresses.index');
-    Route::post('/addresses',              [UserAddressController::class, 'store'])->name('addresses.store');
-    Route::put('/addresses/{address}',     [UserAddressController::class, 'update'])->name('addresses.update');
-    Route::delete('/addresses/{address}',  [UserAddressController::class, 'destroy'])->name('addresses.destroy');
+    Route::post('/addresses',              [UserAddressController::class, 'store'])->middleware('verified')->name('addresses.store');
+    Route::put('/addresses/{address}',     [UserAddressController::class, 'update'])->middleware('verified')->name('addresses.update');
+    Route::delete('/addresses/{address}',  [UserAddressController::class, 'destroy'])->middleware('verified')->name('addresses.destroy');
 
     Route::post('/addresses/{address}/default',
         [UserAddressController::class, 'makeDefault']
-    )->name('addresses.default');
+    )->middleware('verified')->name('addresses.default');
 
 
     /*
@@ -411,9 +415,9 @@ Route::middleware('role:buyer')->group(function () {
     | 📝 REVIEWS
     |--------------------------------------------------------------------------
     */
-    Route::post('/review/{product}', [ReviewController::class, 'store'])->name('review.store');
+    Route::post('/review/{product}', [ReviewController::class, 'store'])->middleware('verified')->name('review.store');
     Route::post('/products/{product}/report', [ProductReportController::class, 'store'])
-        ->middleware('throttle:5,10')
+        ->middleware(['verified', 'throttle:5,10'])
         ->name('products.report');
 
 
@@ -448,22 +452,25 @@ Route::middleware('role:buyer')->group(function () {
         Route::get('/followers', [SellerFollowerController::class, 'index'])->name('followers.index');
         Route::get('/plans', [SellerPlanController::class, 'index'])->name('plans.index');
         Route::post('/plans/request', [SellerPlanController::class, 'requestUpgrade'])
-            ->middleware('throttle:5,10')
+            ->middleware(['verified', 'throttle:5,10'])
             ->name('plans.request');
 
         // Товары
-        Route::resource('products', SellerProducts::class)->except(['show']);
+        Route::resource('products', SellerProducts::class)
+            ->except(['show'])
+            ->middlewareFor(['store', 'update', 'destroy'], 'verified');
         Route::delete('/products/{product}/gallery',
             [SellerProducts::class, 'deleteGalleryImage']
-        )->name('products.gallery.delete');
+        )->middleware('verified')->name('products.gallery.delete');
 
         // Заказы продавца
         Route::get('/orders', [SellerOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [SellerOrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{order}/chat', [SellerOrderController::class, 'startBuyerConversation'])
-            ->middleware('throttle:20,1')
+            ->middleware(['verified', 'throttle:20,1'])
             ->name('orders.chat.buyer');
         Route::post('/orders/{order}/status', [OrderStatusController::class, 'sellerUpdate'])
+            ->middleware('verified')
             ->name('orders.updateStatus');
 
         // Финансы
@@ -510,7 +517,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', AdminMiddleware::class])
+    ->middleware(['auth', AdminMiddleware::class, 'verified'])
     ->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -586,8 +593,8 @@ Route::prefix('admin')
         ->scopeBindings()
         ->name('chats.messages.image');
 
-    Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile');
-    Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile', [AdminProfileController::class, 'edit'])->withoutMiddleware('verified')->name('profile');
+    Route::put('/profile', [AdminProfileController::class, 'update'])->withoutMiddleware('verified')->name('profile.update');
     Route::view('/production-checklist', 'admin.production-checklist')->name('production-checklist');
 
     Route::resource('banners', BannerController::class)->except(['show']);

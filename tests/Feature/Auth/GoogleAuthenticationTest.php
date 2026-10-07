@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -100,9 +101,10 @@ class GoogleAuthenticationTest extends TestCase
             'email' => $user->email,
         ]);
 
-        $this->get(route('auth.google.callback'))
+        $response = $this->get(route('auth.google.callback'))
             ->assertRedirect(route('home'));
 
+        $response->assertCookieMissing(Auth::guard('web')->getRecallerName());
         $this->assertAuthenticatedAs($user);
         $this->assertDatabaseCount('users', 1);
     }

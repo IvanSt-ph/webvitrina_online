@@ -20,6 +20,16 @@ class EnsurePasswordSessionIsCurrent
         $guard = Auth::guard('web');
 
         if ($user = $guard->user()) {
+            // The custom remembered-device credential is the only persistent
+            // login authority. Reject Laravel recallers left by older releases.
+            if ($guard->viaRemember()) {
+                $guard->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                throw new AuthenticationException('Unauthenticated.', ['web'], route('login'));
+            }
+
             // Read authoritative credentials, including when the guard cached a user.
             $current = User::query()->useWritePdo()->find($user->getAuthIdentifier());
             $expected = $current ? $this->security->fingerprint($current) : null;

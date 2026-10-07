@@ -62,7 +62,7 @@
 
                     <div class="divide-y divide-neutral-100">
                         @foreach($orderGroups as $group)
-                            <article>
+                            <article data-seller-order data-subtotal="{{ $group['subtotal'] }}">
                                 <div class="flex items-center justify-between gap-3 bg-neutral-50/80 px-4 py-3 sm:px-5">
                                     <div class="flex min-w-0 items-center gap-2 text-sm font-semibold text-neutral-900">
                                         <i class="ri-store-2-line shrink-0 text-brand-500" aria-hidden="true"></i>
@@ -106,9 +106,19 @@
                                     @endforeach
                                 </div>
 
-                                <div class="flex items-center justify-between gap-3 border-t border-neutral-100 px-4 py-3 text-sm sm:px-5">
-                                    <span class="text-neutral-500">Товары магазина</span>
-                                    <span class="font-semibold text-neutral-950">{{ number_format($group['subtotal'], 2, ',', ' ') }} {{ $currencySymbol }}</span>
+                                <div class="space-y-2 border-t border-neutral-100 px-4 py-3 text-sm sm:px-5">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-neutral-500">Товары магазина</span>
+                                        <span class="font-semibold text-neutral-950">{{ number_format($group['subtotal'], 2, ',', ' ') }} {{ $currencySymbol }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-neutral-500">Доставка этого заказа</span>
+                                        <span data-seller-delivery class="font-semibold text-neutral-950">{{ number_format($deliveryCost, 2, ',', ' ') }} {{ $currencySymbol }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between gap-3 border-t border-neutral-100 pt-2">
+                                        <span class="font-semibold text-neutral-700">Итого по продавцу</span>
+                                        <span data-seller-total class="font-bold text-neutral-950">{{ number_format($group['subtotal'] + $deliveryCost, 2, ',', ' ') }} {{ $currencySymbol }}</span>
+                                    </div>
                                 </div>
                             </article>
                         @endforeach
@@ -118,7 +128,7 @@
                 @if($orderCount > 1)
                     <div class="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm leading-6 text-brand-800">
                         <i class="ri-information-line mt-0.5 shrink-0 text-lg" aria-hidden="true"></i>
-                        <span>Будет создано заказов: <strong>{{ $orderCount }}</strong>. Доставка и оплата согласуются отдельно с каждым продавцом.</span>
+                        <span>Будет создано заказов: <strong>{{ $orderCount }}</strong>. Выбранные доставка и способ оплаты применяются к каждому заказу; стоимость доставки начисляется отдельно для каждого продавца.</span>
                     </div>
                 @endif
 
@@ -142,7 +152,10 @@
                                         <input type="radio" name="delivery_method" value="{{ $key }}"
                                                class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
                                                {{ $loop->first ? 'checked' : '' }} required>
-                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
+                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">
+                                            <span class="block">{{ $label }}</span>
+                                            <span class="block text-xs text-neutral-500">{{ ($deliveryPrices[$key] ?? 0) > 0 ? number_format($deliveryPrices[$key], 2, ',', ' ') . ' ' . $currencySymbol : 'Бесплатно' }} за каждый заказ</span>
+                                        </span>
                                     </label>
                                 @endforeach
                             @else
@@ -161,7 +174,7 @@
                             @endif
                         </div>
 
-                        <p class="mt-3 text-xs leading-5 text-neutral-500">Стоимость, срок и способ передачи товара продавец подтвердит в заказе или чате.</p>
+                        <p class="mt-3 text-xs leading-5 text-neutral-500">Указанная стоимость фиксируется в каждом заказе. Срок и детали передачи можно уточнить у соответствующего продавца.</p>
                     </section>
 
                     {{-- Оплата --}}
@@ -296,7 +309,7 @@
                         </div>
                         <div class="flex items-start justify-between gap-3">
                             <dt class="text-neutral-500">Доставка</dt>
-                            <dd id="delivery-cost" class="max-w-[190px] text-right font-medium text-neutral-500">Согласуется с продавцом</dd>
+                            <dd id="delivery-cost" class="max-w-[190px] text-right font-semibold text-neutral-900">{{ number_format($totalDeliveryCost, 2, ',', ' ') }} {{ $currencySymbol }}</dd>
                         </div>
                     </dl>
 
@@ -310,7 +323,7 @@
                     </div>
 
                     <div class="mt-4 rounded-xl bg-brand-50 px-3 py-3 text-xs leading-5 text-brand-800">
-                        В итог входит стоимость товаров. Доставка и способ оплаты окончательно подтверждаются продавцом.
+                        В итог уже включена доставка для каждого отдельного заказа. Онлайн-списание оплаты на сайте не выполняется.
                     </div>
 
                     <button type="submit"
@@ -348,11 +361,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!radio) return;
 
         const price = Number(prices[radio.value] ?? 0) * orderCount;
-        deliveryEl.textContent = price > 0 ? format(price) : 'Согласуется с продавцом';
-        deliveryEl.className = price > 0
-            ? 'max-w-[190px] text-right font-semibold text-neutral-900'
-            : 'max-w-[190px] text-right font-medium text-neutral-500';
+        deliveryEl.textContent = price > 0 ? format(price) : 'Бесплатно';
+        deliveryEl.className = 'max-w-[190px] text-right font-semibold text-neutral-900';
         totalEl.textContent = format(subtotal + price);
+
+        document.querySelectorAll('[data-seller-order]').forEach(order => {
+            const orderSubtotal = Number(order.dataset.subtotal ?? 0);
+            const delivery = Number(prices[radio.value] ?? 0);
+            order.querySelector('[data-seller-delivery]').textContent = delivery > 0 ? format(delivery) : 'Бесплатно';
+            order.querySelector('[data-seller-total]').textContent = format(orderSubtotal + delivery);
+        });
     }
 
     function updateButtonState() {

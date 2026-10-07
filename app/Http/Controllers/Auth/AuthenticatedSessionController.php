@@ -77,7 +77,7 @@ class AuthenticatedSessionController extends Controller
 
         $device->update(['last_used_at' => now()]);
 
-        Auth::login($device->user, true);
+        Auth::login($device->user, false);
         $request->session()->regenerate();
 
         return redirect()->intended($this->fallbackRouteFor($device->user));

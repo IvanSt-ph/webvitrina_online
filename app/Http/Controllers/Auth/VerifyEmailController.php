@@ -32,6 +32,10 @@ class VerifyEmailController extends Controller
      */
     private function redirectAfterVerification(): RedirectResponse
     {
+        if (auth()->user()->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
         // Если продавец → в кабинет продавца
         if (auth()->user()->isSeller()) {
             return redirect()->route('seller.cabinet');

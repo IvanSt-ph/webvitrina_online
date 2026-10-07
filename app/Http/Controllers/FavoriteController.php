@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\ProductStat;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class FavoriteController extends Controller
 {
@@ -50,46 +51,39 @@ class FavoriteController extends Controller
             return back()->with('error', 'Вы не можете добавить свой товар в избранное.');
         }
 
-        $fav = Favorite::where([
-            'user_id'    => $userId,
-            'product_id' => $product->id
-        ])->first();
+        $state = DB::transaction(function () use ($product, $userId): bool {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
+            $currentProduct = Product::whereKey($product->id)->firstOrFail();
+            abort_if($currentProduct->status !== 'active', 404);
+            abort_if($currentProduct->user_id === $userId, 403);
 
-        $today = Carbon::today()->toDateString();
-
-        if ($fav) {
-            // ❌ Удаляем из избранного
-            $fav->delete();
-            $product->decrement('favorites_count');
-
-            // ✅ ИСПРАВЛЕНО: безопасное уменьшение счётчика
-            $stat = ProductStat::where([
-                'product_id' => $product->id,
-                'date' => $today
+            $favorite = Favorite::where([
+                'user_id' => $userId,
+                'product_id' => $currentProduct->id,
             ])->first();
 
-            if ($stat && $stat->favorites > 0) {
-                $stat->decrement('favorites');
+            if ($favorite) {
+                $favorite->delete();
+                Product::whereKey($currentProduct->id)
+                    ->where('favorites_count', '>', 0)
+                    ->decrement('favorites_count');
+                ProductStat::where([
+                    'product_id' => $currentProduct->id,
+                    'date' => Carbon::today()->toDateString(),
+                ])->where('favorites', '>', 0)->decrement('favorites');
+
+                return false;
             }
-            // Если статистики нет или favorites = 0, ничего не делаем
 
-            $state = false;
-        } else {
-            // ✅ Добавляем в избранное
             Favorite::create([
-                'user_id'    => $userId,
-                'product_id' => $product->id
+                'user_id' => $userId,
+                'product_id' => $currentProduct->id,
             ]);
-            $product->increment('favorites_count');
+            Product::whereKey($currentProduct->id)->increment('favorites_count');
+            ProductStat::addFavorite($currentProduct->id);
 
-            // 📊 увеличиваем счётчик за день
-            ProductStat::updateOrCreate(
-                ['product_id' => $product->id, 'date' => $today],
-                ['favorites' => DB::raw('favorites + 1')]
-            );
-
-            $state = true;
-        }
+            return true;
+        });
 
         if (request()->expectsJson()) {
             return response()->json([
@@ -107,14 +101,26 @@ class FavoriteController extends Controller
 
     public function remove(Favorite $favorite)
     {
-        abort_unless($favorite->user_id === auth()->id(), 403);
+        $userId = auth()->id();
+        abort_unless($favorite->user_id === $userId, 403);
 
-        $product = $favorite->product;
-        $favorite->delete();
+        DB::transaction(function () use ($favorite, $userId): void {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
 
-        if ($product && $product->favorites_count > 0) {
-            $product->decrement('favorites_count');
-        }
+            $current = Favorite::whereKey($favorite->id)
+                ->where('user_id', $userId)
+                ->first();
+
+            if (! $current) {
+                return;
+            }
+
+            $productId = $current->product_id;
+            $current->delete();
+            Product::whereKey($productId)
+                ->where('favorites_count', '>', 0)
+                ->decrement('favorites_count');
+        });
 
         return back()->with('success', 'Товар удалён из избранного');
     }

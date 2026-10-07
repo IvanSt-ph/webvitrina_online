@@ -331,10 +331,7 @@ class ProductController extends Controller
                 $product->increment('views_count');
 
                 // +1 в статистике / день
-                ProductStat::updateOrCreate(
-                    ['product_id' => $product->id, 'date' => today()],
-                    ['views' => DB::raw('views + 1')]
-                );
+                ProductStat::addView($product->id);
             });
 
             Cache::put($cacheKey, true, now()->addHour());

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Seller;
 
 use App\Rules\ImageUploadConstraints;
+use App\Support\MoneyLimits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,18 +19,18 @@ class ProductStoreRequest extends FormRequest
     {
         return [
             'title'       => 'required|string|max:255',
-            'price'       => 'required|numeric|min:0',
-            'old_price'   => 'nullable|numeric|min:0|gt:price',
+            'price'       => 'required|numeric|min:0|max:' . MoneyLimits::PRODUCT_PRICE_MAX,
+            'old_price'   => 'nullable|numeric|min:0|max:' . MoneyLimits::PRODUCT_PRICE_MAX . '|gt:price',
             'stock'       => 'required|integer|min:0',
             'description' => 'nullable|string|max:3000',
             'status'      => ['nullable', Rule::in(\App\Models\Product::sellerEditableStatuses())],
             'currency_base' => 'nullable|in:PRB,MDL,UAH',
-            'price_prb'   => 'nullable|numeric|min:0',
-            'old_price_prb' => 'nullable|numeric|min:0',
-            'price_mdl'   => 'nullable|numeric|min:0',
-            'old_price_mdl' => 'nullable|numeric|min:0',
-            'price_uah'   => 'nullable|numeric|min:0',
-            'old_price_uah' => 'nullable|numeric|min:0',
+            'price_prb'   => 'nullable|numeric|min:0|max:' . MoneyLimits::DECIMAL_10_2_MAX,
+            'old_price_prb' => 'nullable|numeric|min:0|max:' . MoneyLimits::DECIMAL_10_2_MAX,
+            'price_mdl'   => 'nullable|numeric|min:0|max:' . MoneyLimits::DECIMAL_10_2_MAX,
+            'old_price_mdl' => 'nullable|numeric|min:0|max:' . MoneyLimits::DECIMAL_10_2_MAX,
+            'price_uah'   => 'nullable|numeric|min:0|max:' . MoneyLimits::DECIMAL_10_2_MAX,
+            'old_price_uah' => 'nullable|numeric|min:0|max:' . MoneyLimits::DECIMAL_10_2_MAX,
 
             'category_id' => 'required|exists:categories,id',
             'country_id'  => 'bail|required|integer|min:1|exists:countries,id',
@@ -62,4 +63,3 @@ class ProductStoreRequest extends FormRequest
         ];
     }
 }
-

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class ProductStat extends Model
 {
@@ -18,39 +19,33 @@ class ProductStat extends Model
 
     public $timestamps = false;
 
-    // ----- Увеличение просмотров -----
-    public static function addView($productId)
+    public static function addView(int $productId): int
     {
-        $today = date('Y-m-d');
-
-        return self::query()
-            ->updateOrCreate(
-                ['product_id' => $productId, 'date' => $today],
-                ['views' => \DB::raw('views + 1')]
-            );
+        return self::incrementDailyCounter($productId, 'views');
     }
 
-    // ----- Избранное -----
-    public static function addFavorite($productId)
+    public static function addFavorite(int $productId): int
     {
-        $today = date('Y-m-d');
-
-        return self::query()
-            ->updateOrCreate(
-                ['product_id' => $productId, 'date' => $today],
-                ['favorites' => \DB::raw('favorites + 1')]
-            );
+        return self::incrementDailyCounter($productId, 'favorites');
     }
 
-    // ----- Корзина -----
-    public static function addCart($productId)
+    public static function addCart(int $productId): int
     {
-        $today = date('Y-m-d');
+        return self::incrementDailyCounter($productId, 'carts');
+    }
 
-        return self::query()
-            ->updateOrCreate(
-                ['product_id' => $productId, 'date' => $today],
-                ['carts' => \DB::raw('carts + 1')]
-            );
+    private static function incrementDailyCounter(int $productId, string $counter): int
+    {
+        return self::query()->upsert(
+            [[
+                'product_id' => $productId,
+                'date' => today()->toDateString(),
+                'views' => $counter === 'views' ? 1 : 0,
+                'favorites' => $counter === 'favorites' ? 1 : 0,
+                'carts' => $counter === 'carts' ? 1 : 0,
+            ]],
+            ['product_id', 'date'],
+            [$counter => DB::raw($counter.' + 1')]
+        );
     }
 }

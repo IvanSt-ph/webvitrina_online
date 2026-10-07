@@ -110,6 +110,11 @@ class CheckoutNotificationTest extends TestCase
         $this->assertDatabaseCount('user_notifications', 0);
         $this->assertSame([5, 5], Product::orderBy('id')->pluck('stock')->all());
         Notification::assertNothingSent();
+
+        $this->submit()->assertSessionHasNoErrors()->assertRedirect(route('orders.index'));
+        $this->assertDatabaseCount('orders', 2);
+        $this->assertDatabaseCount('order_items', 2);
+        $this->assertSame([4, 4], Product::orderBy('id')->pluck('stock')->all());
     }
 
     public function test_notification_failure_is_logged_and_other_seller_is_still_notified(): void

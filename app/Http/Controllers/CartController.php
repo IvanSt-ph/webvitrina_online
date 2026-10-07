@@ -6,11 +6,11 @@ use App\Models\CartItem;
 use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\ProductStat;
+use App\Models\User;
 use App\Services\CurrencyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Carbon\Carbon;
 
 class CartController extends Controller
 {
@@ -109,8 +109,10 @@ class CartController extends Controller
             'qty' => ['nullable', 'integer', 'min:1', 'max:999'],
         ]);
 
+        $userId = auth()->id();
+
         // ❌ ЗАЩИТА: запрет покупки своего товара
-        if ($product->user_id === auth()->id()) {
+        if ($product->user_id === $userId) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -123,52 +125,72 @@ class CartController extends Controller
 
         $qty = (int)($request->input('qty', 1));
 
-        if ($product->stock < 1) {
-            throw ValidationException::withMessages([
-                'qty' => 'Товара нет в наличии.',
+        $result = DB::transaction(function () use ($product, $qty, $request, $userId): array {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
+
+            $currentProduct = Product::whereKey($product->id)->firstOrFail();
+            abort_if($currentProduct->status !== 'active', 404);
+            abort_if($currentProduct->user_id === $userId, 403);
+
+            if ($currentProduct->stock < 1) {
+                throw ValidationException::withMessages([
+                    'qty' => 'Товара нет в наличии.',
+                ]);
+            }
+
+            $item = CartItem::where([
+                'user_id' => $userId,
+                'product_id' => $currentProduct->id,
+            ])->first() ?? new CartItem([
+                'user_id' => $userId,
+                'product_id' => $currentProduct->id,
             ]);
-        }
 
-        $item = CartItem::firstOrNew([
-            'user_id'    => auth()->id(),
-            'product_id' => $product->id,
-        ]);
+            $newQty = max(1, (int) $item->qty + $qty);
 
-        $newQty = max(1, (int) $item->qty + $qty);
+            if ($newQty > 999) {
+                throw ValidationException::withMessages([
+                    'qty' => 'Количество товара в корзине не может превышать 999.',
+                ]);
+            }
 
-        if ($newQty > $product->stock) {
-            throw ValidationException::withMessages([
-                'qty' => "Доступно только {$product->stock} шт. Возможно, часть товара уже купили другие пользователи.",
-            ]);
-        }
+            if ($newQty > $currentProduct->stock) {
+                throw ValidationException::withMessages([
+                    'qty' => "Доступно только {$currentProduct->stock} шт. Возможно, часть товара уже купили другие пользователи.",
+                ]);
+            }
 
-        $today = Carbon::today()->toDateString();
+            $isNew = ! $item->exists;
+            $item->qty = $newQty;
+            $item->save();
 
-        // если пользователь впервые добавляет этот товар в корзину
-        if (! $item->exists) {
-            $product->increment('cart_adds_count');
+            if ($isNew) {
+                Product::whereKey($currentProduct->id)->increment('cart_adds_count');
+                ProductStat::addCart($currentProduct->id);
+            }
 
-            ProductStat::updateOrCreate(
-                ['product_id' => $product->id, 'date' => $today],
-                ['carts' => DB::raw('carts + 1')]
-            );
-        }
+            $removedFromFavorites = false;
+            if ($request->boolean('remove_from_favorites')) {
+                $removedFromFavorites = Favorite::where('user_id', $userId)
+                    ->where('product_id', $currentProduct->id)
+                    ->delete() > 0;
 
-        $item->qty = $newQty;
-        $item->save();
+                if ($removedFromFavorites) {
+                    Product::whereKey($currentProduct->id)
+                        ->where('favorites_count', '>', 0)
+                        ->decrement('favorites_count');
+                }
+            }
 
-        $removedFromFavorites = false;
+            return ['quantity' => $item->qty, 'removed_from_favorites' => $removedFromFavorites];
+        });
 
-        if ($request->boolean('remove_from_favorites')) {
-            $removedFromFavorites = Favorite::where('user_id', auth()->id())
-                ->where('product_id', $product->id)
-                ->delete() > 0;
-        }
+        $removedFromFavorites = $result['removed_from_favorites'];
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'quantity' => $item->qty,
+                'quantity' => $result['quantity'],
                 'removed_from_favorites' => $removedFromFavorites,
                 'message' => $removedFromFavorites ? 'Товар перенесён в корзину' : 'Товар добавлен в корзину'
             ]);
@@ -187,55 +209,56 @@ class CartController extends Controller
             'remove_from_favorites' => ['nullable', 'boolean'],
         ]);
 
-        $favoritesQuery = Favorite::with('product')
-            ->where('user_id', auth()->id());
+        $userId = auth()->id();
+        $added = DB::transaction(function () use ($data, $request, $userId): int {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
 
-        if (! empty($data['favorite_ids'])) {
-            $favoritesQuery->whereIn('id', $data['favorite_ids']);
-        }
-
-        $favorites = $favoritesQuery->get();
-
-        $added = 0;
-        $addedFavoriteIds = [];
-        $today = Carbon::today()->toDateString();
-
-        foreach ($favorites as $favorite) {
-            $product = $favorite->product;
-
-            if (! $product || $product->status !== 'active' || $product->user_id === auth()->id()) {
-                continue;
+            $favoritesQuery = Favorite::query()->where('user_id', $userId);
+            if (! empty($data['favorite_ids'])) {
+                $favoritesQuery->whereIn('id', $data['favorite_ids']);
             }
 
-            $item = CartItem::firstOrNew([
-                'user_id' => auth()->id(),
-                'product_id' => $product->id,
-            ]);
+            $added = 0;
+            foreach ($favoritesQuery->orderBy('product_id')->get() as $favorite) {
+                $product = Product::whereKey($favorite->product_id)->first();
 
-            if (((int) $item->qty + 1) > $product->stock) {
-                continue;
+                if (! $product || $product->status !== 'active' || $product->user_id === $userId) {
+                    continue;
+                }
+
+                $item = CartItem::where([
+                    'user_id' => $userId,
+                    'product_id' => $product->id,
+                ])->first() ?? new CartItem([
+                    'user_id' => $userId,
+                    'product_id' => $product->id,
+                ]);
+                $newQty = max(1, (int) $item->qty + 1);
+
+                if ($newQty > 999 || $newQty > $product->stock) {
+                    continue;
+                }
+
+                $isNew = ! $item->exists;
+                $item->qty = $newQty;
+                $item->save();
+
+                if ($isNew) {
+                    Product::whereKey($product->id)->increment('cart_adds_count');
+                    ProductStat::addCart($product->id);
+                }
+
+                if ($request->boolean('remove_from_favorites') && $favorite->delete()) {
+                    Product::whereKey($product->id)
+                        ->where('favorites_count', '>', 0)
+                        ->decrement('favorites_count');
+                }
+
+                $added++;
             }
 
-            if (! $item->exists) {
-                $product->increment('cart_adds_count');
-
-                ProductStat::updateOrCreate(
-                    ['product_id' => $product->id, 'date' => $today],
-                    ['carts' => DB::raw('carts + 1')]
-                );
-            }
-
-            $item->qty = max(1, (int) $item->qty + 1);
-            $item->save();
-            $added++;
-            $addedFavoriteIds[] = $favorite->id;
-        }
-
-        if ($request->boolean('remove_from_favorites') && ! empty($addedFavoriteIds)) {
-            Favorite::where('user_id', auth()->id())
-                ->whereIn('id', $addedFavoriteIds)
-                ->delete();
-        }
+            return $added;
+        });
 
         return back()->with(
             $added > 0 ? 'success' : 'error',
@@ -255,19 +278,30 @@ class CartController extends Controller
             'qty' => ['required','integer','min:1','max:999'],
         ]);
 
-        $item->loadMissing('product');
-        if ($item->product && $data['qty'] > $item->product->stock) {
-            throw ValidationException::withMessages([
-                'qty' => "Доступно только {$item->product->stock} шт. Возможно, часть товара уже купили другие пользователи.",
-            ]);
-        }
+        $userId = auth()->id();
+        $quantity = DB::transaction(function () use ($item, $data, $userId): int {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
 
-        $item->update(['qty' => $data['qty']]);
+            $current = CartItem::whereKey($item->id)
+                ->where('user_id', $userId)
+                ->firstOrFail();
+            $product = Product::whereKey($current->product_id)->first();
+
+            if ($product && $data['qty'] > $product->stock) {
+                throw ValidationException::withMessages([
+                    'qty' => "Доступно только {$product->stock} шт. Возможно, часть товара уже купили другие пользователи.",
+                ]);
+            }
+
+            $current->update(['qty' => $data['qty']]);
+
+            return (int) $current->qty;
+        });
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'qty' => $item->qty,
+                'qty' => $quantity,
             ]);
         }
 
@@ -278,7 +312,14 @@ class CartController extends Controller
     {
         $this->authorize('delete', $item);
 
-        $item->delete();
+        $userId = auth()->id();
+        DB::transaction(function () use ($item, $userId): void {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
+
+            CartItem::whereKey($item->id)
+                ->where('user_id', $userId)
+                ->delete();
+        });
 
         if (request()->expectsJson()) {
             return response()->json([

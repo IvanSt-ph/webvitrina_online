@@ -56,4 +56,80 @@ class EmailVerificationTest extends TestCase
 
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
     }
+
+    public function test_email_verification_link_cannot_verify_another_authenticated_user(): void
+    {
+        $target = User::factory()->unverified()->create();
+        $otherUser = User::factory()->unverified()->create();
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $target->id, 'hash' => sha1($target->email)]
+        );
+
+        $this->actingAs($otherUser)->get($verificationUrl)->assertForbidden();
+
+        $this->assertFalse($target->fresh()->hasVerifiedEmail());
+        $this->assertFalse($otherUser->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_expired_email_verification_link_is_rejected(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->subMinute(),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
+
+        $this->actingAs($user)->get($verificationUrl)->assertForbidden();
+
+        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_verification_link_for_previous_email_is_rejected(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
+        $user->forceFill(['email' => 'changed-verification@example.com'])->save();
+
+        $this->actingAs($user)->get($verificationUrl)->assertForbidden();
+
+        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_reusing_a_valid_verification_link_is_idempotent(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
+
+        $this->actingAs($user)->get($verificationUrl)->assertRedirect();
+        $this->actingAs($user)->get($verificationUrl)->assertRedirect();
+
+        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_verified_admin_is_redirected_to_admin_dashboard(): void
+    {
+        $admin = User::factory()->unverified()->create(['role' => 'admin']);
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $admin->id, 'hash' => sha1($admin->email)]
+        );
+
+        $this->actingAs($admin)
+            ->get($verificationUrl)
+            ->assertRedirect(route('admin.dashboard'));
+
+        $this->assertTrue($admin->fresh()->hasVerifiedEmail());
+    }
 }

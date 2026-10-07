@@ -64,7 +64,8 @@ class LoginRequest extends FormRequest
         }
 
         try {
-            $authenticated = Auth::attempt($credentials, $this->boolean('remember'));
+            // Persistent login is handled exclusively by UserRememberedDevice.
+            $authenticated = Auth::attempt($credentials, false);
         } catch (RuntimeException $exception) {
             report($exception);
             $authenticated = false;

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\City;
 use App\Rules\ImageUploadConstraints;
+use App\Support\MoneyLimits;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,8 +23,8 @@ class ProductUpdateRequest extends FormRequest
             'title'       => ['sometimes', 'required', 'string', 'max:255'],
             'slug'        => ['nullable', 'string', 'max:255'],
             'sku'         => ['nullable', 'string', 'max:64', 'unique:products,sku,' . $productId],
-            'price'       => ['sometimes', 'required', 'numeric', 'min:0'],
-            'old_price'   => ['nullable', 'numeric', 'min:0', 'gt:price'],
+            'price'       => ['sometimes', 'required', 'numeric', 'min:0', 'max:' . MoneyLimits::PRODUCT_PRICE_MAX],
+            'old_price'   => ['nullable', 'numeric', 'min:0', 'max:' . MoneyLimits::PRODUCT_PRICE_MAX, 'gt:price'],
             'stock'       => ['sometimes', 'required', 'integer', 'min:0'],
             'user_id'     => ['sometimes', Rule::exists('users', 'id')->where('role', 'seller')],
             'category_id' => ['sometimes', 'exists:categories,id'],

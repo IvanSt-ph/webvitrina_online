@@ -438,8 +438,11 @@
                         <p>{{ $order->address_snapshot['comment'] }}</p>
                     @endif
                 </div>
+                <div class="text-sm font-semibold text-neutral-900">
+                    Стоимость: {{ number_format($order->delivery_cost, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}
+                </div>
                 <div class="rounded-xl bg-brand-50 px-3 py-2 text-xs leading-5 text-brand-700">
-                    Подтвердите покупателю стоимость, срок и способ передачи товара в чате или при обработке заказа.
+                    Уточните с покупателем срок и детали передачи товара в чате или при обработке заказа.
                 </div>
             </div>
 

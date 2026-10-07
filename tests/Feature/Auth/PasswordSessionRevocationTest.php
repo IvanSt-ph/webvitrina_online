@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Models\UserRememberedDevice;
 use App\Services\PasswordSecurityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -186,17 +188,28 @@ class PasswordSessionRevocationTest extends TestCase
         $this->browser($old, 'GET', '/session-security-probe')->assertOk();
     }
 
-    public function test_native_remember_cookie_is_rejected_after_rotation(): void
+    public function test_revoked_custom_device_cannot_be_bypassed_by_legacy_native_recaller(): void
     {
-        $user = User::factory()->create();
-        $response = $this->browser(null, 'POST', route('login'), [
-            'login' => $user->email, 'password' => 'password', 'remember' => '1',
-        ])->assertSessionHasNoErrors();
+        $user = User::factory()->create(['remember_token' => Str::random(60)]);
+        $oldRememberToken = $user->getRememberToken();
         $name = Auth::guard('web')->getRecallerName();
-        $cookie = $response->getCookie($name)->getValue();
-        $this->browser(null, 'GET', '/session-security-probe', [], [$name => $cookie])->assertOk();
-        app(PasswordSecurityService::class)->rotate($user->fresh(), 'new-password-123');
-        $this->browser(null, 'GET', '/session-security-probe', [], [$name => $cookie])->assertRedirect(route('login'));
+        $recaller = $user->getAuthIdentifier().'|'.$oldRememberToken.'|'.Auth::guard('web')->hashPasswordForCookie($user->getAuthPassword());
+
+        $device = UserRememberedDevice::create([
+            'user_id' => $user->id,
+            'selector' => 'revoked-device-selector',
+            'token_hash' => hash('sha256', 'revoked-device-token'),
+            'expires_at' => now()->addDay(),
+            'last_used_at' => now(),
+        ]);
+        $device->delete();
+
+        $response = $this->browser(null, 'GET', '/session-security-probe', [], [$name => $recaller])
+            ->assertRedirect(route('login'));
+
+        $response->assertCookieExpired($name);
+        $this->assertGuest();
+        $this->assertNotSame($oldRememberToken, $user->fresh()->getRememberToken());
     }
 
     private function loginBrowser(User $user, string $password = 'password'): string

@@ -14,6 +14,12 @@ $app['config']->set('filesystems.disks.public', [
 Illuminate\Support\Facades\DB::purge();
 Illuminate\Support\Facades\Storage::forgetDisk('public');
 $connection = Illuminate\Support\Facades\DB::connection();
+$connection->beforeExecuting(function (string $query): void {
+    if (str_contains(strtolower($query), 'for update')) {
+        echo "LOCK_QUERY\n";
+        flush();
+    }
+});
 $product = App\Models\Product::findOrFail((int) $argv[1]);
 $service = app(App\Services\ProductService::class);
 $mainImage = Illuminate\Http\UploadedFile::fake()->image('main.jpg', 24, 24);

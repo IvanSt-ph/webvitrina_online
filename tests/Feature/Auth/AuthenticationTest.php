@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Models\UserRememberedDevice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Auth;
@@ -67,7 +68,7 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_remember_me_creates_recaller_cookie(): void
+    public function test_remember_me_creates_only_custom_persistent_credential(): void
     {
         $user = User::factory()->create();
 
@@ -78,8 +79,9 @@ class AuthenticationTest extends TestCase
         ]);
 
         $response->assertSessionHasNoErrors();
-        $response->assertCookie(Auth::guard('web')->getRecallerName());
+        $response->assertCookieMissing(Auth::guard('web')->getRecallerName());
         $response->assertCookie(AuthenticatedSessionController::REMEMBERED_DEVICES_COOKIE);
+        $this->assertDatabaseHas('user_remembered_devices', ['user_id' => $user->id]);
         $this->assertAuthenticatedAs($user);
     }
 
@@ -118,14 +120,36 @@ class AuthenticationTest extends TestCase
         $this->assertNotEmpty($selectorMatch[1] ?? null);
         $this->assertNotEmpty($tokenMatch[1] ?? null);
 
-        $this->withCookie($trustedCookie->getName(), $trustedCookie->getValue())
+        $fastLoginResponse = $this->withCookie($trustedCookie->getName(), $trustedCookie->getValue())
             ->post(route('login.remembered'), [
                 'selector' => $selectorMatch[1],
                 'token' => $tokenMatch[1],
             ])
             ->assertRedirect(route('cabinet'));
 
+        $fastLoginResponse->assertCookieMissing(Auth::guard('web')->getRecallerName());
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_expired_remembered_device_cannot_login(): void
+    {
+        $user = User::factory()->create();
+        $token = 'expired-device-token';
+
+        UserRememberedDevice::create([
+            'user_id' => $user->id,
+            'selector' => 'expired-device-selector',
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => now()->subMinute(),
+            'last_used_at' => now()->subDay(),
+        ]);
+
+        $this->post(route('login.remembered'), [
+            'selector' => 'expired-device-selector',
+            'token' => $token,
+        ])->assertSessionHasErrors('login');
+
+        $this->assertGuest();
     }
 
     public function test_user_can_forget_remembered_account_from_login_page(): void
