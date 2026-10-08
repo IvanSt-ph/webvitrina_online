@@ -195,8 +195,8 @@
                                 @if($conversation->isLocked())
                                     <div class="mt-1 truncate text-xs font-semibold text-rose-600">Заблокирован</div>
                                 @elseif($conversation->product)
-                                    <div class="mt-1 truncate text-xs font-semibold text-indigo-600" title="{{ $conversation->product->title }}">
-                                        {{ $conversation->product->title }}
+                                    <div class="mt-1 truncate text-xs font-semibold text-indigo-600" title="{{ $conversation->context_title }}">
+                                        {{ $conversation->context_title }}
                                     </div>
                                 @else
                                     <div class="mt-1 text-xs font-semibold text-slate-400">{{ $conversation->isSupport() ? 'Support' : 'Общий диалог' }}</div>

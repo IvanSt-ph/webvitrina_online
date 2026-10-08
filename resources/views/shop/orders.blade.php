@@ -101,8 +101,8 @@
                         $activeStep = $order->status === \App\Models\Order::STATUS_CANCELED ? 0 : ($steps[$order->status] ?? 1);
                         $firstItem = $order->items->first();
                         $itemsCount = $order->items->sum('quantity');
-                        $firstTitle = $firstItem?->product?->title;
-                        $shopName = $order->seller?->shop?->name ?? $order->seller?->name;
+                        $firstTitle = $firstItem?->historical_title;
+                        $shopName = $order->historical_seller_name;
                         $needsConfirmation = $order->status === \App\Models\Order::STATUS_SHIPPED;
                         $needsReview = $tab === 'action' && in_array($order->status, [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED], true);
                     @endphp
@@ -110,9 +110,9 @@
                     <article class="group w-full max-w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white p-3 transition duration-300 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-100/40 sm:p-4 lg:p-5">
                         <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 lg:grid-cols-[72px_minmax(0,1fr)_220px] lg:items-center">
                             <div class="h-16 w-16 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 lg:h-[72px] lg:w-[72px]">
-                                @if($firstItem?->product)
-                                    <img data-image-candidates="{{ json_encode($firstItem->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $firstItem->product->image_thumb_url }}"
-                                         alt="{{ $firstItem->product->title }}"
+                                @if($firstItem)
+                                    <img data-image-candidates="{{ json_encode($firstItem->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $firstItem->historical_image_url }}"
+                                         alt="{{ $firstItem->historical_title }}"
                                          class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                                 @else
                                     <div class="flex h-full w-full items-center justify-center text-neutral-400">
@@ -128,9 +128,9 @@
                                     <x-status-badge :status="$order->status" class="max-w-full justify-center truncate px-2 py-0.5 text-xs" />
                                 </div>
 
-                                @if($firstItem?->product)
-                                    <div class="mt-1 truncate text-sm font-semibold text-neutral-800" title="{{ $firstItem->product->title }}">
-                                        {{ $firstItem->product->title }}
+                                @if($firstItem)
+                                    <div class="mt-1 truncate text-sm font-semibold text-neutral-800" title="{{ $firstItem->historical_title }}">
+                                        {{ $firstItem->historical_title }}
                                     </div>
                                 @else
                                     <div class="mt-1 text-sm font-semibold text-neutral-500">Товар был удалён продавцом</div>

@@ -44,6 +44,8 @@ class PrivateBackupTest extends TestCase
         File::ensureDirectoryExists($privateRoot . DIRECTORY_SEPARATOR . 'chat-images' . DIRECTORY_SEPARATOR . '2026/09');
         File::ensureDirectoryExists($backupRoot . DIRECTORY_SEPARATOR . 'existing');
         file_put_contents($publicRoot . DIRECTORY_SEPARATOR . 'products/item.webp', 'public-image');
+        File::ensureDirectoryExists($publicRoot . DIRECTORY_SEPARATOR . 'order-snapshots');
+        file_put_contents($publicRoot . DIRECTORY_SEPARATOR . 'order-snapshots/item.webp', 'historical-image');
         file_put_contents($privateRoot . DIRECTORY_SEPARATOR . 'chat-images/2026/09/chat.webp', 'private-image');
         file_put_contents($backupRoot . DIRECTORY_SEPARATOR . 'existing/must-not-be-archived.txt', 'backup-data');
 
@@ -61,13 +63,14 @@ class PrivateBackupTest extends TestCase
         $health = BackupHealth::inspectDirectory($backup);
 
         $this->assertTrue($health['ok'], implode(' ', $health['issues']));
-        $this->assertSame(1, $health['manifest']['storage']['public']['files']);
+        $this->assertSame(2, $health['manifest']['storage']['public']['files']);
         $this->assertSame(1, $health['manifest']['storage']['private_chat_images']['files']);
         $this->assertStringContainsString('storage-private-chat-images.tar.gz', file_get_contents($backup . DIRECTORY_SEPARATOR . 'SHA256SUMS'));
 
         $publicArchive = new \PharData($backup . DIRECTORY_SEPARATOR . 'storage-public.tar.gz');
         $privateArchive = new \PharData($backup . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz');
         $this->assertSame('public-image', $publicArchive['public/products/item.webp']->getContent());
+        $this->assertSame('historical-image', $publicArchive['public/order-snapshots/item.webp']->getContent());
         $this->assertSame('private-image', $privateArchive['private/chat-images/2026/09/chat.webp']->getContent());
         $this->assertFalse(isset($privateArchive['private/backups/existing/must-not-be-archived.txt']));
         unset($publicArchive, $privateArchive);
@@ -79,6 +82,7 @@ class PrivateBackupTest extends TestCase
         app(BackupStorageService::class)->restore($backup, $publicRoot, $privateRoot);
 
         $this->assertSame('public-image', file_get_contents($publicRoot . DIRECTORY_SEPARATOR . 'products/item.webp'));
+        $this->assertSame('historical-image', file_get_contents($publicRoot . DIRECTORY_SEPARATOR . 'order-snapshots/item.webp'));
         $restoredPath = $privateRoot . DIRECTORY_SEPARATOR . 'chat-images/2026/09/chat.webp';
         $this->assertSame('private-image', file_get_contents($restoredPath));
         $this->assertFileExists($backup . DIRECTORY_SEPARATOR . 'must-not-be-archived.txt');

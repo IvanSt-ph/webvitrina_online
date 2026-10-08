@@ -6,6 +6,32 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderItem extends Model
 {
+    public const IDENTITY_FIELDS = ['product_title', 'product_sku', 'product_image_path', 'identity_snapshot_source'];
+
+    public function save(array $options = [])
+    {
+        if ($this->exists && $this->isDirty(self::IDENTITY_FIELDS)) {
+            throw new \LogicException('Order item identity snapshot is immutable.');
+        }
+        return parent::save($options);
+    }
+
+    public function getHistoricalTitleAttribute(): string
+    {
+        $title = $this->product_title ?: 'Название не сохранено';
+        return $this->identity_snapshot_source === 'checkout'
+            ? $title : $title.' (данные на момент покупки не подтверждены)';
+    }
+
+    public function getHistoricalImageUrlAttribute(): string
+    {
+        return \App\Support\PublicImage::url($this->product_image_path);
+    }
+
+    public function getHistoricalImageCandidatesAttribute(): array
+    {
+        return \App\Support\PublicImage::candidates($this->product_image_path);
+    }
     protected $fillable = [
         'order_id',
         'product_id',

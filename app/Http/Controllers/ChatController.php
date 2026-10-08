@@ -119,7 +119,8 @@ class ChatController extends Controller
         ]);
         $this->restoreForUser($conversation, $user);
 
-        $contextBody = "Диалог по заказу {$order->number}.\nТовар: {$product->title}";
+        $title = $order->items()->where('product_id', $product->id)->firstOrFail()->historical_title;
+        $contextBody = "Диалог по заказу {$order->number}.\nТовар: {$title}";
 
         if (! $conversation->messages()->where('type', Message::TYPE_SYSTEM)->where('body', $contextBody)->exists()) {
             $conversation->messages()->create([
@@ -221,9 +222,9 @@ class ChatController extends Controller
 
         $order->load(['seller.shop', 'items.product']);
         $conversation = $this->ensureSupportConversation($user);
-        $shopName = $order->seller?->shop?->name ?? $order->seller?->name ?? 'Продавец не найден';
+        $shopName = $order->historical_seller_name;
         $productTitles = $order->items
-            ->map(fn ($item) => $item->product?->title ?? 'Товар удалён')
+            ->map(fn ($item) => $item->historical_title)
             ->join(', ');
         $body = "Обращение по заказу {$order->number}.\n"
             . "Магазин: {$shopName}\n"
@@ -495,9 +496,7 @@ class ChatController extends Controller
                         ->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%"))
                     ->orWhereHas('seller.shop', fn ($shopQuery) => $shopQuery->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('product', fn ($productQuery) => $productQuery
-                        ->where('title', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%"))
+                    ->orWhere(fn ($identity) => $identity->matchingProductIdentity($search))
                     ->orWhereHas('order', fn ($orderQuery) => $orderQuery->where('number', 'like', "%{$search}%"))
                     ->orWhereHas('messages', fn ($messageQuery) => $messageQuery->where('body', 'like', "%{$search}%"));
             }))

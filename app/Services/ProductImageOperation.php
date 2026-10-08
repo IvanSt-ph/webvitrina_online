@@ -33,6 +33,15 @@ class ProductImageOperation
         return $this->created[] = $this->images->upload($file, $directory);
     }
 
+    public function copy(string $source, string $destination): void
+    {
+        // Register before writing: a failed/partial copy must also be compensated.
+        $this->created[] = $destination;
+        if (! \Illuminate\Support\Facades\Storage::disk('public')->copy($source, $destination)) {
+            throw new \RuntimeException('Unable to preserve order image.');
+        }
+    }
+
     public function deleteAfterCommit(?string $path): void
     {
         if ($path) {

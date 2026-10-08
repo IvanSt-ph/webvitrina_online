@@ -118,7 +118,7 @@
                 @forelse($order->items as $item)
                     @php
                         $product = $item->product;
-                        $itemTitle = $product->title ?? 'Товар удалён';
+                        $itemTitle = $item->historical_title;
                         $productEditUrl = $product ? route('seller.products.edit', $product) : null;
                     @endphp
                     <div @if($loop->index >= 3) x-show="showAllItems" x-cloak @endif
@@ -126,7 +126,7 @@
                         <div class="h-[88px] w-[88px] overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 sm:h-28 sm:w-28">
                             @if($product)
                                 <a href="{{ $productEditUrl }}" class="block h-full w-full" title="Открыть товар продавца">
-                                    <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}"
+                                    <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}"
                                          alt="{{ $itemTitle }}"
                                          class="h-full w-full object-cover">
                                 </a>
@@ -143,8 +143,8 @@
                             </div>
                             <div class="flex flex-wrap items-center gap-1.5 text-xs text-neutral-500">
                                 <span class="rounded-full bg-neutral-100 px-2 py-1">ID: {{ $item->product_id }}</span>
-                                @if($product?->sku)
-                                    <span class="rounded-full bg-neutral-100 px-2 py-1">SKU: {{ $product->sku }}</span>
+                                @if($item->product_sku)
+                                    <span class="rounded-full bg-neutral-100 px-2 py-1">SKU: {{ $item->product_sku }}</span>
                                 @endif
                                 @if($product)
                                     <span class="rounded-full {{ $product->stock <= 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700' }} px-2 py-1">Остаток: {{ $product->stock }}</span>

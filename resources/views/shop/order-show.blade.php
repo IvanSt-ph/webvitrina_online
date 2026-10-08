@@ -214,7 +214,7 @@
     </h3>
 
     @if($order->seller)
-        <p class="break-words text-sm font-semibold text-neutral-800">{{ $shop?->name ?? $order->seller->name }}</p>
+        <p class="break-words text-sm font-semibold text-neutral-800">{{ $order->historical_seller_name }}</p>
         @if($shop)
             <a href="{{ route('seller.show', $shop->slug) }}" class="mt-2 inline-flex text-sm font-medium text-brand-600 hover:text-brand-700">
                 Открыть магазин
@@ -285,14 +285,14 @@
         <div class="divide-y">
             @foreach($order->items as $item)
                 @php
-                    $itemTitle = $item->product->title ?? 'Товар удалён';
+                    $itemTitle = $item->historical_title;
                     $shortItemTitle = \Illuminate\Support\Str::limit($itemTitle, 14);
                 @endphp
                 <div class="grid w-full min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:flex sm:items-center sm:gap-4 sm:p-5">
 
-                    @if($item->product)
-                        <img data-image-candidates="{{ json_encode($item->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->product->image_thumb_url }}"
-                             alt="{{ $item->product->title }}"
+                    @if($item->product_image_path)
+                        <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}"
+                             alt="{{ $item->historical_title }}"
                              class="h-16 w-16 shrink-0 rounded-xl border border-neutral-200 object-cover sm:h-24 sm:w-24">
                     @else
                         <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-xl border bg-gray-100 flex items-center justify-center shrink-0 text-gray-400">
@@ -464,7 +464,7 @@
                         <button type="submit"
                                 class="flex h-12 w-full min-w-0 items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 text-left text-sm font-medium text-brand-700 transition hover:bg-brand-100">
                             <i class="ri-chat-3-line shrink-0"></i>
-                            <span class="truncate">{{ $product->title }}</span>
+                            <span class="truncate">{{ $order->items->firstWhere('product_id', $product->id)?->historical_title }}</span>
                         </button>
                     </form>
                 @endforeach
@@ -482,7 +482,7 @@
                         <a href="{{ route('product.show', $item->product->slug) }}#reviews"
                            class="inline-flex h-10 max-w-full items-center gap-2 rounded-xl border border-brand-100 bg-brand-50 px-3 text-sm font-medium text-brand-700 hover:bg-brand-100">
                             <i class="ri-star-line shrink-0"></i>
-                            <span class="truncate">{{ $item->product->title }}</span>
+                            <span class="truncate">{{ $item->historical_title }}</span>
                         </a>
                     @endif
                 @endforeach

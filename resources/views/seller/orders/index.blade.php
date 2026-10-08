@@ -188,7 +188,7 @@
                                     {{ $order->buyer_name }}
                                 </div>
                                 <div class="mt-1 truncate text-xs text-neutral-500">
-                                    {{ $firstItem?->product?->title ?? 'Товар не найден' }}
+                                    {{ $firstItem?->historical_title ?? 'Название не сохранено' }}
                                     @if($itemsCount > 1)
                                         · ещё {{ $itemsCount - 1 }}
                                     @endif

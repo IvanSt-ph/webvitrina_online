@@ -27,7 +27,7 @@
             $contextLabel = $item->order
                 ? 'Заказ ' . $item->order->number
                 : ($item->product
-                    ? $item->product->title
+                    ? $item->context_title
                     : ($item->isSupport() ? 'Поддержка' : 'Общий диалог'));
         @endphp
         <div class="group relative rounded-xl border p-3 transition-all duration-200
@@ -49,8 +49,8 @@
                     <a href="{{ route('product.show', $item->product->slug) }}"
                        class="relative z-10 shrink-0"
                        title="Открыть товар">
-                        <img data-image-candidates="{{ json_encode($item->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->product->image_thumb_url }}"
-                             alt="{{ $item->product->title }}"
+                        <img data-image-candidates="{{ json_encode($item->context_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->context_image_url }}"
+                             alt="{{ $item->context_title }}"
                              class="h-12 w-12 rounded-xl object-cover ring-1 ring-brand-200 transition group-hover:ring-brand-300">
                     </a>
                 @else

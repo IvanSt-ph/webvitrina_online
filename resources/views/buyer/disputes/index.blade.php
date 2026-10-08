@@ -99,7 +99,7 @@
                                 @endif
 
                                 <div class="mt-5 grid overflow-hidden rounded-xl bg-neutral-50 sm:grid-cols-3 sm:divide-x sm:divide-neutral-200">
-                                    <div class="border-b border-neutral-200 p-4 sm:border-b-0"><div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Продавец</div><div class="mt-1.5 break-words text-sm font-semibold text-neutral-900">{{ $dispute->seller?->name ?? '—' }}</div></div>
+                                    <div class="border-b border-neutral-200 p-4 sm:border-b-0"><div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Продавец</div><div class="mt-1.5 break-words text-sm font-semibold text-neutral-900">{{ $dispute->order?->historical_seller_name ?? 'Продавец не сохранён' }}</div></div>
                                     <div class="border-b border-neutral-200 p-4 sm:border-b-0"><div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Статус заказа</div><div class="mt-1.5 text-sm font-semibold text-neutral-900">{{ $order?->status_ru ?? $order?->status ?? '—' }}</div></div>
                                     <div class="p-4"><div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Сумма</div><div class="mt-1.5 text-sm font-semibold text-neutral-900">{{ $order?->formatted_total_price ?? '—' }}</div></div>
                                 </div>

@@ -220,7 +220,7 @@
                         <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Новый заказ</span>
                       @endif
                     </div>
-                    <p class="mt-1 truncate text-sm text-neutral-500">{{ $order->buyer_name }} · {{ $order->items->first()?->product?->title ?? 'Товар не найден' }}</p>
+                    <p class="mt-1 truncate text-sm text-neutral-500">{{ $order->buyer_name }} · {{ $order->items->first()?->historical_title ?? 'Название не сохранено' }}</p>
                   </div>
                   <div class="text-sm font-bold text-neutral-900">{{ $order->formatted_total_price }}</div>
                 </a>

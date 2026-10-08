@@ -89,7 +89,7 @@
                             </div>
                             <div class="rounded-xl bg-slate-50 p-3">
                                 <div class="text-xs font-bold uppercase tracking-wide text-slate-400">Продавец</div>
-                                <div class="mt-1 font-semibold text-slate-900">{{ $dispute->seller?->name ?? '—' }}</div>
+                                <div class="mt-1 font-semibold text-slate-900">{{ $dispute->order?->historical_seller_name ?? 'Продавец не сохранён' }}</div>
                                 <div class="text-xs text-slate-500">{{ $dispute->seller?->email ?? '—' }}</div>
                             </div>
                             <div class="rounded-xl bg-slate-50 p-3">
@@ -112,7 +112,7 @@
                             <div class="mt-2 space-y-2">
                                 @forelse($order?->items ?? [] as $item)
                                     <div class="flex items-center justify-between gap-3 text-sm">
-                                        <span class="truncate font-semibold text-slate-800">{{ $item->product?->title ?? $item->product_title ?? 'Товар удалён' }}</span>
+                                        <span class="truncate font-semibold text-slate-800">{{ $item->historical_title }}</span>
                                         <span class="shrink-0 text-slate-500">{{ $item->quantity }} × {{ number_format((float) $item->price, 2, ',', ' ') }}</span>
                                     </div>
                                 @empty

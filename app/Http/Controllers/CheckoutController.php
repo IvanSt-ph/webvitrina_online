@@ -467,7 +467,7 @@ return redirect()
 
                     $product->decrement('stock', $i['qty']);
 
-                    OrderItem::create([
+                    $orderItem = new OrderItem([
                         'order_id'   => $order->id,
                         'product_id' => $i['product_id'],
                         'quantity'   => $i['qty'],
@@ -477,6 +477,7 @@ return redirect()
                         'source_currency' => $i['source_currency'],
                         'exchange_rate' => $i['exchange_rate'],
                     ]);
+                    $orderItem->forceFill(app(\App\Services\OrderIdentitySnapshot::class)->capture($product))->save();
 
                     // Удаляем исходную запись из корзины
                     if (!empty($i['cart_id'])) {

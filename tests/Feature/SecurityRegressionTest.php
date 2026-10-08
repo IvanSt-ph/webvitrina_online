@@ -146,7 +146,7 @@ class SecurityRegressionTest extends TestCase
             'delivery_method' => 'courier',
         ]);
 
-        OrderItem::create([
+        $this->createHistoricalItem([
             'order_id' => $matchingOrder->id,
             'product_id' => $product->id,
             'quantity' => 2,
@@ -411,7 +411,7 @@ class SecurityRegressionTest extends TestCase
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller, ['title' => 'Purchased chat product']);
         $order = $this->createOrder($buyer, $seller);
-        OrderItem::create([
+        $this->createHistoricalItem([
             'order_id' => $order->id,
             'product_id' => $product->id,
             'quantity' => 1,
@@ -454,7 +454,7 @@ class SecurityRegressionTest extends TestCase
         $seller->shop()->create(['name' => 'Support order shop']);
         $product = $this->createProduct($seller, ['title' => 'Support context product']);
         $order = $this->createOrder($buyer, $seller);
-        OrderItem::create([
+        $this->createHistoricalItem([
             'order_id' => $order->id,
             'product_id' => $product->id,
             'quantity' => 1,
@@ -4960,7 +4960,7 @@ class SecurityRegressionTest extends TestCase
         $otherSeller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller, ['title' => 'Seller order context product']);
         $order = $this->createOrder($buyer, $seller, Order::STATUS_PENDING);
-        OrderItem::create([
+        $this->createHistoricalItem([
             'order_id' => $order->id,
             'product_id' => $product->id,
             'quantity' => 1,
@@ -5206,7 +5206,7 @@ class SecurityRegressionTest extends TestCase
         $reviewedOrder = $this->createOrder($buyer, $seller, Order::STATUS_COMPLETED);
 
         foreach ([[$shippedOrder, $shippedProduct], [$completedOrder, $completedProduct], [$reviewedOrder, $hiddenProduct]] as [$order, $product]) {
-            OrderItem::create([
+            $this->createHistoricalItem([
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'quantity' => 1,
@@ -5572,6 +5572,18 @@ class SecurityRegressionTest extends TestCase
             'qty' => $quantity,
             'image' => $product->image,
         ];
+    }
+
+    private function createHistoricalItem(array $attributes): OrderItem
+    {
+        // Fixture for an already purchased item; checkout capture is tested separately.
+        $product = Product::findOrFail($attributes['product_id']);
+        $item = new OrderItem($attributes);
+        $item->forceFill([
+            'product_title' => $product->title, 'product_sku' => $product->sku,
+            'product_image_path' => null, 'identity_snapshot_source' => 'checkout',
+        ])->save();
+        return $item;
     }
 
     private function createOrder(User $buyer, User $seller, string $status = Order::STATUS_PENDING): Order

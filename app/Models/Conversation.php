@@ -9,6 +9,49 @@ class Conversation extends Model
 {
     use HasFactory;
 
+    public function scopeMatchingProductIdentity(\Illuminate\Database\Eloquent\Builder $query, string $search, bool $searchLiveSku = true): void
+    {
+        $query->where(function ($identity) use ($search, $searchLiveSku) {
+            $identity->where(function ($live) use ($search, $searchLiveSku) {
+                $live->whereNull('conversations.order_id')->whereHas('product', function ($product) use ($search, $searchLiveSku) {
+                    $product->where('title', 'like', "%{$search}%");
+                    if ($searchLiveSku) {
+                        $product->orWhere('sku', 'like', "%{$search}%");
+                    }
+                });
+            })->orWhereHas('order.items', function ($item) use ($search) {
+                // Match this chat's product, not another line from the same order.
+                $item->whereColumn('order_items.product_id', 'conversations.product_id')
+                    ->where(fn ($snapshot) => $snapshot->where('product_title', 'like', "%{$search}%")
+                        ->orWhere('product_sku', 'like', "%{$search}%"));
+            });
+        });
+    }
+
+    public function getOrderContextItemAttribute(): ?OrderItem
+    {
+        return $this->order_id ? $this->order?->items->firstWhere('product_id', $this->product_id) : null;
+    }
+
+    public function getContextTitleAttribute(): string
+    {
+        return $this->order_id
+            ? ($this->order_context_item?->historical_title ?? 'Название не сохранено')
+            : ($this->product?->title ?? 'Общий диалог');
+    }
+
+    public function getContextImageCandidatesAttribute(): array
+    {
+        return $this->order_id
+            ? ($this->order_context_item?->historical_image_candidates ?? \App\Support\PublicImage::candidates(null))
+            : ($this->product?->image_thumb_candidates ?? \App\Support\PublicImage::candidates(null));
+    }
+
+    public function getContextImageUrlAttribute(): string
+    {
+        return $this->context_image_candidates[0];
+    }
+
     public const TYPE_MARKETPLACE = 'marketplace';
     public const TYPE_SUPPORT = 'support';
 

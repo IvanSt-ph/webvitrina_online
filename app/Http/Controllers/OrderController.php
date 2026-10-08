@@ -23,10 +23,10 @@ class OrderController extends Controller
             ->with(['items.product.category', 'items.product.city.country', 'seller.shop'])
             ->when($search !== '', fn ($query) => $query->where(function ($inner) use ($search) {
                 $inner->where('number', 'like', "%{$search}%")
-                    ->orWhereHas('seller', fn ($seller) => $seller
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhereHas('shop', fn ($shop) => $shop->where('name', 'like', "%{$search}%")))
-                    ->orWhereHas('items.product', fn ($product) => $product->where('title', 'like', "%{$search}%"));
+                    ->orWhere('seller_snapshot->name', 'like', "%{$search}%")
+                    ->orWhere('seller_snapshot->shop_name', 'like', "%{$search}%")
+                    ->orWhereHas('items', fn ($item) => $item->where('product_title', 'like', "%{$search}%")
+                        ->orWhere('product_sku', 'like', "%{$search}%"));
             }));
 
         match ($tab) {

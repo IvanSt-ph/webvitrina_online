@@ -102,11 +102,11 @@
                                         <a href="{{ route('product.show', $orderItem->product->slug) }}"
                                            class="inline-flex max-w-full items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-amber-100 hover:bg-brand-50">
                                             <i class="ri-shopping-bag-line"></i>
-                                            <span class="truncate">{{ $orderItem->product->title }}</span>
+                                            <span class="truncate">{{ $orderItem->historical_title }}</span>
                                         </a>
                                     @else
                                         <span class="inline-flex max-w-full items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-500 ring-1 ring-amber-100">
-                                            {{ $orderItem->product?->title ?? 'Товар удалён' }}
+                                            {{ $orderItem->historical_title }}
                                         </span>
                                     @endif
                                 @endforeach

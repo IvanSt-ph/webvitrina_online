@@ -88,7 +88,7 @@ class ChatController extends Controller
 
         if ($sourceConversation) {
             $subject = $sourceConversation->product
-                ? 'Товар: ' . $sourceConversation->product->title
+                ? 'Товар: ' . $sourceConversation->context_title
                 : 'Общий marketplace-диалог';
 
             $this->addSystemMessage(
@@ -356,7 +356,7 @@ class ChatController extends Controller
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%"))
                         ->orWhereHas('seller.shop', fn ($shopQuery) => $shopQuery->where('name', 'like', "%{$search}%"))
-                        ->orWhereHas('product', fn ($productQuery) => $productQuery->where('title', 'like', "%{$search}%"))
+                        ->orWhere(fn ($identity) => $identity->matchingProductIdentity($search, searchLiveSku: false))
                         ->orWhereHas('messages', fn ($messageQuery) => $messageQuery->where('body', 'like', "%{$search}%"));
                 });
             })

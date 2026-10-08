@@ -305,9 +305,9 @@
                                     <div>
                                         <div class="text-xs text-slate-400">Продавец</div>
                                         @if($sellerShopUrl)
-                                            <a href="{{ $sellerShopUrl }}" class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->seller?->name ?? '—' }}</a>
+                                            <a href="{{ $sellerShopUrl }}" class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->historical_seller_name }}</a>
                                         @else
-                                            <a @if($order->seller->exists) href="{{ route('admin.users.show', $order->seller) }}" @endif class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->seller?->name ?? '—' }}</a>
+                                            <a @if($order->seller->exists) href="{{ route('admin.users.show', $order->seller) }}" @endif class="font-semibold text-slate-800 transition hover:text-indigo-700">{{ $order->historical_seller_name }}</a>
                                         @endif
                                         <div class="truncate text-xs text-slate-400">{{ $order->seller?->email }}</div>
                                     </div>
@@ -318,17 +318,17 @@
                                 @if($firstItem?->product)
                                     <a href="{{ route('product.show', $firstItem->product->slug ?? $firstItem->product->id) }}"
                                        class="mt-1 block max-w-[260px] truncate text-sm text-slate-600 transition hover:text-indigo-700">
-                                        {{ $firstItem->product->title }}
+                                        {{ $firstItem->historical_title }}
                                     </a>
                                 @else
-                                    <div class="mt-1 text-sm text-slate-400">Товар не найден</div>
+                                    <div class="mt-1 text-sm text-slate-400">{{ $firstItem?->historical_title ?? 'Название не сохранено' }}</div>
                                 @endif
                                 @if($order->items->count() > 1)
                                     <details class="mt-2">
                                         <summary class="cursor-pointer text-xs font-semibold text-indigo-600">Показать остальные</summary>
                                         <div class="mt-2 space-y-1 text-xs text-slate-500">
                                             @foreach($order->items->skip(1)->take(4) as $item)
-                                                <div class="truncate">{{ $item->product?->title ?? 'Товар удалён' }} · {{ $item->quantity }} шт.</div>
+                                                <div class="truncate">{{ $item->historical_title }} · {{ $item->quantity }} шт.</div>
                                             @endforeach
                                         </div>
                                     </details>
@@ -423,11 +423,11 @@
                         </div>
                         <div class="rounded-xl bg-slate-50 p-3">
                             <div class="text-xs text-slate-400">Продавец</div>
-                            <a @if($order->seller->exists) href="{{ route('admin.users.show', $order->seller) }}" @endif class="mt-1 block truncate font-semibold text-slate-800">{{ $order->seller?->name ?? '—' }}</a>
+                            <a @if($order->seller->exists) href="{{ route('admin.users.show', $order->seller) }}" @endif class="mt-1 block truncate font-semibold text-slate-800">{{ $order->historical_seller_name }}</a>
                         </div>
                         <div class="rounded-xl bg-slate-50 p-3">
                             <div class="text-xs text-slate-400">Состав</div>
-                            <div class="mt-1 truncate font-semibold text-slate-800">{{ $firstItem?->product?->title ?? 'Товар не найден' }}</div>
+                            <div class="mt-1 truncate font-semibold text-slate-800">{{ $firstItem?->historical_title ?? 'Название не сохранено' }}</div>
                             <div class="mt-1 text-xs text-slate-500">{{ $itemsCount }} товар(ов)</div>
                         </div>
                         <div class="rounded-xl bg-slate-50 p-3">

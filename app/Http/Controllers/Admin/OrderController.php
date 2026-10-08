@@ -38,18 +38,17 @@ class OrderController extends Controller
 
             $query->where(function ($q) use ($search) {
                 $q->where('number', 'like', "%{$search}%")
-                    ->orWhereHas('items.product', function ($productQuery) use ($search) {
-                        $productQuery->where('title', 'like', "%{$search}%")
-                            ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhereHas('items', function ($productQuery) use ($search) {
+                        $productQuery->where('product_title', 'like', "%{$search}%")
+                            ->orWhere('product_sku', 'like', "%{$search}%");
                     })
                     ->orWhereHas('user', function ($userQuery) use ($search) {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     })
-                    ->orWhereHas('seller', function ($sellerQuery) use ($search) {
-                        $sellerQuery->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-                    });
+                    ->orWhere('seller_snapshot->name', 'like', "%{$search}%")
+                    ->orWhere('seller_snapshot->shop_name', 'like', "%{$search}%")
+                    ->orWhereHas('seller', fn ($seller) => $seller->where('email', 'like', "%{$search}%"));
 
                 if (ctype_digit($search)) {
                     $q->orWhere('id', (int) $search);

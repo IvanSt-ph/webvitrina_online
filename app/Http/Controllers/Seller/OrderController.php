@@ -48,6 +48,8 @@ class OrderController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('number', 'like', "%{$search}%")
+                    ->orWhereHas('items', fn ($item) => $item->where('product_title', 'like', "%{$search}%")
+                        ->orWhere('product_sku', 'like', "%{$search}%"))
                     ->orWhereHas('user', function ($userQuery) use ($search) {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
@@ -131,7 +133,8 @@ class OrderController extends Controller
             'seller_deleted_at' => null,
         ])->save();
 
-        $contextBody = "Диалог по заказу {$order->number}.\nТовар: {$product->title}";
+        $title = $order->items->firstWhere('product_id', $product->id)->historical_title;
+        $contextBody = "Диалог по заказу {$order->number}.\nТовар: {$title}";
 
         if (! $conversation->messages()->where('type', Message::TYPE_SYSTEM)->where('body', $contextBody)->exists()) {
             $conversation->messages()->create([

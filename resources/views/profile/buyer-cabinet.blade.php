@@ -203,8 +203,8 @@
                                         <span class="font-semibold text-neutral-900">Заказ {{ $order->number ?? '#'.$order->id }}</span>
                                         <x-status-badge :status="$order->status" />
                                     </div>
-                                    @if($order->seller?->shop)
-                                        <div class="mt-1 text-xs font-medium text-brand-600">{{ $order->seller->shop->name }}</div>
+                                    @if($order->seller_snapshot)
+                                        <div class="mt-1 text-xs font-medium text-brand-600">{{ $order->historical_seller_name }}</div>
                                     @endif
                                     <div class="mt-1 text-xs text-neutral-500">{{ $order->created_at->format('d.m.Y · H:i') }}</div>
                                 </div>
@@ -217,8 +217,8 @@
                             <div class="mt-4 flex items-center gap-2 overflow-hidden">
                                 @foreach($order->items->take(4) as $item)
                                     <div class="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50">
-                                        @if($item->product?->image)
-                                            <img data-image-candidates="{{ json_encode($item->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->product->image_thumb_url }}" class="w-full h-full object-cover" alt="{{ $item->product->title }}">
+                                        @if($item->product_image_path)
+                                            <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}" class="w-full h-full object-cover" alt="{{ $item->historical_title }}">
                                         @else
                                             <div class="w-full h-full flex items-center justify-center text-gray-300">
                                                 <i class="ri-image-line"></i>

@@ -16,6 +16,9 @@ class Order extends Model
         if ($this->exists && $this->isDirty('address_snapshot')) {
             throw new \LogicException('Order address snapshot is immutable.');
         }
+        if ($this->exists && $this->isDirty('seller_snapshot')) {
+            throw new \LogicException('Order seller snapshot is immutable.');
+        }
 
         return parent::save($options);
     }
@@ -23,6 +26,10 @@ class Order extends Model
     protected static function booted(): void
     {
         static::creating(function (Order $order) {
+            $seller = User::find($order->seller_id);
+            $order->seller_snapshot = [
+                'name' => $seller?->name, 'shop_name' => $seller?->shop?->name, 'source' => 'checkout',
+            ];
             $buyer = User::findOrFail($order->user_id);
             $order->buyer_contact = $buyer->only(['name', 'email', 'phone']);
             $address = null;
@@ -44,6 +51,13 @@ class Order extends Model
     public function getBuyerNameAttribute(): string
     {
         return $this->buyer_contact['name'] ?? 'Покупатель не указан';
+    }
+
+    public function getHistoricalSellerNameAttribute(): string
+    {
+        $name = $this->seller_snapshot['shop_name'] ?? $this->seller_snapshot['name'] ?? 'Продавец не сохранён';
+        return ($this->seller_snapshot['source'] ?? null) === 'checkout'
+            ? $name : $name.' (данные на момент покупки не подтверждены)';
     }
 
     public function getBuyerEmailAttribute(): ?string
@@ -136,6 +150,7 @@ class Order extends Model
      |--------------------------------------------------*/
 
     protected $casts = [
+        'seller_snapshot' => 'array',
         'address_snapshot' => 'array',
         'buyer_contact' => 'array',
         'paid_at' => 'datetime',

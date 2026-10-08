@@ -85,8 +85,8 @@
                 <div class="divide-y divide-slate-100">
                     @foreach($order->items as $item)
                         <div class="flex items-center gap-3 p-4 sm:px-5">
-                            @if($item->product?->image)
-                                <img data-image-candidates="{{ json_encode($item->product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->product->image_thumb_url }}" class="h-14 w-14 shrink-0 rounded-lg object-cover" alt="">
+                            @if($item->product_image_path)
+                                <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}" class="h-14 w-14 shrink-0 rounded-lg object-cover" alt="">
                             @else
                                 <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
                                     <i class="ri-image-line"></i>
@@ -94,9 +94,9 @@
                             @endif
                             <div class="min-w-0 flex-1">
                                 @if($item->product)
-                                    <a href="{{ route('product.show', $item->product->slug ?? $item->product->id) }}" class="block truncate font-semibold text-slate-900 transition hover:text-indigo-700">{{ $item->product->title }}</a>
+                                    <a href="{{ route('product.show', $item->product->slug ?? $item->product->id) }}" class="block truncate font-semibold text-slate-900 transition hover:text-indigo-700">{{ $item->historical_title }}</a>
                                 @else
-                                    <div class="font-semibold text-slate-500">Удалённый товар</div>
+                                    <div class="font-semibold text-slate-500">{{ $item->historical_title }}</div>
                                 @endif
                                 <div class="mt-1 text-xs text-slate-500">{{ $item->quantity }} шт. · {{ number_format($item->price, 2, ',', ' ') }} {{ $order->currency }}</div>
                             </div>
@@ -131,7 +131,7 @@
                                 <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><i class="{{ $participant['icon'] }}"></i></div>
                                 <div class="min-w-0">
                                     <div class="text-xs text-slate-400">{{ $participant['label'] }}</div>
-                                    <a @if($participant['user']->exists) href="{{ route('admin.users.show', $participant['user']) }}" @endif class="font-semibold text-slate-900 hover:text-indigo-700">{{ $loop->first ? $order->buyer_name : ($participant['user']?->name ?? 'Не найден') }}</a>
+                                    <a @if($participant['user']->exists) href="{{ route('admin.users.show', $participant['user']) }}" @endif class="font-semibold text-slate-900 hover:text-indigo-700">{{ $loop->first ? $order->buyer_name : $order->historical_seller_name }}</a>
                                     <div class="truncate text-xs text-slate-500">{{ $loop->first ? $order->buyer_email : $participant['user']?->email }}</div>
                                 </div>
                             </div>
@@ -148,7 +148,7 @@
                         <h3 class="text-xs font-bold uppercase text-slate-400">Marketplace</h3>
                         @forelse($marketplaceConversations as $conversation)
                             <a href="{{ route('admin.chats.show', $conversation) }}" class="block rounded-xl border border-slate-100 bg-slate-50 p-3 transition hover:border-indigo-200 hover:bg-indigo-50">
-                                <div class="text-sm font-semibold text-slate-900">{{ $conversation->product?->title ?? 'Общий диалог' }}</div>
+                                <div class="text-sm font-semibold text-slate-900">{{ $order->items->firstWhere('product_id', $conversation->product_id)?->historical_title ?? 'Общий диалог' }}</div>
                                 <div class="mt-1 truncate text-xs text-slate-500">{{ $conversation->lastMessage?->body ?? 'Нет сообщений' }}</div>
                             </a>
                         @empty
