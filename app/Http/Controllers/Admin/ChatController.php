@@ -53,7 +53,7 @@ class ChatController extends Controller
 
         $sourceConversation = null;
         if (! empty($data['source_conversation_id'])) {
-            $sourceConversation = Conversation::with(['buyer', 'seller.shop', 'product'])
+            $sourceConversation = Conversation::with(['buyer', 'seller.shop', 'product', 'order.items'])
                 ->find($data['source_conversation_id']);
 
             abort_unless(
@@ -97,7 +97,9 @@ class ChatController extends Controller
                 "Поддержка открыла этот чат по обращению из диалога #{$sourceConversation->id}.\n"
                     . $subject . "\n"
                     . 'Покупатель: ' . ($sourceConversation->buyer?->name ?? 'Пользователь удалён') . "\n"
-                    . 'Продавец: ' . ($sourceConversation->seller?->shop?->name ?? $sourceConversation->seller?->name ?? 'Продавец удалён') . "\n"
+                    . ($sourceConversation->order_id
+                        ? 'Продавец на момент заказа: ' . ($sourceConversation->historical_seller_label ?? 'Сведения не сохранены')
+                        : 'Продавец: ' . ($sourceConversation->seller?->shop?->name ?? $sourceConversation->seller?->name ?? 'Продавец удалён')) . "\n"
                     . 'Опишите здесь детали обращения, решение или следующий шаг.',
                 $sourceConversation
             );
@@ -282,6 +284,7 @@ class ChatController extends Controller
         $messages = collect();
 
         if ($selectedConversation) {
+            $selectedConversation->loadMissing('order.items');
             $selectedConversation->messages()
                 ->where('sender_id', '!=', $request->user()->id)
                 ->whereNull('admin_read_at')
@@ -325,7 +328,7 @@ class ChatController extends Controller
         $type = $request->query('type');
 
         return Conversation::query()
-            ->with(['buyer', 'seller.shop', 'product', 'lastMessage.sender', 'lockedBy'])
+            ->with(['buyer', 'seller.shop', 'product', 'order.items', 'lastMessage.sender', 'lockedBy'])
             ->withCount([
                 'messages',
                 'messages as unread_count' => fn ($query) => $query
@@ -356,6 +359,10 @@ class ChatController extends Controller
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%"))
                         ->orWhereHas('seller.shop', fn ($shopQuery) => $shopQuery->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('order', fn ($order) => $order->where(function ($snapshot) use ($search) {
+                            $snapshot->where('seller_snapshot->name', 'like', "%{$search}%")
+                                ->orWhere('seller_snapshot->shop_name', 'like', "%{$search}%");
+                        }))
                         ->orWhere(fn ($identity) => $identity->matchingProductIdentity($search, searchLiveSku: false))
                         ->orWhereHas('messages', fn ($messageQuery) => $messageQuery->where('body', 'like', "%{$search}%"));
                 });

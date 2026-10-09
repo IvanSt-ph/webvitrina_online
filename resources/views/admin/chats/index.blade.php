@@ -181,6 +181,9 @@
                                         @else
                                             <div class="truncate text-xs text-slate-500">Продавец удалён</div>
                                         @endif
+                                        @if($conversation->historical_seller_label)
+                                            <div class="text-xs text-slate-500">Продавец на момент заказа: {{ $conversation->historical_seller_label }}</div>
+                                        @endif
                                     </div>
                                     @if($conversation->unread_count)
                                         <span class="ml-auto inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">
@@ -310,6 +313,9 @@
                                         Продавец удалён
                                     @endif
                                     </div>
+                                    @if($selectedConversation->historical_seller_label)
+                                        <div class="text-xs text-slate-500">Продавец на момент заказа: {{ $selectedConversation->historical_seller_label }}</div>
+                                    @endif
                                     <div class="hidden shrink-0 items-center gap-1.5 sm:flex">
                                         <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">ID {{ $selectedConversation->id }}</span>
                                         <span class="rounded-full {{ $selectedSupport ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600' }} px-2.5 py-1 text-xs font-semibold">

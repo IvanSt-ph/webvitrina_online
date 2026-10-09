@@ -496,6 +496,10 @@ class ChatController extends Controller
                         ->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%"))
                     ->orWhereHas('seller.shop', fn ($shopQuery) => $shopQuery->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('order', fn ($order) => $order->where(function ($snapshot) use ($search) {
+                        $snapshot->where('seller_snapshot->name', 'like', "%{$search}%")
+                            ->orWhere('seller_snapshot->shop_name', 'like', "%{$search}%");
+                    }))
                     ->orWhere(fn ($identity) => $identity->matchingProductIdentity($search))
                     ->orWhereHas('order', fn ($orderQuery) => $orderQuery->where('number', 'like', "%{$search}%"))
                     ->orWhereHas('messages', fn ($messageQuery) => $messageQuery->where('body', 'like', "%{$search}%"));

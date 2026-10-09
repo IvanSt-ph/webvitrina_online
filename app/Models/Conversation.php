@@ -9,6 +9,26 @@ class Conversation extends Model
 {
     use HasFactory;
 
+    public function getHistoricalSellerLabelAttribute(): ?string
+    {
+        if (! $this->order_id) {
+            return null;
+        }
+        $snapshot = $this->order?->seller_snapshot;
+        if (! is_array($snapshot)) {
+            return null;
+        }
+        $names = array_values(array_unique(array_filter(
+            [$snapshot['shop_name'] ?? null, $snapshot['name'] ?? null],
+            fn ($name) => is_string($name) && trim($name) !== ''
+        )));
+        if ($names === []) {
+            return null;
+        }
+        return implode(' / ', $names).(($snapshot['source'] ?? null) === 'checkout'
+            ? '' : ' (данные на момент покупки не подтверждены)');
+    }
+
     public function scopeMatchingProductIdentity(\Illuminate\Database\Eloquent\Builder $query, string $search, bool $searchLiveSku = true): void
     {
         $query->where(function ($identity) use ($search, $searchLiveSku) {
