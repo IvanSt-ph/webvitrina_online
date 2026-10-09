@@ -128,7 +128,7 @@
                 @if($orderCount > 1)
                     <div class="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm leading-6 text-brand-800">
                         <i class="ri-information-line mt-0.5 shrink-0 text-lg" aria-hidden="true"></i>
-                        <span>Будет создано заказов: <strong>{{ $orderCount }}</strong>. Выбранные доставка и способ оплаты применяются к каждому заказу; стоимость доставки начисляется отдельно для каждого продавца.</span>
+                        <span>Будет создано заказов: <strong>{{ $orderCount }}</strong>. Самовывоз и выбранный способ оплаты применяются к каждому заказу.</span>
                     </div>
                 @endif
 
@@ -140,14 +140,13 @@
                                 <i class="ri-truck-line text-lg" aria-hidden="true"></i>
                             </span>
                             <div>
-                                <h2 class="font-semibold text-neutral-950">Способ доставки</h2>
-                                <p class="mt-0.5 text-xs text-neutral-500">Выберите предпочтительный вариант</p>
+                                <h2 class="font-semibold text-neutral-950">Получение заказа</h2>
+                                <p class="mt-0.5 text-xs text-neutral-500">Сейчас доступен только самовывоз</p>
                             </div>
                         </div>
 
                         <div class="space-y-2">
-                            @if(isset($deliveryMethods) && count($deliveryMethods))
-                                @foreach($deliveryMethods as $key => $label)
+                            @foreach($deliveryMethods as $key => $label)
                                     <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
                                         <input type="radio" name="delivery_method" value="{{ $key }}"
                                                class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
@@ -157,24 +156,10 @@
                                             <span class="block text-xs text-neutral-500">{{ ($deliveryPrices[$key] ?? 0) > 0 ? number_format($deliveryPrices[$key], 2, ',', ' ') . ' ' . $currencySymbol : 'Бесплатно' }} за каждый заказ</span>
                                         </span>
                                     </label>
-                                @endforeach
-                            @else
-                                @foreach([
-                                    'courier' => 'Доставка продавцом по договорённости',
-                                    'pickup' => 'Самовывоз по договорённости с продавцом',
-                                    'post' => 'Отправка почтой по договорённости',
-                                ] as $key => $label)
-                                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
-                                        <input type="radio" name="delivery_method" value="{{ $key }}"
-                                               class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
-                                               {{ $loop->first ? 'checked' : '' }} required>
-                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
-                                    </label>
-                                @endforeach
-                            @endif
+                            @endforeach
                         </div>
 
-                        <p class="mt-3 text-xs leading-5 text-neutral-500">Указанная стоимость фиксируется в каждом заказе. Срок и детали передачи можно уточнить у соответствующего продавца.</p>
+                        <p class="mt-3 text-xs leading-5 text-neutral-500">Самовывоз бесплатный. Срок и место выдачи уточните у соответствующего продавца.</p>
                     </section>
 
                     {{-- Оплата --}}
@@ -190,32 +175,17 @@
                         </div>
 
                         <div class="space-y-2">
-                            @if(isset($paymentMethods) && count($paymentMethods))
-                                @foreach($paymentMethods as $key => $label)
+                            @foreach($paymentMethods as $key => $label)
                                     <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
                                         <input type="radio" name="payment_method" value="{{ $key }}"
                                                class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
                                                {{ $loop->first ? 'checked' : '' }} required>
                                         <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
                                     </label>
-                                @endforeach
-                            @else
-                                @foreach([
-                                    'cash' => 'Наличными при получении или передаче товара',
-                                    'card' => 'Картой при получении',
-                                    'bank_transfer' => 'Перевод по согласованию с продавцом',
-                                ] as $key => $label)
-                                    <label class="flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 transition hover:border-brand-200 hover:bg-brand-50/50 focus-within:border-brand-300 focus-within:bg-brand-50/70 focus-within:ring-4 focus-within:ring-brand-100">
-                                        <input type="radio" name="payment_method" value="{{ $key }}"
-                                               class="mt-0.5 h-4 w-4 shrink-0 border-neutral-300 text-brand-600 focus:ring-brand-500"
-                                               {{ $loop->first ? 'checked' : '' }} required>
-                                        <span class="min-w-0 text-sm leading-5 text-neutral-700">{{ $label }}</span>
-                                    </label>
-                                @endforeach
-                            @endif
+                            @endforeach
                         </div>
 
-                        <p class="mt-3 text-xs leading-5 text-neutral-500">Онлайн-платёж на сайте пока не выполняется. Расчёт подтверждается с продавцом.</p>
+                        <p class="mt-3 text-xs leading-5 text-neutral-500">Оплата производится непосредственно продавцу при получении. Онлайн-платежа на сайте нет.</p>
                     </section>
                 </div>
 
@@ -244,35 +214,9 @@
                         </dl>
                     </section>
 
-                    {{-- Адрес --}}
                     <section class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
-                        <div class="mb-4 flex items-center gap-3">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                                <i class="ri-map-pin-line text-lg" aria-hidden="true"></i>
-                            </span>
-                            <div class="min-w-0">
-                                <h2 class="font-semibold text-neutral-950">Адрес доставки</h2>
-                                <p class="mt-0.5 text-xs text-neutral-500">Для самовывоза адрес не обязателен</p>
-                            </div>
-                        </div>
-
-                        @if($addresses->count())
-                            <select id="checkout-address" name="address_id" aria-label="Адрес доставки" class="h-12 w-full min-w-0 rounded-xl border-neutral-200 bg-white px-3 text-sm text-neutral-700 focus:border-brand-300 focus:ring-4 focus:ring-brand-100">
-                                @foreach($addresses as $address)
-                                    <option value="{{ $address->id }}" {{ ($defaultAddressId == $address->id) ? 'selected' : '' }}>
-                                        {{ $address->country }}, {{ $address->city }}, {{ $address->street }} {{ $address->house }}, кв. {{ $address->apartment }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <p class="mt-2 text-xs leading-5 text-neutral-500">Основной адрес выбран по умолчанию. При необходимости укажите другой.</p>
-                        @else
-                            <div class="flex flex-col gap-3 rounded-xl bg-neutral-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                                <p class="text-sm text-neutral-600">У вас пока нет сохранённых адресов.</p>
-                                <a href="{{ route('addresses.index') }}" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-100">
-                                    Добавить адрес
-                                </a>
-                            </div>
-                        @endif
+                        <h2 class="font-semibold text-neutral-950">Самовывоз</h2>
+                        <p class="mt-2 text-sm leading-6 text-neutral-600">Адрес покупателя для самовывоза не требуется. Место и время выдачи уточните у продавца.</p>
                     </section>
                 </div>
             </div>
@@ -323,7 +267,7 @@
                     </div>
 
                     <div class="mt-4 rounded-xl bg-brand-50 px-3 py-3 text-xs leading-5 text-brand-800">
-                        В итог уже включена доставка для каждого отдельного заказа. Онлайн-списание оплаты на сайте не выполняется.
+                        Самовывоз бесплатный. Оплата продавцу при получении; онлайн-списание на сайте не выполняется.
                     </div>
 
                     <button type="submit"
@@ -344,7 +288,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const deliveryRadios = document.querySelectorAll('input[name="delivery_method"]');
-    const addressSelect = document.querySelector('select[name="address_id"]');
     const submitButton = document.querySelector('button[type="submit"]');
     const subtotal = Number(@json($total));
     const prices = @json($deliveryPrices ?? []);
@@ -375,10 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateButtonState() {
         const checkedRadio = document.querySelector('input[name="delivery_method"]:checked');
-        const isPickup = checkedRadio && checkedRadio.value === 'pickup';
-        const hasAddress = addressSelect && addressSelect.value;
-
-        if (isPickup || hasAddress) {
+        if (checkedRadio && checkedRadio.value === 'pickup') {
             submitButton.removeAttribute('disabled');
         } else {
             submitButton.setAttribute('disabled', 'disabled');
@@ -391,10 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateButtonState();
         });
     });
-
-    if (addressSelect) {
-        addressSelect.addEventListener('change', updateButtonState);
-    }
 
     submitButton.closest('form').addEventListener('submit', () => {
         submitButton.setAttribute('disabled', 'disabled');

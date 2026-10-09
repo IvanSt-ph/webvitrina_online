@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,7 +13,7 @@ class OrderAddressSnapshotTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function checkout(int $sellerCount = 1): array
+    private function legacyOrder(int $sellerCount = 1): array
     {
         $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Original Recipient', 'phone' => '+37369123456']);
         $address = $buyer->addresses()->create([
@@ -26,22 +26,26 @@ class OrderAddressSnapshotTest extends TestCase
             $product = Product::create(['user_id' => $seller->id, 'title' => 'Snapshot product',
                 'slug' => 'snapshot-product-'.$i, 'price' => 100, 'currency_base' => 'MDL',
                 'stock' => 5, 'status' => Product::STATUS_ACTIVE]);
-            CartItem::create(['user_id' => $buyer->id, 'product_id' => $product->id, 'qty' => 1]);
+            // A legacy delivery order remains readable; new checkout offers pickup only.
+            $order = Order::create([
+                'user_id' => $buyer->id, 'seller_id' => $seller->id,
+                'address_id' => $address->id, 'number' => Order::generateNumber(),
+                'status' => Order::STATUS_PENDING, 'payment_method' => 'cash',
+                'delivery_method' => 'courier', 'total_price' => 100, 'currency' => 'MDL',
+            ]);
+            OrderItem::create([
+                'order_id' => $order->id, 'product_id' => $product->id,
+                'quantity' => 1, 'price' => 100, 'total' => 100,
+                'source_price' => 100, 'source_currency' => 'MDL', 'exchange_rate' => 1,
+            ]);
         }
-        $this->actingAs($buyer)->withSession(['currency' => 'MDL'])->post(route('checkout.prepare'))->assertRedirect();
-        $this->get(route('checkout.confirm'))->assertOk();
-        $this->post(route('checkout.create'), [
-            'address_id' => $address->id, 'payment_method' => 'cash', 'delivery_method' => 'courier',
-            'checkout_token' => session('checkout_token'),
-            'address_snapshot' => ['full' => 'FORGED ADDRESS'],
-        ])->assertSessionHasNoErrors()->assertRedirect();
 
         return [$buyer, $address, Order::orderBy('id')->get()];
     }
 
-    public function test_checkout_captures_every_field_for_every_seller_and_ignores_client_snapshot(): void
+    public function test_legacy_order_keeps_every_address_field_for_every_seller(): void
     {
-        [, $address, $orders] = $this->checkout(2);
+        [, $address, $orders] = $this->legacyOrder(2);
         $this->assertCount(2, $orders);
         foreach ($orders as $order) {
             foreach (['country', 'city', 'street', 'house', 'entrance', 'apartment', 'postal_code', 'comment'] as $field) {
@@ -54,7 +58,7 @@ class OrderAddressSnapshotTest extends TestCase
 
     public function test_address_and_profile_edits_and_address_deletion_preserve_all_views_and_money(): void
     {
-        [$buyer, $address, $orders] = $this->checkout();
+        [$buyer, $address, $orders] = $this->legacyOrder();
         $order = $orders->sole();
         $snapshot = $order->address_snapshot;
         $money = $order->only(['total_price', 'currency']);
@@ -97,7 +101,7 @@ class OrderAddressSnapshotTest extends TestCase
 
     public function test_snapshot_cannot_be_replaced_even_by_quiet_model_save(): void
     {
-        [, , $orders] = $this->checkout();
+        [, , $orders] = $this->legacyOrder();
         $order = $orders->sole();
         $original = $order->address_snapshot;
         foreach ([false, true] as $quiet) {
@@ -114,7 +118,7 @@ class OrderAddressSnapshotTest extends TestCase
 
     public function test_missing_snapshot_never_falls_back_to_mutable_relation(): void
     {
-        [$buyer, , $orders] = $this->checkout();
+        [$buyer, , $orders] = $this->legacyOrder();
         $order = $orders->sole();
         \Illuminate\Support\Facades\DB::table('orders')->where('id', $order->id)->update(['address_snapshot' => null]);
         $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk()->assertDontSee('Original Street');

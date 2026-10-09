@@ -113,7 +113,7 @@ class MoneyIntegrityTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
     }
 
-    public function test_delivery_cannot_push_order_total_past_storage_boundary(): void
+    public function test_unsupported_delivery_cannot_change_money_at_storage_boundary(): void
     {
         [$buyer, $seller] = $this->users();
         $first = $this->product($seller, 1_000_000, 99);
@@ -123,7 +123,7 @@ class MoneyIntegrityTest extends TestCase
 
         $this->checkout($buyer, 'courier')
             ->assertRedirect(route('checkout.confirm'))
-            ->assertSessionHasErrors('cart');
+            ->assertSessionHasErrors('delivery_method');
 
         $this->assertDatabaseCount('orders', 0);
     }

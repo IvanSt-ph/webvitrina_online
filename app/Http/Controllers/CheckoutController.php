@@ -23,26 +23,17 @@ class CheckoutController extends Controller
     }
 
     private const PAYMENT_METHODS = [
-        'cash' => '💵 Наличными при получении или передаче товара',
-        'card' => '💳 Картой при получении (онлайн-оплата на сайте пока не выполняется)',
-        'bank_transfer' => '🏦 Перевод по согласованию с продавцом',
+        'cash' => '💵 Наличными продавцу при получении',
+        'card' => '💳 Картой продавцу при получении (без оплаты на сайте)',
     ];
 
     private const DELIVERY_METHODS = [
-        'courier' => '🚚 Доставка продавцом',
         'pickup' => '🏪 Самовывоз',
-        'post' => '📮 Отправка почтой',
-        'express' => '⚡ Экспресс-доставка/такси',
     ];
 
     private const DELIVERY_PRICES = [
-        'courier' => 155,
         'pickup' => 0,
-        'post' => 15,
-        'express' => 25,
     ];
-
-    private const DELIVERY_METHODS_WITHOUT_ADDRESS = ['pickup'];
 
     /**
      * ⚡ BUY NOW — купить конкретный товар
@@ -144,7 +135,7 @@ return redirect()
 
     /**
      * 📄 Страница подтверждения заказа
-     * Показываем товары + список адресов пользователя.
+     * Показываем товары и бесплатный самовывоз.
      */
     public function confirm()
     {
@@ -225,12 +216,8 @@ return redirect()
 
         $total = collect($cart)->sum(fn ($item) => $this->lineTotal($item));
 
-        $user = auth()->user()->load('addresses');
-        $addresses = $user->addresses;
-        $defaultAddressId = $addresses->firstWhere('is_default', 1)?->id;
-
         // ✅ Рассчитываем итог с доставкой по умолчанию
-        $defaultDelivery = 'courier';
+        $defaultDelivery = 'pickup';
         $deliveryPrices = collect(self::DELIVERY_PRICES)
             ->map(fn ($price) => $this->currency->convert((float) $price, 'PRB', $checkoutCurrency))
             ->all();
@@ -246,8 +233,6 @@ return redirect()
             'orderGroups'         => $orderGroups,
             'orderCount'          => $orderGroups->count(),
             'total'               => $total,
-            'addresses'           => $addresses,
-            'defaultAddressId'    => $defaultAddressId,
             'paymentMethods'      => self::PAYMENT_METHODS,
             'deliveryMethods'     => self::DELIVERY_METHODS,
             'deliveryPrices'      => $deliveryPrices,
@@ -266,7 +251,7 @@ return redirect()
      *
      * ОДНА "виртуальная корзина" (из сессии) → несколько заказов:
      *  - по одному заказу на каждого продавца
-     *  - каждому заказу привязываем address_id покупателя
+     *  - каждый новый заказ оформляется без адреса доставки (только самовывоз)
      */
     public function create(Request $request)
     {
@@ -277,7 +262,7 @@ return redirect()
                 ->with('error', 'Корзина пуста.');
         }
 
-        $user = auth()->user()->load('addresses');
+        $user = auth()->user();
         $userId = $user->id;
         
         // ❗ ФИНАЛЬНАЯ ЗАЩИТА: проверяем все товары перед созданием заказа
@@ -320,36 +305,15 @@ return redirect()
         $checkoutData = $request->validate([
             'payment_method' => ['required', 'in:' . implode(',', array_keys(self::PAYMENT_METHODS))],
             'delivery_method' => ['required', 'in:' . implode(',', array_keys(self::DELIVERY_METHODS))],
-            'address_id' => ['nullable', 'integer'],
+            'address_id' => ['prohibited'],
         ]);
 
-        // ✅ Получаем способы оплаты и доставки из формы
+        // Проверяем оба способа сервером; остальные значения из POST не становятся полями заказа.
         $paymentMethod = $checkoutData['payment_method'];
         $deliveryMethod = $checkoutData['delivery_method'];
 
-        // Определяем address_id и не позволяем подставить чужой адрес.
+        // Самовывоз не требует адреса покупателя; не сохраняем его в новом заказе.
         $addressId = null;
-        $requestedId = $checkoutData['address_id'] ?? null;
-        if ($requestedId !== null) {
-            $requestedId = (int) $requestedId;
-
-            if (! $user->addresses->contains('id', $requestedId)) {
-                throw ValidationException::withMessages([
-                    'address_id' => 'Выберите адрес из своего профиля.',
-                ]);
-            }
-
-            $addressId = $requestedId;
-        } elseif ($user->addresses->count()) {
-            $addressId = $user->addresses->firstWhere('is_default', 1)?->id
-                ?? $user->addresses->first()?->id;
-        }
-
-        if (!$addressId && !in_array($deliveryMethod, self::DELIVERY_METHODS_WITHOUT_ADDRESS, true)) {
-            throw ValidationException::withMessages([
-                'address_id' => 'Для выбранного способа доставки нужен адрес.',
-            ]);
-        }
 
         $expectedToken = session('checkout_token');
         $submittedToken = $request->input('checkout_token');
@@ -424,11 +388,11 @@ return redirect()
                 foreach ($groups as $sellerId => $items) {
                     $totalCents = $items->sum(fn ($item) => $this->lineTotalCents($item));
 
-                    // ✅ ИТОГ С УЧЕТОМ ДОСТАВКИ
+                    // Самовывоз бесплатный; сохраняем прежний расчёт в валюте оформления.
                     $totalWithDelivery = ($totalCents + $this->moneyToCents($deliveryCost)) / 100;
 
                 // Создаём сам заказ
-                $order = Order::create([
+                $order = new Order([
                     'user_id'         => $userId,
                     'seller_id'       => $sellerId,
                     'address_id'      => $addressId,
@@ -439,12 +403,26 @@ return redirect()
                     'total_price'     => $totalWithDelivery,
                     'currency'        => $checkoutCurrency,
                 ]);
+                $order->forceFill([
+                    'workflow_version' => Order::WORKFLOW_PICKUP,
+                    'payment_status' => Order::PAYMENT_UNPAID,
+                ])->save();
+                $order->events()->create([
+                    'actor_id' => $userId,
+                    'actor_role' => 'buyer',
+                    'event_type' => 'order_created',
+                    'from_status' => null,
+                    'to_status' => Order::STATUS_PENDING,
+                    'from_payment_status' => null,
+                    'to_payment_status' => Order::PAYMENT_UNPAID,
+                ]);
 
                 // Позиции заказа
                 foreach ($items as $i) {
                     $product = Product::whereKey($i['product_id'])->lockForUpdate()->first();
 
-                    if (!$product || $product->status !== 'active' || $product->stock < $i['qty']) {
+                    if (!$product || $product->status !== 'active'
+                        || $product->user_id !== (int) $sellerId || $product->stock < $i['qty']) {
                         throw ValidationException::withMessages([
                             'stock' => 'Один из товаров больше недоступен в нужном количестве.',
                         ]);

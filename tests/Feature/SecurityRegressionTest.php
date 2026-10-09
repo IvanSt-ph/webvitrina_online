@@ -244,7 +244,7 @@ class SecurityRegressionTest extends TestCase
             ->assertJsonValidationErrors(['payment_method', 'delivery_method']);
     }
 
-    public function test_checkout_requires_address_for_delivery_methods_that_need_one(): void
+    public function test_checkout_rejects_delivery_methods_other_than_pickup(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
@@ -266,7 +266,7 @@ class SecurityRegressionTest extends TestCase
                 'delivery_method' => 'courier',
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('address_id');
+            ->assertJsonValidationErrors('delivery_method');
 
         $this->assertDatabaseMissing('orders', [
             'user_id' => $buyer->id,
@@ -312,7 +312,7 @@ class SecurityRegressionTest extends TestCase
             ->postJson(route('checkout.create'), [
                 'address_id' => $foreignAddress->id,
                 'payment_method' => 'cash',
-                'delivery_method' => 'courier',
+                'delivery_method' => 'pickup',
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('address_id');
@@ -3082,7 +3082,7 @@ class SecurityRegressionTest extends TestCase
         $this->assertSame(2, $product->fresh()->stock);
     }
 
-    public function test_checkout_displays_and_charges_delivery_for_each_seller_order(): void
+    public function test_checkout_displays_free_pickup_for_each_seller_order(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $firstSeller = User::factory()->create(['role' => 'seller', 'name' => 'First seller']);
@@ -3091,14 +3091,6 @@ class SecurityRegressionTest extends TestCase
         $secondSeller->shop()->create(['name' => 'Second shop']);
         $firstProduct = $this->createProduct($firstSeller);
         $secondProduct = $this->createProduct($secondSeller);
-        $address = UserAddress::create([
-            'user_id' => $buyer->id,
-            'country' => 'MD',
-            'city' => 'Tiraspol',
-            'street' => 'Main',
-            'house' => '1',
-            'is_default' => true,
-        ]);
         $cart = collect([$firstProduct, $secondProduct])
             ->map(fn (Product $product) => $this->checkoutCartRow($product))
             ->all();
@@ -3110,14 +3102,13 @@ class SecurityRegressionTest extends TestCase
             ->assertSee('First shop')
             ->assertSee('Second shop')
             ->assertSee('Будет создано заказов:')
-            ->assertSee('498,38 ₽');
+            ->assertSee('188,38 ₽');
 
         $this->actingAs($buyer)
             ->post(route('checkout.create'), [
                 'checkout_token' => session('checkout_token'),
-                'address_id' => $address->id,
                 'payment_method' => 'cash',
-                'delivery_method' => 'courier',
+                'delivery_method' => 'pickup',
             ])
             ->assertRedirect(route('orders.index'));
 
@@ -3127,7 +3118,7 @@ class SecurityRegressionTest extends TestCase
             ->map(fn ($total) => (float) $total)
             ->all();
 
-        $this->assertSame([249.19, 249.19], $totals);
+        $this->assertSame([94.19, 94.19], $totals);
     }
 
     public function test_checkout_requires_new_confirmation_when_product_price_changes(): void

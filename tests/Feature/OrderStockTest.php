@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CartItem;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,13 +16,16 @@ class OrderStockTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_checkout_and_seller_cancellation_restore_each_item_once_and_preserve_money(): void
+    public function test_legacy_seller_cancellation_restores_each_item_once_and_preserves_money(): void
     {
         [$buyer, $seller, $products] = $this->cart();
         $order = $this->checkout($buyer);
         $this->assertSame([8, 7], $products->map(fn ($p) => $p->fresh()->stock)->all());
         $items = $order->items()->get()->map->getRawOriginal()->all();
-        $money = $order->only(['total_price', 'currency']);
+        // Read the persisted DECIMAL(10,2), not the in-memory float representation of the fixture.
+        $money = $order->fresh()->only(['total_price', 'currency']);
+        $this->assertSame('500.00', $money['total_price']);
+        $this->assertSame('PRB', $money['currency']);
 
         $this->actingAs($buyer)->post(route('orders.requestCancellation', $order), [
             'cancellation_reason' => 'Прошу отменить',
@@ -172,11 +176,26 @@ class OrderStockTest extends TestCase
 
     private function checkout(User $buyer): Order
     {
-        $this->actingAs($buyer)->withSession(['currency' => 'MDL'])->post(route('checkout.prepare'))->assertRedirect(route('checkout.confirm'));
-        $this->get(route('checkout.confirm'))->assertOk();
-        $this->post(route('checkout.create'), [
-            'payment_method' => 'cash', 'delivery_method' => 'pickup', 'checkout_token' => session('checkout_token'),
-        ])->assertRedirect()->assertSessionHasNoErrors();
-        return Order::query()->sole();
+        // Simulate inventory already reserved by a historical order; checkout now creates v2 only.
+        $cart = CartItem::where('user_id', $buyer->id)->with('product')->get();
+        $order = Order::create([
+            'user_id' => $buyer->id, 'seller_id' => $cart->first()->product->user_id,
+            'number' => Order::generateNumber(), 'status' => Order::STATUS_PENDING,
+            'total_price' => $cart->sum(fn ($item) => $item->qty * $item->product->price),
+            'currency' => 'PRB', 'payment_method' => 'cash', 'delivery_method' => 'pickup',
+        ]);
+        foreach ($cart as $cartItem) {
+            $product = $cartItem->product;
+            $product->decrement('stock', $cartItem->qty);
+            OrderItem::create([
+                'order_id' => $order->id, 'product_id' => $product->id,
+                'quantity' => $cartItem->qty, 'price' => $product->price,
+                'total' => $product->price * $cartItem->qty,
+                'source_price' => $product->price, 'source_currency' => 'PRB',
+                'exchange_rate' => 1,
+            ]);
+        }
+
+        return $order;
     }
 }

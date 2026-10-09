@@ -6,7 +6,6 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
-use App\Models\UserAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,30 +43,22 @@ class CheckoutDeliverySemanticsTest extends TestCase
         $this->assertSame(0.0, $order->delivery_cost);
     }
 
-    public function test_single_seller_delivery_is_included_and_visible_to_every_role(): void
+    public function test_courier_is_rejected_without_consuming_checkout_token(): void
     {
         [$buyer, $seller] = $this->users();
         $product = $this->product($seller, 100);
         $this->cart($buyer, $product);
 
-        $this->prepare($buyer)
-            ->assertSee('155,00 ₽')
-            ->assertSee('255,00 ₽');
-
-        $this->submit('courier')->assertRedirect();
-
-        $order = Order::with('items')->sole();
-        $this->assertSame('255.00', $order->total_price);
-        $this->assertSame(100.0, $order->items_subtotal);
-        $this->assertSame(155.0, $order->delivery_cost);
-
-        $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk()->assertSee('155,00 ₽');
-        $this->actingAs($seller)->get(route('seller.orders.show', $order))->assertOk()->assertSee('155,00 ₽');
-        $this->actingAs(User::factory()->admin()->create())
-            ->get(route('admin.orders.show', $order))->assertOk()->assertSee('155,00 ₽');
+        $this->prepare($buyer)->assertDontSee('value="courier"', false);
+        $token = session('checkout_token');
+        $this->submit('courier')->assertSessionHasErrors('delivery_method');
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame($token, session('checkout_token'));
+        $this->submit('pickup')->assertRedirect();
+        $this->assertSame(0.0, Order::sole()->delivery_cost);
     }
 
-    public function test_multi_seller_checkout_charges_delivery_once_per_seller_order(): void
+    public function test_multi_seller_checkout_creates_free_pickup_order_per_seller(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $firstSeller = User::factory()->create(['role' => 'seller', 'name' => 'First seller']);
@@ -77,23 +68,25 @@ class CheckoutDeliverySemanticsTest extends TestCase
 
         $confirmation = $this->prepare($buyer);
         $confirmation
-            ->assertSee('стоимость доставки начисляется отдельно для каждого продавца')
-            ->assertSee('510,00 ₽');
+            ->assertSee('Самовывоз и выбранный способ оплаты применяются к каждому заказу')
+            ->assertSee('200,00 ₽');
         $this->assertSame(2, substr_count($confirmation->getContent(), 'Доставка этого заказа'));
 
-        $this->submit('courier')->assertRedirect(route('orders.index'));
+        $this->submit('pickup')->assertRedirect(route('orders.index'));
 
         $orders = Order::with('items')->orderBy('seller_id')->get();
         $this->assertCount(2, $orders);
         foreach ($orders as $order) {
-            $this->assertSame('255.00', $order->total_price);
-            $this->assertSame(155.0, $order->delivery_cost);
-            $this->assertSame('courier', $order->delivery_method);
+            $this->assertSame('100.00', $order->total_price);
+            $this->assertSame(0.0, $order->delivery_cost);
+            $this->assertSame('pickup', $order->delivery_method);
             $this->assertSame('cash', $order->payment_method);
+            $this->assertSame(Order::WORKFLOW_PICKUP, $order->workflow_version);
+            $this->assertSame(Order::PAYMENT_UNPAID, $order->payment_status);
         }
     }
 
-    public function test_delivery_is_converted_into_non_prb_checkout_currency(): void
+    public function test_free_pickup_does_not_distort_non_prb_checkout_currency(): void
     {
         config(['currency.prb_per_mdl' => 2.0]);
 
@@ -102,15 +95,15 @@ class CheckoutDeliverySemanticsTest extends TestCase
         $this->cart($buyer, $product);
 
         $this->prepare($buyer, 'MDL')
-            ->assertSee('77,50 L')
-            ->assertSee('127,50 L');
+            ->assertSee('50,00 L')
+            ->assertDontSee('77,50 L');
 
-        $this->submit('courier')->assertRedirect();
+        $this->submit('pickup')->assertRedirect();
 
         $order = Order::with('items')->sole();
         $this->assertSame('MDL', $order->currency);
-        $this->assertSame('127.50', $order->total_price);
-        $this->assertSame(77.5, $order->delivery_cost);
+        $this->assertSame('50.00', $order->total_price);
+        $this->assertSame(0.0, $order->delivery_cost);
     }
 
     public function test_validation_failure_does_not_consume_checkout_token(): void
@@ -135,25 +128,15 @@ class CheckoutDeliverySemanticsTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
     }
 
-    public function test_money_failure_does_not_consume_checkout_token(): void
+    public function test_pickup_at_money_storage_boundary_keeps_total_exact(): void
     {
         [$buyer, $seller] = $this->users();
         $this->cart($buyer, $this->product($seller, 1_000_000, 'PRB', 99), 99);
         $this->cart($buyer, $this->product($seller, 999_999.99), 1);
         $this->prepare($buyer);
-        $token = session('checkout_token');
-
-        $this->submit('courier')
-            ->assertRedirect(route('checkout.confirm'))
-            ->assertSessionHasErrors('cart');
-        $this->assertDatabaseCount('orders', 0);
-
-        $this->post(route('checkout.create'), [
-            'payment_method' => 'cash',
-            'delivery_method' => 'pickup',
-            'checkout_token' => $token,
-        ])->assertRedirect();
+        $this->submit('pickup')->assertRedirect();
         $this->assertSame('99999999.99', Order::sole()->total_price);
+        $this->assertSame(0.0, Order::sole()->delivery_cost);
     }
 
     public function test_stock_conflict_in_multi_seller_cart_leaves_no_partial_orders(): void
@@ -222,18 +205,6 @@ class CheckoutDeliverySemanticsTest extends TestCase
             'delivery_method' => $deliveryMethod,
             'checkout_token' => session('checkout_token'),
         ];
-
-        if ($deliveryMethod !== 'pickup') {
-            $buyer = auth()->user();
-            $payload['address_id'] = UserAddress::create([
-                'user_id' => $buyer->id,
-                'country' => 'MD',
-                'city' => 'Tiraspol',
-                'street' => 'Delivery Test Street',
-                'house' => '1',
-                'is_default' => true,
-            ])->id;
-        }
 
         return $this->from(route('checkout.confirm'))->post(route('checkout.create'), $payload);
     }
