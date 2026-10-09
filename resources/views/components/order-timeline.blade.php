@@ -13,16 +13,36 @@
     ];
 
     $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
-    $events = collect($isPickupV2 ? [
-        ['label' => 'Заказ создан', 'at' => $order->created_at, 'icon' => 'ri-add-circle-line', 'tone' => 'indigo'],
-        ['label' => 'Покупатель запросил отмену', 'at' => $order->cancellation_requested_at, 'icon' => 'ri-error-warning-line', 'tone' => 'rose', 'description' => $order->cancellation_reason],
-        ['label' => 'Принят продавцом', 'at' => $order->accepted_at, 'icon' => 'ri-user-follow-line', 'tone' => 'sky'],
-        ['label' => 'Готов к самовывозу', 'at' => $order->ready_for_pickup_at, 'icon' => 'ri-store-2-line', 'tone' => 'blue'],
-        ['label' => 'Продавец отметил оплату при получении', 'at' => $order->payment_status === \App\Models\Order::PAYMENT_SELLER_CONFIRMED ? $order->paid_at : null, 'icon' => 'ri-bank-card-line', 'tone' => 'emerald'],
-        ['label' => 'Покупатель подтвердил получение', 'at' => $order->buyer_confirmed_at, 'icon' => 'ri-checkbox-circle-line', 'tone' => 'green'],
-        ['label' => 'Завершён', 'at' => $order->status_ru === 'Завершён' ? $order->completed_at : null, 'icon' => 'ri-check-double-line', 'tone' => 'slate'],
-        ['label' => 'Отменён', 'at' => $order->canceled_at, 'icon' => 'ri-close-circle-line', 'tone' => 'rose'],
-    ] : [
+    $eventMeta = [
+        'order_created' => ['label' => 'Заказ создан', 'icon' => 'ri-add-circle-line', 'tone' => 'indigo'],
+        'order_accepted' => ['label' => 'Принят продавцом', 'icon' => 'ri-user-follow-line', 'tone' => 'sky'],
+        'pickup_ready' => ['label' => 'Готов к самовывозу', 'icon' => 'ri-store-2-line', 'tone' => 'blue'],
+        'payment_seller_confirmed' => ['label' => 'Продавец отметил оплату при получении', 'icon' => 'ri-bank-card-line', 'tone' => 'emerald'],
+        'buyer_receipt_confirmed' => ['label' => 'Покупатель подтвердил получение', 'icon' => 'ri-checkbox-circle-line', 'tone' => 'green'],
+        'order_completed' => ['label' => 'Заказ завершён системой', 'icon' => 'ri-check-double-line', 'tone' => 'slate'],
+        'cancellation_requested' => ['label' => 'Покупатель запросил отмену', 'icon' => 'ri-error-warning-line', 'tone' => 'rose'],
+        'cancellation_rejected' => ['label' => 'Продавец отклонил запрос отмены', 'icon' => 'ri-close-circle-line', 'tone' => 'rose'],
+        'order_canceled' => ['label' => 'Заказ отменён', 'icon' => 'ri-close-circle-line', 'tone' => 'rose'],
+        'pickup_confirmation_requested' => ['label' => 'Запрошено подтверждение получения', 'icon' => 'ri-question-line', 'tone' => 'sky'],
+    ];
+    $actorLabels = [
+        'buyer' => 'Покупатель',
+        'seller' => 'Продавец',
+        'admin' => 'Администратор',
+        'system' => 'Система',
+    ];
+    $events = $isPickupV2
+        ? $order->events()->orderBy('created_at')->orderBy('id')->get()->map(function ($entry) use ($eventMeta, $actorLabels) {
+            $meta = $eventMeta[$entry->event_type] ?? ['label' => 'Событие заказа', 'icon' => 'ri-information-line', 'tone' => 'indigo'];
+            $reason = $entry->metadata['reason'] ?? null;
+
+            return $meta + [
+                'at' => $entry->created_at,
+                'actor' => $actorLabels[$entry->actor_role] ?? 'Неизвестный инициатор',
+                'description' => is_string($reason) ? $reason : null,
+            ];
+        })
+        : collect([
         ['label' => 'Заказ создан', 'at' => $order->created_at, 'icon' => 'ri-add-circle-line', 'tone' => 'indigo'],
         ['label' => 'Покупатель запросил отмену', 'at' => $order->cancellation_requested_at, 'icon' => 'ri-error-warning-line', 'tone' => 'rose', 'description' => $order->cancellation_reason],
         ['label' => 'Принят продавцом', 'at' => $order->accepted_at, 'icon' => 'ri-user-follow-line', 'tone' => 'sky'],
@@ -74,6 +94,9 @@
                 <div class="min-w-0">
                     <div class="font-semibold leading-5 text-slate-800">{{ $event['label'] }}</div>
                     <div class="text-xs text-slate-500">{{ $event['at']->format('d.m.Y H:i') }}</div>
+                    @if($isPickupV2)
+                        <div class="text-xs text-slate-500">Инициатор: {{ $event['actor'] }}</div>
+                    @endif
                     @if(!empty($event['description']))
                         <div class="mt-1 break-words rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-600">{{ $event['description'] }}</div>
                     @endif
