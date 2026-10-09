@@ -32,7 +32,7 @@ class OrderController extends Controller
         match ($tab) {
             'completed' => $query->where('status', Order::STATUS_COMPLETED),
             'canceled' => $query->where('status', Order::STATUS_CANCELED),
-            'action' => $this->requireBuyerAction($query, $buyerId),
+            'action' => $this->requireBuyerAction($query, $buyerId, (bool) auth()->user()?->hasVerifiedEmail()),
             default => $query->whereNotIn('status', [
                 Order::STATUS_COMPLETED,
                 Order::STATUS_CANCELED,
@@ -47,19 +47,40 @@ class OrderController extends Controller
             ->pluck('total', 'status');
 
         $actionCountQuery = Order::where('user_id', $buyerId);
-        $this->requireBuyerAction($actionCountQuery, $buyerId);
+        $this->requireBuyerAction($actionCountQuery, $buyerId, (bool) auth()->user()?->hasVerifiedEmail());
         $actionCount = $actionCountQuery->count();
 
         return view('shop.orders', compact('orders', 'tab', 'statusCounts', 'actionCount', 'search'));
     }
 
-    private function requireBuyerAction($query, int $buyerId): void
+    private function requireBuyerAction($query, int $buyerId, bool $verified): void
     {
-        $query->where(function ($inner) use ($buyerId) {
-            $inner->where('status', Order::STATUS_SHIPPED)
+        $query->where(function ($inner) use ($buyerId, $verified) {
+            $inner->where(function ($legacy) {
+                $legacy->where(function ($version) {
+                    $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
+                })->where('status', Order::STATUS_SHIPPED);
+            });
+            if ($verified) {
+                $inner->orWhere(function ($pickup) {
+                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                        ->where('status', Order::STATUS_READY_FOR_PICKUP)
+                        ->where('delivery_method', 'pickup')
+                        ->whereIn('payment_method', ['cash', 'card'])
+                        ->whereNotNull('ready_for_pickup_at')
+                        ->whereNull('buyer_confirmed_at')
+                        ->whereIn('payment_status', [Order::PAYMENT_UNPAID, Order::PAYMENT_SELLER_CONFIRMED]);
+                });
+            }
+            $inner
                 ->orWhere(function ($reviewable) use ($buyerId) {
                     $reviewable
                         ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+                        ->where(function ($receipt) {
+                            $receipt->whereNull('workflow_version')
+                                ->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP)
+                                ->orWhereNotNull('buyer_confirmed_at');
+                        })
                         ->whereHas('items.product', fn ($product) => $product->whereDoesntHave(
                             'reviews',
                             fn ($reviews) => $reviews->where('user_id', $buyerId)

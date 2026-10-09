@@ -86,7 +86,14 @@
                         $itemsCount = $order->items->sum('quantity');
                         $firstTitle = $firstItem?->historical_title;
                         $shopName = $order->historical_seller_name;
-                        $needsConfirmation = ! $isPickupV2 && $order->status === \App\Models\Order::STATUS_SHIPPED;
+                        $needsConfirmation = (! $isPickupV2 && $order->status === \App\Models\Order::STATUS_SHIPPED)
+                            || ($isPickupV2 && auth()->user()?->hasVerifiedEmail()
+                                && $order->status === \App\Models\Order::STATUS_READY_FOR_PICKUP
+                                && $order->delivery_method === 'pickup'
+                                && in_array($order->payment_method, ['cash', 'card'], true)
+                                && $order->ready_for_pickup_at !== null
+                                && $order->buyer_confirmed_at === null
+                                && in_array($order->payment_status, [\App\Models\Order::PAYMENT_UNPAID, \App\Models\Order::PAYMENT_SELLER_CONFIRMED], true));
                         $needsReview = $tab === 'action'
                             && in_array($order->status, [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED], true)
                             && (! $isPickupV2 || $order->buyer_confirmed_at !== null);

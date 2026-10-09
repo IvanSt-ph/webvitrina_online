@@ -33,16 +33,9 @@ class OrderController extends Controller
         }
 
         if ($action === 'cancel_request') {
-            $query->whereNotNull('cancellation_requested_at')
-                ->where('status', '!=', Order::STATUS_CANCELED);
+            $this->requireActionableCancellationRequest($query);
         } elseif ($action === 'needs_action') {
-            $query->where(function ($actionQuery) {
-                $actionQuery->where('status', Order::STATUS_PENDING)
-                    ->orWhere(function ($cancelQuery) {
-                        $cancelQuery->whereNotNull('cancellation_requested_at')
-                            ->where('status', '!=', Order::STATUS_CANCELED);
-                    });
-            });
+            $this->requireSellerAction($query);
         }
 
         if ($search !== '') {
@@ -65,24 +58,53 @@ class OrderController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
         $actionCounts = [
-            'needs_action' => Order::query()
-                ->where('seller_id', auth()->id())
-                ->where(function ($actionQuery) {
-                    $actionQuery->where('status', Order::STATUS_PENDING)
-                        ->orWhere(function ($cancelQuery) {
-                            $cancelQuery->whereNotNull('cancellation_requested_at')
-                                ->where('status', '!=', Order::STATUS_CANCELED);
-                        });
-                })
-                ->count(),
-            'cancel_request' => Order::query()
-                ->where('seller_id', auth()->id())
-                ->whereNotNull('cancellation_requested_at')
-                ->where('status', '!=', Order::STATUS_CANCELED)
-                ->count(),
+            'needs_action' => $this->requireSellerAction(Order::query()->where('seller_id', auth()->id()))->count(),
+            'cancel_request' => $this->requireActionableCancellationRequest(Order::query()->where('seller_id', auth()->id()))->count(),
         ];
 
         return view('seller.orders.index', compact('orders', 'status', 'action', 'search', 'statusCounts', 'actionCounts'));
+    }
+
+    private function requireSellerAction($query)
+    {
+        return $query->where(function ($actions) {
+            $actions->where(function ($legacy) {
+                $legacy->where(function ($version) {
+                    $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
+                })->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_PAID]);
+            })->orWhere(function ($pickup) {
+                $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                    ->where('delivery_method', 'pickup')
+                    ->whereIn('payment_method', ['cash', 'card'])
+                    ->where(function ($states) {
+                        $states->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING])
+                            ->orWhere(function ($payment) {
+                                $payment->whereIn('status', [Order::STATUS_READY_FOR_PICKUP, Order::STATUS_DELIVERED])
+                                    ->where('payment_status', Order::PAYMENT_UNPAID)
+                                    ->whereNull('paid_at');
+                            });
+                    });
+            })->orWhere(function ($cancellation) {
+                $this->requireActionableCancellationRequest($cancellation);
+            });
+        });
+    }
+
+    private function requireActionableCancellationRequest($query)
+    {
+        return $query->whereNotNull('cancellation_requested_at')
+            ->where(function ($actionable) {
+                $actionable->where(function ($legacy) {
+                    $legacy->where(function ($version) {
+                        $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
+                    })->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING]);
+                })->orWhere(function ($pickup) {
+                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                        ->where('delivery_method', 'pickup')
+                        ->whereIn('payment_method', ['cash', 'card'])
+                        ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED]);
+                });
+            });
     }
 
     /**
