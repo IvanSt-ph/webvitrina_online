@@ -7,6 +7,7 @@
     $statuses = [
         \App\Models\Order::STATUS_PENDING => ['label' => 'Ожидает обработки', 'icon' => 'ri-time-line', 'class' => 'border-amber-200 bg-amber-50 text-amber-700'],
         \App\Models\Order::STATUS_PROCESSING => ['label' => 'Принят продавцом', 'icon' => 'ri-user-follow-line', 'class' => 'border-sky-200 bg-sky-50 text-sky-700'],
+        \App\Models\Order::STATUS_READY_FOR_PICKUP => ['label' => 'Готов к самовывозу', 'icon' => 'ri-store-2-line', 'class' => 'border-violet-200 bg-violet-50 text-violet-700'],
         \App\Models\Order::STATUS_PAID => ['label' => 'Оплачен', 'icon' => 'ri-bank-card-line', 'class' => 'border-emerald-200 bg-emerald-50 text-emerald-700'],
         \App\Models\Order::STATUS_SHIPPED => ['label' => 'В пути', 'icon' => 'ri-truck-line', 'class' => 'border-blue-200 bg-blue-50 text-blue-700'],
         \App\Models\Order::STATUS_DELIVERED => ['label' => 'Доставлен', 'icon' => 'ri-checkbox-circle-line', 'class' => 'border-green-200 bg-green-50 text-green-700'],
@@ -14,6 +15,7 @@
         \App\Models\Order::STATUS_CANCELED => ['label' => 'Отменён', 'icon' => 'ri-close-circle-line', 'class' => 'border-rose-200 bg-rose-50 text-rose-700'],
     ];
     $current = $statuses[$order->status] ?? ['label' => $order->status, 'icon' => 'ri-information-line', 'class' => 'border-slate-200 bg-slate-50 text-slate-700'];
+    $current['label'] = $order->status_ru;
 @endphp
 
 <div class="space-y-5">
@@ -113,6 +115,10 @@
                         <div class="flex justify-between gap-3"><dt class="text-slate-500">Доставка</dt><dd class="text-right font-semibold text-slate-800">{{ $order->delivery_method_label }}</dd></div>
                         <div class="flex justify-between gap-3"><dt class="text-slate-500">Стоимость доставки</dt><dd class="text-right font-semibold text-slate-800">{{ number_format($order->delivery_cost, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}</dd></div>
                         <div class="flex justify-between gap-3"><dt class="text-slate-500">Оплата</dt><dd class="text-right font-semibold text-slate-800">{{ $order->payment_method_label }}</dd></div>
+                        @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
+                            <div class="flex justify-between gap-3"><dt class="text-slate-500">Статус оплаты</dt><dd class="text-right font-semibold text-slate-800">{{ $order->pickup_payment_status_label }}</dd></div>
+                            <div class="flex justify-between gap-3"><dt class="text-slate-500">Получение</dt><dd class="text-right font-semibold text-slate-800">{{ $order->buyer_confirmed_at ? 'Подтверждено покупателем' : 'Не подтверждено покупателем' }}</dd></div>
+                        @endif
                         <div class="border-t border-slate-100 pt-3">
                             <dt class="text-slate-500">Адрес</dt>
                             <dd class="mt-1 break-words font-semibold text-slate-800">{{ ($order->address_snapshot['full'] ?? null) ?: 'Адрес не заполнен' }}</dd>
@@ -174,10 +180,14 @@
             <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <h2 class="font-bold text-slate-900">Решение по заказу</h2>
                 <p class="mt-1 text-sm text-slate-500">Смена статуса фиксируется в журнале администратора.</p>
+                @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
+                    <p class="mt-4 text-sm text-slate-600">Статусы самовывоза меняются через отдельные подтверждения продавца и покупателя. Администратор не подтверждает получение за покупателя.</p>
+                @else
                 <form method="POST" action="{{ route('admin.orders.updateStatus', $order) }}" class="mt-4 space-y-3">
                     @csrf
                     <select name="status" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
                         @foreach($statuses as $value => $meta)
+                            @continue(in_array($value, [\App\Models\Order::STATUS_READY_FOR_PICKUP, \App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED], true))
                             <option value="{{ $value }}" @selected($order->status === $value)>{{ $meta['label'] }}</option>
                         @endforeach
                     </select>
@@ -186,6 +196,7 @@
                         <i class="ri-save-3-line"></i> Сохранить статус
                     </button>
                 </form>
+                @endif
             </section>
 
             <x-order-timeline :order="$order" />

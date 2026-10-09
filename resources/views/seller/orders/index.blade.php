@@ -5,6 +5,7 @@
             null => ['label' => 'Все', 'icon' => 'ri-inbox-line'],
             \App\Models\Order::STATUS_PENDING => ['label' => 'Ожидают', 'icon' => 'ri-time-line'],
             \App\Models\Order::STATUS_PROCESSING => ['label' => 'Приняты', 'icon' => 'ri-user-follow-line'],
+            \App\Models\Order::STATUS_READY_FOR_PICKUP => ['label' => 'Готовы к самовывозу', 'icon' => 'ri-store-2-line'],
             \App\Models\Order::STATUS_PAID => ['label' => 'Оплачены', 'icon' => 'ri-bank-card-line'],
             \App\Models\Order::STATUS_SHIPPED => ['label' => 'В пути', 'icon' => 'ri-truck-line'],
             \App\Models\Order::STATUS_DELIVERED => ['label' => 'Доставлены', 'icon' => 'ri-checkbox-circle-line'],
@@ -15,6 +16,7 @@
         $statusColors = [
             \App\Models\Order::STATUS_PENDING => 'border-amber-200 bg-amber-50 text-amber-700',
             \App\Models\Order::STATUS_PROCESSING => 'border-sky-200 bg-sky-50 text-sky-700',
+            \App\Models\Order::STATUS_READY_FOR_PICKUP => 'border-violet-200 bg-violet-50 text-violet-700',
             \App\Models\Order::STATUS_PAID => 'border-emerald-200 bg-emerald-50 text-emerald-700',
             \App\Models\Order::STATUS_SHIPPED => 'border-blue-200 bg-blue-50 text-blue-700',
             \App\Models\Order::STATUS_DELIVERED => 'border-green-200 bg-green-50 text-green-700',
@@ -66,10 +68,10 @@
                 </div>
                 <div class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
                     <div class="flex items-center justify-between text-xs text-blue-700 sm:text-sm">
-                        <span>В доставке</span>
+                        <span>Готовы к выдаче / в пути</span>
                         <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/80"><i class="ri-truck-line"></i></span>
                     </div>
-                    <div class="mt-2 text-xl font-bold text-blue-800 sm:text-2xl">{{ number_format($statusCounts[\App\Models\Order::STATUS_SHIPPED] ?? 0, 0, ',', ' ') }}</div>
+                    <div class="mt-2 text-xl font-bold text-blue-800 sm:text-2xl">{{ number_format(($statusCounts[\App\Models\Order::STATUS_READY_FOR_PICKUP] ?? 0) + ($statusCounts[\App\Models\Order::STATUS_SHIPPED] ?? 0), 0, ',', ' ') }}</div>
                 </div>
                 <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
                     <div class="flex items-center justify-between text-xs text-emerald-700 sm:text-sm">
@@ -172,6 +174,10 @@
                                 <div class="flex flex-wrap items-center gap-2">
                                     <span class="font-semibold text-neutral-950">#{{ $order->number }}</span>
                                     <span class="rounded-full border {{ $colorClass }} px-2 py-0.5 text-xs font-medium">{{ $order->status_ru }}</span>
+                                    @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
+                                        <span class="text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
+                                        <span class="text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение не подтверждено покупателем' }}</span>
+                                    @endif
                                     @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
                                         <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">Запрос отмены</span>
                                     @elseif($order->status === \App\Models\Order::STATUS_PENDING)

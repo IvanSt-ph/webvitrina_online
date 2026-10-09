@@ -19,23 +19,6 @@
             ],
         ];
 
-        $steps = [
-            \App\Models\Order::STATUS_PENDING => 1,
-            \App\Models\Order::STATUS_PROCESSING => 2,
-            \App\Models\Order::STATUS_PAID => 3,
-            \App\Models\Order::STATUS_SHIPPED => 4,
-            \App\Models\Order::STATUS_DELIVERED => 5,
-            \App\Models\Order::STATUS_COMPLETED => 6,
-        ];
-
-        $stepLabels = [
-            1 => 'Новый',
-            2 => 'Принят',
-            3 => 'Оплачен',
-            4 => 'В пути',
-            5 => 'Доставлен',
-            6 => 'Завершён',
-        ];
     @endphp
 
     <div class="orders-mobile-safe min-h-screen w-full max-w-full overflow-x-hidden bg-white px-4 py-5 pb-24 text-neutral-900 sm:px-6 sm:py-7 sm:pb-24 lg:px-8 lg:pb-8" style="max-width:100vw;">
@@ -98,13 +81,15 @@
             <div class="w-full max-w-full space-y-3 overflow-hidden">
                 @forelse($orders as $order)
                     @php
-                        $activeStep = $order->status === \App\Models\Order::STATUS_CANCELED ? 0 : ($steps[$order->status] ?? 1);
+                        $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
                         $firstItem = $order->items->first();
                         $itemsCount = $order->items->sum('quantity');
                         $firstTitle = $firstItem?->historical_title;
                         $shopName = $order->historical_seller_name;
-                        $needsConfirmation = $order->status === \App\Models\Order::STATUS_SHIPPED;
-                        $needsReview = $tab === 'action' && in_array($order->status, [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED], true);
+                        $needsConfirmation = ! $isPickupV2 && $order->status === \App\Models\Order::STATUS_SHIPPED;
+                        $needsReview = $tab === 'action'
+                            && in_array($order->status, [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED], true)
+                            && (! $isPickupV2 || $order->buyer_confirmed_at !== null);
                     @endphp
 
                     <article class="group w-full max-w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white p-3 transition duration-300 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-100/40 sm:p-4 lg:p-5">
@@ -125,7 +110,7 @@
                                 <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                                     <h2 class="max-w-full truncate text-sm font-semibold text-neutral-900 sm:text-base">Заказ {{ $order->number }}</h2>
                                     <span class="text-xs font-medium text-neutral-400">Статус:</span>
-                                    <x-status-badge :status="$order->status" class="max-w-full justify-center truncate px-2 py-0.5 text-xs" />
+                                    <x-status-badge :status="$order->status" :order="$order" class="max-w-full justify-center truncate px-2 py-0.5 text-xs" />
                                 </div>
 
                                 @if($firstItem)
@@ -145,6 +130,10 @@
                                     <span class="hidden text-neutral-300 sm:inline">•</span>
                                     <span>{{ $itemsCount }} шт.@if($order->items->count() > 1), {{ $order->items->count() }} позиции@endif</span>
                                 </div>
+                                @if($isPickupV2)
+                                    <div class="mt-1 text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</div>
+                                    <div class="text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</div>
+                                @endif
                             </div>
 
                             <div class="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-neutral-100 pt-3 lg:col-span-1 lg:block lg:border-t-0 lg:pt-0 lg:text-right">

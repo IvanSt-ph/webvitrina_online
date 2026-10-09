@@ -15,7 +15,7 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $status = in_array($request->get('status'), Order::allStatuses(), true)
+        $status = in_array($request->get('status'), Order::filterStatuses(), true)
             ? $request->get('status')
             : null;
         $action = in_array($request->get('action'), ['needs_action', 'cancel_request'], true)

@@ -15,7 +15,7 @@ class OrderController extends Controller
     {
         $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'in:' . implode(',', Order::allStatuses())],
+            'status' => ['nullable', 'in:' . implode(',', Order::filterStatuses())],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
             'sort' => ['nullable', 'in:latest,oldest,amount_desc,amount_asc'],
@@ -29,7 +29,7 @@ class OrderController extends Controller
 
         $query = Order::with(['user', 'seller.shop', 'items.product']);
 
-        if ($request->filled('status') && in_array($request->string('status')->toString(), Order::allStatuses(), true)) {
+        if ($request->filled('status') && in_array($request->string('status')->toString(), Order::filterStatuses(), true)) {
             $query->where('status', $request->string('status')->toString());
         }
 
@@ -69,6 +69,7 @@ class OrderController extends Controller
                 'active' => $query->whereIn('status', [
                     Order::STATUS_PENDING,
                     Order::STATUS_PROCESSING,
+                    Order::STATUS_READY_FOR_PICKUP,
                     Order::STATUS_PAID,
                     Order::STATUS_SHIPPED,
                     Order::STATUS_DELIVERED,
@@ -93,6 +94,7 @@ class OrderController extends Controller
                 ->whereIn('status', [
                     Order::STATUS_PENDING,
                     Order::STATUS_PROCESSING,
+                    Order::STATUS_READY_FOR_PICKUP,
                     Order::STATUS_PAID,
                     Order::STATUS_SHIPPED,
                     Order::STATUS_DELIVERED,

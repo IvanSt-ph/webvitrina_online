@@ -15,6 +15,7 @@
         null => ['label' => 'Все', 'icon' => 'ri-inbox-line'],
         \App\Models\Order::STATUS_PENDING => ['label' => 'Ожидают', 'icon' => 'ri-time-line'],
         \App\Models\Order::STATUS_PROCESSING => ['label' => 'Приняты', 'icon' => 'ri-user-follow-line'],
+        \App\Models\Order::STATUS_READY_FOR_PICKUP => ['label' => 'Готовы к самовывозу', 'icon' => 'ri-store-2-line'],
         \App\Models\Order::STATUS_PAID => ['label' => 'Оплачены', 'icon' => 'ri-bank-card-line'],
         \App\Models\Order::STATUS_SHIPPED => ['label' => 'В пути', 'icon' => 'ri-truck-line'],
         \App\Models\Order::STATUS_DELIVERED => ['label' => 'Доставлены', 'icon' => 'ri-checkbox-circle-line'],
@@ -25,6 +26,7 @@
     $statusColors = [
         \App\Models\Order::STATUS_PENDING => 'border-amber-200 bg-amber-50 text-amber-700',
         \App\Models\Order::STATUS_PROCESSING => 'border-sky-200 bg-sky-50 text-sky-700',
+        \App\Models\Order::STATUS_READY_FOR_PICKUP => 'border-violet-200 bg-violet-50 text-violet-700',
         \App\Models\Order::STATUS_PAID => 'border-emerald-200 bg-emerald-50 text-emerald-700',
         \App\Models\Order::STATUS_SHIPPED => 'border-blue-200 bg-blue-50 text-blue-700',
         \App\Models\Order::STATUS_DELIVERED => 'border-green-200 bg-green-50 text-green-700',
@@ -337,6 +339,10 @@
                             <td class="px-4 py-4">
                                 <div class="whitespace-nowrap text-base font-bold text-slate-950">{{ $order->formatted_total_price }}</div>
                                 <div class="mt-1 text-xs text-slate-400">Валюта: {{ $order->currency }}</div>
+                                @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
+                                    <div class="mt-1 text-xs text-slate-500">{{ $order->pickup_payment_status_label }}</div>
+                                    <div class="mt-1 text-xs text-slate-500">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</div>
+                                @endif
                             </td>
                             <td class="px-4 py-4">
                                 <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold {{ $statusClass }}">
@@ -345,8 +351,13 @@
                                 </span>
                                 <div class="mt-2 space-y-1 text-xs text-slate-400">
                                     @if($order->accepted_at)<div>Принят: {{ $order->accepted_at->format('d.m H:i') }}</div>@endif
-                                    @if($order->shipped_at)<div>Отправлен: {{ $order->shipped_at->format('d.m H:i') }}</div>@endif
-                                    @if($order->delivered_at)<div>Доставлен: {{ $order->delivered_at->format('d.m H:i') }}</div>@endif
+                                    @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
+                                        @if($order->ready_for_pickup_at)<div>Готов к самовывозу: {{ $order->ready_for_pickup_at->format('d.m H:i') }}</div>@endif
+                                        @if($order->buyer_confirmed_at)<div>Покупатель подтвердил получение: {{ $order->buyer_confirmed_at->format('d.m H:i') }}</div>@endif
+                                    @else
+                                        @if($order->shipped_at)<div>Отправлен: {{ $order->shipped_at->format('d.m H:i') }}</div>@endif
+                                        @if($order->delivered_at)<div>Доставлен: {{ $order->delivered_at->format('d.m H:i') }}</div>@endif
+                                    @endif
                                     @if($order->canceled_at)<div>Отменён: {{ $order->canceled_at->format('d.m H:i') }}</div>@endif
                                 </div>
                                 @if($hasCancelRequest || $isStuck)
@@ -401,7 +412,7 @@
                         </div>
                         <span class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold {{ $statusClass }}">
                             <i class="{{ $tabs[$order->status]['icon'] ?? 'ri-checkbox-blank-circle-line' }}"></i>
-                            {{ $statusLabels[$order->status] ?? $order->status }}
+                            {{ $order->status_ru }}
                         </span>
                     </div>
 
@@ -433,6 +444,10 @@
                         <div class="rounded-xl bg-slate-50 p-3">
                             <div class="text-xs text-slate-400">Сумма</div>
                             <div class="mt-1 font-bold text-slate-950">{{ $order->formatted_total_price }}</div>
+                            @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
+                                <div class="mt-1 text-xs text-slate-500">{{ $order->pickup_payment_status_label }}</div>
+                                <div class="mt-1 text-xs text-slate-500">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</div>
+                            @endif
                         </div>
                     </div>
 

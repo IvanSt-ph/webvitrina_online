@@ -93,7 +93,7 @@ class Order extends Model
     public const STATUS_DELIVERED  = 'delivered';
     public const STATUS_COMPLETED  = 'completed';
     public const STATUS_CANCELED   = 'canceled';
-    // Reserved for the pickup workflow. Existing status transitions stay unchanged in stage 1.
+    // Pickup workflow status; legacy statuses remain available for historical orders.
     public const STATUS_READY_FOR_PICKUP = 'ready_for_pickup';
 
     public const WORKFLOW_PICKUP = 2;
@@ -111,6 +111,11 @@ class Order extends Model
             self::STATUS_COMPLETED,
             self::STATUS_CANCELED,
         ];
+    }
+
+    public static function filterStatuses(): array
+    {
+        return [...self::allStatuses(), self::STATUS_READY_FOR_PICKUP];
     }
 
     public static function paymentMethodLabels(): array
@@ -258,6 +263,19 @@ public function markAsPaid(): void
 
     public function getStatusRuAttribute()
     {
+        if ($this->workflow_version === self::WORKFLOW_PICKUP) {
+            if ($this->status === self::STATUS_DELIVERED && $this->buyer_confirmed_at === null) {
+                return 'Получение требует проверки';
+            }
+            if ($this->status === self::STATUS_COMPLETED
+                && ($this->buyer_confirmed_at === null
+                    || $this->payment_status !== self::PAYMENT_SELLER_CONFIRMED
+                    || $this->paid_at === null
+                    || $this->completed_at === null)) {
+                return 'Завершение требует проверки';
+            }
+        }
+
         return match($this->status) {
             'pending'   => 'Ожидает обработки',
             'processing'=> 'Принят продавцом',
@@ -269,6 +287,17 @@ public function markAsPaid(): void
             'ready_for_pickup' => 'Готов к самовывозу',
             default     => $this->status,
         };
+    }
+
+    public function getPickupPaymentStatusLabelAttribute(): string
+    {
+        if ($this->payment_status === self::PAYMENT_UNPAID && $this->paid_at === null) {
+            return 'Оплата продавцом не подтверждена';
+        }
+
+        return $this->payment_status === self::PAYMENT_SELLER_CONFIRMED && $this->paid_at !== null
+            ? 'Продавец отметил оплату при получении'
+            : 'Данные об оплате требуют проверки';
     }
 
     public function getFormattedTotalPriceAttribute()

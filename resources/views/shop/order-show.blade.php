@@ -1,7 +1,14 @@
 <x-buyer-layout title="Заказ {{ $order->number }}">
 
 @php
-    $steps = [
+    $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
+    $steps = $isPickupV2 ? [
+        'pending' => 1,
+        'processing' => 2,
+        'ready_for_pickup' => 3,
+        'delivered' => 4,
+        'completed' => 5,
+    ] : [
         'pending'     => 1,
         'processing'  => 2,
         'paid'        => 3,
@@ -12,7 +19,13 @@
 
     $active = $order->status === \App\Models\Order::STATUS_CANCELED ? 0 : ($steps[$order->status] ?? 1);
 
-    $stepLabels = [
+    $stepLabels = $isPickupV2 ? [
+        1 => 'Новый заказ',
+        2 => 'Принят продавцом',
+        3 => 'Готов к самовывозу',
+        4 => 'Получение подтверждено покупателем',
+        5 => 'Завершён',
+    ] : [
         1 => 'Новый заказ',
         2 => 'Принят продавцом',
         3 => 'Оплачен',
@@ -21,16 +34,23 @@
         6 => 'Завершён',
     ];
 
+    if ($isPickupV2 && $order->buyer_confirmed_at === null && $active >= 4) {
+        $active = 3;
+    }
+    if ($isPickupV2 && $order->status === \App\Models\Order::STATUS_COMPLETED && $order->status_ru !== 'Завершён') {
+        $active = $order->buyer_confirmed_at ? 4 : 3;
+    }
+    $stepCount = count($stepLabels);
     $addressParts = collect([$order->address_snapshot['full'] ?? null])->filter();
 
     $shop = $order->seller?->shop;
-    $canConfirmDelivery = $order->status === \App\Models\Order::STATUS_SHIPPED;
+    $canConfirmDelivery = ! $isPickupV2 && $order->status === \App\Models\Order::STATUS_SHIPPED;
     $canRequestCancellation = in_array($order->status, [
         \App\Models\Order::STATUS_PENDING,
         \App\Models\Order::STATUS_PROCESSING,
         \App\Models\Order::STATUS_PAID,
     ], true) && ! $order->cancellation_requested_at;
-    $canReview = in_array($order->status, [
+    $canReview = (! $isPickupV2 || $order->buyer_confirmed_at !== null) && in_array($order->status, [
         \App\Models\Order::STATUS_DELIVERED,
         \App\Models\Order::STATUS_COMPLETED,
     ], true);
@@ -58,6 +78,23 @@
         \App\Models\Order::STATUS_COMPLETED => 'Все основные действия по заказу выполнены.',
         \App\Models\Order::STATUS_CANCELED => 'Если отмена ошибочная или нужен возврат, обратитесь в поддержку.',
     ][$order->status] ?? 'Проверяйте обновления и сообщения по заказу.';
+    if ($isPickupV2) {
+        $nextActionTitle = match ($order->status) {
+            'pending' => 'Ожидайте подтверждения продавца',
+            'processing' => 'Продавец готовит заказ к самовывозу',
+            'ready_for_pickup' => 'Заказ готов к самовывозу',
+            'delivered' => $order->buyer_confirmed_at ? 'Получение подтверждено вами' : 'Получение требует проверки',
+            'completed' => $order->status_ru,
+            'canceled' => 'Заказ отменён',
+            default => $order->status_ru,
+        };
+        $nextActionHint = match ($order->status) {
+            'ready_for_pickup' => 'Согласуйте время выдачи с продавцом. Оплата производится непосредственно продавцу при получении.',
+            'delivered' => $order->buyer_confirmed_at ? 'Если оплата ещё не отмечена продавцом, завершение заказа ожидает его подтверждения.' : 'Обратитесь в поддержку для проверки статуса.',
+            'completed' => $order->status_ru === 'Завершён' ? 'Оплата отмечена продавцом, получение подтверждено покупателем.' : 'Обратитесь в поддержку для проверки статуса.',
+            default => 'Следите за заказом и сообщениями продавца. Онлайн-оплата и доставка не предусмотрены.',
+        };
+    }
 @endphp
 
 
@@ -93,7 +130,11 @@
 
             <div class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-neutral-500">
                 Статус:
-                <x-status-badge :status="$order->status" class="max-w-full truncate px-2 sm:px-3" />
+                <x-status-badge :status="$order->status" :order="$order" class="max-w-full truncate px-2 sm:px-3" />
+                @if($isPickupV2)
+                    <span class="text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
+                    <span class="text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</span>
+                @endif
             </div>
             </div>
         </div>
@@ -114,22 +155,22 @@
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Статус заказа</div>
-                    <div class="mt-1 text-base font-semibold text-neutral-900">{{ $stepLabels[$active] ?? $order->status_ru }}</div>
+                    <div class="mt-1 text-base font-semibold text-neutral-900">{{ $order->status_ru }}</div>
                 </div>
                 @if($active > 0)
-                    <div class="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{{ $active }}/6</div>
+                    <div class="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{{ $active }}/{{ $stepCount }}</div>
                 @else
                     <div class="rounded-full bg-rose-50 px-3 py-1 text-sm font-bold text-rose-700">Отменён</div>
                 @endif
             </div>
-            <div class="mt-4 grid grid-cols-6 gap-1">
+            <div class="mt-4 grid gap-1" style="grid-template-columns: repeat({{ $stepCount }}, minmax(0, 1fr));">
                 @foreach($stepLabels as $step => $text)
                     <div class="h-2 rounded-full {{ $step <= $active ? 'bg-brand-500' : 'bg-neutral-200' }}"></div>
                 @endforeach
             </div>
         </div>
 
-        <div class="hidden sm:grid grid-cols-6 gap-4 text-center text-xs font-medium text-gray-600">
+        <div class="hidden sm:grid gap-4 text-center text-xs font-medium text-gray-600" style="grid-template-columns: repeat({{ $stepCount }}, minmax(0, 1fr));">
 
             @foreach($stepLabels as $step => $text)
 
@@ -148,8 +189,8 @@
 
         <!-- Полоски между кружками -->
         <div class="hidden sm:flex justify-between -mt-5 px-4">
-            @foreach(range(1,5) as $line)
-                <div class="h-1 w-1/5 {{ $line < $active ? 'bg-brand-500' : 'bg-neutral-200' }}"></div>
+            @foreach(range(1, $stepCount - 1) as $line)
+                <div class="h-1 {{ $line < $active ? 'bg-brand-500' : 'bg-neutral-200' }}" style="width: {{ 100 / ($stepCount - 1) }}%"></div>
             @endforeach
         </div>
 
@@ -249,7 +290,7 @@
                 @endif
             @else
                 <p class="text-sm font-semibold text-slate-800">{{ $order->delivery_method_label }}</p>
-                <p class="mt-1 text-sm text-gray-400">Адрес не указан</p>
+                <p class="mt-1 text-sm text-gray-400">{{ $isPickupV2 ? 'Адрес покупателя для самовывоза не требуется' : 'Адрес не указан' }}</p>
             @endif
             <p class="mt-3 text-sm font-semibold text-slate-800">Стоимость: {{ number_format($order->delivery_cost, 2, ',', ' ') }} {{ \App\Models\Product::currencySymbol($order->currency) }}</p>
             <p class="mt-1 text-xs text-slate-500">Срок и детали передачи уточняются у продавца.</p>
@@ -265,7 +306,10 @@
                 {{ $order->payment_method_label }}
             </p>
 
-            @if($order->paid_at)
+            @if($isPickupV2)
+                <p class="mt-1 text-sm text-slate-700">{{ $order->pickup_payment_status_label }}</p>
+                <p class="mt-1 text-xs text-slate-500">Получение: {{ $order->buyer_confirmed_at ? 'подтверждено покупателем' : 'не подтверждено покупателем' }}</p>
+            @elseif($order->paid_at)
                 <p class="text-sm text-green-600 mt-1">Оплачено в {{ $order->paid_at }}</p>
             @else
                 <p class="text-sm text-slate-400">Онлайн-платёж на сайте не выполнялся</p>

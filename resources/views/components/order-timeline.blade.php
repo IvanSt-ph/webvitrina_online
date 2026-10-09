@@ -4,6 +4,7 @@
     $statusMeta = [
         \App\Models\Order::STATUS_PENDING => ['label' => 'Ожидает обработки', 'icon' => 'ri-time-line'],
         \App\Models\Order::STATUS_PROCESSING => ['label' => 'Принят продавцом', 'icon' => 'ri-user-follow-line'],
+        \App\Models\Order::STATUS_READY_FOR_PICKUP => ['label' => 'Готов к самовывозу', 'icon' => 'ri-store-2-line'],
         \App\Models\Order::STATUS_PAID => ['label' => 'Оплачен', 'icon' => 'ri-bank-card-line'],
         \App\Models\Order::STATUS_SHIPPED => ['label' => 'В пути', 'icon' => 'ri-truck-line'],
         \App\Models\Order::STATUS_DELIVERED => ['label' => 'Доставлен', 'icon' => 'ri-checkbox-circle-line'],
@@ -11,7 +12,17 @@
         \App\Models\Order::STATUS_CANCELED => ['label' => 'Отменён', 'icon' => 'ri-close-circle-line'],
     ];
 
-    $events = collect([
+    $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
+    $events = collect($isPickupV2 ? [
+        ['label' => 'Заказ создан', 'at' => $order->created_at, 'icon' => 'ri-add-circle-line', 'tone' => 'indigo'],
+        ['label' => 'Покупатель запросил отмену', 'at' => $order->cancellation_requested_at, 'icon' => 'ri-error-warning-line', 'tone' => 'rose', 'description' => $order->cancellation_reason],
+        ['label' => 'Принят продавцом', 'at' => $order->accepted_at, 'icon' => 'ri-user-follow-line', 'tone' => 'sky'],
+        ['label' => 'Готов к самовывозу', 'at' => $order->ready_for_pickup_at, 'icon' => 'ri-store-2-line', 'tone' => 'blue'],
+        ['label' => 'Продавец отметил оплату при получении', 'at' => $order->payment_status === \App\Models\Order::PAYMENT_SELLER_CONFIRMED ? $order->paid_at : null, 'icon' => 'ri-bank-card-line', 'tone' => 'emerald'],
+        ['label' => 'Покупатель подтвердил получение', 'at' => $order->buyer_confirmed_at, 'icon' => 'ri-checkbox-circle-line', 'tone' => 'green'],
+        ['label' => 'Завершён', 'at' => $order->status_ru === 'Завершён' ? $order->completed_at : null, 'icon' => 'ri-check-double-line', 'tone' => 'slate'],
+        ['label' => 'Отменён', 'at' => $order->canceled_at, 'icon' => 'ri-close-circle-line', 'tone' => 'rose'],
+    ] : [
         ['label' => 'Заказ создан', 'at' => $order->created_at, 'icon' => 'ri-add-circle-line', 'tone' => 'indigo'],
         ['label' => 'Покупатель запросил отмену', 'at' => $order->cancellation_requested_at, 'icon' => 'ri-error-warning-line', 'tone' => 'rose', 'description' => $order->cancellation_reason],
         ['label' => 'Принят продавцом', 'at' => $order->accepted_at, 'icon' => 'ri-user-follow-line', 'tone' => 'sky'],
@@ -21,7 +32,7 @@
         ['label' => 'Отменён', 'at' => $order->canceled_at, 'icon' => 'ri-close-circle-line', 'tone' => 'rose'],
     ])->filter(fn ($event) => $event['at'])->sortBy('at')->values();
 
-    if ($order->status === \App\Models\Order::STATUS_COMPLETED && ! $events->contains('label', 'Завершён')) {
+    if (! $isPickupV2 && $order->status === \App\Models\Order::STATUS_COMPLETED && ! $events->contains('label', 'Завершён')) {
         $events->push([
             'label' => 'Завершён',
             'at' => $order->updated_at,
@@ -31,6 +42,7 @@
     }
 
     $current = $statusMeta[$order->status] ?? ['label' => $order->status, 'icon' => 'ri-information-line'];
+    $current['label'] = $order->status_ru;
     $toneClass = fn ($tone) => match ($tone) {
         'rose' => 'bg-danger-50 text-danger-600 border-danger-100',
         'sky' => 'bg-sky-50 text-sky-600 border-sky-100',

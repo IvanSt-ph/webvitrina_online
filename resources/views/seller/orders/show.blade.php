@@ -3,10 +3,12 @@
 
     @php
         /** @var \App\Models\Order $order */
+        $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
 
         $statusColors = [
             'pending'    => 'bg-amber-50 text-amber-700 border border-amber-200',
             'processing' => 'bg-sky-50 text-sky-700 border border-sky-200',
+            'ready_for_pickup' => 'bg-violet-50 text-violet-700 border border-violet-200',
             'paid'       => 'bg-emerald-50 text-emerald-700 border border-emerald-200',
             'shipped'    => 'bg-blue-50 text-blue-700 border border-blue-200',
             'delivered'  => 'bg-green-50 text-green-700 border border-green-200',
@@ -16,7 +18,13 @@
 
         $currentStatusClass = $statusColors[$order->status] ?? 'bg-neutral-50 text-neutral-700 border border-neutral-200';
 
-        $steps = [
+        $steps = $isPickupV2 ? [
+            \App\Models\Order::STATUS_PENDING => 'Новый заказ',
+            \App\Models\Order::STATUS_PROCESSING => 'Принят продавцом',
+            \App\Models\Order::STATUS_READY_FOR_PICKUP => 'Готов к самовывозу',
+            \App\Models\Order::STATUS_DELIVERED => 'Получение подтверждено покупателем',
+            \App\Models\Order::STATUS_COMPLETED => 'Завершён',
+        ] : [
             \App\Models\Order::STATUS_PENDING    => 'Новый заказ',
             \App\Models\Order::STATUS_PROCESSING => 'Принят продавцом',
             \App\Models\Order::STATUS_PAID       => 'Оплачен',
@@ -31,6 +39,12 @@
         if ($currentIndex === false) {
             $currentIndex = 0;
         }
+        if ($isPickupV2 && $order->buyer_confirmed_at === null && $currentIndex >= 3) {
+            $currentIndex = 2;
+        }
+        if ($isPickupV2 && $order->status === \App\Models\Order::STATUS_COMPLETED && $order->status_ru !== 'Завершён') {
+            $currentIndex = $order->buyer_confirmed_at ? 3 : 2;
+        }
         $statusProgress = count($steps) > 1
             ? ($currentIndex / (count($steps) - 1)) * 100
             : 0;
@@ -39,13 +53,13 @@
         $primaryProduct = $order->items
             ->map(fn ($item) => $item->product)
             ->first(fn ($product) => $product !== null);
-        $nextStatus = [
+        $nextStatus = $isPickupV2 ? ([
+            \App\Models\Order::STATUS_PENDING => \App\Models\Order::STATUS_PROCESSING,
+        ][$order->status] ?? null) : ([
             \App\Models\Order::STATUS_PENDING => \App\Models\Order::STATUS_PROCESSING,
             \App\Models\Order::STATUS_PROCESSING => \App\Models\Order::STATUS_PAID,
             \App\Models\Order::STATUS_PAID => \App\Models\Order::STATUS_SHIPPED,
-            \App\Models\Order::STATUS_SHIPPED => \App\Models\Order::STATUS_DELIVERED,
-            \App\Models\Order::STATUS_DELIVERED => \App\Models\Order::STATUS_COMPLETED,
-        ][$order->status] ?? null;
+        ][$order->status] ?? null);
         $nextActionLabel = [
             \App\Models\Order::STATUS_PENDING => 'Принять заказ',
             \App\Models\Order::STATUS_PROCESSING => 'Отметить как оплаченный',
@@ -63,8 +77,11 @@
         $canCancel = in_array($order->status, [
             \App\Models\Order::STATUS_PENDING,
             \App\Models\Order::STATUS_PROCESSING,
-            \App\Models\Order::STATUS_PAID,
-        ], true);
+        ], true) && ! $isPickupV2;
+        if ($isPickupV2) {
+            $nextActionLabel = 'Принять заказ';
+            $nextActionHint = 'Самовывоз; оплата отмечается отдельно от статуса заказа.';
+        }
     @endphp
 
     <div class="seller-order-show-safe min-h-screen w-full space-y-5 overflow-x-hidden bg-white px-3 py-4 pb-28 text-neutral-900 sm:space-y-6 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8">
@@ -217,6 +234,10 @@
                     <p class="mt-1 text-xs text-neutral-500">Текущий путь заказа от принятия до завершения</p>
                 </div>
                 <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {{ $currentStatusClass }}">{{ $order->status_ru }}</span>
+                @if($isPickupV2)
+                    <span class="text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
+                    <span class="text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</span>
+                @endif
             </div>
             <div class="overflow-x-auto pb-1">
                 <div class="relative h-[68px] min-w-[680px] pt-1 text-xs font-medium text-neutral-500">
@@ -299,7 +320,7 @@
                         </button>
                     </form>
                 @else
-                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">По этому заказу нет доступного следующего шага.</p>
+                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">{{ $isPickupV2 ? 'Отдельные действия готовности и оплаты пока не подключены к интерфейсу.' : 'По этому заказу нет доступного следующего шага.' }}</p>
                 @endif
             </div>
         </div>
@@ -312,6 +333,10 @@
             <p class="mt-3 text-sm text-neutral-600">
                 @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
                     Решения по отмене заказа.
+                @elseif($isPickupV2 && $order->status === \App\Models\Order::STATUS_READY_FOR_PICKUP)
+                    Согласования времени самовывоза.
+                @elseif($isPickupV2 && $order->status === \App\Models\Order::STATUS_DELIVERED)
+                    {{ $order->buyer_confirmed_at ? 'Подтверждения оплаты продавцом, если она ещё не отмечена.' : 'Проверки статуса получения.' }}
                 @elseif($order->status === \App\Models\Order::STATUS_PENDING)
                     Подтверждения заказа продавцом.
                 @elseif($order->status === \App\Models\Order::STATUS_PAID)
@@ -352,7 +377,7 @@
                 <h2 class="font-semibold text-rose-900">Покупатель запросил отмену заказа</h2>
                 <p class="mt-1 text-sm text-rose-700">{{ $order->cancellation_requested_at->format('d.m.Y H:i') }}</p>
                 <p class="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-neutral-700">{{ $order->cancellation_reason }}</p>
-                <p class="mt-3 text-sm text-rose-800">Если заказ ещё не отправлен, отмените его в блоке действий ниже или свяжитесь с покупателем.</p>
+                <p class="mt-3 text-sm text-rose-800">{{ $isPickupV2 ? 'Обычная отмена возможна только до готовности, оплаты и получения; дальнейшие случаи требуют разбора.' : 'Если заказ ещё не отправлен, отмените его в блоке действий ниже или свяжитесь с покупателем.' }}</p>
             </section>
         @endif
 
@@ -459,22 +484,35 @@
                 <div class="text-sm font-semibold text-neutral-900">
                     {{ $order->payment_method_label }}
                 </div>
+                @if($isPickupV2)
+                    <div class="text-sm text-neutral-700">{{ $order->pickup_payment_status_label }}</div>
+                    <div class="text-xs text-neutral-500">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</div>
+                @endif
 
                 <div class="space-y-1 text-xs text-neutral-500">
                     <div>
                         Создан: {{ $order->created_at?->format('d.m.Y H:i') }}
                     </div>
-                    @if($order->paid_at)
+                    @if($isPickupV2 && $order->ready_for_pickup_at)
+                        <div>Готов к самовывозу: {{ $order->ready_for_pickup_at->format('d.m.Y H:i') }}</div>
+                    @endif
+                    @if($isPickupV2 && $order->buyer_confirmed_at)
+                        <div>Покупатель подтвердил получение: {{ $order->buyer_confirmed_at->format('d.m.Y H:i') }}</div>
+                    @endif
+                    @if($isPickupV2 && $order->status_ru === 'Завершён' && $order->completed_at)
+                        <div>Завершён: {{ $order->completed_at->format('d.m.Y H:i') }}</div>
+                    @endif
+                    @if(! $isPickupV2 && $order->paid_at)
                         <div>
                             Оплачен: {{ $order->paid_at->format('d.m.Y H:i') }}
                         </div>
                     @endif
-                    @if($order->shipped_at)
+                    @if(! $isPickupV2 && $order->shipped_at)
                         <div>
                             Отправлен: {{ $order->shipped_at->format('d.m.Y H:i') }}
                         </div>
                     @endif
-                    @if($order->delivered_at)
+                    @if(! $isPickupV2 && $order->delivered_at)
                         <div>
                             Доставлен: {{ $order->delivered_at->format('d.m.Y H:i') }}
                         </div>
