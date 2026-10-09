@@ -45,6 +45,14 @@
 
     $shop = $order->seller?->shop;
     $canConfirmDelivery = ! $isPickupV2 && $order->status === \App\Models\Order::STATUS_SHIPPED;
+    $canConfirmReceipt = $isPickupV2
+        && auth()->user()?->hasVerifiedEmail()
+        && $order->delivery_method === 'pickup'
+        && in_array($order->payment_method, ['cash', 'card'], true)
+        && $order->status === \App\Models\Order::STATUS_READY_FOR_PICKUP
+        && $order->ready_for_pickup_at !== null
+        && $order->buyer_confirmed_at === null
+        && in_array($order->payment_status, [\App\Models\Order::PAYMENT_UNPAID, \App\Models\Order::PAYMENT_SELLER_CONFIRMED], true);
     $canRequestCancellation = in_array($order->status, [
         \App\Models\Order::STATUS_PENDING,
         \App\Models\Order::STATUS_PROCESSING,
@@ -132,6 +140,7 @@
                 Статус:
                 <x-status-badge :status="$order->status" :order="$order" class="max-w-full truncate px-2 sm:px-3" />
                 @if($isPickupV2)
+                    <span class="text-xs text-neutral-600">{{ $order->ready_for_pickup_at ? 'Готовность к самовывозу отмечена продавцом' : 'Готовность к самовывозу не отмечена' }}</span>
                     <span class="text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
                     <span class="text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</span>
                 @endif
@@ -208,12 +217,12 @@
             </div>
 
             <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-                @if($canConfirmDelivery)
+                @if($canConfirmReceipt || $canConfirmDelivery)
                     <form method="POST" action="{{ route('orders.confirmDelivery', $order) }}" class="w-full sm:w-auto">
                         @csrf
-                        <button type="submit" class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:w-auto">
+                        <button type="submit" @if($canConfirmReceipt) onclick="return confirm('Подтвердить, что вы лично получили товар?');" @endif class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:w-auto">
                             <i class="ri-checkbox-circle-line"></i>
-                            Подтвердить получение
+                            {{ $canConfirmReceipt ? 'Подтвердить получение товара' : 'Подтвердить получение' }}
                         </button>
                     </form>
                 @elseif($canReview)
