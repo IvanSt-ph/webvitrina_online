@@ -53,9 +53,13 @@
         $primaryProduct = $order->items
             ->map(fn ($item) => $item->product)
             ->first(fn ($product) => $product !== null);
-        $nextStatus = $isPickupV2 ? ([
+        $validPickupOrder = $isPickupV2
+            && $order->delivery_method === 'pickup'
+            && in_array($order->payment_method, ['cash', 'card'], true);
+        $nextStatus = $isPickupV2 ? ($validPickupOrder ? ([
             \App\Models\Order::STATUS_PENDING => \App\Models\Order::STATUS_PROCESSING,
-        ][$order->status] ?? null) : ([
+            \App\Models\Order::STATUS_PROCESSING => \App\Models\Order::STATUS_READY_FOR_PICKUP,
+        ][$order->status] ?? null) : null) : ([
             \App\Models\Order::STATUS_PENDING => \App\Models\Order::STATUS_PROCESSING,
             \App\Models\Order::STATUS_PROCESSING => \App\Models\Order::STATUS_PAID,
             \App\Models\Order::STATUS_PAID => \App\Models\Order::STATUS_SHIPPED,
@@ -78,9 +82,19 @@
             \App\Models\Order::STATUS_PENDING,
             \App\Models\Order::STATUS_PROCESSING,
         ], true) && ! $isPickupV2;
+        $canConfirmPayment = $validPickupOrder
+            && in_array($order->status, [\App\Models\Order::STATUS_READY_FOR_PICKUP, \App\Models\Order::STATUS_DELIVERED], true)
+            && $order->payment_status === \App\Models\Order::PAYMENT_UNPAID
+            && $order->paid_at === null;
         if ($isPickupV2) {
-            $nextActionLabel = 'Принять заказ';
-            $nextActionHint = 'Самовывоз; оплата отмечается отдельно от статуса заказа.';
+            $nextActionLabel = match ($nextStatus) {
+                \App\Models\Order::STATUS_PROCESSING => 'Принять заказ',
+                \App\Models\Order::STATUS_READY_FOR_PICKUP => 'Готов к самовывозу',
+                default => $canConfirmPayment ? 'Подтвердить оплату при получении' : 'Действий по статусу нет',
+            };
+            $nextActionHint = $validPickupOrder
+                ? 'Самовывоз; оплату наличными или картой продавец отмечает отдельно после фактического получения денег.'
+                : 'Параметры заказа требуют проверки. Обратитесь в поддержку.';
         }
     @endphp
 
@@ -319,8 +333,17 @@
                             <i class="ri-arrow-right-line"></i>
                         </button>
                     </form>
-                @else
-                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">{{ $isPickupV2 ? 'Отдельные действия готовности и оплаты пока не подключены к интерфейсу.' : 'По этому заказу нет доступного следующего шага.' }}</p>
+                @endif
+                @if($canConfirmPayment)
+                    <form method="POST" action="{{ route('seller.orders.confirmPayment', $order) }}" class="mt-2">
+                        @csrf
+                        <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
+                            Подтвердить получение оплаты
+                        </button>
+                    </form>
+                @endif
+                @if(! $nextStatus && ! $canConfirmPayment)
+                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">По этому заказу нет доступного следующего шага.</p>
                 @endif
             </div>
         </div>
