@@ -44,10 +44,7 @@ class OrderStockTest extends TestCase
         [$buyer, , $products] = $this->cart();
         $order = $this->checkout($buyer);
         $admin = User::factory()->create(['role' => 'admin']);
-        foreach ([Order::STATUS_PROCESSING, Order::STATUS_PAID, Order::STATUS_SHIPPED, Order::STATUS_DELIVERED, Order::STATUS_COMPLETED] as $status) {
-            $order->setStatus($status);
-            $this->assertSame([8, 7], $products->map(fn ($p) => $p->fresh()->stock)->all());
-        }
+        $order->setStatus(Order::STATUS_PROCESSING);
         for ($i = 0; $i < 2; $i++) {
             $this->actingAs($admin)->post(route('admin.orders.updateStatus', $order), [
                 'status' => Order::STATUS_CANCELED, 'change_reason' => 'Отмена',
@@ -60,6 +57,16 @@ class OrderStockTest extends TestCase
         }
         $this->assertSame(Order::STATUS_CANCELED, $order->fresh()->status);
         $this->assertSame([10, 10], $products->map(fn ($p) => $p->fresh()->stock)->all());
+    }
+
+    public function test_legacy_paid_order_cannot_be_canceled_and_restocked(): void
+    {
+        $this->assertLegacyIssuedOrderCannotRestock(Order::STATUS_PAID);
+    }
+
+    public function test_legacy_shipped_order_cannot_be_canceled_and_restocked(): void
+    {
+        $this->assertLegacyIssuedOrderCannotRestock(Order::STATUS_SHIPPED);
     }
 
     public function test_stale_models_cannot_restore_twice_or_reactivate_canceled_order(): void
@@ -125,7 +132,7 @@ class OrderStockTest extends TestCase
         $stale = $order->fresh();
         $order->setStatus(Order::STATUS_SHIPPED);
         $this->actingAs($seller)->post(route('seller.orders.updateStatus', $order), ['status' => Order::STATUS_CANCELED])
-            ->assertSessionHas('error');
+            ->assertSessionHasErrors('status');
         try {
             $stale->setStatus(Order::STATUS_CANCELED, [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_PAID]);
             $this->fail('Stale cancellation must not bypass seller transition rules');
@@ -148,6 +155,19 @@ class OrderStockTest extends TestCase
             return $product;
         });
         return [$buyer, $seller, $products];
+    }
+
+    private function assertLegacyIssuedOrderCannotRestock(string $status): void
+    {
+        [$buyer, , $products] = $this->cart();
+        $order = $this->checkout($buyer);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $order->setStatus($status);
+        $this->actingAs($admin)->postJson(route('admin.orders.updateStatus', $order), [
+            'status' => Order::STATUS_CANCELED, 'change_reason' => 'Проверка безопасности',
+        ])->assertUnprocessable()->assertJsonValidationErrors('status');
+        $this->assertSame($status, $order->fresh()->status);
+        $this->assertSame([8, 7], $products->map(fn ($p) => $p->fresh()->stock)->all());
     }
 
     private function checkout(User $buyer): Order

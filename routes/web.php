@@ -472,6 +472,12 @@ Route::middleware('role:buyer')->group(function () {
         Route::post('/orders/{order}/status', [OrderStatusController::class, 'sellerUpdate'])
             ->middleware('verified')
             ->name('orders.updateStatus');
+        Route::post('/orders/{order}/confirm-payment', [OrderStatusController::class, 'sellerConfirmPayment'])
+            ->middleware('verified')
+            ->name('orders.confirmPayment');
+        Route::post('/orders/{order}/reject-cancellation', [OrderStatusController::class, 'sellerRejectCancellation'])
+            ->middleware('verified')
+            ->name('orders.rejectCancellation');
 
         // Финансы
         Route::get('/finance', [FinanceController::class, 'index'])->name('finance.index');

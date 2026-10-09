@@ -19,6 +19,18 @@ class Order extends Model
         if ($this->exists && $this->isDirty('seller_snapshot')) {
             throw new \LogicException('Order seller snapshot is immutable.');
         }
+        if ($this->exists
+            && ((int) $this->getRawOriginal('workflow_version') === self::WORKFLOW_PICKUP
+                || (int) $this->workflow_version === self::WORKFLOW_PICKUP)
+            && $this->isDirty([
+                'workflow_version', 'status', 'payment_status', 'paid_at',
+                'accepted_at', 'ready_for_pickup_at', 'buyer_confirmed_at',
+                'delivered_at', 'completed_at', 'canceled_at',
+                'cancellation_requested_at', 'cancellation_reason',
+                'confirmation_requested_at',
+            ])) {
+            throw new \LogicException('Pickup order lifecycle changes require the locked workflow service.');
+        }
 
         return parent::save($options);
     }
@@ -306,6 +318,9 @@ public function markAsPaid(): void
         $order = $this->getConnection()->transaction(function () use ($status, $allowedFrom) {
             // Always read persisted state under the lock, including for stale model instances.
             $order = $this->newQuery()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            if ($order->workflow_version === self::WORKFLOW_PICKUP) {
+                throw ValidationException::withMessages(['status' => 'Для самовывоза используйте защищённые действия заказа.']);
+            }
             if ($order->status === $status) {
                 return $order;
             }
@@ -316,6 +331,11 @@ public function markAsPaid(): void
             }
 
             if ($status === self::STATUS_CANCELED) {
+                if (in_array($order->status, [self::STATUS_PAID, self::STATUS_SHIPPED, self::STATUS_DELIVERED, self::STATUS_COMPLETED], true)
+                    || $order->paid_at !== null || $order->shipped_at !== null
+                    || $order->delivered_at !== null || $order->buyer_confirmed_at !== null) {
+                    throw ValidationException::withMessages(['status' => 'Оплаченный или выданный заказ нельзя отменить обычным способом.']);
+                }
                 // Include withdrawn products; account deletion must not lose their inventory.
                 foreach ($order->items()->without('product')->orderBy('product_id')->get()->groupBy('product_id') as $productId => $items) {
                     $quantity = (int) $items->sum('quantity');
