@@ -81,6 +81,12 @@ class Order extends Model
     public const STATUS_DELIVERED  = 'delivered';
     public const STATUS_COMPLETED  = 'completed';
     public const STATUS_CANCELED   = 'canceled';
+    // Reserved for the pickup workflow. Existing status transitions stay unchanged in stage 1.
+    public const STATUS_READY_FOR_PICKUP = 'ready_for_pickup';
+
+    public const WORKFLOW_PICKUP = 2;
+    public const PAYMENT_UNPAID = 'unpaid';
+    public const PAYMENT_SELLER_CONFIRMED = 'seller_confirmed';
 
     public static function allStatuses(): array
     {
@@ -159,6 +165,11 @@ class Order extends Model
         'delivered_at' => 'datetime',
         'canceled_at' => 'datetime',
         'cancellation_requested_at' => 'datetime',
+        'workflow_version' => 'integer',
+        'ready_for_pickup_at' => 'datetime',
+        'buyer_confirmed_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'confirmation_requested_at' => 'datetime',
     ];
 public function markAsPaid(): void
 {
@@ -214,6 +225,16 @@ public function markAsPaid(): void
         return $this->hasMany(OrderDispute::class);
     }
 
+    public function events()
+    {
+        return $this->hasMany(OrderEvent::class);
+    }
+
+    public function adminDecisions()
+    {
+        return $this->hasMany(OrderAdminDecision::class);
+    }
+
     public function openDispute()
     {
         return $this->hasOne(OrderDispute::class)->where('status', OrderDispute::STATUS_OPEN);
@@ -233,6 +254,7 @@ public function markAsPaid(): void
             'delivered' => 'Доставлен',
             'completed' => 'Завершён',
             'canceled'  => 'Отменён',
+            'ready_for_pickup' => 'Готов к самовывозу',
             default     => $this->status,
         };
     }
