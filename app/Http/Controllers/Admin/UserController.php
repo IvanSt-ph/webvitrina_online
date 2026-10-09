@@ -144,27 +144,26 @@ class UserController extends Controller
             ? $user->sellerPlanRequests()->pluck('id')
             : collect();
         $orderStatusCounts = ($user->isSeller() ? $user->salesOrders() : $user->orders())
-            ->selectRaw('status, count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
+            ->selectRaw('workflow_version, status, count(*) as total')
+            ->groupBy('workflow_version', 'status')
+            ->get();
+        $countOrders = static function (array $statuses, ?bool $pickup = null) use ($orderStatusCounts): int {
+            return (int) $orderStatusCounts
+                ->filter(fn ($row) => in_array($row->status, $statuses, true)
+                    && ($pickup === null || ((int) $row->workflow_version === Order::WORKFLOW_PICKUP) === $pickup))
+                ->sum('total');
+        };
         $commerceSummary = [
-            'needs_action_orders' => (int) ($orderStatusCounts[Order::STATUS_PENDING] ?? 0),
-            'fulfillment_orders' => (int) collect([
-                Order::STATUS_PROCESSING,
-                Order::STATUS_PAID,
-                Order::STATUS_SHIPPED,
-            ])->sum(fn (string $status) => $orderStatusCounts[$status] ?? 0),
-            'active_orders' => (int) collect([
-                Order::STATUS_PENDING,
-                Order::STATUS_PROCESSING,
-                Order::STATUS_PAID,
-                Order::STATUS_SHIPPED,
-            ])->sum(fn (string $status) => $orderStatusCounts[$status] ?? 0),
-            'completed_orders' => (int) collect([
-                Order::STATUS_DELIVERED,
-                Order::STATUS_COMPLETED,
-            ])->sum(fn (string $status) => $orderStatusCounts[$status] ?? 0),
-            'canceled_orders' => (int) ($orderStatusCounts[Order::STATUS_CANCELED] ?? 0),
+            'needs_action_orders' => $countOrders([Order::STATUS_PENDING]),
+            'fulfillment_orders' => $countOrders([Order::STATUS_PROCESSING, Order::STATUS_READY_FOR_PICKUP, Order::STATUS_DELIVERED], true)
+                + $countOrders([Order::STATUS_PROCESSING, Order::STATUS_PAID, Order::STATUS_SHIPPED], false),
+            'active_orders' => $countOrders([Order::STATUS_PENDING, Order::STATUS_PROCESSING,
+                Order::STATUS_READY_FOR_PICKUP, Order::STATUS_DELIVERED], true)
+                + $countOrders([Order::STATUS_PENDING, Order::STATUS_PROCESSING,
+                    Order::STATUS_PAID, Order::STATUS_SHIPPED], false),
+            'completed_orders' => $countOrders([Order::STATUS_COMPLETED], true)
+                + $countOrders([Order::STATUS_DELIVERED, Order::STATUS_COMPLETED], false),
+            'canceled_orders' => $countOrders([Order::STATUS_CANCELED]),
             'active_products' => $user->isSeller() ? $user->products()->where('status', 'active')->count() : 0,
             'draft_products' => $user->isSeller() ? $user->products()->where('status', 'draft')->count() : 0,
             'out_of_stock_products' => $user->isSeller()

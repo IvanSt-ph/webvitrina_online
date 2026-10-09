@@ -14,16 +14,31 @@ class FinanceController extends Controller
         $ordersQuery = Order::query()->where('seller_id', $sellerId);
 
         $completedTotal = (clone $ordersQuery)
-            ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+            ->where(function ($orders) {
+                $orders->where(function ($pickup) {
+                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                        ->where('status', Order::STATUS_COMPLETED);
+                })->orWhere(function ($legacy) {
+                    $legacy->where(function ($version) {
+                        $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
+                    })->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED]);
+                });
+            })
             ->sum('total_price');
 
         $inProgressTotal = (clone $ordersQuery)
-            ->whereIn('status', [
-                Order::STATUS_PENDING,
-                Order::STATUS_PROCESSING,
-                Order::STATUS_PAID,
-                Order::STATUS_SHIPPED,
-            ])
+            ->where(function ($orders) {
+                $orders->where(function ($pickup) {
+                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                        ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING,
+                            Order::STATUS_READY_FOR_PICKUP, Order::STATUS_DELIVERED]);
+                })->orWhere(function ($legacy) {
+                    $legacy->where(function ($version) {
+                        $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
+                    })->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING,
+                        Order::STATUS_PAID, Order::STATUS_SHIPPED]);
+                });
+            })
             ->sum('total_price');
 
         $canceledTotal = (clone $ordersQuery)

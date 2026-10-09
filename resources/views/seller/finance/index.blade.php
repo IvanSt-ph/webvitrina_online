@@ -33,8 +33,8 @@
     <section class="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
       <div class="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-4 sm:px-5">
         <div>
-          <h2 class="font-semibold text-neutral-950">Последние финансовые события</h2>
-          <p class="mt-1 text-xs text-neutral-500">Заказы, из которых складываются показатели выше.</p>
+          <h2 class="font-semibold text-neutral-950">Последние заказы</h2>
+          <p class="mt-1 text-xs text-neutral-500">Операционные суммы заказов, не подтверждение оплаты.</p>
         </div>
       </div>
       <div class="divide-y divide-neutral-100">
@@ -43,7 +43,7 @@
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="font-semibold text-neutral-900">#{{ $order->number }}</span>
-                <x-status-badge :status="$order->status" />
+                <x-status-badge :status="$order->status" :order="$order" />
               </div>
               <p class="mt-1 truncate text-sm text-neutral-500">{{ $order->buyer_name }} · {{ $order->created_at?->format('d.m.Y H:i') }}</p>
             </div>
