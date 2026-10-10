@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OrderPickupWorkflow
@@ -22,7 +23,7 @@ class OrderPickupWorkflow
             $locked = $this->lock($order);
             abort_unless($locked->seller_id === $seller->id && $seller->role === 'seller', 403);
 
-            if ($locked->workflow_version !== Order::WORKFLOW_PICKUP) {
+            if ($locked->isLegacyWorkflow()) {
                 return $this->legacySellerUpdate($locked, $seller, $target);
             }
 
@@ -93,7 +94,7 @@ class OrderPickupWorkflow
             $locked = $this->lock($order);
             abort_unless($locked->user_id === $buyer->id && $buyer->role === 'buyer', 403);
 
-            if ($locked->workflow_version !== Order::WORKFLOW_PICKUP) {
+            if ($locked->isLegacyWorkflow()) {
                 return $this->legacyBuyerConfirmReceipt($locked, $buyer);
             }
 
@@ -125,6 +126,44 @@ class OrderPickupWorkflow
         }, 3);
     }
 
+    public function sellerRequestReceiptConfirmation(Order $order, User $seller): bool
+    {
+        return DB::transaction(function () use ($order, $seller): bool {
+            $locked = $this->lock($order);
+            abort_unless($locked->seller_id === $seller->id && $seller->role === 'seller', 403);
+            $this->assertPickupOrder($locked);
+            $this->require(in_array($locked->status, [Order::STATUS_READY_FOR_PICKUP, Order::STATUS_DELIVERED], true)
+                && $locked->buyer_confirmed_at === null,
+                'Напоминание доступно только до подтверждения получения готового заказа.');
+
+            if ($locked->confirmation_requested_at !== null
+                && $locked->confirmation_requested_at->copy()->addDay()->isFuture()) {
+                return false;
+            }
+
+            $buyer = User::query()->whereKey($locked->user_id)->lockForUpdate()->first();
+            $this->require($buyer !== null && ! $buyer->trashed(),
+                'Аккаунт покупателя недоступен. Обратитесь в поддержку.');
+
+            $this->write($locked, ['confirmation_requested_at' => now()]);
+            $locked->events()->create([
+                'actor_id' => $seller->id,
+                'actor_role' => 'seller',
+                'event_type' => 'pickup_confirmation_requested',
+                'event_key' => 'pickup-confirmation-'.Str::uuid(),
+                'from_status' => $locked->status,
+                'to_status' => $locked->status,
+            ]);
+            $notification = $this->notifications->create($buyer, 'pickup_confirmation_requested',
+                'Подтвердите получение заказа',
+                "Продавец просит подтвердить получение заказа {$locked->number}, если товар действительно получен.",
+                route('orders.show', $locked, false), ['order_id' => $locked->id]);
+            $this->require($notification !== null, 'Уведомление покупателю недоступно. Обратитесь в поддержку.');
+
+            return true;
+        }, 3);
+    }
+
     public function buyerRequestCancellation(Order $order, User $buyer, string $reason): bool
     {
         return DB::transaction(function () use ($order, $buyer, $reason): bool {
@@ -133,9 +172,10 @@ class OrderPickupWorkflow
             $reason = trim($reason);
             $this->require($reason !== '' && mb_strlen($reason) <= 700, 'Укажите причину запроса отмены.');
 
-            $allowed = $locked->workflow_version === Order::WORKFLOW_PICKUP
-                ? [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_READY_FOR_PICKUP]
-                : [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_PAID];
+            $this->require(! $locked->isUnsupportedWorkflow(), 'Версия процесса заказа не поддерживается.');
+            $allowed = $locked->isLegacyWorkflow()
+                ? [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_PAID]
+                : [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_READY_FOR_PICKUP];
             $this->require(in_array($locked->status, $allowed, true)
                 && $locked->buyer_confirmed_at === null,
                 'Запрос отмены недоступен после получения или завершения заказа.');
@@ -187,8 +227,8 @@ class OrderPickupWorkflow
         return DB::transaction(function () use ($order, $admin, $target, $reason): bool {
             $locked = $this->lock($order);
             abort_unless($admin->role === 'admin', 403);
-            $this->require($locked->workflow_version !== Order::WORKFLOW_PICKUP,
-                'Новый заказ самовывоза изменяется только через отдельные подтверждения и решение администратора.');
+            $this->require($locked->isLegacyWorkflow(),
+                'Изменение статуса доступно только для исторического заказа.');
             $this->require(! in_array($target, [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED], true)
                 && ! in_array($locked->status, [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED], true),
                 'Администратор не может подменять подтверждение получения или менять выданный заказ.');

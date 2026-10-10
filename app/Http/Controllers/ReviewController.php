@@ -37,6 +37,13 @@ public function store(Request $request, Product $product)
 
     $hasPurchased = Order::where('user_id', auth()->id())
         ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+        ->where(function ($workflow) {
+            $workflow->whereNull('workflow_version')
+                ->orWhere(function ($pickup) {
+                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                        ->whereNotNull('buyer_confirmed_at');
+                });
+        })
         ->whereHas('items', fn ($q) => $q->where('product_id', $product->id))
         ->exists();
 

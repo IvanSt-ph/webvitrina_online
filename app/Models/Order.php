@@ -20,8 +20,7 @@ class Order extends Model
             throw new \LogicException('Order seller snapshot is immutable.');
         }
         if ($this->exists
-            && ((int) $this->getRawOriginal('workflow_version') === self::WORKFLOW_PICKUP
-                || (int) $this->workflow_version === self::WORKFLOW_PICKUP)
+            && ($this->getRawOriginal('workflow_version') !== null || $this->workflow_version !== null)
             && $this->isDirty([
                 'workflow_version', 'status', 'payment_status', 'paid_at',
                 'accepted_at', 'ready_for_pickup_at', 'buyer_confirmed_at',
@@ -99,6 +98,16 @@ class Order extends Model
     public const WORKFLOW_PICKUP = 2;
     public const PAYMENT_UNPAID = 'unpaid';
     public const PAYMENT_SELLER_CONFIRMED = 'seller_confirmed';
+
+    public function isLegacyWorkflow(): bool
+    {
+        return $this->workflow_version === null;
+    }
+
+    public function isUnsupportedWorkflow(): bool
+    {
+        return $this->workflow_version !== null && $this->workflow_version !== self::WORKFLOW_PICKUP;
+    }
 
     public static function allStatuses(): array
     {
@@ -263,6 +272,10 @@ public function markAsPaid(): void
 
     public function getStatusRuAttribute()
     {
+        if ($this->isUnsupportedWorkflow()) {
+            return 'Версия процесса заказа не поддерживается';
+        }
+
         if ($this->workflow_version === self::WORKFLOW_PICKUP) {
             if ($this->status === self::STATUS_DELIVERED && $this->buyer_confirmed_at === null) {
                 return 'Получение требует проверки';
@@ -347,8 +360,8 @@ public function markAsPaid(): void
         $order = $this->getConnection()->transaction(function () use ($status, $allowedFrom) {
             // Always read persisted state under the lock, including for stale model instances.
             $order = $this->newQuery()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
-            if ($order->workflow_version === self::WORKFLOW_PICKUP) {
-                throw ValidationException::withMessages(['status' => 'Для самовывоза используйте защищённые действия заказа.']);
+            if (! $order->isLegacyWorkflow()) {
+                throw ValidationException::withMessages(['status' => 'Для этого заказа обычная смена статуса недоступна.']);
             }
             if ($order->status === $status) {
                 return $order;

@@ -178,9 +178,9 @@
                                         <span class="text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
                                         <span class="text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение не подтверждено покупателем' }}</span>
                                     @endif
-                                    @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
+                                    @if(! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
                                         <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">Запрос отмены</span>
-                                    @elseif($order->status === \App\Models\Order::STATUS_PENDING)
+                                    @elseif(! $order->isUnsupportedWorkflow() && $order->status === \App\Models\Order::STATUS_PENDING)
                                         <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Нужен ответ</span>
                                     @endif
                                 </div>

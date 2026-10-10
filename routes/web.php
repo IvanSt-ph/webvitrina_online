@@ -475,6 +475,9 @@ Route::middleware('role:buyer')->group(function () {
         Route::post('/orders/{order}/confirm-payment', [OrderStatusController::class, 'sellerConfirmPayment'])
             ->middleware('verified')
             ->name('orders.confirmPayment');
+        Route::post('/orders/{order}/request-receipt-confirmation', [OrderStatusController::class, 'sellerRequestReceiptConfirmation'])
+            ->middleware(['verified', 'throttle:5,1'])
+            ->name('orders.requestReceiptConfirmation');
         Route::post('/orders/{order}/reject-cancellation', [OrderStatusController::class, 'sellerRejectCancellation'])
             ->middleware('verified')
             ->name('orders.rejectCancellation');

@@ -377,10 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 2500);
     }
 
-    @if(session('success'))
-      showToast(@js(session('success')));
-    @endif
-
     function showPlusOne(btn) {
       const plus = document.createElement('span');
       plus.className = 'plus-one';
@@ -534,9 +530,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.js-fav-remove-form').forEach(form => {
       form.addEventListener('submit', function(e) {
         e.preventDefault();
+
+        if (this.dataset.submitting === 'true') return;
+
+        this.dataset.submitting = 'true';
+        this.querySelector('button[type="submit"]')?.setAttribute('disabled', 'disabled');
         const card = this.closest('[data-fav-card]');
         card.classList.add('fav-removing');
-        setTimeout(() => this.submit(), 200);
+        setTimeout(() => HTMLFormElement.prototype.submit.call(this), 200);
       });
     });
 

@@ -2,22 +2,23 @@
 
 @php
     $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
+    $isLegacy = $order->isLegacyWorkflow();
     $steps = $isPickupV2 ? [
         'pending' => 1,
         'processing' => 2,
         'ready_for_pickup' => 3,
         'delivered' => 4,
         'completed' => 5,
-    ] : [
+    ] : ($isLegacy ? [
         'pending'     => 1,
         'processing'  => 2,
         'paid'        => 3,
         'shipped'     => 4,
         'delivered'   => 5,
         'completed'   => 6,
-    ];
+    ] : []);
 
-    $active = $order->status === \App\Models\Order::STATUS_CANCELED ? 0 : ($steps[$order->status] ?? 1);
+    $active = ! $isLegacy && ! $isPickupV2 ? 0 : ($order->status === \App\Models\Order::STATUS_CANCELED ? 0 : ($steps[$order->status] ?? 1));
 
     $stepLabels = $isPickupV2 ? [
         1 => 'Новый заказ',
@@ -25,14 +26,14 @@
         3 => 'Готов к самовывозу',
         4 => 'Получение подтверждено покупателем',
         5 => 'Завершён',
-    ] : [
+    ] : ($isLegacy ? [
         1 => 'Новый заказ',
         2 => 'Принят продавцом',
         3 => 'Оплачен',
         4 => 'В доставке',
         5 => 'Доставлен',
         6 => 'Завершён',
-    ];
+    ] : []);
 
     if ($isPickupV2 && $order->buyer_confirmed_at === null && $active >= 4) {
         $active = 3;
@@ -44,7 +45,7 @@
     $addressParts = collect([$order->address_snapshot['full'] ?? null])->filter();
 
     $shop = $order->seller?->shop;
-    $canConfirmDelivery = ! $isPickupV2 && $order->status === \App\Models\Order::STATUS_SHIPPED;
+    $canConfirmDelivery = $isLegacy && $order->status === \App\Models\Order::STATUS_SHIPPED;
     $canConfirmReceipt = $isPickupV2
         && auth()->user()?->hasVerifiedEmail()
         && $order->delivery_method === 'pickup'
@@ -53,12 +54,12 @@
         && $order->ready_for_pickup_at !== null
         && $order->buyer_confirmed_at === null
         && in_array($order->payment_status, [\App\Models\Order::PAYMENT_UNPAID, \App\Models\Order::PAYMENT_SELLER_CONFIRMED], true);
-    $canRequestCancellation = in_array($order->status, [
+    $canRequestCancellation = ($isLegacy || $isPickupV2) && in_array($order->status, [
         \App\Models\Order::STATUS_PENDING,
         \App\Models\Order::STATUS_PROCESSING,
         \App\Models\Order::STATUS_PAID,
     ], true) && ! $order->cancellation_requested_at;
-    $canReview = (! $isPickupV2 || $order->buyer_confirmed_at !== null) && in_array($order->status, [
+    $canReview = ($isLegacy || ($isPickupV2 && $order->buyer_confirmed_at !== null)) && in_array($order->status, [
         \App\Models\Order::STATUS_DELIVERED,
         \App\Models\Order::STATUS_COMPLETED,
     ], true);
@@ -102,6 +103,9 @@
             'completed' => $order->status_ru === 'Завершён' ? 'Оплата отмечена продавцом, получение подтверждено покупателем.' : 'Обратитесь в поддержку для проверки статуса.',
             default => 'Следите за заказом и сообщениями продавца. Онлайн-оплата и доставка не предусмотрены.',
         };
+    } elseif (! $isLegacy) {
+        $nextActionTitle = 'Версия процесса заказа не поддерживается';
+        $nextActionHint = 'Изменение заказа временно недоступно. Обратитесь в поддержку.';
     }
 @endphp
 
@@ -166,20 +170,22 @@
                     <div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Статус заказа</div>
                     <div class="mt-1 text-base font-semibold text-neutral-900">{{ $order->status_ru }}</div>
                 </div>
-                @if($active > 0)
+                @if($stepCount === 0)
+                    <div class="rounded-full bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700">Действия недоступны</div>
+                @elseif($active > 0)
                     <div class="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{{ $active }}/{{ $stepCount }}</div>
                 @else
                     <div class="rounded-full bg-rose-50 px-3 py-1 text-sm font-bold text-rose-700">Отменён</div>
                 @endif
             </div>
-            <div class="mt-4 grid gap-1" style="grid-template-columns: repeat({{ $stepCount }}, minmax(0, 1fr));">
+            <div class="mt-4 grid gap-1" style="grid-template-columns: repeat({{ max(1, $stepCount) }}, minmax(0, 1fr));">
                 @foreach($stepLabels as $step => $text)
                     <div class="h-2 rounded-full {{ $step <= $active ? 'bg-brand-500' : 'bg-neutral-200' }}"></div>
                 @endforeach
             </div>
         </div>
 
-        <div class="hidden sm:grid gap-4 text-center text-xs font-medium text-gray-600" style="grid-template-columns: repeat({{ $stepCount }}, minmax(0, 1fr));">
+        <div class="hidden sm:grid gap-4 text-center text-xs font-medium text-gray-600" style="grid-template-columns: repeat({{ max(1, $stepCount) }}, minmax(0, 1fr));">
 
             @foreach($stepLabels as $step => $text)
 
@@ -198,7 +204,7 @@
 
         <!-- Полоски между кружками -->
         <div class="hidden sm:flex justify-between -mt-5 px-4">
-            @foreach(range(1, $stepCount - 1) as $line)
+            @foreach($stepCount > 1 ? range(1, $stepCount - 1) : [] as $line)
                 <div class="h-1 {{ $line < $active ? 'bg-brand-500' : 'bg-neutral-200' }}" style="width: {{ 100 / ($stepCount - 1) }}%"></div>
             @endforeach
         </div>
@@ -434,7 +440,7 @@
 
     </div>
 
-    @if($order->cancellation_requested_at)
+    @if(! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at)
         <section class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
             <h3 class="font-semibold text-amber-900">Запрос на отмену отправлен</h3>
             <p class="mt-1 text-sm text-amber-800">Отправлен {{ $order->cancellation_requested_at->format('d.m.Y H:i') }}. Продавец или поддержка рассмотрят запрос.</p>

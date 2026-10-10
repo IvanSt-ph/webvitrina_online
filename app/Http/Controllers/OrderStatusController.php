@@ -47,6 +47,15 @@ class OrderStatusController extends Controller
         return back()->with('success', 'Оплата подтверждена продавцом.');
     }
 
+    public function sellerRequestReceiptConfirmation(Request $request, Order $order)
+    {
+        $sent = $this->workflow->sellerRequestReceiptConfirmation($order, $request->user());
+
+        return back()->with('success', $sent
+            ? 'Напоминание создано для покупателя.'
+            : 'Повторное напоминание пока недоступно; новое уведомление не создавалось.');
+    }
+
     public function sellerRejectCancellation(Request $request, Order $order)
     {
         $data = $request->validate([

@@ -19,9 +19,7 @@ class FinanceController extends Controller
                     $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
                         ->where('status', Order::STATUS_COMPLETED);
                 })->orWhere(function ($legacy) {
-                    $legacy->where(function ($version) {
-                        $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
-                    })->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED]);
+                    $legacy->whereNull('workflow_version')->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED]);
                 });
             })
             ->sum('total_price');
@@ -33,9 +31,7 @@ class FinanceController extends Controller
                         ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING,
                             Order::STATUS_READY_FOR_PICKUP, Order::STATUS_DELIVERED]);
                 })->orWhere(function ($legacy) {
-                    $legacy->where(function ($version) {
-                        $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
-                    })->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING,
+                    $legacy->whereNull('workflow_version')->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING,
                         Order::STATUS_PAID, Order::STATUS_SHIPPED]);
                 });
             })
@@ -43,9 +39,11 @@ class FinanceController extends Controller
 
         $canceledTotal = (clone $ordersQuery)
             ->where('status', Order::STATUS_CANCELED)
+            ->where(fn ($query) => $query->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->sum('total_price');
 
         $recentOrders = (clone $ordersQuery)
+            ->where(fn ($query) => $query->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->with('user')
             ->latest()
             ->limit(8)

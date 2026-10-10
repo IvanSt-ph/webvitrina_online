@@ -531,11 +531,15 @@ public function redirectToRoleProfile()
             ->count();
 
         $confirmationOrdersCount = $user->orders()
+            ->whereNull('workflow_version')
             ->where('status', Order::STATUS_SHIPPED)
             ->count();
 
         $reviewableOrdersCount = $user->orders()
             ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+            ->where(fn ($workflow) => $workflow->whereNull('workflow_version')
+                ->orWhere(fn ($pickup) => $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                    ->whereNotNull('buyer_confirmed_at')))
             ->whereHas('items.product', fn ($query) => $query->whereDoesntHave(
                 'reviews',
                 fn ($reviews) => $reviews->where('user_id', $user->id)

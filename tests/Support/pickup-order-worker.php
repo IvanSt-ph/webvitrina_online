@@ -17,11 +17,19 @@ echo 'CONNECTION:'.Illuminate\Support\Facades\DB::selectOne('SELECT CONNECTION_I
 echo "ATTEMPT\n";
 flush();
 $workflow = $app->make(App\Services\OrderPickupWorkflow::class);
-if ($argv[3] === 'payment') {
-    $workflow->sellerConfirmPayment($order, $actor);
-} elseif ($argv[3] === 'receipt') {
-    $workflow->buyerConfirmReceipt($order, $actor);
-} else {
-    throw new RuntimeException('Unexpected worker action');
+try {
+    if ($argv[3] === 'payment') {
+        $result = $workflow->sellerConfirmPayment($order, $actor);
+    } elseif ($argv[3] === 'receipt') {
+        $result = $workflow->buyerConfirmReceipt($order, $actor);
+    } elseif ($argv[3] === 'reminder') {
+        $result = $workflow->sellerRequestReceiptConfirmation($order, $actor);
+    } else {
+        throw new RuntimeException('Unexpected worker action');
+    }
+} catch (Illuminate\Validation\ValidationException $exception) {
+    fwrite(STDERR, 'REJECTED: '.get_class($exception).PHP_EOL);
+    exit(2);
 }
+echo 'RESULT:'.($result ? '1' : '0').PHP_EOL;
 echo "DONE\n";

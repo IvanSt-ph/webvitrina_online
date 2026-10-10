@@ -150,7 +150,8 @@ class UserController extends Controller
         $countOrders = static function (array $statuses, ?bool $pickup = null) use ($orderStatusCounts): int {
             return (int) $orderStatusCounts
                 ->filter(fn ($row) => in_array($row->status, $statuses, true)
-                    && ($pickup === null || ((int) $row->workflow_version === Order::WORKFLOW_PICKUP) === $pickup))
+                    && ($row->workflow_version === null || (int) $row->workflow_version === Order::WORKFLOW_PICKUP)
+                    && ($pickup === null || ($pickup ? (int) $row->workflow_version === Order::WORKFLOW_PICKUP : $row->workflow_version === null)))
                 ->sum('total');
         };
         $commerceSummary = [

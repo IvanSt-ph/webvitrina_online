@@ -284,9 +284,9 @@
                             $firstItem = $order->items->first();
                             $statusClass = $statusColors[$order->status] ?? 'border-slate-200 bg-slate-50 text-slate-700';
                             $sellerShopUrl = $order->seller?->shop?->slug ? route('seller.show', $order->seller->shop->slug) : null;
-                            $hasCancelRequest = $order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true);
-                            $isStuck = ($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDays(3)))
-                                || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(5))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(5)))));
+                            $hasCancelRequest = ! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true);
+                            $isStuck = ! $order->isUnsupportedWorkflow() && (($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDays(3)))
+                                || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(5))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(5))))));
                         @endphp
                         <tr class="align-top transition hover:bg-indigo-50/25">
                             <td class="px-4 py-4">
@@ -354,7 +354,7 @@
                                     @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
                                         @if($order->ready_for_pickup_at)<div>Готов к самовывозу: {{ $order->ready_for_pickup_at->format('d.m H:i') }}</div>@endif
                                         @if($order->buyer_confirmed_at)<div>Покупатель подтвердил получение: {{ $order->buyer_confirmed_at->format('d.m H:i') }}</div>@endif
-                                    @else
+                                    @elseif($order->isLegacyWorkflow())
                                         @if($order->shipped_at)<div>Отправлен: {{ $order->shipped_at->format('d.m H:i') }}</div>@endif
                                         @if($order->delivered_at)<div>Доставлен: {{ $order->delivered_at->format('d.m H:i') }}</div>@endif
                                     @endif
@@ -400,9 +400,9 @@
                     $itemsCount = $order->items->sum('quantity');
                     $firstItem = $order->items->first();
                     $statusClass = $statusColors[$order->status] ?? 'border-slate-200 bg-slate-50 text-slate-700';
-                    $hasCancelRequest = $order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true);
-                    $isStuck = ($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDays(3)))
-                        || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(5))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(5)))));
+                    $hasCancelRequest = ! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at && !in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true);
+                    $isStuck = ! $order->isUnsupportedWorkflow() && (($order->status === \App\Models\Order::STATUS_PENDING && $order->created_at?->lte(now()->subDays(3)))
+                        || ($order->status === \App\Models\Order::STATUS_PROCESSING && (($order->accepted_at && $order->accepted_at->lte(now()->subDays(5))) || (!$order->accepted_at && $order->created_at?->lte(now()->subDays(5))))));
                 @endphp
                 <article class="p-4">
                     <div class="flex items-start justify-between gap-3">

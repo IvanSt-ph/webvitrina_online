@@ -13,6 +13,7 @@
     ];
 
     $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
+    $isLegacy = $order->isLegacyWorkflow();
     $eventMeta = [
         'order_created' => ['label' => 'Заказ создан', 'icon' => 'ri-add-circle-line', 'tone' => 'indigo'],
         'order_accepted' => ['label' => 'Принят продавцом', 'icon' => 'ri-user-follow-line', 'tone' => 'sky'],
@@ -42,7 +43,7 @@
                 'description' => is_string($reason) ? $reason : null,
             ];
         })
-        : collect([
+        : ($isLegacy ? collect([
         ['label' => 'Заказ создан', 'at' => $order->created_at, 'icon' => 'ri-add-circle-line', 'tone' => 'indigo'],
         ['label' => 'Покупатель запросил отмену', 'at' => $order->cancellation_requested_at, 'icon' => 'ri-error-warning-line', 'tone' => 'rose', 'description' => $order->cancellation_reason],
         ['label' => 'Принят продавцом', 'at' => $order->accepted_at, 'icon' => 'ri-user-follow-line', 'tone' => 'sky'],
@@ -50,9 +51,9 @@
         ['label' => 'Передан в доставку', 'at' => $order->shipped_at, 'icon' => 'ri-truck-line', 'tone' => 'blue'],
         ['label' => 'Доставлен', 'at' => $order->delivered_at, 'icon' => 'ri-checkbox-circle-line', 'tone' => 'green'],
         ['label' => 'Отменён', 'at' => $order->canceled_at, 'icon' => 'ri-close-circle-line', 'tone' => 'rose'],
-    ])->filter(fn ($event) => $event['at'])->sortBy('at')->values();
+    ])->filter(fn ($event) => $event['at'])->sortBy('at')->values() : collect());
 
-    if (! $isPickupV2 && $order->status === \App\Models\Order::STATUS_COMPLETED && ! $events->contains('label', 'Завершён')) {
+    if ($isLegacy && $order->status === \App\Models\Order::STATUS_COMPLETED && ! $events->contains('label', 'Завершён')) {
         $events->push([
             'label' => 'Завершён',
             'at' => $order->updated_at,
@@ -103,7 +104,7 @@
                 </div>
             </div>
         @empty
-            <p class="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500">Событий пока нет.</p>
+            <p class="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500">{{ $order->isUnsupportedWorkflow() ? 'Версия процесса заказа не поддерживается. История переходов недоступна.' : 'Событий пока нет.' }}</p>
         @endforelse
     </div>
 </section>

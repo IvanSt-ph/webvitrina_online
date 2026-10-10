@@ -12,7 +12,7 @@ class OrderController extends Controller
     /** 📋 Список заказов */
     public function index(Request $request)
     {
-        $tab = in_array($request->get('tab'), ['active', 'action', 'completed', 'canceled'], true)
+        $tab = in_array($request->get('tab'), ['active', 'action', 'completed', 'canceled', 'unsupported'], true)
             ? $request->get('tab')
             : 'active';
         $search = trim((string) $request->get('q', ''));
@@ -30,10 +30,14 @@ class OrderController extends Controller
             }));
 
         match ($tab) {
-            'completed' => $query->where('status', Order::STATUS_COMPLETED),
-            'canceled' => $query->where('status', Order::STATUS_CANCELED),
+            'completed' => $query->where('status', Order::STATUS_COMPLETED)
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP)),
+            'canceled' => $query->where('status', Order::STATUS_CANCELED)
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP)),
+            'unsupported' => $query->whereNotNull('workflow_version')->where('workflow_version', '!=', Order::WORKFLOW_PICKUP),
             'action' => $this->requireBuyerAction($query, $buyerId, (bool) auth()->user()?->hasVerifiedEmail()),
-            default => $query->whereNotIn('status', [
+            default => $query->where(fn ($supported) => $supported->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
+                ->whereNotIn('status', [
                 Order::STATUS_COMPLETED,
                 Order::STATUS_CANCELED,
             ]),
@@ -42,6 +46,7 @@ class OrderController extends Controller
         $orders = $query->paginate(12)->withQueryString();
 
         $statusCounts = Order::where('user_id', $buyerId)
+            ->where(fn ($supported) => $supported->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->select('status', DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -49,17 +54,17 @@ class OrderController extends Controller
         $actionCountQuery = Order::where('user_id', $buyerId);
         $this->requireBuyerAction($actionCountQuery, $buyerId, (bool) auth()->user()?->hasVerifiedEmail());
         $actionCount = $actionCountQuery->count();
+        $unsupportedCount = Order::where('user_id', $buyerId)
+            ->whereNotNull('workflow_version')->where('workflow_version', '!=', Order::WORKFLOW_PICKUP)->count();
 
-        return view('shop.orders', compact('orders', 'tab', 'statusCounts', 'actionCount', 'search'));
+        return view('shop.orders', compact('orders', 'tab', 'statusCounts', 'actionCount', 'unsupportedCount', 'search'));
     }
 
     private function requireBuyerAction($query, int $buyerId, bool $verified): void
     {
         $query->where(function ($inner) use ($buyerId, $verified) {
             $inner->where(function ($legacy) {
-                $legacy->where(function ($version) {
-                    $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
-                })->where('status', Order::STATUS_SHIPPED);
+                $legacy->whereNull('workflow_version')->where('status', Order::STATUS_SHIPPED);
             });
             if ($verified) {
                 $inner->orWhere(function ($pickup) {
@@ -78,8 +83,10 @@ class OrderController extends Controller
                         ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
                         ->where(function ($receipt) {
                             $receipt->whereNull('workflow_version')
-                                ->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP)
-                                ->orWhereNotNull('buyer_confirmed_at');
+                                ->orWhere(function ($pickup) {
+                                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                                        ->whereNotNull('buyer_confirmed_at');
+                                });
                         })
                         ->whereHas('items.product', fn ($product) => $product->whereDoesntHave(
                             'reviews',

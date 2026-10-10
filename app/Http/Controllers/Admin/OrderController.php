@@ -23,6 +23,8 @@ class OrderController extends Controller
         ]);
 
         $statusCounts = Order::query()
+            ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -30,7 +32,9 @@ class OrderController extends Controller
         $query = Order::with(['user', 'seller.shop', 'items.product']);
 
         if ($request->filled('status') && in_array($request->string('status')->toString(), Order::filterStatuses(), true)) {
-            $query->where('status', $request->string('status')->toString());
+            $query->where('status', $request->string('status')->toString())
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP));
         }
 
         if ($request->filled('q')) {
@@ -65,6 +69,8 @@ class OrderController extends Controller
         }
 
         if ($request->filled('focus')) {
+            $query->where(fn ($supported) => $supported->whereNull('workflow_version')
+                ->orWhere('workflow_version', Order::WORKFLOW_PICKUP));
             match ($request->string('focus')->toString()) {
                 'active' => $query->whereIn('status', [
                     Order::STATUS_PENDING,
@@ -89,8 +95,12 @@ class OrderController extends Controller
             'total' => (clone $filtered)->count(),
             'revenue' => (clone $filtered)
                 ->where('status', '!=', Order::STATUS_CANCELED)
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
                 ->sum('total_price'),
             'active' => (clone $filtered)
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
                 ->whereIn('status', [
                     Order::STATUS_PENDING,
                     Order::STATUS_PROCESSING,
@@ -101,11 +111,19 @@ class OrderController extends Controller
                 ])
                 ->count(),
             'cancel_requests' => (clone $filtered)
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
                 ->whereNotNull('cancellation_requested_at')
                 ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED])
                 ->count(),
-            'stuck' => tap(clone $filtered, fn ($query) => $this->applyStuckOrderFilter($query))->count(),
+            'stuck' => tap(clone $filtered, function ($query) {
+                $query->where(fn ($supported) => $supported->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP));
+                $this->applyStuckOrderFilter($query);
+            })->count(),
             'attention' => (clone $filtered)
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
                 ->whereNotNull('cancellation_requested_at')
                 ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED])
                 ->count(),

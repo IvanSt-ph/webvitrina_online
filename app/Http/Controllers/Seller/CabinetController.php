@@ -44,9 +44,13 @@ class CabinetController extends Controller
 
         $followersCount = $user->shop?->followers()->count() ?? 0;
         $pendingOrdersCount = Order::where('seller_id', $user->id)
+            ->where(fn ($workflow) => $workflow->whereNull('workflow_version')
+                ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->where('status', Order::STATUS_PENDING)
             ->count();
         $cancellationRequestsCount = Order::where('seller_id', $user->id)
+            ->where(fn ($workflow) => $workflow->whereNull('workflow_version')
+                ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->whereNotNull('cancellation_requested_at')
             ->where('status', '!=', Order::STATUS_CANCELED)
             ->count();
@@ -74,6 +78,8 @@ class CabinetController extends Controller
             ->latest()
             ->first();
         $actionOrders = Order::where('seller_id', $user->id)
+            ->where(fn ($workflow) => $workflow->whereNull('workflow_version')
+                ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->with(['user', 'items.product'])
             ->where(function ($query) {
                 $query->where('status', Order::STATUS_PENDING)

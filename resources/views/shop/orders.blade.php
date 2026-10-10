@@ -17,6 +17,10 @@
                 'label' => 'Отменённые',
                 'count' => $statusCounts[\App\Models\Order::STATUS_CANCELED] ?? 0,
             ],
+            'unsupported' => [
+                'label' => 'Требуют проверки',
+                'count' => $unsupportedCount,
+            ],
         ];
 
     @endphp
@@ -82,11 +86,12 @@
                 @forelse($orders as $order)
                     @php
                         $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
+                        $isLegacy = $order->isLegacyWorkflow();
                         $firstItem = $order->items->first();
                         $itemsCount = $order->items->sum('quantity');
                         $firstTitle = $firstItem?->historical_title;
                         $shopName = $order->historical_seller_name;
-                        $needsConfirmation = (! $isPickupV2 && $order->status === \App\Models\Order::STATUS_SHIPPED)
+                        $needsConfirmation = ($isLegacy && $order->status === \App\Models\Order::STATUS_SHIPPED)
                             || ($isPickupV2 && auth()->user()?->hasVerifiedEmail()
                                 && $order->status === \App\Models\Order::STATUS_READY_FOR_PICKUP
                                 && $order->delivery_method === 'pickup'
@@ -96,7 +101,7 @@
                                 && in_array($order->payment_status, [\App\Models\Order::PAYMENT_UNPAID, \App\Models\Order::PAYMENT_SELLER_CONFIRMED], true));
                         $needsReview = $tab === 'action'
                             && in_array($order->status, [\App\Models\Order::STATUS_DELIVERED, \App\Models\Order::STATUS_COMPLETED], true)
-                            && (! $isPickupV2 || $order->buyer_confirmed_at !== null);
+                            && ($isLegacy || ($isPickupV2 && $order->buyer_confirmed_at !== null));
                     @endphp
 
                     <article class="group w-full max-w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white p-3 transition duration-300 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-100/40 sm:p-4 lg:p-5">

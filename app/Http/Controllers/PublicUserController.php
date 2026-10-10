@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Review;
+use App\Models\Order;
 use App\Models\User;
 
 class PublicUserController extends Controller
@@ -23,7 +24,11 @@ class PublicUserController extends Controller
             'written_reviews' => Review::where('user_id', $user->id)
                 ->where('status', Review::STATUS_APPROVED)
                 ->count(),
-            'completed_orders' => $user->orders()->where('status', 'completed')->count(),
+            'completed_orders' => $user->orders()
+                ->where('status', Order::STATUS_COMPLETED)
+                ->where(fn ($workflow) => $workflow->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
+                ->count(),
         ];
 
         $publicReviews = Review::query()

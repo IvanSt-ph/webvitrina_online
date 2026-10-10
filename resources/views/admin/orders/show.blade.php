@@ -182,7 +182,7 @@
                 <p class="mt-1 text-sm text-slate-500">Смена статуса фиксируется в журнале администратора.</p>
                 @if($order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP)
                     <p class="mt-4 text-sm text-slate-600">Статусы самовывоза меняются через отдельные подтверждения продавца и покупателя. Администратор не подтверждает получение за покупателя.</p>
-                @else
+                @elseif($order->isLegacyWorkflow())
                 <form method="POST" action="{{ route('admin.orders.updateStatus', $order) }}" class="mt-4 space-y-3">
                     @csrf
                     <select name="status" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100">
@@ -196,6 +196,8 @@
                         <i class="ri-save-3-line"></i> Сохранить статус
                     </button>
                 </form>
+                @else
+                    <p class="mt-4 text-sm text-amber-700">Версия процесса заказа не поддерживается. Изменения недоступны; обратитесь к разработчикам.</p>
                 @endif
             </section>
 

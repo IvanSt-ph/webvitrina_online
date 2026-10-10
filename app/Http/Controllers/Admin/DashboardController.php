@@ -79,7 +79,9 @@ public function index()
 
         // 🔝 ТОП-5 популярных товаров, категорий и продавцов
         $topProducts = Product::withCount([
-                'orders' => fn ($query) => $query->where('orders.status', '!=', Order::STATUS_CANCELED),
+                'orders' => fn ($query) => $query->where('orders.status', '!=', Order::STATUS_CANCELED)
+                    ->where(fn ($supported) => $supported->whereNull('orders.workflow_version')
+                        ->orWhere('orders.workflow_version', Order::WORKFLOW_PICKUP)),
             ])
             ->orderByDesc('orders_count')
             ->take(5)
@@ -96,7 +98,8 @@ public function index()
             ->take(5)
             ->get();
 
-        $attentionOrdersQuery = fn () => Order::where(function ($query) {
+        $attentionOrdersQuery = fn () => Order::where(fn ($workflow) => $workflow->whereNull('workflow_version')
+            ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))->where(function ($query) {
             $query->where(function ($cancel) {
                 $cancel->whereNotNull('cancellation_requested_at')
                     ->whereNotIn('status', [Order::STATUS_CANCELED, Order::STATUS_COMPLETED]);

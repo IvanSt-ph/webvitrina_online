@@ -2932,7 +2932,10 @@ class SecurityRegressionTest extends TestCase
             $this->assertStringNotContainsString('<span>${message}</span>', $source);
         }
 
-        $this->assertStringContainsString('showToast(@js(session(\'success\')));', $favoritesToast);
+        $this->assertStringNotContainsString('showToast(@js(session(\'success\')));', $favoritesToast);
+        $this->assertSame(2, substr_count($favoritesToast, 'class="js-fav-remove-form"'));
+        $this->assertStringContainsString("this.dataset.submitting = 'true';", $favoritesToast);
+        $this->assertStringContainsString('HTMLFormElement.prototype.submit.call(this)', $favoritesToast);
     }
 
     public function test_dynamic_seller_product_attributes_escape_admin_configured_text(): void
@@ -3298,7 +3301,10 @@ class SecurityRegressionTest extends TestCase
             ->post(route('orders.requestCancellation', $order), [
                 'cancellation_reason' => 'Поздний запрос.',
             ])
-            ->assertSessionHasErrors('cancellation_reason');
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(Order::STATUS_SHIPPED, $order->fresh()->status);
+        $this->assertSame('Заказ оформлен ошибочно.', $order->fresh()->cancellation_reason);
     }
 
     public function test_phone_verification_routes_require_authentication(): void
@@ -3916,7 +3922,7 @@ class SecurityRegressionTest extends TestCase
             ->post(route('seller.orders.updateStatus', $order), [
                 'status' => Order::STATUS_CANCELED,
             ])
-            ->assertSessionHas('error');
+            ->assertSessionHasErrors('status');
 
         $this->assertSame(Order::STATUS_SHIPPED, $order->fresh()->status);
     }

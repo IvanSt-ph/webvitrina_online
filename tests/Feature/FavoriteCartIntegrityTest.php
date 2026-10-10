@@ -47,6 +47,37 @@ class FavoriteCartIntegrityTest extends TestCase
         $this->assertDatabaseHas('product_stats', ['product_id' => $product->id, 'favorites' => 1]);
     }
 
+    public function test_favorite_removal_flash_is_rendered_by_the_shared_toast_once(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $product = $this->createProduct($seller);
+
+        Favorite::create([
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+        $product->update(['favorites_count' => 1]);
+
+        $response = $this->actingAs($buyer)
+            ->from(route('favorites.index'))
+            ->post(route('favorites.toggle', $product));
+
+        $response
+            ->assertRedirect(route('favorites.index'))
+            ->assertSessionHas('success', 'Удалено из избранного');
+
+        $page = $this->get(route('favorites.index'));
+
+        $page->assertOk();
+        $this->assertSame(1, substr_count($page->getContent(), 'flash-0'));
+        $this->assertDatabaseMissing('favorites', [
+            'user_id' => $buyer->id,
+            'product_id' => $product->id,
+        ]);
+        $this->assertSame(0, (int) $product->fresh()->favorites_count);
+    }
+
     public function test_moving_favorite_to_cart_updates_source_of_truth_once(): void
     {
         $seller = User::factory()->create(['role' => 'seller']);

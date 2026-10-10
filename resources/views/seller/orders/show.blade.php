@@ -4,6 +4,7 @@
     @php
         /** @var \App\Models\Order $order */
         $isPickupV2 = $order->workflow_version === \App\Models\Order::WORKFLOW_PICKUP;
+        $isLegacy = $order->isLegacyWorkflow();
 
         $statusColors = [
             'pending'    => 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -24,14 +25,14 @@
             \App\Models\Order::STATUS_READY_FOR_PICKUP => 'Готов к самовывозу',
             \App\Models\Order::STATUS_DELIVERED => 'Получение подтверждено покупателем',
             \App\Models\Order::STATUS_COMPLETED => 'Завершён',
-        ] : [
+        ] : ($isLegacy ? [
             \App\Models\Order::STATUS_PENDING    => 'Новый заказ',
             \App\Models\Order::STATUS_PROCESSING => 'Принят продавцом',
             \App\Models\Order::STATUS_PAID       => 'Оплачен',
             \App\Models\Order::STATUS_SHIPPED    => 'Передан в доставку',
             \App\Models\Order::STATUS_DELIVERED  => 'Доставлен',
             \App\Models\Order::STATUS_COMPLETED  => 'Завершён',
-        ];
+        ] : []);
 
         // Позиция текущего статуса в прогрессе
         $statusKeys   = array_keys($steps);
@@ -59,11 +60,11 @@
         $nextStatus = $isPickupV2 ? ($validPickupOrder ? ([
             \App\Models\Order::STATUS_PENDING => \App\Models\Order::STATUS_PROCESSING,
             \App\Models\Order::STATUS_PROCESSING => \App\Models\Order::STATUS_READY_FOR_PICKUP,
-        ][$order->status] ?? null) : null) : ([
+        ][$order->status] ?? null) : null) : ($isLegacy ? ([
             \App\Models\Order::STATUS_PENDING => \App\Models\Order::STATUS_PROCESSING,
             \App\Models\Order::STATUS_PROCESSING => \App\Models\Order::STATUS_PAID,
             \App\Models\Order::STATUS_PAID => \App\Models\Order::STATUS_SHIPPED,
-        ][$order->status] ?? null);
+        ][$order->status] ?? null) : null);
         $nextActionLabel = [
             \App\Models\Order::STATUS_PENDING => 'Принять заказ',
             \App\Models\Order::STATUS_PROCESSING => 'Отметить как оплаченный',
@@ -81,11 +82,15 @@
         $canCancel = in_array($order->status, [
             \App\Models\Order::STATUS_PENDING,
             \App\Models\Order::STATUS_PROCESSING,
-        ], true) && ! $isPickupV2;
+        ], true) && $isLegacy;
         $canConfirmPayment = $validPickupOrder
             && in_array($order->status, [\App\Models\Order::STATUS_READY_FOR_PICKUP, \App\Models\Order::STATUS_DELIVERED], true)
             && $order->payment_status === \App\Models\Order::PAYMENT_UNPAID
             && $order->paid_at === null;
+        $canRequestReceiptConfirmation = $validPickupOrder
+            && in_array($order->status, [\App\Models\Order::STATUS_READY_FOR_PICKUP, \App\Models\Order::STATUS_DELIVERED], true)
+            && $order->buyer_confirmed_at === null;
+        $nextConfirmationRequestAt = $order->confirmation_requested_at?->copy()->addDay();
         if ($isPickupV2) {
             $nextActionLabel = match ($nextStatus) {
                 \App\Models\Order::STATUS_PROCESSING => 'Принять заказ',
@@ -95,6 +100,9 @@
             $nextActionHint = $validPickupOrder
                 ? 'Самовывоз; оплату наличными или картой продавец отмечает отдельно после фактического получения денег.'
                 : 'Параметры заказа требуют проверки. Обратитесь в поддержку.';
+        } elseif (! $isLegacy) {
+            $nextActionLabel = 'Версия процесса заказа не поддерживается';
+            $nextActionHint = 'Изменение заказа временно недоступно. Обратитесь в поддержку.';
         }
     @endphp
 
@@ -342,7 +350,23 @@
                         </button>
                     </form>
                 @endif
-                @if(! $nextStatus && ! $canConfirmPayment)
+                @if($canRequestReceiptConfirmation)
+                    @if($nextConfirmationRequestAt?->isFuture())
+                        <p class="mt-2 rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
+                            Следующее напоминание доступно {{ $nextConfirmationRequestAt->format('d.m.Y H:i') }}.
+                        </p>
+                    @elseif($order->user->exists)
+                        <form method="POST" action="{{ route('seller.orders.requestReceiptConfirmation', $order) }}" class="mt-2">
+                            @csrf
+                            <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-800 transition hover:bg-sky-100">
+                                Напомнить покупателю
+                            </button>
+                        </form>
+                    @else
+                        <p class="mt-2 rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">Аккаунт покупателя недоступен. Обратитесь в поддержку.</p>
+                    @endif
+                @endif
+                @if(! $nextStatus && ! $canConfirmPayment && ! $canRequestReceiptConfirmation)
                     <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">По этому заказу нет доступного следующего шага.</p>
                 @endif
             </div>
@@ -354,17 +378,17 @@
                 Покупатель ждёт
             </div>
             <p class="mt-3 text-sm text-neutral-600">
-                @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
+                @if(! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
                     Решения по отмене заказа.
                 @elseif($isPickupV2 && $order->status === \App\Models\Order::STATUS_READY_FOR_PICKUP)
                     Согласования времени самовывоза.
                 @elseif($isPickupV2 && $order->status === \App\Models\Order::STATUS_DELIVERED)
                     {{ $order->buyer_confirmed_at ? 'Подтверждения оплаты продавцом, если она ещё не отмечена.' : 'Проверки статуса получения.' }}
-                @elseif($order->status === \App\Models\Order::STATUS_PENDING)
+                @elseif(! $order->isUnsupportedWorkflow() && $order->status === \App\Models\Order::STATUS_PENDING)
                     Подтверждения заказа продавцом.
-                @elseif($order->status === \App\Models\Order::STATUS_PAID)
+                @elseif($isLegacy && $order->status === \App\Models\Order::STATUS_PAID)
                     Передачи товара в доставку.
-                @elseif($order->status === \App\Models\Order::STATUS_SHIPPED)
+                @elseif($isLegacy && $order->status === \App\Models\Order::STATUS_SHIPPED)
                     Обновления по доставке.
                 @else
                     Актуального статуса и ответа при вопросах.
@@ -395,7 +419,7 @@
     </div>
 </section>
 
-        @if($order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
+        @if(! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
             <section class="rounded-2xl border border-rose-200 bg-rose-50 p-4 sm:p-5">
                 <h2 class="font-semibold text-rose-900">Покупатель запросил отмену заказа</h2>
                 <p class="mt-1 text-sm text-rose-700">{{ $order->cancellation_requested_at->format('d.m.Y H:i') }}</p>
@@ -525,17 +549,17 @@
                     @if($isPickupV2 && $order->status_ru === 'Завершён' && $order->completed_at)
                         <div>Завершён: {{ $order->completed_at->format('d.m.Y H:i') }}</div>
                     @endif
-                    @if(! $isPickupV2 && $order->paid_at)
+                    @if($isLegacy && $order->paid_at)
                         <div>
                             Оплачен: {{ $order->paid_at->format('d.m.Y H:i') }}
                         </div>
                     @endif
-                    @if(! $isPickupV2 && $order->shipped_at)
+                    @if($isLegacy && $order->shipped_at)
                         <div>
                             Отправлен: {{ $order->shipped_at->format('d.m.Y H:i') }}
                         </div>
                     @endif
-                    @if(! $isPickupV2 && $order->delivered_at)
+                    @if($isLegacy && $order->delivered_at)
                         <div>
                             Доставлен: {{ $order->delivered_at->format('d.m.Y H:i') }}
                         </div>

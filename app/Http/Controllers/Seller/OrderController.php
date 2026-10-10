@@ -29,7 +29,9 @@ class OrderController extends Controller
             ->latest();
 
         if ($status) {
-            $query->where('status', $status);
+            $query->where('status', $status)
+                ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                    ->orWhere('workflow_version', Order::WORKFLOW_PICKUP));
         }
 
         if ($action === 'cancel_request') {
@@ -54,6 +56,8 @@ class OrderController extends Controller
 
         $statusCounts = Order::query()
             ->where('seller_id', auth()->id())
+            ->where(fn ($supported) => $supported->whereNull('workflow_version')
+                ->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
             ->select('status', \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -69,9 +73,7 @@ class OrderController extends Controller
     {
         return $query->where(function ($actions) {
             $actions->where(function ($legacy) {
-                $legacy->where(function ($version) {
-                    $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
-                })->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_PAID]);
+                $legacy->whereNull('workflow_version')->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING, Order::STATUS_PAID]);
             })->orWhere(function ($pickup) {
                 $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
                     ->where('delivery_method', 'pickup')
@@ -95,9 +97,7 @@ class OrderController extends Controller
         return $query->whereNotNull('cancellation_requested_at')
             ->where(function ($actionable) {
                 $actionable->where(function ($legacy) {
-                    $legacy->where(function ($version) {
-                        $version->whereNull('workflow_version')->orWhere('workflow_version', '!=', Order::WORKFLOW_PICKUP);
-                    })->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING]);
+                    $legacy->whereNull('workflow_version')->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_PROCESSING]);
                 })->orWhere(function ($pickup) {
                     $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
                         ->where('delivery_method', 'pickup')

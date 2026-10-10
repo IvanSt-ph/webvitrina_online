@@ -13,6 +13,9 @@ class UserTrustService
     {
         $completedOrders = $user->orders()
             ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
+            ->where(fn ($workflow) => $workflow->whereNull('workflow_version')
+                ->orWhere(fn ($pickup) => $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                    ->whereNotNull('buyer_confirmed_at')))
             ->count();
         $writtenReviews = Review::query()
             ->where('user_id', $user->id)
