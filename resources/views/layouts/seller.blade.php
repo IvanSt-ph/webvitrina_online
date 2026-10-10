@@ -23,7 +23,7 @@
     <!-- ВЕРХ -->
     <div class="flex flex-1 shrink-0 flex-col">
         <div class="flex items-center gap-3 border-b border-neutral-100 px-4 py-4">
-            <a href="{{ route('seller.cabinet') }}" class="flex min-w-0 items-center gap-3">
+            <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-3">
                 <img src="{{ asset('images/icon.png') }}" class="h-10 w-10 rounded-xl shadow-sm ring-1 ring-neutral-200" alt="WebVitrina">
                 <span class="min-w-0">
                     <span class="block truncate text-sm font-semibold tracking-tight text-neutral-900">WebVitrina</span>
@@ -35,14 +35,10 @@
         @php
             $active = 'wv-sidebar-link-active';
             $link = 'wv-sidebar-link';
-            $shop = auth()->user()->shop;
-            $storefrontUrl = $shop?->slug
-                ? route('seller.show', ['identifier' => $shop->slug])
-                : route('home');
             $sellerMenu = [
                 'Обзор' => [
-                    ['route' => 'seller.cabinet', 'active' => 'seller.cabinet', 'icon' => 'ri-dashboard-line', 'label' => 'Рабочий стол'],
-                    ['url' => $storefrontUrl, 'active' => 'seller.show', 'icon' => 'ri-store-3-line', 'label' => 'Моя витрина', 'external' => true],
+                    ['route' => 'seller.cabinet', 'active' => 'seller.cabinet', 'icon' => 'ri-dashboard-line', 'label' => 'Кабинет'],
+                    ['route' => 'notifications.index', 'active' => 'notifications.*', 'icon' => 'ri-notification-3-line', 'label' => 'Уведомления', 'badge' => $unreadNotificationsCount ?? 0],
                     ['route' => 'chats.index', 'active' => 'chats.*', 'icon' => 'ri-chat-3-line', 'label' => 'Сообщения', 'badge' => $unreadChatsCount ?? 0],
                     ['route' => 'support', 'active' => 'support', 'icon' => 'ri-customer-service-2-line', 'label' => 'Поддержка'],
                 ],

@@ -147,9 +147,9 @@ x-data="{
         <div class="pc-skeleton" aria-hidden="true"></div>
 
         @if($image)
-            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $image }}" alt="{{ $p->title }}" loading="lazy" decoding="async"
+            <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $image }}" alt="{{ $p->title }}" loading="lazy" decoding="async"
                  class="pc-image"
-                 onload="this.classList.add('pc-image--loaded'); this.closest('.pc-image-wrap').querySelector('.pc-skeleton').style.display='none'"/>
+                 onload="this.classList.toggle('pc-image--placeholder', this.currentSrc === this.dataset.imageFallback); this.classList.add('pc-image--loaded'); this.closest('.pc-image-wrap').querySelector('.pc-skeleton').style.display='none'"/>
         @else
             <div class="pc-no-image">
                 <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" class="w-10 h-10 text-gray-300">
@@ -350,7 +350,7 @@ x-data="{
                              @touchend="onTouchEnd($event)">
                             @if(!empty($gallery))
                                 <template x-for="(src, idx) in gallery" :key="idx">
-                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :src="src"
+                                    <img data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" :src="src"
                                          alt="{{ $p->title }}"
                                          class="pm-image"
                                          :class="current === idx ? 'pm-image--active' : ''"
@@ -434,7 +434,7 @@ x-data="{
                                         <button @click.stop="current = {{ $idx }}; $nextTick(() => { if ($refs.thumbnails) { const thumb = $refs.thumbnails.children[{{ $idx }}]; if (thumb) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } })"
                                                 class="pm-thumb"
                                                 :class="current === {{ $idx }} ? 'pm-thumb--active' : ''">
-                                            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $src }}" alt="" loading="lazy" decoding="async"/>
+                                            <img data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $src }}" alt="" loading="lazy" decoding="async"/>
                                         </button>
                                     @endforeach
                                 </div>

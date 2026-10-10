@@ -392,7 +392,7 @@
                 <div class="divide-y divide-slate-100 rounded-xl border border-slate-100 px-3">
                     @forelse($recentProducts as $product)
                         <a href="{{ route('admin.products.edit', $product) }}" class="flex items-center gap-3 py-3 transition hover:text-indigo-700">
-                            <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" class="h-11 w-11 rounded-lg border border-slate-100 object-cover" alt="">
+                                    <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}" class="h-11 w-11 rounded-lg border border-slate-100 object-cover" alt="">
                             <div class="min-w-0 flex-1">
                                 <div class="truncate text-sm font-semibold">{{ $product->title }}</div>
                                 <div class="mt-1 text-xs text-slate-500">{{ number_format((float) $product->price, 2, ',', ' ') }} {{ $product->currency_base ?? '' }} · {{ $product->stock }} шт.</div>

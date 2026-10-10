@@ -204,7 +204,7 @@
         @if($contextProduct)
             <div class="border-b border-slate-100 bg-white px-4 py-3">
                 <div class="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-2">
-                    <img data-image-candidates="{{ json_encode($contextProduct->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $contextProduct->image_thumb_url }}"
+                    <img data-image-candidates="{{ json_encode($contextProduct->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $contextProduct->image_thumb_url }}"
                          alt="{{ $contextProduct->title }}"
                          class="h-12 w-12 rounded-xl object-cover">
                     <div class="min-w-0 flex-1">

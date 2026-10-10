@@ -320,7 +320,7 @@
                             @endphp
                             <article class="group min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:border-brand-200 hover:shadow-md">
                                 <div class="relative aspect-square bg-neutral-50 sm:aspect-[4/3]">
-                                    <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
+                                    <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]">
                                     <div class="absolute left-1.5 right-1.5 top-1.5 flex flex-wrap gap-1 sm:left-2 sm:right-2 sm:top-2 sm:gap-2">
                                         <span class="rounded-full border {{ $statusClass }} px-2 py-0.5 text-[10px] font-medium sm:py-1 sm:text-xs">{{ $statusLabel }}</span>
                                         @if($p->stock <= 0)
@@ -398,7 +398,7 @@
                                 if ($p->stock <= 0) $qualityHints->push('Нет остатков');
                             @endphp
                             <article class="flex min-w-0 items-center gap-2 rounded-xl border border-neutral-200 bg-white p-2 transition hover:border-brand-200 sm:gap-3">
-                                <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-11 w-11 shrink-0 rounded-lg border border-neutral-200 object-cover sm:h-12 sm:w-12">
+                                <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $p->image_thumb_url }}" alt="{{ $p->title }}" class="h-11 w-11 shrink-0 rounded-lg border border-neutral-200 object-cover sm:h-12 sm:w-12">
 
                                 <div class="min-w-0 flex-1">
                                     <div class="flex min-w-0 items-center gap-1.5">

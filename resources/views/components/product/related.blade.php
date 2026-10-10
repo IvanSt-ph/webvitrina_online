@@ -25,7 +25,7 @@
                     {{-- Изображение --}}
                     <div class="relative aspect-square bg-gray-100 overflow-hidden">
                         @if ($item->image)
-                            <img data-image-candidates="{{ json_encode($item->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->image_thumb_url }}"
+                            <img data-image-candidates="{{ json_encode($item->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $item->image_thumb_url }}"
                                  class="w-full h-full object-cover transition-transform duration-500 md:group-hover:scale-105"
                                  alt="{{ $item->title }}">
                         @else

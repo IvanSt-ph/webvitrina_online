@@ -131,7 +131,7 @@
                                 <div class="max-h-[420px] overflow-y-auto p-2">
                                     <template x-for="product in results.products" :key="'product-' + product.url">
                                         <a :href="product.url" class="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-indigo-50">
-                                            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" :data-image-candidates="JSON.stringify(product.image_candidates)" :src="product.image" :alt="product.title" class="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100">
+                                            <img data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" :data-image-candidates="JSON.stringify(product.image_candidates)" :src="product.image" :alt="product.title" class="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-100">
                                             <span class="min-w-0">
                                                 <span class="block truncate text-sm font-semibold text-slate-900" x-text="product.title"></span>
                                                 <span class="block truncate text-xs text-slate-500" x-text="product.subtitle"></span>

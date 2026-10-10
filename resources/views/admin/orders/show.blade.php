@@ -88,7 +88,7 @@
                     @foreach($order->items as $item)
                         <div class="flex items-center gap-3 p-4 sm:px-5">
                             @if($item->product_image_path)
-                                <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}" class="h-14 w-14 shrink-0 rounded-lg object-cover" alt="">
+                                <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $item->historical_image_url }}" class="h-14 w-14 shrink-0 rounded-lg object-cover" alt="">
                             @else
                                 <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
                                     <i class="ri-image-line"></i>

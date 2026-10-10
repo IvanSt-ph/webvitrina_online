@@ -172,7 +172,7 @@
                         <div class="h-[88px] w-[88px] overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 sm:h-28 sm:w-28">
                             @if($product)
                                 <a href="{{ $productEditUrl }}" class="block h-full w-full" title="Открыть товар продавца">
-                                    <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}"
+                                    <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $item->historical_image_url }}"
                                          alt="{{ $itemTitle }}"
                                          class="h-full w-full object-cover">
                                 </a>

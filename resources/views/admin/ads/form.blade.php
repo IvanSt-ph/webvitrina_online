@@ -326,7 +326,7 @@
                             class="flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-indigo-50"
                             data-id="${escapeHtml(item.id)}"
                             data-label="${escapeHtml(item.title)}">
-                        <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" data-image-candidates="${escapeHtml(JSON.stringify(item.image_candidates || []))}" src="${escapeHtml(item.image)}" alt="" class="h-10 w-10 rounded-lg object-cover bg-slate-100">
+                        <img data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" data-image-candidates="${escapeHtml(JSON.stringify(item.image_candidates || []))}" src="${escapeHtml(item.image)}" alt="" class="h-10 w-10 rounded-lg object-cover bg-slate-100">
                         <span class="min-w-0">
                             <span class="block truncate text-sm font-bold text-slate-900">${escapeHtml(item.title)}</span>
                             <span class="block truncate text-xs text-slate-500">${escapeHtml(item.subtitle)}</span>

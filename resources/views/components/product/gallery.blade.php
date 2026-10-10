@@ -67,7 +67,7 @@
             x-on:touchstart="handleTouchStart($event)"
             x-on:touchend="handleTouchEnd($event)"
         >
-            <img alt="{{ $product->title }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+            <img alt="{{ $product->title }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}"
                 :src="activeImage"
                 loading="eager"
                 class="w-full h-full object-contain transition-transform duration-300 ease-in-out"
@@ -112,7 +112,7 @@
                         :style="{ transform: `translateY(-${startIndex * 108}px)` }"
                     >
                         <template x-for="(img, i) in images" :key="i">
-                            <img alt="{{ $product->title }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                            <img alt="{{ $product->title }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}"
                                 :src="img"
                                 loading="lazy"
                                 @mouseover="activeImage = img"
@@ -150,7 +150,7 @@
                        aspect-square h-[520px] lg:h-[580px] xl:h-[620px]
                        overflow-hidden w-full relative"
             >
-                <img alt="{{ $product->title }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                <img alt="{{ $product->title }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}"
                     :src="activeImage"
                     loading="eager"
                     class="object-contain w-full h-full transition-transform duration-300 hover:scale-105"

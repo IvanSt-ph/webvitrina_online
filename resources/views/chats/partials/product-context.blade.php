@@ -1,6 +1,6 @@
 @if($conversation->product)
     <div class="flex min-w-0 shrink-0 items-center gap-2.5 border-b border-brand-100 bg-brand-50/70 px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
-        <img data-image-candidates="{{ json_encode($conversation->context_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $conversation->context_image_url }}"
+        <img data-image-candidates="{{ json_encode($conversation->context_image_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $conversation->context_image_url }}"
              alt="{{ $conversation->context_title }}"
              class="h-11 w-11 shrink-0 rounded-xl border border-brand-100 object-cover sm:h-12 sm:w-12">
         <span class="min-w-0 flex-1">

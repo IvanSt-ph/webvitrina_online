@@ -181,7 +181,7 @@
                   <a href="{{ route('product.show', $p) }}"
                      class="relative h-[76px] w-[76px] flex-shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50">
                     @if($p->image)
-                      <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}"
+                      <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $p->image_thumb_url }}"
                            class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                            alt="{{ $p->title }}">
                     @else
@@ -261,7 +261,7 @@
               <a href="{{ route('product.show', $p) }}"
                  class="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50 lg:h-24 lg:w-24">
                 @if($p->image)
-                  <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}"
+                  <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $p->image_thumb_url }}"
                        class="w-full h-full object-cover transition-transform duration-400 group-hover:scale-105"
                        alt="{{ $p->title }}">
                 @else

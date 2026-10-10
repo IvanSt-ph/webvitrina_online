@@ -231,7 +231,7 @@
                     <span class="mb-1 block text-sm font-medium text-slate-700">Главное изображение</span>
                     <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                         @if($product->image)
-                            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_url }}" class="aspect-[4/3] w-full object-cover" alt="{{ $product->title }}">
+                            <img data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_url }}" class="aspect-[4/3] w-full object-cover" alt="{{ $product->title }}">
                         @else
                             <div class="flex aspect-[4/3] items-center justify-center text-sm text-slate-400">Нет изображения</div>
                         @endif
@@ -248,7 +248,7 @@
                         <div id="admin-gallery-container" class="grid grid-cols-3 gap-2">
                             @foreach($gallery as $img)
                                 <div class="group relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                                    <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ \App\Models\Product::storageImageUrl($img) }}" alt="Фото" class="aspect-square w-full object-cover">
+                                    <img data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ \App\Models\Product::storageImageUrl($img) }}" alt="Фото" class="aspect-square w-full object-cover">
                                     <button type="button" data-path="{{ $img }}" class="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600 text-white opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500" title="Удалить">
                                         <i class="ri-close-line"></i>
                                     </button>

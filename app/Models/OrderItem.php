@@ -25,12 +25,12 @@ class OrderItem extends Model
 
     public function getHistoricalImageUrlAttribute(): string
     {
-        return \App\Support\PublicImage::url($this->product_image_path);
+        return \App\Support\PublicImage::url($this->product_image_path, Product::IMAGE_FALLBACK_ASSET);
     }
 
     public function getHistoricalImageCandidatesAttribute(): array
     {
-        return \App\Support\PublicImage::candidates($this->product_image_path);
+        return \App\Support\PublicImage::candidates($this->product_image_path, Product::IMAGE_FALLBACK_ASSET);
     }
     protected $fillable = [
         'order_id',

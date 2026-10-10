@@ -12,7 +12,7 @@ class ProductImageUrlTest extends TestCase
         Storage::shouldReceive('disk')->never();
         foreach (['', 'default/no-image.png', '/storage/default/no-image.png', 'placeholder.png'] as $path) {
             $product = new Product(['image' => $path]);
-            $this->assertSame(asset('images/image-placeholder.svg'), $product->image_url);
+            $this->assertSame(asset(Product::IMAGE_FALLBACK_ASSET), $product->image_url);
             $this->assertSame([$product->image_url], $product->image_thumb_candidates);
         }
     }
@@ -21,10 +21,10 @@ class ProductImageUrlTest extends TestCase
     {
         Storage::shouldReceive('disk')->never();
         $this->assertSame([
-            asset('storage/products/thumb/photo.webp'), asset('storage/products/medium/photo.webp'), asset('images/image-placeholder.svg'),
+            asset('storage/products/thumb/photo.webp'), asset('storage/products/medium/photo.webp'), asset(Product::IMAGE_FALLBACK_ASSET),
         ], Product::storageThumbCandidates('products/medium/photo.webp'));
         $this->assertSame([
-            asset('storage/thumb/photo.webp'), asset('storage/photo.jpg'), asset('images/image-placeholder.svg'),
+            asset('storage/thumb/photo.webp'), asset('storage/photo.jpg'), asset(Product::IMAGE_FALLBACK_ASSET),
         ], Product::storageThumbCandidates('photo.jpg'));
     }
 

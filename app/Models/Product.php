@@ -15,6 +15,7 @@ class Product extends Model
     public const STATUS_BLOCKED = 'blocked';
 
     private const DEFAULT_IMAGE_PATH = 'default/no-image.png';
+    public const IMAGE_FALLBACK_ASSET = 'images/no-image.webp';
 
     public static function statuses(): array
     {
@@ -242,7 +243,7 @@ class Product extends Model
 
     public static function storageImageUrl(?string $path): string
     {
-        return \App\Support\PublicImage::url(self::isDefaultImagePath($path ?? '') ? null : $path);
+        return \App\Support\PublicImage::url(self::isDefaultImagePath($path ?? '') ? null : $path, self::IMAGE_FALLBACK_ASSET);
     }
 
     public static function storageThumbUrl(?string $path): string
@@ -257,7 +258,7 @@ class Product extends Model
 
     public static function storageThumbCandidates(?string $path): array
     {
-        return \App\Support\PublicImage::candidates(self::isDefaultImagePath($path ?? '') ? null : $path, thumb: true);
+        return \App\Support\PublicImage::candidates(self::isDefaultImagePath($path ?? '') ? null : $path, self::IMAGE_FALLBACK_ASSET, thumb: true);
     }
 
     private static function isDefaultImagePath(string $path): bool

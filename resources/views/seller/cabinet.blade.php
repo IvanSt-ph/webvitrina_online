@@ -72,12 +72,13 @@
           </div>
         </div>
 
-        {{-- ✏️ Кнопка "Редактировать" --}}
-        <a href="{{ route('profile.edit') }}"
-           class="absolute right-3 top-3 flex h-10 items-center gap-2 rounded-xl border border-white/50 bg-white/90 px-3 text-sm font-semibold text-neutral-700 shadow-sm backdrop-blur-sm transition hover:bg-white sm:right-4 sm:top-4">
-          <i class="ri-edit-2-line text-brand-600"></i>
-          <span class="hidden sm:inline">Редактировать</span>
-        </a>
+        @if($shop?->slug)
+          <a href="{{ route('seller.show', ['identifier' => $shop->slug]) }}"
+             class="absolute right-3 top-3 inline-flex h-10 items-center gap-2 rounded-xl border border-white/30 bg-neutral-950/65 px-3 text-xs font-semibold text-white shadow-lg backdrop-blur-md transition-colors hover:bg-neutral-950/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900 sm:right-4 sm:top-4 sm:text-sm">
+            <i class="ri-store-3-line text-white" aria-hidden="true"></i>
+            <span>Посмотреть магазин</span>
+          </a>
+        @endif
       </div>
     </section>
 

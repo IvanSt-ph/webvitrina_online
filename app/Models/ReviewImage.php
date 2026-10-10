@@ -17,16 +17,16 @@ class ReviewImage extends Model
 
     public function getUrlAttribute(): string
     {
-        return \App\Models\Product::storageImageUrl($this->path);
+        return \App\Support\PublicImage::url($this->path);
     }
 
     public function getThumbCandidatesAttribute(): array
     {
-        return Product::storageThumbCandidates($this->path);
+        return \App\Support\PublicImage::candidates($this->path, thumb: true);
     }
 
     public function getThumbUrlAttribute(): string
     {
-        return \App\Models\Product::storageThumbUrl($this->path);
+        return \App\Support\PublicImage::url($this->path, thumb: true);
     }
 }

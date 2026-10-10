@@ -153,7 +153,7 @@
                             <div class="flex gap-4 lg:block">
                                 <div class="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 lg:h-28 lg:w-28">
                                     @if($product)
-                                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                                     @else
                                         <div class="flex h-full w-full items-center justify-center text-neutral-300"><i class="ri-image-line text-3xl"></i></div>
                                     @endif

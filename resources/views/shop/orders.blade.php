@@ -108,7 +108,7 @@
                         <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 lg:grid-cols-[72px_minmax(0,1fr)_220px] lg:items-center">
                             <div class="h-16 w-16 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 lg:h-[72px] lg:w-[72px]">
                                 @if($firstItem)
-                                    <img data-image-candidates="{{ json_encode($firstItem->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $firstItem->historical_image_url }}"
+                                    <img data-image-candidates="{{ json_encode($firstItem->historical_image_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $firstItem->historical_image_url }}"
                                          alt="{{ $firstItem->historical_title }}"
                                          class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                                 @else

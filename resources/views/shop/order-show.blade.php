@@ -358,7 +358,7 @@
                 <div class="grid w-full min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:flex sm:items-center sm:gap-4 sm:p-5">
 
                     @if($item->product_image_path)
-                        <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}"
+                        <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $item->historical_image_url }}"
                              alt="{{ $item->historical_title }}"
                              class="h-16 w-16 shrink-0 rounded-xl border border-neutral-200 object-cover sm:h-24 sm:w-24">
                     @else
@@ -572,7 +572,7 @@
         <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @forelse(($continueProducts ?? collect()) as $product)
                 <a href="{{ route('product.show', $product->slug) }}" class="group rounded-xl border border-neutral-100 bg-neutral-50 p-3 transition hover:border-brand-200 hover:bg-brand-50">
-                    <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-28 w-full rounded-lg object-cover">
+                    <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-28 w-full rounded-lg object-cover">
                     <div class="mt-2 line-clamp-2 text-sm font-semibold text-neutral-900 group-hover:text-brand-700">{{ $product->title }}</div>
                     <div class="mt-1 text-sm font-bold text-brand-700">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
                 </a>

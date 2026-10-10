@@ -79,7 +79,7 @@
                                         @endphp
                                         <div class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-3 px-4 py-4 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center sm:gap-4 sm:px-5">
                                             <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($item['image'] ?? null)) }}"
-                                                 data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                                                 data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}"
                                                  src="{{ \App\Models\Product::storageThumbUrl($item['image'] ?? null) }}"
                                                  class="h-16 w-16 rounded-xl border border-neutral-200 object-cover sm:h-[72px] sm:w-[72px]"
                                                  alt="{{ $itemTitle }}">

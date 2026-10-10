@@ -49,7 +49,7 @@
                     <a href="{{ route('product.show', $item->product->slug) }}"
                        class="relative z-10 shrink-0"
                        title="Открыть товар">
-                        <img data-image-candidates="{{ json_encode($item->context_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->context_image_url }}"
+                        <img data-image-candidates="{{ json_encode($item->context_image_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $item->context_image_url }}"
                              alt="{{ $item->context_title }}"
                              class="h-12 w-12 rounded-xl object-cover ring-1 ring-brand-200 transition group-hover:ring-brand-300">
                     </a>

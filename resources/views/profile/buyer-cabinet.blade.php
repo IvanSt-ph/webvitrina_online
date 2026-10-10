@@ -218,7 +218,7 @@
                                 @foreach($order->items->take(4) as $item)
                                     <div class="h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-neutral-50">
                                         @if($item->product_image_path)
-                                            <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $item->historical_image_url }}" class="w-full h-full object-cover" alt="{{ $item->historical_title }}">
+                                            <img data-image-candidates="{{ json_encode($item->historical_image_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $item->historical_image_url }}" class="w-full h-full object-cover" alt="{{ $item->historical_title }}">
                                         @else
                                             <div class="w-full h-full flex items-center justify-center text-gray-300">
                                                 <i class="ri-image-line"></i>
@@ -307,7 +307,7 @@
                             <a href="{{ $item['link'] ?? '#' }}" class="group block rounded-xl border border-neutral-200 p-2 transition hover:border-brand-200 hover:shadow-md">
                                 <div class="aspect-square rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
                                     @if(!empty($item['image']))
-                                        <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($item['image'])) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ \App\Models\Product::storageThumbUrl($item['image']) }}" alt="{{ $item['title'] ?? 'Товар' }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                        <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($item['image'])) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ \App\Models\Product::storageThumbUrl($item['image']) }}" alt="{{ $item['title'] ?? 'Товар' }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                                     @else
                                         <i class="ri-image-2-line text-3xl text-gray-300"></i>
                                     @endif

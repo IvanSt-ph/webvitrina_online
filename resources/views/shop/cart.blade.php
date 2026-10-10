@@ -174,7 +174,7 @@
                         :class="selectMode ? 'opacity-60 pointer-events-none' : ''"
                     >
                         @if($p->image)
-                            <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $p->image_thumb_url }}"
+                            <img data-image-candidates="{{ json_encode($p->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $p->image_thumb_url }}"
                                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                  alt="{{ $p->title }}">
                         @else
@@ -469,7 +469,7 @@
 
     <!-- С этим также покупают (Кросс-сейл) -->
     @if($crossSellProducts->isNotEmpty())
-    <div class="mt-12 min-w-0">
+    <div class="mt-6 min-w-0">
         <div class="flex min-w-0 items-center justify-between gap-3 mb-4">
             <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <i class="ri-shopping-bag-3-line text-indigo-500"></i>
@@ -482,7 +482,7 @@
             <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 transition-all duration-200 hover:border-indigo-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)] group">
                 <a href="{{ route('product.show', $product) }}" class="block">
                     <div class="relative overflow-hidden rounded-lg mb-2 h-32">
-                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}"
+                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}"
                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                              alt="{{ $product->title }}">
                     </div>
@@ -502,27 +502,29 @@
     </div>
     @endif
 
-    <!-- Рекомендации для вас -->
+    @endif
+
+    <!-- Рекомендации на странице корзины -->
     @if($recommendedProducts->isNotEmpty())
-    <div class="mt-8 min-w-0">
-        <div class="flex min-w-0 items-center justify-between gap-3 mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <i class="ri-sparkling-line text-indigo-500"></i>
-                Рекомендуем для вас
-            </h3>
-            <a href="{{ route('home') }}" class="shrink-0 text-sm text-indigo-600 hover:text-indigo-700 transition-colors">Все товары →</a>
+    <section class="min-w-0">
+        <div class="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <h2 class="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                <i class="ri-sparkling-line text-brand-600" aria-hidden="true"></i>
+                Вам может понравиться
+            </h2>
+            <a href="{{ route('home') }}" class="shrink-0 text-sm font-medium text-brand-600 transition-colors hover:text-brand-700">Все товары →</a>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
             @foreach($recommendedProducts as $product)
-            <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3 transition-all duration-200 hover:border-indigo-200 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)] group">
-                <a href="{{ route('product.show', $product) }}" class="block">
-                    <div class="relative overflow-hidden rounded-lg mb-2 h-32">
-                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}"
-                             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                             alt="{{ $product->title }}">
+            <article class="group flex min-w-0 flex-col rounded-xl border border-neutral-200 bg-white p-2.5 transition-colors hover:border-brand-200 focus-within:border-brand-300 sm:p-3">
+                <a href="{{ route('product.show', $product) }}" class="flex min-w-0 flex-1 flex-col rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                    <div class="mb-2 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg bg-neutral-50">
+                        <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}"
+                             class="h-full w-full object-contain p-2"
+                             alt="{{ $product->title }}" loading="lazy" decoding="async">
                     </div>
-                    <h4 class="text-sm font-medium line-clamp-2 mb-1" style="overflow-wrap: anywhere;">{{ $product->title }}</h4>
-                    <div class="text-indigo-600 font-bold">{{ number_format($product->checkout_price, 0, ',', ' ') }} {{ $currencySymbol }}</div>
+                    <h3 class="mb-1 line-clamp-2 min-h-10 text-xs font-medium leading-5 text-neutral-800 sm:text-sm" style="overflow-wrap: anywhere;">{{ $product->title }}</h3>
+                    <div class="mt-auto text-sm font-bold text-brand-600">{{ number_format($product->checkout_price, 0, ',', ' ') }} {{ $currencySymbol }}</div>
                 </a>
                 <form method="POST" action="{{ route('cart.add', $product->id) }}" class="mt-2">
                     @csrf
@@ -531,12 +533,10 @@
                         В корзину
                     </x-secondary-action>
                 </form>
-            </div>
+            </article>
             @endforeach
         </div>
-    </div>
-    @endif
-
+    </section>
     @endif
 
 </div>

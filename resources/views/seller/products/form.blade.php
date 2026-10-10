@@ -480,7 +480,7 @@
           </button>
           @if($product->image)
             <div class="mt-3 max-w-72">
-              <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" class="w-full rounded-xl border border-neutral-200 object-cover" style="aspect-ratio: 4 / 3.2" alt="Текущее главное фото">
+              <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}" class="w-full rounded-xl border border-neutral-200 object-cover" style="aspect-ratio: 4 / 3.2" alt="Текущее главное фото">
               <p class="mt-2 text-xs text-neutral-500">Текущее главное фото. Новый кадр можно выбрать после загрузки нового файла.</p>
             </div>
           @endif
@@ -508,7 +508,7 @@
               @foreach($gallery as $img)
                 @if($img)
                   <div class="group relative overflow-hidden rounded-xl border border-neutral-200">
-                    <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($img)) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ \App\Models\Product::storageThumbUrl($img) }}" alt="Фото" class="w-20 h-20 object-cover">
+                    <img data-image-candidates="{{ json_encode(\App\Models\Product::storageThumbCandidates($img)) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ \App\Models\Product::storageThumbUrl($img) }}" alt="Фото" class="w-20 h-20 object-cover">
                     <button type="button" data-path="{{ $img }}"
                             class="absolute right-1 top-1 rounded bg-neutral-800 px-1.5 py-0.5 text-xs text-white opacity-0 transition group-hover:opacity-100">
                       ✕

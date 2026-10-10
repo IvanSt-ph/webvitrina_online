@@ -61,6 +61,7 @@
 }
 .pc-image--loaded { opacity: 1; }
 .pc-card:hover .pc-image--loaded { transform: scale(1.06); filter: brightness(.82); }
+.pc-image--placeholder, .pc-card:hover .pc-image--placeholder { object-fit: contain; background: #fff; transform: none; filter: none; }
 .pc-no-image {
     width: 100%; height: 100%; position: relative; z-index: 2;
     display: flex; align-items: center; justify-content: center; background: #f0f0f3;

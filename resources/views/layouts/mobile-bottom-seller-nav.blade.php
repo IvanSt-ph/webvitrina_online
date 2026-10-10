@@ -141,7 +141,6 @@
       <li><a href="{{ route('seller.analytics.index') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-bar-chart-2-line text-lg"></i> Аналитика</a></li>
       
       <li><a href="{{ route('profile.edit') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-user-3-line text-lg" aria-hidden="true"></i> Профиль</a></li>
-      <li><a href="{{ auth()->user()->shop?->slug ? route('seller.show', ['identifier' => auth()->user()->shop->slug]) : url('/') }}" class="flex min-h-11 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 hover:text-indigo-600"><i class="ri-store-3-line text-lg" aria-hidden="true"></i> Моя витрина</a></li>
       <!-- Разделитель -->
       <li class="border-t border-neutral-100 pt-3 mt-3"></li>
       

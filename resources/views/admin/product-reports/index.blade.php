@@ -250,7 +250,7 @@
                     <div class="min-w-0">
                         <div class="flex flex-col gap-4 sm:flex-row">
                             <a href="{{ route('admin.products.edit', $product) }}" class="h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
-                                <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
+                                <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-full w-full object-cover">
                             </a>
 
                             <div class="min-w-0 flex-1">
