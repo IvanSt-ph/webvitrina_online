@@ -40,10 +40,12 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
 
         $processes = [];
         $inputs = [];
+        $milestones = [];
         $connection = DB::connection();
         try {
             $connection->beginTransaction();
             Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $milestones['parent_locked'] = microtime(true);
             foreach ([['payment', $seller], ['receipt', $buyer]] as [$action, $actor]) {
                 $input = new InputStream();
                 $input->write(json_encode(config('database'), JSON_THROW_ON_ERROR)."\n");
@@ -56,27 +58,35 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
                 $processes[] = $process;
                 $process->start();
                 $this->awaitOutput($process, 'ATTEMPT');
+                $milestones[$action.'_attempt'] = microtime(true);
             }
 
             $waiting = false;
             $deadline = microtime(true) + 8;
+            $milestones['poll_started'] = microtime(true);
+            $lastTransactions = [];
             do {
                 $ids = [];
                 foreach ($processes as $process) {
                     preg_match('/CONNECTION:(\d+)/', $process->getOutput(), $matches);
                     $ids[] = (int) ($matches[1] ?? 0);
                 }
-                $waiting = DB::table('information_schema.INNODB_TRX')
-                    ->whereIn('trx_mysql_thread_id', $ids)->where('trx_state', 'LOCK WAIT')->count() === 2;
+                $lastTransactions = DB::table('information_schema.INNODB_TRX')
+                    ->whereIn('trx_mysql_thread_id', $ids)
+                    ->get(['trx_mysql_thread_id', 'trx_state', 'trx_wait_started'])
+                    ->map(fn ($row) => (array) $row)->all();
+                $milestones['last_poll'] = microtime(true);
+                $waiting = collect($lastTransactions)->where('trx_state', 'LOCK WAIT')->count() === 2;
                 if (! $waiting) {
                     usleep(50000);
                 }
             } while (! $waiting && microtime(true) < $deadline);
-            $this->assertTrue($waiting, 'Both actions must wait on the same order row.');
+            $this->assertTrue($waiting, $waiting ? '' : 'Both actions must wait on the same order row.'
+                .$this->lockWaitDiagnostics($processes, $milestones, $lastTransactions));
             $connection->commit();
 
             foreach ($processes as $process) {
-                $this->assertSame(0, $process->wait(), $process->getErrorOutput());
+                $this->assertSame(0, $process->wait(), $this->safeWorkerOutput($process->getErrorOutput()));
                 $this->assertStringContainsString('DONE', $process->getOutput());
             }
             $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
@@ -116,9 +126,11 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
         $connection = DB::connection();
         $input = new InputStream();
         $process = null;
+        $milestones = [];
         try {
             $connection->beginTransaction();
             Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $milestones['parent_locked'] = microtime(true);
             $input->write(json_encode(config('database'), JSON_THROW_ON_ERROR)."\n");
             $process = new Process([
                 PHP_BINARY, base_path('tests/Support/pickup-order-worker.php'),
@@ -127,19 +139,27 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             $process->setInput($input);
             $process->start();
             $this->awaitOutput($process, 'ATTEMPT');
+            $milestones['reminder_attempt'] = microtime(true);
 
             preg_match('/CONNECTION:(\d+)/', $process->getOutput(), $matches);
             $workerId = (int) ($matches[1] ?? 0);
             $waiting = false;
             $deadline = microtime(true) + 8;
+            $milestones['poll_started'] = microtime(true);
+            $lastTransactions = [];
             do {
-                $waiting = DB::table('information_schema.INNODB_TRX')
-                    ->where('trx_mysql_thread_id', $workerId)->where('trx_state', 'LOCK WAIT')->exists();
+                $lastTransactions = DB::table('information_schema.INNODB_TRX')
+                    ->where('trx_mysql_thread_id', $workerId)
+                    ->get(['trx_mysql_thread_id', 'trx_state', 'trx_wait_started'])
+                    ->map(fn ($row) => (array) $row)->all();
+                $milestones['last_poll'] = microtime(true);
+                $waiting = collect($lastTransactions)->contains('trx_state', 'LOCK WAIT');
                 if (! $waiting) {
                     usleep(50000);
                 }
             } while (! $waiting && microtime(true) < $deadline);
-            $this->assertTrue($waiting, 'Reminder must wait for the locked order.');
+            $this->assertTrue($waiting, $waiting ? '' : 'Reminder must wait for the locked order.'
+                .$this->lockWaitDiagnostics([$process], $milestones, $lastTransactions));
 
             // The lock holder confirms receipt through the real workflow before the reminder resumes.
             $this->assertTrue(app(\App\Services\OrderPickupWorkflow::class)->buyerConfirmReceipt($order, $buyer));
@@ -147,7 +167,8 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             $connection->commit();
 
             $exitCode = $process->wait();
-            $workerOutput = 'stdout='.$process->getOutput().' stderr='.$process->getErrorOutput();
+            $workerOutput = 'stdout='.$this->safeWorkerOutput($process->getOutput())
+                .' stderr='.$this->safeWorkerOutput($process->getErrorOutput());
             $this->assertNull($order->fresh()->confirmation_requested_at, $workerOutput);
             $this->assertNotNull($order->fresh()->buyer_confirmed_at);
             $this->assertSame(0, $order->events()->where('event_type', 'pickup_confirmation_requested')->count());
@@ -172,6 +193,57 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
         while (! str_contains($process->getOutput(), $text) && $process->isRunning() && microtime(true) < $deadline) {
             usleep(20000);
         }
-        $this->assertStringContainsString($text, $process->getOutput(), $process->getErrorOutput());
+        $this->assertStringContainsString($text, $process->getOutput(), $this->safeWorkerOutput($process->getErrorOutput()));
+    }
+
+    private function lockWaitDiagnostics(array $processes, array $milestones, array $lastTransactions): string
+    {
+        $workers = [];
+        $connectionIds = [];
+        foreach ($processes as $process) {
+            $stdout = $process->getOutput();
+            if (preg_match('/CONNECTION:(\d+)/', $stdout, $match)) {
+                $connectionIds[] = (int) $match[1];
+            }
+            $workers[] = [
+                'status' => $process->getStatus(),
+                'exit_code' => $process->getExitCode(),
+                'stdout' => $this->safeWorkerOutput($stdout),
+                'stderr' => $this->safeWorkerOutput($process->getErrorOutput()),
+            ];
+        }
+        try {
+            $processlist = DB::table('information_schema.PROCESSLIST')->whereIn('ID', $connectionIds)
+                ->get(['ID', 'COMMAND', 'TIME', 'STATE'])->map(fn ($row) => (array) $row)->all();
+        } catch (\Throwable $exception) {
+            $processlist = ['unavailable' => $exception::class];
+        }
+        $times = array_map(fn ($time) => date('c', (int) $time).' +'.round(($time - floor($time)) * 1000).'ms', $milestones);
+
+        return "\nLock-wait diagnostics: ".json_encode([
+            'times' => $times,
+            'elapsed_poll_ms' => round((microtime(true) - ($milestones['poll_started'] ?? microtime(true))) * 1000),
+            'workers' => $workers,
+            'last_innodb_trx' => $lastTransactions,
+            'processlist' => $processlist,
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+
+    private function safeWorkerOutput(string $output): string
+    {
+        foreach (config('database.connections', []) as $connection) {
+            foreach (['password', 'url'] as $key) {
+                $secret = is_array($connection) ? ($connection[$key] ?? null) : null;
+                if (is_string($secret) && $secret !== '') {
+                    $output = str_replace($secret, '[REDACTED]', $output);
+                }
+            }
+        }
+
+        return preg_replace([
+            '~\b(?:mysql|mariadb)(?:://|:host=)[^\s]+~i',
+            '~\b((?:DB_PASSWORD|PASSWORD|PWD)\s*[:=]\s*)[^\s,;]+~i',
+            '~\bSQL:\s*[^\r\n]+~i',
+        ], ['[REDACTED_DSN]', '$1[REDACTED]', 'SQL: [REDACTED]'], $output) ?? '[unavailable]';
     }
 }

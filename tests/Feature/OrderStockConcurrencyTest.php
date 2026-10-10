@@ -52,6 +52,7 @@ class OrderStockConcurrencyTest extends TestCase
 
         $processes = [];
         $inputs = [];
+        $milestones = [];
         try {
             foreach (['first', 'second'] as $mode) {
                 $input = new InputStream();
@@ -62,26 +63,34 @@ class OrderStockConcurrencyTest extends TestCase
                 $processes[] = $process;
                 $process->start();
                 $this->awaitOutput($process, $mode === 'first' ? 'LOCKED' : 'ATTEMPT');
+                $milestones[$mode === 'first' ? 'first_locked' : 'second_attempt'] = microtime(true);
             }
             preg_match('/CONNECTION:(\d+)/', $processes[1]->getOutput(), $matches);
-            $this->assertNotEmpty($matches);
+            $this->assertNotEmpty($matches, $matches ? '' : $this->lockWaitDiagnostics($processes, $milestones, []));
             $waiting = false;
             $deadline = microtime(true) + 8;
+            $milestones['poll_started'] = microtime(true);
+            $lastTransactions = [];
             do {
-                $waiting = DB::table('information_schema.INNODB_TRX')
-                    ->where('trx_mysql_thread_id', $matches[1])->where('trx_state', 'LOCK WAIT')->exists();
+                $lastTransactions = DB::table('information_schema.INNODB_TRX')
+                    ->where('trx_mysql_thread_id', $matches[1])
+                    ->get(['trx_mysql_thread_id', 'trx_state', 'trx_wait_started'])
+                    ->map(fn ($row) => (array) $row)->all();
+                $milestones['last_poll'] = microtime(true);
+                $waiting = collect($lastTransactions)->contains('trx_state', 'LOCK WAIT');
                 if (! $waiting) {
                     usleep(50000);
                 }
             } while (! $waiting && microtime(true) < $deadline);
-            $this->assertTrue($waiting, 'Second cancellation must actually wait on the first order row lock.');
+            $this->assertTrue($waiting, $waiting ? '' : 'Second cancellation must actually wait on the first order row lock.'
+                .$this->lockWaitDiagnostics($processes, $milestones, $lastTransactions));
             $this->assertStringNotContainsString('DONE', $processes[1]->getOutput());
             if ($failWhileLocked) {
                 throw new \RuntimeException('Injected parent failure while workers are active');
             }
             $inputs[0]->write("release\n");
             foreach ($processes as $process) {
-                $this->assertSame(0, $process->wait(), $process->getErrorOutput());
+                $this->assertSame(0, $process->wait(), $this->safeWorkerOutput($process->getErrorOutput()));
                 $this->assertStringContainsString('DONE', $process->getOutput());
             }
             $this->assertSame(10, $product->fresh()->stock);
@@ -134,6 +143,57 @@ class OrderStockConcurrencyTest extends TestCase
         while (! str_contains($process->getOutput(), $text) && $process->isRunning() && microtime(true) < $deadline) {
             usleep(20000);
         }
-        $this->assertStringContainsString($text, $process->getOutput(), $process->getErrorOutput());
+        $this->assertStringContainsString($text, $process->getOutput(), $this->safeWorkerOutput($process->getErrorOutput()));
+    }
+
+    private function lockWaitDiagnostics(array $processes, array $milestones, array $lastTransactions): string
+    {
+        $workers = [];
+        $connectionIds = [];
+        foreach ($processes as $process) {
+            $stdout = $process->getOutput();
+            if (preg_match('/CONNECTION:(\d+)/', $stdout, $match)) {
+                $connectionIds[] = (int) $match[1];
+            }
+            $workers[] = [
+                'status' => $process->getStatus(),
+                'exit_code' => $process->getExitCode(),
+                'stdout' => $this->safeWorkerOutput($stdout),
+                'stderr' => $this->safeWorkerOutput($process->getErrorOutput()),
+            ];
+        }
+        try {
+            $processlist = DB::table('information_schema.PROCESSLIST')->whereIn('ID', $connectionIds)
+                ->get(['ID', 'COMMAND', 'TIME', 'STATE'])->map(fn ($row) => (array) $row)->all();
+        } catch (\Throwable $exception) {
+            $processlist = ['unavailable' => $exception::class];
+        }
+        $times = array_map(fn ($time) => date('c', (int) $time).' +'.round(($time - floor($time)) * 1000).'ms', $milestones);
+
+        return "\nLock-wait diagnostics: ".json_encode([
+            'times' => $times,
+            'elapsed_poll_ms' => round((microtime(true) - ($milestones['poll_started'] ?? microtime(true))) * 1000),
+            'workers' => $workers,
+            'last_innodb_trx' => $lastTransactions,
+            'processlist' => $processlist,
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+
+    private function safeWorkerOutput(string $output): string
+    {
+        foreach (config('database.connections', []) as $connection) {
+            foreach (['password', 'url'] as $key) {
+                $secret = is_array($connection) ? ($connection[$key] ?? null) : null;
+                if (is_string($secret) && $secret !== '') {
+                    $output = str_replace($secret, '[REDACTED]', $output);
+                }
+            }
+        }
+
+        return preg_replace([
+            '~\b(?:mysql|mariadb)(?:://|:host=)[^\s]+~i',
+            '~\b((?:DB_PASSWORD|PASSWORD|PWD)\s*[:=]\s*)[^\s,;]+~i',
+            '~\bSQL:\s*[^\r\n]+~i',
+        ], ['[REDACTED_DSN]', '$1[REDACTED]', 'SQL: [REDACTED]'], $output) ?? '[unavailable]';
     }
 }
