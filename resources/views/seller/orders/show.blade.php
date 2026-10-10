@@ -257,16 +257,18 @@
 
         {{-- Прогресс статусов --}}
         <div class="overflow-hidden rounded-2xl border border-neutral-200 bg-white px-4 py-4 sm:px-5">
-            <div class="mb-3 flex items-center justify-between gap-3">
+            <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h2 class="font-semibold text-neutral-900">Этап заказа</h2>
                     <p class="mt-1 text-xs text-neutral-500">Текущий путь заказа от принятия до завершения</p>
                 </div>
-                <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {{ $currentStatusClass }}">{{ $order->status_ru }}</span>
-                @if($isPickupV2)
-                    <span class="text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
-                    <span class="text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</span>
-                @endif
+                <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $currentStatusClass }}">{{ $order->status_ru }}</span>
+                    @if($isPickupV2)
+                        <span class="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
+                        <span class="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</span>
+                    @endif
+                </div>
             </div>
             <div class="overflow-x-auto pb-1">
                 <div class="relative h-[68px] min-w-[680px] pt-1 text-xs font-medium text-neutral-500">

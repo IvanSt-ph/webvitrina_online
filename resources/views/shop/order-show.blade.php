@@ -42,6 +42,10 @@
         $active = $order->buyer_confirmed_at ? 4 : 3;
     }
     $stepCount = count($stepLabels);
+    $currentStepIndex = $active > 0 ? $active - 1 : -1;
+    $statusProgress = $stepCount > 1 && $currentStepIndex >= 0
+        ? ($currentStepIndex / ($stepCount - 1)) * 100
+        : 0;
     $addressParts = collect([$order->address_snapshot['full'] ?? null])->filter();
 
     $shop = $order->seller?->shop;
@@ -169,54 +173,50 @@
     </header>
 
 
-    <!-- 🔵 Прогресс бар (6 шагов) -->
-    <div class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-5">
-
-        <div class="sm:hidden">
-            <div class="flex items-center justify-between gap-3">
-                <div>
-                    <div class="text-xs font-semibold uppercase tracking-wide text-neutral-400">Статус заказа</div>
-                    <div class="mt-1 text-base font-semibold text-neutral-900">{{ $order->status_ru }}</div>
-                </div>
-                @if($stepCount === 0)
-                    <div class="rounded-full bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700">Действия недоступны</div>
-                @elseif($active > 0)
-                    <div class="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">{{ $active }}/{{ $stepCount }}</div>
-                @else
-                    <div class="rounded-full bg-rose-50 px-3 py-1 text-sm font-bold text-rose-700">Отменён</div>
+    {{-- Прогресс статусов в том же оформлении, что у продавца --}}
+    <div class="overflow-hidden rounded-2xl border border-neutral-200 bg-white px-4 py-4 sm:px-5">
+        <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="font-semibold text-neutral-900">Этап заказа</h2>
+                <p class="mt-1 text-xs text-neutral-500">Текущий путь заказа от принятия до завершения</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                <x-status-badge :status="$order->status" :order="$order" />
+                @if($isPickupV2)
+                    <span class="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-600">{{ $order->pickup_payment_status_label }}</span>
+                    <span class="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-600">{{ $order->buyer_confirmed_at ? 'Получение подтверждено покупателем' : 'Получение покупателем не подтверждено' }}</span>
                 @endif
             </div>
-            <div class="mt-4 grid gap-1" style="grid-template-columns: repeat({{ max(1, $stepCount) }}, minmax(0, 1fr));">
+        </div>
+        <div class="overflow-x-auto pb-1">
+            <div class="relative h-[68px] min-w-[680px] pt-1 text-xs font-medium text-neutral-500">
+                <div class="absolute left-[14px] right-[14px] top-[18px] h-[2px] bg-neutral-200">
+                    <div class="h-full bg-brand-500" style="width: {{ $statusProgress }}%"></div>
+                </div>
                 @foreach($stepLabels as $step => $text)
-                    <div class="h-2 rounded-full {{ $step <= $active ? 'bg-brand-500' : 'bg-neutral-200' }}"></div>
+                    @php
+                        $index = $loop->index;
+                        $isDone = $index <= $currentStepIndex;
+                        $position = $stepCount > 1 ? ($index / ($stepCount - 1)) * 100 : 0;
+                        $positionStyle = $loop->first
+                            ? 'left: 0;'
+                            : ($loop->last ? 'right: 0;' : 'left: ' . $position . '%; transform: translateX(-50%);');
+                        $alignmentClass = $loop->first
+                            ? 'items-start text-left'
+                            : ($loop->last ? 'items-end text-right' : 'items-center text-center');
+                    @endphp
+                    <div class="absolute top-1 flex w-[140px] flex-col {{ $alignmentClass }}" style="{{ $positionStyle }}">
+                        <div class="flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-semibold
+                                    {{ $isDone ? 'border-brand-500 bg-brand-500 text-white' : 'border-neutral-300 bg-white text-neutral-400' }}">
+                            {{ $step }}
+                        </div>
+                        <div class="mt-2 text-[11px] leading-snug {{ $isDone ? 'text-neutral-800' : 'text-neutral-400' }}">
+                            {{ $text }}
+                        </div>
+                    </div>
                 @endforeach
             </div>
         </div>
-
-        <div class="hidden sm:grid gap-4 text-center text-xs font-medium text-gray-600" style="grid-template-columns: repeat({{ max(1, $stepCount) }}, minmax(0, 1fr));">
-
-            @foreach($stepLabels as $step => $text)
-
-                <div>
-                    <div class="w-10 h-10 mx-auto flex items-center justify-center rounded-full
-                        {{ $step <= $active ? 'bg-brand-500 text-white' : 'bg-neutral-200 text-neutral-500' }}">
-                        {{ $step }}
-                    </div>
-
-                    <div class="mt-2">{{ $text }}</div>
-                </div>
-
-            @endforeach
-
-        </div>
-
-        <!-- Полоски между кружками -->
-        <div class="hidden sm:flex justify-between -mt-5 px-4">
-            @foreach($stepCount > 1 ? range(1, $stepCount - 1) : [] as $line)
-                <div class="h-1 {{ $line < $active ? 'bg-brand-500' : 'bg-neutral-200' }}" style="width: {{ 100 / ($stepCount - 1) }}%"></div>
-            @endforeach
-        </div>
-
     </div>
 
 
