@@ -87,7 +87,7 @@
               <span x-text="selected.length === allIds.length ? 'Снять всё' : 'Выбрать всё'"></span>
             </button>
 
-            <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form min-w-0" @submit="if (selected.length === 0) { $event.preventDefault(); window.showAppToast ? window.showAppToast('Выберите хотя бы один товар', 'error') : alert('Выберите хотя бы один товар'); }">
+            <form method="POST" action="{{ route('cart.addFavorites') }}" class="js-add-all-to-cart-form min-w-0" @submit="if (selected.length === 0) { $event.preventDefault(); window.showAppToast('Выберите хотя бы один товар', 'error'); }">
               @csrf
               <template x-for="id in selected" :key="id">
                 <input type="hidden" name="favorite_ids[]" :value="id">
@@ -351,30 +351,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     function showToast(text, type = 'success') {
-      if (window.showAppToast) {
-        window.showAppToast(text, type);
-        return;
-      }
-
-      const existing = document.querySelector('.toast');
-      if (existing) existing.remove();
-      
-      const el = document.createElement('div');
-      el.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
-      el.innerHTML = `
-        <div class="flex items-center gap-2">
-          <i class="${type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'} text-base"></i>
-          <span></span>
-        </div>
-      `;
-      el.querySelector('span').textContent = String(text ?? '');
-      document.body.appendChild(el);
-      
-      setTimeout(() => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateX(20px)';
-        setTimeout(() => el.remove(), 300);
-      }, 2500);
+      window.showAppToast(text, type);
     }
 
     function showPlusOne(btn) {
@@ -570,40 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
       opacity: 0 !important;
       transform: translateX(-12px);
       transition: all 0.2s ease-out;
-    }
-
-    .toast {
-      position: fixed;
-      right: 16px;
-      top: 80px;
-      padding: 10px 18px;
-      background: #1e293b;
-      color: white;
-      border-radius: 40px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
-      animation: slideInRight 0.3s ease;
-      z-index: 99999;
-      backdrop-filter: blur(8px);
-      background: rgba(30, 41, 59, 0.95);
-    }
-    .toast-success {
-      border-left: 3px solid #10b981;
-    }
-    .toast-error {
-      background: rgba(239, 68, 68, 0.95);
-      border-left: 3px solid #fecaca;
-    }
-    @keyframes slideInRight {
-      from {
-        opacity: 0;
-        transform: translateX(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
     }
 
     .plus-one {

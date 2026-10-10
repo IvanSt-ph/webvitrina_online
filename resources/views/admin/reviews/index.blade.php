@@ -352,12 +352,6 @@
         </div>
     </template>
 
-    <div x-show="toast.show" x-cloak x-transition.opacity.duration.200ms class="fixed bottom-5 right-5 z-50">
-        <div :class="toast.type === 'success' ? 'bg-gray-900' : 'bg-rose-600'" class="rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg">
-            <span x-text="toast.message"></span>
-        </div>
-    </div>
-
     <template x-teleport="body">
         <div x-show="lightbox.open" x-cloak x-transition.opacity.duration.200ms class="fixed inset-0 z-[9999] !mt-0 flex items-center justify-center bg-black/75 p-4" @click.self="lightbox.open = false" @keydown.escape.window="lightbox.open = false">
             <div class="relative max-h-full max-w-4xl">
@@ -375,7 +369,6 @@ function reviewPanel() {
     return {
         filters: { status: @json($status), sort: @json($sort), rating: @json($rating), q: @json($q) },
         selected: [],
-        toast: { show: false, message: '', type: 'success' },
         modal: { open: false, data: {} },
         reasonModal: { open: false, id: null, bulk: false, reason: '' },
         lightbox: { open: false, url: '' },
@@ -391,10 +384,7 @@ function reviewPanel() {
         },
 
         showToast(message, type = 'success') {
-            this.toast.message = message;
-            this.toast.type = type;
-            this.toast.show = true;
-            setTimeout(() => this.toast.show = false, 2400);
+            window.showSiteToast(message, type);
         },
 
         changeStatus(id, action) {

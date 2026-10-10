@@ -733,32 +733,7 @@ function cartSelection(initialTotal = 0, initialQty = 0, freeShippingThreshold =
 
 // Toast notification system
 function showToast(text, type = 'success') {
-    if (window.showAppToast) {
-        window.showAppToast(text, type);
-        return;
-    }
-
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-    
-    const el = document.createElement('div');
-    el.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
-    el.innerHTML = `
-        <div class="flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${type === 'error' ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' : 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'}"></path>
-            </svg>
-            <span></span>
-        </div>
-    `;
-    el.querySelector('span').textContent = String(text ?? '');
-    document.body.appendChild(el);
-    
-    setTimeout(() => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateX(20px)';
-        setTimeout(() => el.remove(), 300);
-    }, 2500);
+    window.showAppToast(text, type);
 }
 
 </script>
@@ -775,40 +750,6 @@ function showToast(text, type = 'success') {
 
 .cart-mobile-safe {
     max-width: 100vw;
-}
-
-.toast {
-    position: fixed;
-    right: 16px;
-    top: 80px;
-    padding: 10px 18px;
-    background: #1e293b;
-    color: white;
-    border-radius: 40px;
-    font-size: 13px;
-    font-weight: 500;
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
-    animation: slideInRight 0.3s ease;
-    z-index: 99999;
-    backdrop-filter: blur(8px);
-    background: rgba(30, 41, 59, 0.95);
-}
-.toast-success {
-    border-left: 3px solid #10b981;
-}
-.toast-error {
-    background: rgba(239, 68, 68, 0.95);
-    border-left: 3px solid #fecaca;
-}
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
 }
 
 .line-clamp-1 {

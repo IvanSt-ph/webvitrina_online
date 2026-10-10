@@ -185,6 +185,8 @@
     </div>
 
   </div>
+  {{-- Redirect flashes are rendered as persistent messages by admin pages. --}}
+  <x-toast-stack :show-flash="false" />
   {{-- Alpine is initialized once by resources/js/app.js via Vite. --}}
 
 </body>

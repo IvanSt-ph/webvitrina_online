@@ -9,6 +9,7 @@
   @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
 <body class="bg-gray-50 text-gray-900">
+  <x-toast-stack />
   <x-nav />
   <main class="max-w-7xl mx-auto p-4">
     <x-flash />

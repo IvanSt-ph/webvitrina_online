@@ -11,11 +11,21 @@
             <p class="mt-3 max-w-lg text-base leading-7 text-[#5f6368]">Управляйте основной информацией аккаунта и контактами, по которым с вами могут связаться.</p>
             <p class="mt-4 text-sm text-[#5f6368]">Последнее обновление: {{ Auth::user()->updated_at?->diffForHumans() ?? '—' }}</p>
         </div>
-        <div class="flex min-h-40 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafd] p-5">
-            <div class="relative">
-                <div class="absolute -inset-6 rounded-full bg-[#e8f0fe]"></div>
-                <img data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}"
-                     src="{{ Auth::user()->avatar_url }}" alt="Аватар пользователя" class="relative h-24 w-24 rounded-full border-4 border-white object-cover shadow-sm sm:h-28 sm:w-28">
+        <div class="relative isolate flex min-h-40 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafd] p-5"
+             x-data="{ hasPhoto: false, syncAvatarBackground() {
+                 const avatar = this.$refs.avatar;
+                 const url = avatar.currentSrc || avatar.src;
+                 this.hasPhoto = avatar.naturalWidth > 0 && url !== avatar.dataset.imageFallback;
+                 this.$refs.avatarBackdrop.style.backgroundImage = this.hasPhoto ? 'url(' + JSON.stringify(url) + ')' : 'none';
+             } }"
+             x-init="$nextTick(() => { if ($refs.avatar.complete) syncAvatarBackground() })">
+            <div x-ref="avatarBackdrop" x-show="hasPhoto" x-cloak aria-hidden="true"
+                 class="pointer-events-none absolute -inset-12 scale-125 bg-cover bg-center blur-[44px]"></div>
+            <div x-show="hasPhoto" x-cloak aria-hidden="true" class="pointer-events-none absolute inset-0 bg-slate-950/15"></div>
+            <div class="relative z-10">
+                <img x-ref="avatar" x-on:load="syncAvatarBackground()" x-on:error="hasPhoto = false"
+                     data-image-candidates="{{ json_encode(Auth::user()->avatar_candidates ?? []) }}" data-image-fallback="{{ asset('images/avatar-placeholder.svg') }}"
+                     src="{{ Auth::user()->avatar_url }}" alt="Аватар пользователя" class="h-24 w-24 rounded-full border-4 border-white object-cover shadow-sm sm:h-28 sm:w-28">
             </div>
         </div>
     </section>

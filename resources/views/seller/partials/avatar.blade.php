@@ -200,31 +200,7 @@ function avatarCropper() {
         },
         
         showNotification(message, type = 'success') {
-            if (window.showSiteToast) {
-                window.showSiteToast(message, type);
-                return;
-            }
-
-            // Удаляем предыдущее уведомление если есть
-            const oldNotification = document.querySelector('.avatar-notification');
-            if (oldNotification) {
-                oldNotification.remove();
-            }
-            
-            const notification = document.createElement('div');
-            notification.className = `avatar-notification fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 
-                ${type === 'success' ? 'bg-success-500' : type === 'error' ? 'bg-danger-500' : 'bg-info-500'} text-white`;
-            notification.innerHTML = `
-                <i class="ri-${type === 'success' ? 'check-line' : type === 'error' ? 'error-warning-line' : 'information-line'}"></i>
-                <span></span>
-            `;
-            notification.querySelector('span').textContent = String(message ?? '');
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+            window.showSiteToast(message, type);
         }
     }
 }
