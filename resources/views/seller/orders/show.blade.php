@@ -82,7 +82,14 @@
         $canCancel = in_array($order->status, [
             \App\Models\Order::STATUS_PENDING,
             \App\Models\Order::STATUS_PROCESSING,
-        ], true) && $isLegacy;
+        ], true) && ($isLegacy || ($validPickupOrder
+            && $order->payment_status === \App\Models\Order::PAYMENT_UNPAID
+            && $order->paid_at === null
+            && $order->buyer_confirmed_at === null
+            && $order->delivered_at === null));
+        $hasCancellationRequest = ! $order->isUnsupportedWorkflow()
+            && $order->cancellation_requested_at !== null
+            && ! in_array($order->status, [\App\Models\Order::STATUS_CANCELED, \App\Models\Order::STATUS_COMPLETED], true);
         $canConfirmPayment = $validPickupOrder
             && in_array($order->status, [\App\Models\Order::STATUS_READY_FOR_PICKUP, \App\Models\Order::STATUS_DELIVERED], true)
             && $order->payment_status === \App\Models\Order::PAYMENT_UNPAID
@@ -407,10 +414,24 @@
                           onsubmit="return confirm('Вы точно хотите отменить заказ?');">
                         @csrf
                         <input type="hidden" name="status" value="canceled">
+                        @if($isPickupV2)
+                            <label for="seller-cancellation-reason" class="mb-1 block text-sm font-medium text-neutral-700">Причина отмены</label>
+                            <textarea id="seller-cancellation-reason" name="cancellation_reason" required maxlength="700" rows="3" class="mb-3 w-full rounded-xl border-neutral-200 text-sm" placeholder="Укажите причину отмены">{{ old('cancellation_reason') }}</textarea>
+                        @endif
                         <button class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
-                            Отменить заказ
+                            {{ $hasCancellationRequest && $isPickupV2 ? 'Подтвердить отмену' : 'Отменить заказ' }}
                         </button>
                     </form>
+                @elseif($order->isUnsupportedWorkflow())
+                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">Версия процесса заказа не поддерживается. Изменения недоступны; обратитесь в поддержку.</p>
+                @elseif($order->status === \App\Models\Order::STATUS_CANCELED)
+                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">Заказ уже отменён.</p>
+                @elseif($order->status === \App\Models\Order::STATUS_COMPLETED)
+                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">Заказ завершён. Вопросы по нему решаются через поддержку или спор.</p>
+                @elseif($isPickupV2 && ($order->paid_at || $order->buyer_confirmed_at || $order->delivered_at || $order->payment_status !== \App\Models\Order::PAYMENT_UNPAID))
+                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">После подтверждения оплаты или получения обычная отмена недоступна. Обратитесь в поддержку или откройте спор.</p>
+                @elseif($isPickupV2 && $order->status === \App\Models\Order::STATUS_READY_FOR_PICKUP)
+                    <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">Заказ готов к самовывозу. Обычная отмена после подготовки недоступна; обратитесь в поддержку.</p>
                 @else
                     <p class="rounded-xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">Отмена недоступна для текущего статуса.</p>
                 @endif
@@ -419,12 +440,20 @@
     </div>
 </section>
 
-        @if(! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at && $order->status !== \App\Models\Order::STATUS_CANCELED)
+        @if($hasCancellationRequest)
             <section class="rounded-2xl border border-rose-200 bg-rose-50 p-4 sm:p-5">
                 <h2 class="font-semibold text-rose-900">Покупатель запросил отмену заказа</h2>
                 <p class="mt-1 text-sm text-rose-700">{{ $order->cancellation_requested_at->format('d.m.Y H:i') }}</p>
                 <p class="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-neutral-700">{{ $order->cancellation_reason }}</p>
                 <p class="mt-3 text-sm text-rose-800">{{ $isPickupV2 ? 'Обычная отмена возможна только до готовности, оплаты и получения; дальнейшие случаи требуют разбора.' : 'Если заказ ещё не отправлен, отмените его в блоке действий ниже или свяжитесь с покупателем.' }}</p>
+                @if($isPickupV2)
+                    <form method="POST" action="{{ route('seller.orders.rejectCancellation', $order) }}" class="mt-3">
+                        @csrf
+                        <label for="seller-rejection-reason" class="mb-1 block text-sm font-medium text-rose-900">Причина отказа</label>
+                        <textarea id="seller-rejection-reason" name="reason" required maxlength="700" rows="3" class="mb-3 w-full rounded-xl border-rose-200 bg-white text-sm" placeholder="Объясните покупателю причину отказа">{{ old('reason') }}</textarea>
+                        <button type="submit" class="inline-flex items-center justify-center rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-semibold text-rose-800 hover:bg-rose-100">Отклонить запрос</button>
+                    </form>
+                @endif
             </section>
         @endif
 

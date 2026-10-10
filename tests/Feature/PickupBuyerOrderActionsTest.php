@@ -91,6 +91,48 @@ class PickupBuyerOrderActionsTest extends TestCase
         $this->assertSame([], $this->receiptForms($html, $order));
     }
 
+    public function test_pickup_payment_guidance_tracks_both_independent_confirmations(): void
+    {
+        [$order, $buyer] = $this->order();
+        $ready = [
+            'status' => Order::STATUS_READY_FOR_PICKUP,
+            'ready_for_pickup_at' => now(),
+            'payment_status' => Order::PAYMENT_UNPAID,
+            'paid_at' => null,
+            'buyer_confirmed_at' => null,
+            'completed_at' => null,
+        ];
+
+        $this->setOrder($order, $ready);
+        $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk()
+            ->assertSee('Оплата производится непосредственно продавцу при получении.');
+
+        $this->setOrder($order, array_merge($ready, [
+            'payment_status' => Order::PAYMENT_SELLER_CONFIRMED,
+            'paid_at' => now(),
+        ]));
+        $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk()
+            ->assertSee('Продавец подтвердил получение денег. Подтвердите получение товара после фактической передачи.')
+            ->assertDontSee('Оплата производится непосредственно продавцу при получении.');
+
+        $this->setOrder($order, array_merge($ready, [
+            'status' => Order::STATUS_DELIVERED,
+            'buyer_confirmed_at' => now(),
+        ]));
+        $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk()
+            ->assertSee('Завершение ожидает подтверждения оплаты продавцом.');
+
+        $this->setOrder($order, array_merge($ready, [
+            'status' => Order::STATUS_COMPLETED,
+            'buyer_confirmed_at' => now(),
+            'payment_status' => Order::PAYMENT_SELLER_CONFIRMED,
+            'paid_at' => now(),
+            'completed_at' => now(),
+        ]));
+        $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk()
+            ->assertSee('Заказ завершён: продавец отметил оплату, покупатель подтвердил получение.');
+    }
+
     private function order(bool $pickup = true): array
     {
         $buyer = User::factory()->create(['role' => 'buyer']);

@@ -280,6 +280,9 @@ public function markAsPaid(): void
             if ($this->status === self::STATUS_DELIVERED && $this->buyer_confirmed_at === null) {
                 return 'Получение требует проверки';
             }
+            if ($this->status === self::STATUS_DELIVERED) {
+                return 'Получен покупателем';
+            }
             if ($this->status === self::STATUS_COMPLETED
                 && ($this->buyer_confirmed_at === null
                     || $this->payment_status !== self::PAYMENT_SELLER_CONFIRMED

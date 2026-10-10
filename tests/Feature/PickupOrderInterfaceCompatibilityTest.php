@@ -63,6 +63,30 @@ class PickupOrderInterfaceCompatibilityTest extends TestCase
             ->assertOk()->assertSee('Завершение требует проверки');
     }
 
+    public function test_received_pickup_uses_historical_delivery_label_only_for_legacy(): void
+    {
+        [$order, $buyer, $seller, $admin] = $this->order();
+        DB::table('orders')->where('id', $order->id)->update([
+            'status' => Order::STATUS_DELIVERED,
+            'buyer_confirmed_at' => now(),
+            'delivered_at' => now(),
+        ]);
+        $order->refresh();
+        $this->assertSame('Получен покупателем', $order->status_ru);
+
+        foreach ([
+            [$buyer, 'orders.index', 'orders.show'],
+            [$seller, 'seller.orders.index', 'seller.orders.show'],
+            [$admin, 'admin.orders.index', 'admin.orders.show'],
+        ] as [$actor, $index, $show]) {
+            $this->actingAs($actor)->get(route($index))->assertOk()->assertSee('Получен покупателем');
+            $this->get(route($show, $order))->assertOk()->assertSee('Получен покупателем');
+        }
+
+        DB::table('orders')->where('id', $order->id)->update(['workflow_version' => null]);
+        $this->assertSame('Доставлен', $order->fresh()->status_ru);
+    }
+
     public function test_ready_filter_and_admin_active_counter_include_pickup_without_legacy_transition_change(): void
     {
         [$ready, $buyer, $seller, $admin] = $this->order();

@@ -8,7 +8,7 @@
             \App\Models\Order::STATUS_READY_FOR_PICKUP => ['label' => 'Готовы к самовывозу', 'icon' => 'ri-store-2-line'],
             \App\Models\Order::STATUS_PAID => ['label' => 'Оплачены', 'icon' => 'ri-bank-card-line'],
             \App\Models\Order::STATUS_SHIPPED => ['label' => 'В пути', 'icon' => 'ri-truck-line'],
-            \App\Models\Order::STATUS_DELIVERED => ['label' => 'Доставлены', 'icon' => 'ri-checkbox-circle-line'],
+            \App\Models\Order::STATUS_DELIVERED => ['label' => 'Получены / доставлены', 'icon' => 'ri-checkbox-circle-line'],
             \App\Models\Order::STATUS_COMPLETED => ['label' => 'Завершены', 'icon' => 'ri-check-double-line'],
             \App\Models\Order::STATUS_CANCELED => ['label' => 'Отменённые', 'icon' => 'ri-close-circle-line'],
         ];

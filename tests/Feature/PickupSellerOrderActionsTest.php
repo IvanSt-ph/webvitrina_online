@@ -12,7 +12,7 @@ class PickupSellerOrderActionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_pickup_pending_and_processing_show_only_the_allowed_status_form(): void
+    public function test_pickup_pending_and_processing_show_allowed_progress_and_cancellation_forms(): void
     {
         [$order, $seller] = $this->order();
 
@@ -24,9 +24,12 @@ class PickupSellerOrderActionsTest extends TestCase
             $html = $this->actingAs($seller)->get(route('seller.orders.show', $order))
                 ->assertOk()->assertSee($label)->getContent();
             $statusForms = $this->formsFor($html, route('seller.orders.updateStatus', $order));
-            $this->assertCount(1, $statusForms);
-            $this->assertPostWithCsrf($statusForms[0]);
-            $this->assertSame([$target], $this->submittedStatuses($statusForms));
+            $this->assertCount(2, $statusForms);
+            foreach ($statusForms as $form) {
+                $this->assertPostWithCsrf($form);
+            }
+            $this->assertSame([$target, Order::STATUS_CANCELED], $this->submittedStatuses($statusForms));
+            $this->assertStringContainsString('name="cancellation_reason" required', $statusForms[1]['body']);
             $this->assertSame([], $this->formsFor($html, route('seller.orders.confirmPayment', $order)));
         }
     }
@@ -98,6 +101,83 @@ class PickupSellerOrderActionsTest extends TestCase
             $this->assertPostWithCsrf($form);
         }
         $this->assertSame([], $this->formsFor($html, route('seller.orders.confirmPayment', $order)));
+    }
+
+    public function test_pickup_cancellation_form_matches_unpaid_preparation_conditions(): void
+    {
+        [$order, $seller] = $this->order();
+
+        foreach ([Order::STATUS_PENDING, Order::STATUS_PROCESSING] as $status) {
+            $this->setOrder($order, ['status' => $status]);
+            $html = $this->actingAs($seller)->get(route('seller.orders.show', $order))->assertOk()->getContent();
+            $forms = array_values(array_filter($this->formsFor($html, route('seller.orders.updateStatus', $order)),
+                fn ($form) => $this->submittedStatuses([$form]) === [Order::STATUS_CANCELED]));
+            $this->assertCount(1, $forms);
+            $this->assertPostWithCsrf($forms[0]);
+            $this->assertStringContainsString('name="cancellation_reason" required', $forms[0]['body']);
+        }
+
+        foreach ([
+            ['status' => Order::STATUS_READY_FOR_PICKUP],
+            ['status' => Order::STATUS_DELIVERED, 'buyer_confirmed_at' => now()],
+            ['status' => Order::STATUS_COMPLETED],
+            ['status' => Order::STATUS_CANCELED],
+            ['status' => Order::STATUS_PENDING, 'paid_at' => now()],
+            ['status' => Order::STATUS_PENDING, 'payment_status' => Order::PAYMENT_SELLER_CONFIRMED],
+            ['status' => Order::STATUS_PENDING, 'payment_method' => 'bank_transfer'],
+            ['status' => Order::STATUS_PENDING, 'delivery_method' => 'courier'],
+            ['status' => Order::STATUS_PENDING, 'workflow_version' => 3],
+        ] as $invalid) {
+            $this->setOrder($order, array_merge([
+                'workflow_version' => Order::WORKFLOW_PICKUP,
+                'status' => Order::STATUS_PENDING,
+                'payment_status' => Order::PAYMENT_UNPAID,
+                'paid_at' => null,
+                'buyer_confirmed_at' => null,
+                'delivered_at' => null,
+                'payment_method' => 'cash',
+                'delivery_method' => 'pickup',
+            ], $invalid));
+            $html = $this->actingAs($seller)->get(route('seller.orders.show', $order))->assertOk()->getContent();
+            $this->assertNotContains(Order::STATUS_CANCELED,
+                $this->submittedStatuses($this->formsFor($html, route('seller.orders.updateStatus', $order))));
+        }
+    }
+
+    public function test_pickup_buyer_cancellation_request_shows_accept_and_reject_forms(): void
+    {
+        [$order, $seller] = $this->order();
+        $this->setOrder($order, ['cancellation_requested_at' => now(), 'cancellation_reason' => 'Не смогу получить']);
+
+        $html = $this->actingAs($seller)->get(route('seller.orders.show', $order))
+            ->assertOk()->assertSee('Не смогу получить')->assertSee('Подтвердить отмену')->getContent();
+        $rejectForms = $this->formsFor($html, route('seller.orders.rejectCancellation', $order));
+        $this->assertCount(1, $rejectForms);
+        $this->assertPostWithCsrf($rejectForms[0]);
+        $this->assertStringContainsString('name="reason" required', $rejectForms[0]['body']);
+
+        $this->setOrder($order, ['status' => Order::STATUS_READY_FOR_PICKUP]);
+        $html = $this->actingAs($seller)->get(route('seller.orders.show', $order))->assertOk()->getContent();
+        $this->assertStringNotContainsString('Подтвердить отмену', $html);
+        $this->assertCount(1, $this->formsFor($html, route('seller.orders.rejectCancellation', $order)));
+
+        $this->post(route('seller.orders.rejectCancellation', $order), ['reason' => 'Заказ уже подготовлен'])
+            ->assertSessionHasNoErrors();
+        $this->get(route('seller.orders.show', $order))->assertOk()
+            ->assertDontSee('Покупатель запросил отмену заказа');
+
+        $this->setOrder($order, [
+            'status' => Order::STATUS_PENDING,
+            'cancellation_requested_at' => now(),
+            'cancellation_reason' => 'Не смогу получить',
+        ]);
+        $this->post(route('seller.orders.updateStatus', $order), [
+            'status' => Order::STATUS_CANCELED,
+            'cancellation_reason' => 'Подтверждаю запрос покупателя',
+        ])->assertSessionHasNoErrors();
+        $this->get(route('seller.orders.show', $order))->assertOk()
+            ->assertSee('Заказ уже отменён')
+            ->assertDontSee('Покупатель запросил отмену заказа');
     }
 
     private function order(bool $pickup = true): array

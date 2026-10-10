@@ -179,6 +179,50 @@ class PickupOrderWorkflowTest extends TestCase
         $this->assertSame('Товар уже зарезервирован', $order->events()->orderByDesc('id')->firstOrFail()->metadata['reason']);
     }
 
+    public function test_seller_accepts_buyer_cancellation_request_with_reason(): void
+    {
+        [$order, $buyer, $seller] = $this->pickup();
+        $this->actingAs($buyer)->post(route('orders.requestCancellation', $order), [
+            'cancellation_reason' => 'Не смогу получить',
+        ])->assertSessionHasNoErrors();
+
+        $this->actingAs($seller)->postJson(route('seller.orders.updateStatus', $order), [
+            'status' => Order::STATUS_CANCELED,
+        ])->assertUnprocessable()->assertJsonValidationErrors('status');
+
+        $this->actingAs($seller)->post(route('seller.orders.updateStatus', $order), [
+            'status' => Order::STATUS_CANCELED,
+            'cancellation_reason' => 'Подтверждаю запрос покупателя',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(Order::STATUS_CANCELED, $order->fresh()->status);
+        $this->assertSame(2, $order->events()->count());
+        $this->assertSame('Подтверждаю запрос покупателя',
+            $order->events()->where('event_type', 'order_canceled')->firstOrFail()->metadata['reason']);
+        $this->assertTrue(UserNotification::query()->where('user_id', $buyer->id)
+            ->where('type', 'order_status_updated')->exists());
+
+        $eventCount = $order->events()->count();
+        $notificationCount = UserNotification::count();
+        $this->actingAs($seller)->post(route('seller.orders.updateStatus', $order), [
+            'status' => Order::STATUS_CANCELED,
+            'cancellation_reason' => 'Повтор',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame($eventCount, $order->events()->count());
+        $this->assertSame($notificationCount, UserNotification::count());
+
+        [$processingOrder, , $processingSeller] = $this->pickup();
+        $this->actingAs($processingSeller)->post(route('seller.orders.updateStatus', $processingOrder), [
+            'status' => Order::STATUS_PROCESSING,
+        ])->assertSessionHasNoErrors();
+        $this->post(route('seller.orders.updateStatus', $processingOrder), [
+            'status' => Order::STATUS_CANCELED,
+            'cancellation_reason' => 'Товар недоступен',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(Order::STATUS_CANCELED, $processingOrder->fresh()->status);
+        $this->assertSame('Товар недоступен',
+            $processingOrder->events()->where('event_type', 'order_canceled')->firstOrFail()->metadata['reason']);
+    }
+
     public function test_paid_pickup_order_cannot_be_canceled_normally(): void
     {
         [$order, , $seller] = $this->pickup();
