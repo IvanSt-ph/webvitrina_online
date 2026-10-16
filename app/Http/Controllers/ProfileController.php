@@ -20,6 +20,8 @@ use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
 use App\Services\ImageService;
 use App\Services\PhoneAssignmentService;
+use App\Services\ShopBannerOperation;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class ProfileController extends Controller
@@ -354,32 +356,61 @@ public function updateShop(Request $request): RedirectResponse
         'remove_banner' => 'nullable|boolean',
     ]);
 
-    $shop = $request->user()->shop ?? $request->user()->shop()->create([]);
-
-    // Проверка и удаление баннера
-    if ($request->boolean('remove_banner') && $shop->banner) {
-        app(ImageService::class)->delete($shop->banner);
-        $shop->update(['banner' => null]);
-    }
-
-    if ($request->hasFile('banner')) {
-        $newBannerPath = app(ImageService::class)->upload($request->file('banner'), 'banners');
-
-        if ($shop->banner) {
-            app(ImageService::class)->delete($shop->banner);
-        }
-
-        $data['banner'] = $newBannerPath;
-    }
-
     $hasPhone = array_key_exists('phone', $data);
     $submittedPhone = $hasPhone ? $data['phone'] : null;
-    unset($data['phone']);
+    unset($data['phone'], $data['remove_banner']);
+
+    $update = function (?string $normalizedPhone = null, ?PhoneAssignmentService $phones = null) use (
+        $request,
+        $data,
+        $hasPhone,
+    ): void {
+        // The seller row serializes first-shop creation and establishes one lock order
+        // for repeated requests: seller -> shop. Phone updates acquire their advisory
+        // phone lock before entering this transaction through PhoneAssignmentService.
+        $seller = User::query()->whereKey($request->user()->getKey())->lockForUpdate()->firstOrFail();
+        $shop = Shop::query()->where('user_id', $seller->getKey())->lockForUpdate()->first();
+
+        if (!$shop) {
+            $shop = $seller->shop()->create([]);
+        }
+
+        $files = new ShopBannerOperation(
+            app(ImageService::class),
+            DB::connection(),
+        );
+        $oldBanner = $shop->banner;
+        $attributes = $data;
+
+        if ($request->hasFile('banner')) {
+            $attributes['banner'] = $files->upload($request->file('banner'));
+        } elseif ($request->boolean('remove_banner')) {
+            $attributes['banner'] = null;
+        }
+
+        $shop->fill($attributes);
+
+        if ($hasPhone && $shop->phone !== $normalizedPhone) {
+            $phones?->assertAvailableForShop($normalizedPhone, (int) $shop->user_id, (int) $shop->getKey());
+            $shop->forceFill([
+                'phone' => $normalizedPhone,
+                'phone_verified_at' => null,
+                'phone_verification_code' => null,
+                'phone_verification_expires_at' => null,
+            ]);
+        }
+
+        $shop->save();
+
+        if ($oldBanner && $oldBanner !== $shop->banner) {
+            $files->deleteAfterCommit($oldBanner);
+        }
+    };
 
     if ($hasPhone) {
-        $this->phones->updateShop($shop, $submittedPhone, $data);
+        $this->phones->run($submittedPhone, $update);
     } else {
-        $shop->update($data);
+        DB::transaction(fn () => $update(), 3);
     }
 
     return Redirect::route('profile.edit')->with('status', 'shop-updated');

@@ -49,7 +49,7 @@ npm run build
 2. Остановите queue workers через их process manager с ожиданием текущих jobs и запретом автоматического перезапуска. `queue:restart` не является остановкой writers.
 3. Остановите запуск scheduler (cron/timer), дождитесь уже запущенных задач, фоновых команд и in-flight HTTP/DB/file mutations. Заблокируйте другие CLI, SQL и внешние writers.
 4. Убедитесь, что backup/restore не выполняется и не может стартовать параллельно, включая ручные/admin запуски. Согласуйте паузу health probes, которые записывают queue/cache и проверочные файлы.
-5. При остановленных writers выполните `php artisan backup:run` и `php artisan backup:health-check --max-age-hours=30`. Зафиксируйте точный каталог, code revision и совместимые настройки/секреты; проверьте manifest и SHA256SUMS именно этой копии. В копии обязательны `database.sql.gz`, `storage-public.tar.gz`, `storage-private-chat-images.tar.gz`, `manifest.json`, `SHA256SUMS`. Успешный isolated restore drill должен быть подтверждён до acceptance.
+5. При остановленных writers выполните `php artisan backup:run` и `php artisan backup:health-check --max-age-hours=30` средствами текущего активного release. Зафиксируйте точный каталог, code revision и совместимые настройки/секреты; проверьте manifest и SHA256SUMS именно этой копии. После переключения на новый код перед переносом изображений обязательно создаётся отдельный backup format v3 по процедуре ниже. Успешный isolated restore drill должен быть подтверждён до acceptance.
 6. Только после этого переключайте подготовленный код и выполняйте migrations/cache команды ниже. Writers остаются остановленными до проверки результата.
 
 `BackupWriteBarrier` — кооперативный process-owned `flock`, не запрет всех записей. Он координирует поддерживаемые HTTP/jobs/file mutations и backup/restore, но не охватывает raw SQL, migrations и внешние скрипты. Все участвующие процессы должны разделять один стабильный inode `storage/framework/backup-writes.lock`; его нельзя удалять/заменять или создавать отдельно для каждого release. Блокировка backup освобождается после команды, поэтому writer-stop сохраняется силами оператора. Подробности: [PROD-10](backup-restore-safety.md).
@@ -64,13 +64,52 @@ php artisan view:cache
 
 Если `storage:link` пишет, что ссылка уже есть, это нормально. Важно, чтобы `/public/storage` реально вёл в `storage/app/public`.
 
+### Перенос старых публичных изображений отзывов
+
+Эта процедура обязательна при обновлении инсталляции, в которой изображения отзывов могли находиться в `storage/app/public/reviews`. На новой инсталляции и после уже завершённого переноса ориентируйтесь на фактический результат dry-run; повторно копировать или удалять файлы без необходимости не нужно. Writers остаются остановленными на весь перенос.
+
+1. Выполните read-only инвентаризацию. Любые `errors`, unsafe/missing files или orphan public files требуют разбирательства до удаления:
+
+```bash
+php artisan review-images:migrate-private
+```
+
+2. Уже на новом коде создайте backup format v3 и проверьте его целостность. В manifest и `SHA256SUMS` должен присутствовать `storage-private-review-images.tar.gz`:
+
+```bash
+php artisan backup:run
+php artisan backup:health-check --max-age-hours=30
+```
+
+3. Скопируйте и проверьте legacy-файлы в private storage, не удаляя публичные оригиналы:
+
+```bash
+php artisan review-images:migrate-private --apply
+php artisan review-images:migrate-private
+```
+
+4. Только после успешного копирования, повторной проверки и фиксации каталога backup v3 удалите подтверждённые публичные копии. Команда откажется удалять файлы при ошибках, несовпадении данных или найденных orphan public files:
+
+```bash
+php artisan review-images:migrate-private --apply --delete-public
+php artisan review-images:migrate-private
+```
+
+5. Финально убедитесь, что команда не сообщает legacy public copies, а каталог ниже не содержит файлов:
+
+```bash
+find storage/app/public/reviews -type f -print
+```
+
+Пока публичные копии существуют, прямые URL `/storage/reviews/...` обходят контроллер доступа. Не возобновляйте writers и не считайте перенос завершённым, пока финальная проверка не стала чистой.
+
 Проверьте `php artisan migrate:status`, `php artisan route:list --except-vendor` и успешность cache-команд до возобновления writers. При ошибке держите writers остановленными и используйте раздел rollback ниже.
 
 ### Rollback / recovery
 
 Не выполняйте слепой `php artisan migrate:rollback`: указанные history migrations намеренно необратимы, MySQL DDL может оставить частично применённое состояние. Автоматического rollback в проекте нет.
 
-При безопасно исправимой ошибке предпочтителен проверенный forward fix с остановленными writers. Если требуется полный rollback состояния, восстановите **CODE + DATABASE + FILE STORAGE** из одной проверенной точки: соответствующий code revision/build, SQL и оба storage archive одной backup-копии, с совместимыми настройками/APP_KEY. Backup сам по себе код и секреты не содержит — их нужно сохранить отдельно и связать с выбранной копией.
+При безопасно исправимой ошибке предпочтителен проверенный forward fix с остановленными writers. Если требуется полный rollback состояния, восстановите **CODE + DATABASE + FILE STORAGE** из одной проверенной точки: соответствующий code revision/build, SQL и все storage archives одной backup-копии, с совместимыми настройками/APP_KEY. Backup сам по себе код и секреты не содержит — их нужно сохранить отдельно и связать с выбранной копией.
 
 Перед восстановлением проверьте manifest/checksums. SQL импорт выполняется отдельно; `backup:restore-files /absolute/backup --force` восстанавливает только файлы и не блокирует весь DB+files restore. Writers остаются остановленными на всё время восстановления. Следуйте [recovery procedure PROD-10](backup-restore-safety.md), не удаляйте recovery artifacts при ошибке. После восстановления проверьте соответствие DB и обоих storage roots выбранной копии, manifest/checksums, обновите кэши. Затем контролируемо возобновите worker/scheduler/HTTP и проверьте health и smoke; maintenance закономерно мешает получить общий healthy до `up`.
 
@@ -98,9 +137,16 @@ php artisan queue:failed
 
 ## 5. Настроить backup
 
-Backup должен включать БД, `storage/app/public` и `storage/app/private/chat-images`.
+Backup format v3 должен включать БД, `storage/app/public`, `storage/app/private/chat-images` и `storage/app/private/review-images`.
 
-Встроенная команда создаёт архив БД, отдельные архивы public storage и private chat images, `manifest.json` и `SHA256SUMS`:
+Встроенная команда создаёт архив БД, отдельные архивы public storage, private chat images и private review images, `manifest.json` и `SHA256SUMS`:
+
+- `database.sql.gz`;
+- `storage-public.tar.gz`;
+- `storage-private-chat-images.tar.gz`;
+- `storage-private-review-images.tar.gz`;
+- `manifest.json`;
+- `SHA256SUMS`.
 
 ```bash
 php artisan backup:run
