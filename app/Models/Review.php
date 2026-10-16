@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Review extends Model
 {
+    use SoftDeletes;
+
     // 🔹 Разрешённые поля
     protected $fillable = [
         'user_id',
@@ -72,11 +75,16 @@ class Review extends Model
     });
 
     static::deleting(function ($review) {
+        if (!$review->isForceDeleting()) {
+            return;
+        }
+
         $images = $review->images()->get();
         $imageService = app(\App\Services\ImageService::class);
 
         foreach ($images as $image) {
             $imageService->delete($image->path);
+            $image->delete();
         }
     });
 

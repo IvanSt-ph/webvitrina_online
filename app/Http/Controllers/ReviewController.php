@@ -21,18 +21,10 @@ class ReviewController extends Controller
      */
 public function store(Request $request, Product $product)
 {
-    abort_if($product->status !== 'active', 404);
+    abort_if($product->status !== Product::STATUS_ACTIVE, 404);
 
-    if ($product->user_id === auth()->id()) {
-        $message = 'Нельзя оставить отзыв на собственный товар.';
-
-        if (! $request->expectsJson()) {
-            return back()->with('warning', $message);
-        }
-
-        throw ValidationException::withMessages([
-            'review' => $message,
-        ]);
+    if ($response = $this->rejectOwnProduct($request, $product)) {
+        return $response;
     }
 
     $hasPurchased = Order::where('user_id', auth()->id())
@@ -48,17 +40,40 @@ public function store(Request $request, Product $product)
         ->exists();
 
     if (! $hasPurchased) {
-        $message = 'Отзыв можно оставить только после покупки и получения товара.';
-
-        if (! $request->expectsJson()) {
-            return back()->with('warning', $message);
-        }
-
-        throw ValidationException::withMessages([
-            'review' => $message,
-        ]);
+        return $this->purchaseRequiredResponse($request);
     }
 
+    return $this->persistReview($request, $product);
+}
+
+public function storeForOrder(Request $request, Order $order, string $product)
+{
+    abort_unless($order->user_id === $request->user()->id, 403);
+    abort_unless(ctype_digit($product), 404);
+
+    $item = $order->items()
+        ->without('product')
+        ->where('product_id', (int) $product)
+        ->firstOrFail();
+    $product = Product::withTrashed()->findOrFail($item->product_id);
+
+    $canReview = in_array($order->status, [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED], true)
+        && ($order->workflow_version === null
+            || ($order->workflow_version === Order::WORKFLOW_PICKUP && $order->buyer_confirmed_at !== null));
+
+    if (! $canReview) {
+        return $this->purchaseRequiredResponse($request);
+    }
+
+    if ($response = $this->rejectOwnProduct($request, $product)) {
+        return $response;
+    }
+
+    return $this->persistReview($request, $product);
+}
+
+private function persistReview(Request $request, Product $product)
+{
     // 🧩 Валидация данных формы
     $data = $request->validate([
         'rating'    => 'required|integer|min:1|max:5',
@@ -68,8 +83,10 @@ public function store(Request $request, Product $product)
     ]);
 
     // 🧩 Создание или обновление отзыва (один отзыв на пользователя)
+    // Reputation recalculation is registered by the observer for afterCommit,
+    // so it always starts with a fresh REPEATABLE READ snapshot.
     $review = DB::transaction(function () use ($request, $product, $data) {
-        $review = Review::updateOrCreate(
+        $review = Review::withTrashed()->updateOrCreate(
             ['user_id' => auth()->id(), 'product_id' => $product->id],
             [
                 'rating'      => $data['rating'],
@@ -77,8 +94,15 @@ public function store(Request $request, Product $product)
                 'user_id'     => auth()->id(),
                 'product_id'  => $product->id,
                 'status'      => Review::STATUS_PENDING,
+                'rejection_reason' => null,
+                'moderated_by' => null,
+                'moderated_at' => null,
             ]
         );
+
+        if ($review->trashed()) {
+            $review->restore();
+        }
 
         // 🧩 Обработка загруженных изображений
         if ($request->hasFile('images')) {
@@ -104,10 +128,36 @@ public function store(Request $request, Product $product)
     });
 
     // 🧹 Очистка кэша товара
-    ProductRepository::clearProductCache($review->product);
+    ProductRepository::clearProductCache($product);
 
     // 🧩 Уведомление пользователя
     return back()->with('success', 'Ваш отзыв отправлен на модерацию и появится после проверки администрацией.');
+}
+
+private function rejectOwnProduct(Request $request, Product $product)
+{
+    if ($product->user_id !== $request->user()->id) {
+        return null;
+    }
+
+    $message = 'Нельзя оставить отзыв на собственный товар.';
+
+    if (! $request->expectsJson()) {
+        return back()->with('warning', $message);
+    }
+
+    throw ValidationException::withMessages(['review' => $message]);
+}
+
+private function purchaseRequiredResponse(Request $request)
+{
+    $message = 'Отзыв можно оставить только после покупки и получения товара.';
+
+    if (! $request->expectsJson()) {
+        return back()->with('warning', $message);
+    }
+
+    throw ValidationException::withMessages(['review' => $message]);
 }
 
 

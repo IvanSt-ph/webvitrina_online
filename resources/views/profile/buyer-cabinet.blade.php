@@ -22,13 +22,6 @@
             'description' => 'Заказы уже в доставке',
         ],
         [
-            'title' => 'Оставить отзыв',
-            'count' => $reviewableOrdersCount ?? 0,
-            'href' => route('orders.index', ['tab' => 'action']),
-            'icon' => 'ri-star-line',
-            'description' => 'Полученные покупки без оценки',
-        ],
-        [
             'title' => 'Ответы поддержки',
             'count' => $supportUnreadCount ?? 0,
             'href' => route('support'),
@@ -149,7 +142,7 @@
             </div>
             <a href="{{ route('orders.index', ['tab' => 'action']) }}" class="text-sm font-semibold text-brand-600 hover:text-brand-700">Все действия</a>
         </div>
-        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach($actionCards as $card)
                 <a href="{{ $card['href'] }}" class="rounded-xl border border-white bg-white p-3 transition hover:border-brand-200 hover:shadow-md">
                     <div class="flex items-center justify-between gap-2">
@@ -164,6 +157,20 @@
             @endforeach
         </div>
     </section>
+
+    @if(($reviewableOrdersCount ?? 0) > 0)
+        <section class="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="font-semibold text-neutral-900">Можно поделиться отзывом</h2>
+                    <p class="mt-1 text-sm text-neutral-500">Полученные покупки без оценки: {{ $reviewableOrdersCount }}. Это необязательно.</p>
+                </div>
+                <a href="{{ route('orders.index', ['tab' => 'completed']) }}" class="inline-flex h-10 items-center justify-center rounded-xl border border-brand-200 px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50">
+                    Оставить отзыв
+                </a>
+            </div>
+        </section>
+    @endif
 
     <section class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         @foreach($quickLinks as $link)

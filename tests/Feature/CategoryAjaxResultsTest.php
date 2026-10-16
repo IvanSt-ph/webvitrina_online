@@ -57,7 +57,7 @@ class CategoryAjaxResultsTest extends TestCase
                 }
                 // The category's existing JS replaces the complete contents, including pagination.
                 $response->assertSee('productsContainer.innerHTML = newProducts.innerHTML;', false)
-                    ->assertSee("window.history.replaceState({}, '', url);", false);
+                    ->assertSee("window.history.replaceState({}, '', url.pathname + url.search);", false);
             }
         }
     }

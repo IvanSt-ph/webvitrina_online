@@ -150,6 +150,12 @@ class ProductService
             foreach (array_filter([$product->image, ...(array) $product->gallery]) as $path) {
                 $files->deleteAfterCommit($path);
             }
+            $product->reviews()->withTrashed()->with('images')->get()
+                ->each(function ($review) use ($files): void {
+                    $review->images->each(
+                        fn ($image) => $files->deleteAfterCommit($image->path)
+                    );
+                });
             $product->forceDelete();
 
             return true;

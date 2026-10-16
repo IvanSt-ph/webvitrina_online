@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Shop extends Model
@@ -115,34 +116,80 @@ class Shop extends Model
 
     // ✅ Метод для обновления репутации продавца
     public function updateReputation(): void
-{
-    $rating = $this->rating;
-    $sales = $this->sales_count;
-
-    if ($rating < 3.0) {
-        $this->seller_reputation = 'low_rating';
-    } elseif ($sales >= 80 && $rating >= 4.6) {
-        $this->seller_reputation = 'top';
-    } elseif ($sales >= 30 && $rating >= 4.4) {
-        $this->seller_reputation = 'trusted';
-    } elseif ($sales >= 10 && $rating >= 4.2) {
-        $this->seller_reputation = 'verified';
-    } else {
-        $this->seller_reputation = 'new';
+    {
+        $this->seller_reputation = self::reputationFor(
+            (float) $this->rating,
+            (int) $this->sales_count,
+            (int) $this->reviews_count,
+        );
+        $this->save();
     }
 
-    $this->save();
-}
+    public static function reputationFor(float $rating, int $sales, int $reviewsCount): string
+    {
+        if ($reviewsCount === 0) {
+            return 'new';
+        }
 
-// / ✅ Метод для пересчёта продаж и обновления репутации 
-public function incrementSales(int $amount = 1): void
-{
-    $this->sales_count += $amount;
-    $this->save();
+        if ($rating < 3.0) {
+            return 'low_rating';
+        }
+        if ($sales >= 80 && $rating >= 4.6) {
+            return 'top';
+        }
+        if ($sales >= 30 && $rating >= 4.4) {
+            return 'trusted';
+        }
+        if ($sales >= 10 && $rating >= 4.2) {
+            return 'verified';
+        }
 
-    // Пересчёт репутации
-    $this->updateReputation();
-}
+        return 'new';
+    }
+
+    public function completedSalesCount(): int
+    {
+        return Order::query()
+            ->where('seller_id', $this->user_id)
+            ->where(function ($orders) {
+                $orders->where(function ($pickup) {
+                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
+                        ->where('status', Order::STATUS_COMPLETED)
+                        ->whereNotNull('buyer_confirmed_at')
+                        ->where('payment_status', Order::PAYMENT_SELLER_CONFIRMED)
+                        ->whereNotNull('paid_at')
+                        ->whereNotNull('completed_at');
+                })->orWhere(function ($legacy) {
+                    $legacy->whereNull('workflow_version')
+                        ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED]);
+                });
+            })
+            ->count();
+    }
+
+    public function syncSalesCount(): void
+    {
+        self::syncSalesCountForUser((int) $this->user_id);
+    }
+
+    public static function syncSalesCountForUser(int $userId): void
+    {
+        DB::transaction(function () use ($userId): void {
+            // Shop is the first and only locked row. This serializes sales and
+            // reputation writers before either creates a consistent-read snapshot.
+            $shop = self::query()
+                ->where('user_id', $userId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$shop) {
+                return;
+            }
+
+            $shop->sales_count = $shop->completedSalesCount();
+            $shop->updateReputation();
+        }, 3);
+    }
 
 // ✅ Удобный аксессор для отображения
 public function getReputationLabelAttribute(): string

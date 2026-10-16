@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Jobs\SyncShopSalesCount;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -290,6 +293,7 @@ class OrderPickupWorkflow
         $previous = $order->status;
         $order->setStatus(Order::STATUS_DELIVERED, [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED]);
         $this->write($order, ['buyer_confirmed_at' => now()]);
+        $this->syncSellerSalesAfterCommit($order);
         $this->event($order, $buyer, 'legacy_buyer_receipt_confirmed', $previous, Order::STATUS_DELIVERED);
         $this->notifications->create($order->seller, 'order_delivered', 'Покупатель подтвердил получение',
             "Заказ {$order->number} отмечен как полученный.", route('seller.orders.show', $order, false),
@@ -344,7 +348,37 @@ class OrderPickupWorkflow
         }
 
         $this->write($order, ['status' => Order::STATUS_COMPLETED, 'completed_at' => now()]);
+        $this->syncSellerSalesAfterCommit($order);
         $this->event($order, null, 'order_completed', Order::STATUS_DELIVERED, Order::STATUS_COMPLETED);
+    }
+
+    private function syncSellerSalesAfterCommit(Order $order): void
+    {
+        $sellerId = (int) $order->seller_id;
+
+        DB::afterCommit(function () use ($sellerId): void {
+            try {
+                Shop::syncSalesCountForUser($sellerId);
+            } catch (\Throwable $exception) {
+                // The order is already committed. Never turn a successful receipt
+                // into a false failure; retain an observable, retryable recovery path.
+                Log::error('Shop sales count sync failed after order commit.', [
+                    'seller_id' => $sellerId,
+                    'error' => $exception->getMessage(),
+                    'recovery' => 'shops:recalculate-reputation --apply',
+                ]);
+
+                try {
+                    SyncShopSalesCount::dispatch($sellerId);
+                } catch (\Throwable $dispatchException) {
+                    Log::critical('Shop sales count recovery job could not be dispatched.', [
+                        'seller_id' => $sellerId,
+                        'error' => $dispatchException->getMessage(),
+                        'recovery' => 'shops:recalculate-reputation --apply',
+                    ]);
+                }
+            }
+        });
     }
 
     private function assertPickupOrder(Order $order): void

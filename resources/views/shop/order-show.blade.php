@@ -63,10 +63,27 @@
         \App\Models\Order::STATUS_PROCESSING,
         \App\Models\Order::STATUS_PAID,
     ], true) && ! $order->cancellation_requested_at;
-    $canReview = ($isLegacy || ($isPickupV2 && $order->buyer_confirmed_at !== null)) && in_array($order->status, [
-        \App\Models\Order::STATUS_DELIVERED,
-        \App\Models\Order::STATUS_COMPLETED,
-    ], true);
+    $canReview = auth()->user()?->hasVerifiedEmail()
+        && ($isLegacy || ($isPickupV2 && $order->buyer_confirmed_at !== null))
+        && in_array($order->status, [
+            \App\Models\Order::STATUS_DELIVERED,
+            \App\Models\Order::STATUS_COMPLETED,
+        ], true);
+    $reviewsByProductId = $reviewsByProductId ?? collect();
+    $orderReviewItems = $order->items
+        ->filter(fn ($item) => $item->product !== null)
+        ->unique('product_id')
+        ->values();
+    $hasNewReviewItems = $orderReviewItems->contains(
+        fn ($item) => ! $reviewsByProductId->has($item->product_id)
+    );
+    $singleReviewItem = $orderReviewItems->count() === 1 ? $orderReviewItems->first() : null;
+    $singleReviewProductIsPublic = $singleReviewItem
+        && ! $singleReviewItem->product->trashed()
+        && $singleReviewItem->product->status === \App\Models\Product::STATUS_ACTIVE;
+    $reviewActionUrl = $singleReviewProductIsPublic
+        ? route('product.show', $singleReviewItem->product->slug) . '#reviews'
+        : ($singleReviewItem ? '#order-review-' . $singleReviewItem->product_id : '#order-reviews');
     $chatProducts = $order->items
         ->pluck('product')
         ->filter(fn ($product) => $product && ! $product->trashed())
@@ -239,11 +256,11 @@
                             {{ $canConfirmReceipt ? 'Подтвердить получение товара' : 'Подтвердить получение' }}
                         </button>
                     </form>
-                @elseif($canReview)
-                    <a href="{{ $order->items->first()?->product ? route('product.show', $order->items->first()->product->slug) . '#reviews' : route('orders.index') }}"
+                @elseif($canReview && $orderReviewItems->isNotEmpty())
+                    <a href="{{ $reviewActionUrl }}"
                        class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-200 transition hover:bg-brand-600">
                         <i class="ri-star-line"></i>
-                        Оставить отзыв
+                        {{ $hasNewReviewItems ? 'Оставить отзыв' : 'Изменить отзыв' }}
                     </a>
                 @elseif($primaryChatProduct)
                     <form method="POST" action="{{ route('orders.chat.product', [$order, $primaryChatProduct]) }}" class="w-full sm:w-auto">
@@ -539,19 +556,54 @@
         </section>
     @endif
 
-    @if($canReview)
-        <section class="wv-card w-full max-w-full overflow-hidden p-4 sm:p-5">
-            <h3 class="font-semibold text-neutral-900">Оставить отзыв о покупке</h3>
-            <p class="mt-1 text-sm text-neutral-500">Выберите товар, чтобы оценить его на странице товара.</p>
-            <div class="mt-4 flex flex-wrap gap-2">
-                @foreach($order->items as $item)
-                    @if($item->product)
-                        <a href="{{ route('product.show', $item->product->slug) }}#reviews"
-                           class="inline-flex h-10 max-w-full items-center gap-2 rounded-xl border border-brand-100 bg-brand-50 px-3 text-sm font-medium text-brand-700 hover:bg-brand-100">
-                            <i class="ri-star-line shrink-0"></i>
-                            <span class="truncate">{{ $item->historical_title }}</span>
-                        </a>
-                    @endif
+    @if($canReview && $orderReviewItems->isNotEmpty())
+        <section id="order-reviews" class="wv-card w-full max-w-full scroll-mt-4 overflow-hidden p-4 sm:p-5">
+            <h3 class="font-semibold text-neutral-900">{{ $hasNewReviewItems ? 'Оставить отзыв о покупке' : 'Ваши отзывы о покупке' }}</h3>
+            <p class="mt-1 text-sm text-neutral-500">Выберите товар, чтобы {{ $hasNewReviewItems ? 'оставить или изменить' : 'изменить' }} отзыв.</p>
+            <div class="mt-4 space-y-3">
+                @foreach($orderReviewItems as $item)
+                    @php
+                        $existingReview = $reviewsByProductId->get($item->product_id);
+                        $productIsPublic = ! $item->product->trashed()
+                            && $item->product->status === \App\Models\Product::STATUS_ACTIVE;
+                    @endphp
+
+                    <div id="order-review-{{ $item->product_id }}" class="scroll-mt-4">
+                        @if($productIsPublic)
+                            <a href="{{ route('product.show', $item->product->slug) }}#reviews"
+                               class="inline-flex h-10 max-w-full items-center gap-2 rounded-xl border border-brand-100 bg-brand-50 px-3 text-sm font-medium text-brand-700 hover:bg-brand-100">
+                                <i class="ri-star-line shrink-0"></i>
+                                <span class="truncate">{{ $existingReview ? 'Изменить отзыв: ' : 'Оставить отзыв: ' }}{{ $item->historical_title }}</span>
+                            </a>
+                        @else
+                            <details class="rounded-xl border border-brand-100 bg-brand-50 p-3" @if($orderReviewItems->count() === 1) open @endif>
+                                <summary class="cursor-pointer text-sm font-medium text-brand-700">
+                                    {{ $existingReview ? 'Изменить отзыв: ' : 'Оставить отзыв: ' }}{{ $item->historical_title }}
+                                </summary>
+                                <form method="POST" action="{{ route('orders.reviews.store', [$order, $item->product]) }}" enctype="multipart/form-data" class="mt-4 space-y-3">
+                                    @csrf
+                                    <label class="block text-sm font-medium text-neutral-700">
+                                        Оценка
+                                        <select name="rating" required class="mt-1 w-full rounded-xl border-neutral-200 bg-white text-sm sm:max-w-xs">
+                                            <option value="">Выберите оценку</option>
+                                            @for($rating = 5; $rating >= 1; $rating--)
+                                                <option value="{{ $rating }}" @selected((int) ($existingReview?->rating ?? 0) === $rating)>{{ $rating }} из 5</option>
+                                            @endfor
+                                        </select>
+                                    </label>
+                                    <textarea name="body" rows="3" maxlength="2000" placeholder="Расскажите о товаре"
+                                              class="w-full rounded-xl border-neutral-200 bg-white text-sm">{{ $existingReview?->body }}</textarea>
+                                    <input type="file" name="images[]" multiple accept="image/*"
+                                           class="block w-full rounded-xl border border-neutral-200 bg-white p-2 text-sm text-neutral-600">
+                                    <p class="text-xs text-neutral-500">Можно добавить до 3 фото. Отзыв появится после модерации.</p>
+                                    <button type="submit" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
+                                        <i class="ri-send-plane-line"></i>
+                                        {{ $existingReview ? 'Сохранить изменения' : 'Отправить отзыв' }}
+                                    </button>
+                                </form>
+                            </details>
+                        @endif
+                    </div>
                 @endforeach
             </div>
         </section>

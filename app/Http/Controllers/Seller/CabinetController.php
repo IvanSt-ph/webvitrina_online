@@ -8,7 +8,6 @@ use App\Models\Conversation;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductStat;
-use App\Models\Review;
 use App\Models\SellerPlanRequest;
 use Carbon\Carbon;
 
@@ -37,10 +36,9 @@ class CabinetController extends Controller
             ->where('date', '>=', Carbon::now()->subDays(7)->toDateString())
             ->sum('views');
 
-        // 🔹 4. Комментарии (только одобренные)
-        $commentsCount = Review::whereIn('product_id', $productIds)
-            ->where('status', Review::STATUS_APPROVED)
-            ->count();
+        // The same approved-review relation powers the public shop reputation.
+        // It includes historical reviews of soft-deleted products without loading them.
+        $commentsCount = $user->reviews_count;
 
         $followersCount = $user->shop?->followers()->count() ?? 0;
         $pendingOrdersCount = Order::where('seller_id', $user->id)
@@ -90,11 +88,7 @@ class CabinetController extends Controller
             ->limit(5)
             ->get();
 
-// 🔹 5. Средний рейтинг продавца
-$avgRatingRaw = Review::whereIn('product_id', $productIds)
-    ->where('status', Review::STATUS_APPROVED)
-    ->avg('rating');
-$avgRating = $avgRatingRaw ? round((float) $avgRatingRaw, 2) : 0.00;
+        $avgRating = $user->reviews_avg_rating;
 
         $shop = $user->shop;
         $salesCount = (int) ($shop?->sales_count ?? 0);

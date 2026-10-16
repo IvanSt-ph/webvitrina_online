@@ -590,6 +590,51 @@
                         </div>
                     </section>
                 @endif
+
+                @if($filter === 'all')
+                    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:p-5">
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <h2 class="text-lg font-semibold text-slate-900">Отзывы покупателей</h2>
+                            @if($reviewsValue > 10)
+                                <span class="text-xs text-slate-500">Последние 10 из {{ $reviewsValue }}</span>
+                            @endif
+                        </div>
+
+                        @forelse($reviews as $review)
+                            @php
+                                $reviewProductIsPublic = $review->product
+                                    && !$review->product->trashed()
+                                    && $review->product->status === \App\Models\Product::STATUS_ACTIVE;
+                            @endphp
+                            <article class="border-t border-slate-100 py-4 first:border-t-0 first:pt-0 last:pb-0">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="font-medium text-amber-500" aria-label="Оценка {{ $review->rating }} из 5">
+                                        {{ str_repeat('★', (int) $review->rating) }}<span class="text-slate-200">{{ str_repeat('★', 5 - (int) $review->rating) }}</span>
+                                    </div>
+                                    <time class="text-xs text-slate-500" datetime="{{ $review->created_at?->toDateString() }}">
+                                        {{ $review->created_at?->format('d.m.Y') }}
+                                    </time>
+                                </div>
+
+                                @if(filled($review->body))
+                                    <p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{{ $review->body }}</p>
+                                @endif
+
+                                <div class="mt-2 text-xs text-slate-500">
+                                    @if($reviewProductIsPublic)
+                                        <a href="{{ route('product.show', $review->product->slug) }}" class="hover:text-indigo-700 hover:underline">
+                                            {{ $review->product->title }}
+                                        </a>
+                                    @else
+                                        <span>Исторический отзыв · товар снят с публикации</span>
+                                    @endif
+                                </div>
+                            </article>
+                        @empty
+                            <p class="text-sm text-slate-500">У продавца пока нет одобренных отзывов.</p>
+                        @endforelse
+                    </section>
+                @endif
             </div>
         </section>
 

@@ -299,6 +299,9 @@ Route::middleware('role:buyer')->group(function () {
 
     // Мои отзывы
     Route::get('/my-reviews', [ReviewController::class, 'userReviews'])->name('reviews.index');
+    Route::post('/orders/{order}/review/{product}', [ReviewController::class, 'storeForOrder'])
+        ->middleware('verified')
+        ->name('orders.reviews.store');
 
 
     /*

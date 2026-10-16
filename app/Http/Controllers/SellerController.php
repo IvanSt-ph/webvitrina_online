@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shop;
 use App\Models\User;
 use App\Models\Review;
+use App\Models\Product;
 use App\Models\Conversation;
 use Illuminate\Http\Request;
 
@@ -99,10 +100,16 @@ class SellerController extends Controller
             ->get();
 
         // Отзывы по товарам продавца
-        $reviews = Review::whereHas('product', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
-            ->where('status', 'approved')
+        $reviews = Review::query()
+            ->whereIn('product_id', Product::withTrashed()
+                ->where('user_id', $user->id)
+                ->select('id'))
+            ->where('status', Review::STATUS_APPROVED)
+            ->with([
+                'user:id,name',
+                'product' => fn ($query) => $query->withTrashed()
+                    ->select('id', 'title', 'slug', 'status', 'deleted_at'),
+            ])
             ->latest()
             ->limit(10)
             ->get();

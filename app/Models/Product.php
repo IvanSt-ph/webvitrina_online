@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Observers\ReviewObserver;
 
 class Product extends Model
 {
@@ -405,6 +406,26 @@ class Product extends Model
             cache()->forget('ads.home');
             cache()->forget('products.home.high_rating_recommendations');
             cache()->forget('products.home.catalog_recommendations');
+        });
+
+        static::updated(function (Product $product): void {
+            if (!$product->wasChanged('user_id')) {
+                return;
+            }
+
+            $sellerIds = array_values(array_unique([
+                (int) $product->getOriginal('user_id'),
+                (int) $product->user_id,
+            ]));
+            sort($sellerIds);
+
+            $observer = app(ReviewObserver::class);
+
+            foreach ($sellerIds as $sellerId) {
+                if ($sellerId > 0) {
+                    $observer->scheduleSellerRecalculation($sellerId);
+                }
+            }
         });
 
         static::deleted(function (): void {

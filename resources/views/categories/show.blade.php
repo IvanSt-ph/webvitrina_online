@@ -134,8 +134,25 @@ document.addEventListener('alpine:init', () => {
 
             const form = document.querySelector('#filters-form');
             const formData = new FormData(form);
-            const params = new URLSearchParams(formData).toString();
-            const url = form.getAttribute('action') + '?' + params;
+            const url = new URL(form.getAttribute('action'), window.location.origin);
+            const currentParams = new URLSearchParams(window.location.search);
+
+            currentParams.delete('page');
+            for (const key of [...currentParams.keys()]) {
+                if (key.startsWith('filters[')) {
+                    currentParams.delete(key);
+                }
+            }
+
+            for (const [key, value] of formData.entries()) {
+                if (key === 'sort') {
+                    currentParams.set(key, value);
+                } else {
+                    currentParams.append(key, value);
+                }
+            }
+
+            url.search = currentParams.toString();
 
             fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(res => res.text())
@@ -159,7 +176,7 @@ document.addEventListener('alpine:init', () => {
                     }
 
                     // обновляем URL
-                    window.history.replaceState({}, '', url);
+                    window.history.replaceState({}, '', url.pathname + url.search);
 
                     this.loading = false;
                 })

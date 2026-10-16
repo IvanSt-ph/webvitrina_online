@@ -23,10 +23,10 @@
                             );
                             if (empty($newFilters[$attr->id])) unset($newFilters[$attr->id]);
 
-                            $url = url()->current() . '?' . http_build_query([
-                                'sort' => $currentSort,
-                                'filters' => $newFilters,
-                            ]);
+                            $query = request()->except('page');
+                            $query['sort'] = $currentSort;
+                            $query['filters'] = $newFilters;
+                            $url = url()->current() . '?' . http_build_query($query);
                         @endphp
 
                         @if($color)
@@ -34,6 +34,29 @@
                                class="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
                                 <span class="w-3 h-3 rounded-full border" style="background: {{ $color->hex }}"></span>
                                 {{ $color->name }}
+                                <span class="text-indigo-600">×</span>
+                            </a>
+                        @endif
+                    @endforeach
+
+                {{-- 🔢 Числовые --}}
+                @elseif($attr->type === 'number')
+                    @foreach(['from' => 'От', 'to' => 'До'] as $bound => $label)
+                        @if(filled($v[$bound] ?? null))
+                            @php
+                                $newFilters = $activeFilters;
+                                unset($newFilters[$attr->id][$bound]);
+                                if (empty($newFilters[$attr->id])) unset($newFilters[$attr->id]);
+
+                                $query = request()->except('page');
+                                $query['sort'] = $currentSort;
+                                $query['filters'] = $newFilters;
+                                $url = url()->current() . '?' . http_build_query($query);
+                            @endphp
+
+                            <a href="{{ $url }}"
+                               class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full flex items-center gap-1">
+                                {{ $label }}: {{ $v[$bound] }}
                                 <span class="text-indigo-600">×</span>
                             </a>
                         @endif
@@ -50,10 +73,10 @@
                             );
                             if (empty($newFilters[$attr->id])) unset($newFilters[$attr->id]);
 
-                            $url = url()->current() . '?' . http_build_query([
-                                'sort' => $currentSort,
-                                'filters' => $newFilters,
-                            ]);
+                            $query = request()->except('page');
+                            $query['sort'] = $currentSort;
+                            $query['filters'] = $newFilters;
+                            $url = url()->current() . '?' . http_build_query($query);
                         @endphp
 
                         <a href="{{ $url }}"

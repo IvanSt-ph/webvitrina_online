@@ -26,10 +26,10 @@ class AccountDeletionService
         Message::where('sender_id', $user->id)->delete();
         $conversations->delete();
 
-        Review::where('user_id', $user->id)->get()->each(function (Review $review) use (&$publicFiles) {
+        Review::withTrashed()->where('user_id', $user->id)->get()->each(function (Review $review) use (&$publicFiles) {
             $publicFiles = array_merge($publicFiles, $review->images()->pluck('path')->all());
             // File removal waits for commit; preserve rating/cache updates without file hooks.
-            Review::whereKey($review->id)->delete();
+            Review::withTrashed()->whereKey($review->id)->forceDelete();
             app(ReviewObserver::class)->deleted($review);
             if ($review->product) {
                 ProductRepository::clearProductCache($review->product);
@@ -58,7 +58,7 @@ class AccountDeletionService
             }
 
             $publicFiles = array_merge($publicFiles, array_filter([$product->image]), (array) $product->gallery);
-            $product->reviews()->with('images')->get()->each(function (Review $review) use (&$publicFiles) {
+            $product->reviews()->withTrashed()->with('images')->get()->each(function (Review $review) use (&$publicFiles) {
                 $publicFiles = array_merge($publicFiles, $review->images->pluck('path')->all());
             });
             $product->forceDelete();

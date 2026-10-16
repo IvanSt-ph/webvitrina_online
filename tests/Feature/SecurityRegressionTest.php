@@ -2002,8 +2002,7 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($seller)
             ->view('layouts.seller', ['slot' => ''])
             ->assertSee('Обзор')
-            ->assertSee('Рабочий стол')
-            ->assertSee('Моя витрина')
+            ->assertSee('Кабинет')
             ->assertSee('Продажи')
             ->assertSee('Каталог')
             ->assertSee('Финансы')
@@ -2919,7 +2918,7 @@ class SecurityRegressionTest extends TestCase
         $toastStack = file_get_contents(resource_path('views/components/toast-stack.blade.php'));
 
         foreach ([$cartToast, $favoritesToast] as $source) {
-            $this->assertStringContainsString("textContent = String(text ?? '')", $source);
+            $this->assertStringContainsString('window.showAppToast(text, type)', $source);
             $this->assertStringNotContainsString('<span>${text}</span>', $source);
         }
 
@@ -2928,7 +2927,7 @@ class SecurityRegressionTest extends TestCase
         $this->assertStringNotContainsString('innerHTML', $toastStack);
 
         foreach ([$profileAvatarToast, $sellerAvatarToast] as $source) {
-            $this->assertStringContainsString("textContent = String(message ?? '')", $source);
+            $this->assertStringContainsString('window.showSiteToast(message, type)', $source);
             $this->assertStringNotContainsString('<span>${message}</span>', $source);
         }
 
@@ -3583,13 +3582,13 @@ class SecurityRegressionTest extends TestCase
             $this->assertStringContainsString("session('{$type}')", $component);
         }
 
-        $this->assertStringContainsString('aria-live="polite"', $component);
+        $this->assertStringContainsString(':aria-live="[\'error\', \'warning\'].includes(toast.type) ? \'assertive\' : \'polite\'"', $component);
         $this->assertStringContainsString('aria-label="Закрыть уведомление"', $component);
         $this->assertStringContainsString('motion-reduce:transition-none', $component);
         $this->assertStringNotContainsString('$errors->', $component);
 
-        foreach (['success', 'danger', 'warning', 'info'] as $palette) {
-            $this->assertStringContainsString("{$palette}-600", $component);
+        foreach (['emerald', 'rose', 'amber', 'sky'] as $palette) {
+            $this->assertStringContainsString("{$palette}-700", $component);
         }
     }
 
@@ -3885,7 +3884,7 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
-    public function test_deleting_review_removes_optimized_images(): void
+    public function test_review_soft_delete_preserves_images_and_force_delete_removes_them(): void
     {
         Storage::fake('public');
 
@@ -3907,6 +3906,16 @@ class SecurityRegressionTest extends TestCase
         $review->images()->create(['path' => $path]);
 
         $review->delete();
+
+        Storage::disk('public')->assertExists($path);
+        Storage::disk('public')->assertExists($thumb);
+
+        $review->restore();
+
+        Storage::disk('public')->assertExists($path);
+        Storage::disk('public')->assertExists($thumb);
+
+        $review->forceDelete();
 
         Storage::disk('public')->assertMissing($path);
         Storage::disk('public')->assertMissing($thumb);
@@ -5224,13 +5233,13 @@ class SecurityRegressionTest extends TestCase
             ->get(route('orders.index', ['tab' => 'action']))
             ->assertOk()
             ->assertViewHas('tab', 'action')
-            ->assertViewHas('actionCount', 2)
+            ->assertViewHas('actionCount', 1)
             ->assertSee('Мои действия')
             ->assertSee($shippedOrder->number)
-            ->assertSee($completedOrder->number)
+            ->assertDontSee($completedOrder->number)
             ->assertDontSee($reviewedOrder->number)
             ->assertSee('Подтвердите получение товара')
-            ->assertSee('Можно оставить отзыв о покупке');
+            ->assertDontSee('Можно оставить отзыв о покупке');
 
         $this->actingAs($buyer)
             ->get(route('orders.index', ['tab' => 'completed', 'q' => 'Needs review']))
@@ -5239,7 +5248,7 @@ class SecurityRegressionTest extends TestCase
             ->assertDontSee($reviewedOrder->number);
     }
 
-    public function test_buyer_cabinet_shows_action_counts_from_orders_and_messages(): void
+    public function test_buyer_cabinet_separates_required_actions_from_optional_reviews(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $buyer = User::factory()->create(['role' => 'buyer']);

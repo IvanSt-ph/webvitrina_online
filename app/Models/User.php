@@ -149,7 +149,13 @@ class User extends Authenticatable implements MustVerifyEmail
             Product::class,
             'user_id',
             'product_id'
-        );
+        )->withTrashedParents();
+    }
+
+    public function approvedProductReviews()
+    {
+        return $this->reviews()
+            ->where('reviews.status', Review::STATUS_APPROVED);
     }
 
     public function shop()
@@ -219,8 +225,7 @@ class User extends Authenticatable implements MustVerifyEmail
     */
     public function getReviewsAvgRatingAttribute(): float
     {
-        $avg = $this->reviews()
-            ->where('reviews.status', Review::STATUS_APPROVED)
+        $avg = $this->approvedProductReviews()
             ->avg('reviews.rating');
 
         return $avg ? round((float) $avg, 2) : 0.00;
@@ -228,8 +233,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getReviewsCountAttribute(): int
     {
-        return $this->reviews()
-            ->where('reviews.status', Review::STATUS_APPROVED)
+        return $this->approvedProductReviews()
             ->count();
     }
 

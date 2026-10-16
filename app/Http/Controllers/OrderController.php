@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +36,7 @@ class OrderController extends Controller
             'canceled' => $query->where('status', Order::STATUS_CANCELED)
                 ->where(fn ($supported) => $supported->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP)),
             'unsupported' => $query->whereNotNull('workflow_version')->where('workflow_version', '!=', Order::WORKFLOW_PICKUP),
-            'action' => $this->requireBuyerAction($query, $buyerId, (bool) auth()->user()?->hasVerifiedEmail()),
+            'action' => $this->requireBuyerAction($query, (bool) auth()->user()?->hasVerifiedEmail()),
             default => $query->where(fn ($supported) => $supported->whereNull('workflow_version')->orWhere('workflow_version', Order::WORKFLOW_PICKUP))
                 ->whereNotIn('status', [
                 Order::STATUS_COMPLETED,
@@ -52,7 +53,7 @@ class OrderController extends Controller
             ->pluck('total', 'status');
 
         $actionCountQuery = Order::where('user_id', $buyerId);
-        $this->requireBuyerAction($actionCountQuery, $buyerId, (bool) auth()->user()?->hasVerifiedEmail());
+        $this->requireBuyerAction($actionCountQuery, (bool) auth()->user()?->hasVerifiedEmail());
         $actionCount = $actionCountQuery->count();
         $unsupportedCount = Order::where('user_id', $buyerId)
             ->whereNotNull('workflow_version')->where('workflow_version', '!=', Order::WORKFLOW_PICKUP)->count();
@@ -60,9 +61,9 @@ class OrderController extends Controller
         return view('shop.orders', compact('orders', 'tab', 'statusCounts', 'actionCount', 'unsupportedCount', 'search'));
     }
 
-    private function requireBuyerAction($query, int $buyerId, bool $verified): void
+    private function requireBuyerAction($query, bool $verified): void
     {
-        $query->where(function ($inner) use ($buyerId, $verified) {
+        $query->where(function ($inner) use ($verified) {
             $inner->where(function ($legacy) {
                 $legacy->whereNull('workflow_version')->where('status', Order::STATUS_SHIPPED);
             });
@@ -77,22 +78,6 @@ class OrderController extends Controller
                         ->whereIn('payment_status', [Order::PAYMENT_UNPAID, Order::PAYMENT_SELLER_CONFIRMED]);
                 });
             }
-            $inner
-                ->orWhere(function ($reviewable) use ($buyerId) {
-                    $reviewable
-                        ->whereIn('status', [Order::STATUS_DELIVERED, Order::STATUS_COMPLETED])
-                        ->where(function ($receipt) {
-                            $receipt->whereNull('workflow_version')
-                                ->orWhere(function ($pickup) {
-                                    $pickup->where('workflow_version', Order::WORKFLOW_PICKUP)
-                                        ->whereNotNull('buyer_confirmed_at');
-                                });
-                        })
-                        ->whereHas('items.product', fn ($product) => $product->whereDoesntHave(
-                            'reviews',
-                            fn ($reviews) => $reviews->where('user_id', $buyerId)
-                        ));
-                });
         });
     }
 
@@ -116,6 +101,11 @@ class OrderController extends Controller
             ->pluck('product_id')
             ->filter()
             ->values();
+        $reviewsByProductId = Review::query()
+            ->where('user_id', auth()->id())
+            ->whereIn('product_id', $productIds)
+            ->get()
+            ->keyBy('product_id');
 
         $continueProducts = Product::query()
             ->where('status', 'active')
@@ -126,6 +116,6 @@ class OrderController extends Controller
             ->limit(4)
             ->get();
 
-        return view('shop.order-show', compact('order', 'continueProducts'));
+        return view('shop.order-show', compact('order', 'continueProducts', 'reviewsByProductId'));
     }
 }

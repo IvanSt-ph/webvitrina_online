@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Product;
+use App\Models\Review;
 use App\Models\User;
 use App\Repositories\ProductCrudRepository;
 use App\Services\ImageService;
@@ -316,6 +317,15 @@ class ProductImageLifecycleTest extends TestCase
     public function test_purge_rolls_back_safely_and_command_cleans_legacy_files(): void
     {
         $product = $this->product('products/legacy.jpg');
+        $review = Review::create([
+            'user_id' => User::factory()->create(['role' => 'buyer'])->id,
+            'product_id' => $product->id,
+            'rating' => 4,
+            'status' => Review::STATUS_APPROVED,
+        ]);
+        $reviewImage = $this->seedPair('reviews/medium/purged-review.webp');
+        $review->images()->create(['path' => $reviewImage]);
+        $review->delete();
         $product->delete();
         $product->forceFill(['deleted_at' => now()->subDays(100)])->save();
         DB::beginTransaction();
@@ -324,12 +334,16 @@ class ProductImageLifecycleTest extends TestCase
         $this->assertPairExists($product->image);
         DB::rollBack();
         $this->assertSoftDeleted($product);
+        $this->assertSoftDeleted($review);
         $this->assertPairExists($product->image);
+        $this->assertPairExists($reviewImage);
         $recent = $this->product('products/recent.jpg');
         $recent->delete();
         $this->artisan('products:purge-old')->assertSuccessful();
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
+        $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
         $this->assertPairMissing($product->image);
+        $this->assertPairMissing($reviewImage);
         $this->assertSoftDeleted($recent);
         $this->assertPairExists($recent->image);
     }

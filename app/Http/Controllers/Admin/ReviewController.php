@@ -114,10 +114,10 @@ class ReviewController extends Controller
             'reason' => ['nullable', 'required_if:action,reject', 'string', 'max:1000'],
         ]);
 
-        $reviews = Review::whereIn('id', $data['ids']);
+        $reviews = Review::whereIn('id', $data['ids'])->get();
 
         if ($data['action'] === 'delete') {
-            $deleted = $reviews->get()->each->delete()->count();
+            $deleted = $reviews->each->delete()->count();
             $this->activity->log('review.bulk_deleted', null, 'Администратор удалил выбранные отзывы.', [
                 'count' => $deleted,
             ]);
@@ -129,12 +129,13 @@ class ReviewController extends Controller
             ? Review::STATUS_APPROVED
             : Review::STATUS_REJECTED;
 
-        $updated = $reviews->update([
+        $reviews->each->update([
             'status' => $status,
             'rejection_reason' => $status === Review::STATUS_REJECTED ? ($data['reason'] ?? null) : null,
             'moderated_by' => auth()->id(),
             'moderated_at' => now(),
         ]);
+        $updated = $reviews->count();
         $this->activity->log('review.bulk_' . $data['action'], null, 'Выполнена массовая модерация отзывов.', [
             'count' => $updated,
             'reason' => $status === Review::STATUS_REJECTED ? ($data['reason'] ?? null) : null,
