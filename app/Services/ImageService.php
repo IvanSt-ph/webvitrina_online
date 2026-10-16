@@ -26,12 +26,12 @@ class ImageService
     /**
      * 📤 Загрузка одного изображения
      */
-    public function upload(UploadedFile $file, string $dir): string
+    public function upload(UploadedFile $file, string $dir, string $diskName = 'public'): string
     {
         ImageUploadConstraints::assertSafe($file);
 
         try {
-            return $this->uploadOptimized($file, $dir);
+            return $this->uploadOptimized($file, $dir, $diskName);
         } catch (\Throwable $e) {
             Log::warning('ImageService: optimized upload failed', [
                 'error' => $e->getMessage(),
@@ -48,7 +48,7 @@ class ImageService
      * products/2026/05/medium/name.webp
      * products/2026/05/thumb/name.webp
      */
-    protected function uploadOptimized(UploadedFile $file, string $dir): string
+    protected function uploadOptimized(UploadedFile $file, string $dir, string $diskName = 'public'): string
     {
         $image = $this->decode($file);
 
@@ -64,14 +64,14 @@ class ImageService
             ->toString();
 
         try {
-            $disk = Storage::disk('public');
+            $disk = Storage::disk($diskName);
 
             if (! $disk->put($mediumPath, $mediumContents) || ! $disk->put($thumbPath, $thumbContents)) {
                 throw new \RuntimeException('Не удалось сохранить обработанное изображение.');
             }
         } catch (\Throwable $exception) {
             try {
-                $this->delete($mediumPath, throwOnFailure: true);
+                $this->delete($mediumPath, throwOnFailure: true, diskName: $diskName);
             } catch (\Throwable $cleanupException) {
                 Log::error('Image upload cleanup failed; retry required', [
                     'path' => $mediumPath, 'error' => $cleanupException->getMessage(),
@@ -105,18 +105,18 @@ class ImageService
     /**
      * 📤 Загрузка массива изображений (галерея)
      */
-    public function uploadGallery(array $files, string $dir): array
+    public function uploadGallery(array $files, string $dir, string $diskName = 'public'): array
     {
         $paths = [];
 
         try {
             foreach ($files as $file) {
                 if ($file instanceof UploadedFile) {
-                    $paths[] = $this->upload($file, $dir);
+                    $paths[] = $this->upload($file, $dir, $diskName);
                 }
             }
         } catch (\Throwable $exception) {
-            $this->deleteMany($paths);
+            $this->deleteMany($paths, $diskName);
 
             throw $exception;
         }
@@ -127,7 +127,7 @@ class ImageService
     /**
      * 🧹 Удаление одной картинки (С ЗАЩИТОЙ - только точное совпадение)
      */
-    public function delete(?string $path, bool $throwOnFailure = false): void
+    public function delete(?string $path, bool $throwOnFailure = false, string $diskName = 'public'): void
     {
         if (empty($path)) {
             return;
@@ -149,7 +149,7 @@ class ImageService
         $failed = [];
         foreach (array_unique([$clean, self::thumbPath($clean)]) as $file) {
             try {
-                if (Storage::disk('public')->exists($file) && ! Storage::disk('public')->delete($file)) {
+                if (Storage::disk($diskName)->exists($file) && ! Storage::disk($diskName)->delete($file)) {
                     $failed[] = $file;
                 }
             } catch (\Throwable $exception) {
@@ -177,20 +177,20 @@ class ImageService
     /**
      * 🧹 Удаление множества картинок
      */
-    public function deleteMany(array $paths): void
+    public function deleteMany(array $paths, string $diskName = 'public'): void
     {
         foreach ($paths as $path) {
-            $this->delete($path);
+            $this->delete($path, diskName: $diskName);
         }
     }
 
     /**
      * 🔍 Проверка существования фото
      */
-    public function exists(string $path): bool
+    public function exists(string $path, string $diskName = 'public'): bool
     {
         $clean = ltrim(str_replace(['storage/', '/storage/'], '', $path), '/');
-        return Storage::disk('public')->exists($clean);
+        return Storage::disk($diskName)->exists($clean);
     }
 
     /**

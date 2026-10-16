@@ -15,7 +15,7 @@ class RunBackup extends Command
         {--path= : Directory where backup folders are stored}
         {--keep-days= : How many days of old backups to keep}';
 
-    protected $description = 'Create a database, public storage, and private chat uploads backup without external shell dump tools.';
+    protected $description = 'Create a database, public storage, and private uploads backup without external shell dump tools.';
 
     public function handle(BackupStorageService $storage): int
     {
@@ -41,6 +41,8 @@ class RunBackup extends Command
         $storageTarGz = $workDir . DIRECTORY_SEPARATOR . 'storage-public.tar.gz';
         $privateTar = $workDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar';
         $privateTarGz = $workDir . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz';
+        $reviewImagesTar = $workDir . DIRECTORY_SEPARATOR . 'storage-private-review-images.tar';
+        $reviewImagesTarGz = $workDir . DIRECTORY_SEPARATOR . 'storage-private-review-images.tar.gz';
         $manifestFile = $workDir . DIRECTORY_SEPARATOR . 'manifest.json';
         $checksumFile = $workDir . DIRECTORY_SEPARATOR . 'SHA256SUMS';
         $ownsWorkDir = false;
@@ -71,8 +73,20 @@ class RunBackup extends Command
                 $privateTar,
                 $privateTarGz
             );
-            $this->writeManifest($manifestFile, $publicStats, $privateStats, $databaseStats);
-            $this->writeChecksums($checksumFile, [$databaseGz, $storageTarGz, $privateTarGz, $manifestFile]);
+            $reviewImagesStats = $storage->archiveDirectory(
+                (string) config('filesystems.disks.review_images.root'),
+                'private/review-images',
+                $reviewImagesTar,
+                $reviewImagesTarGz
+            );
+            $this->writeManifest($manifestFile, $publicStats, $privateStats, $reviewImagesStats, $databaseStats);
+            $this->writeChecksums($checksumFile, [
+                $databaseGz,
+                $storageTarGz,
+                $privateTarGz,
+                $reviewImagesTarGz,
+                $manifestFile,
+            ]);
 
             if (! rename($workDir, $targetDir)) {
                 throw new \RuntimeException('Не удалось завершить backup: временная папка не переименована.');
@@ -302,10 +316,16 @@ class RunBackup extends Command
         $this->writeFile($checksumFile, implode(PHP_EOL, $lines) . PHP_EOL);
     }
 
-    private function writeManifest(string $manifestFile, array $publicStats, array $privateStats, array $databaseStats): void
+    private function writeManifest(
+        string $manifestFile,
+        array $publicStats,
+        array $privateStats,
+        array $reviewImagesStats,
+        array $databaseStats,
+    ): void
     {
         $this->writeFile($manifestFile, json_encode([
-            'version' => 2,
+            'version' => 3,
             'created_at' => now()->toIso8601String(),
             ...$databaseStats,
             'storage' => [
@@ -318,6 +338,11 @@ class RunBackup extends Command
                     'archive' => 'storage-private-chat-images.tar.gz',
                     'root' => 'private/chat-images',
                     ...$privateStats,
+                ],
+                'private_review_images' => [
+                    'archive' => 'storage-private-review-images.tar.gz',
+                    'root' => 'private/review-images',
+                    ...$reviewImagesStats,
                 ],
             ],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\BackupStorageService;
+use App\Support\BackupHealth;
 use Illuminate\Console\Command;
 
 class RestoreBackupFiles extends Command
@@ -10,9 +11,9 @@ class RestoreBackupFiles extends Command
     protected $signature = 'backup:restore-files
         {backup : Path to one completed backup directory}
         {--drill= : Existing empty absolute directory for an isolated restore (fixed public/private children)}
-        {--force : Confirm replacement of current public files and private chat images}';
+        {--force : Confirm replacement of current public files and private chat/review images}';
 
-    protected $description = 'Restore public storage and private chat images from a complete, checksum-valid backup.';
+    protected $description = 'Restore public storage and private chat/review images from a complete, checksum-valid backup.';
 
     public function handle(BackupStorageService $storage): int
     {
@@ -37,7 +38,11 @@ class RestoreBackupFiles extends Command
                 $private,
             );
 
-            $this->info('Public storage and private chat images restored successfully.');
+            $this->info('Public storage and private chat/review images restored successfully.');
+            $backup = (string) $this->argument('backup');
+            if ((int) (BackupHealth::inspectDirectory($backup, false)['manifest']['version'] ?? 0) < 3) {
+                $this->warn('Legacy v2 backup restored. Review images remain public until review-images:migrate-private --apply --delete-public completes.');
+            }
 
             return self::SUCCESS;
         } catch (\Throwable $exception) {

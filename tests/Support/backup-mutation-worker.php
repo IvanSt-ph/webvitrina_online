@@ -17,7 +17,7 @@ $request = Illuminate\Http\Request::create('/test-file-mutation', 'POST');
 (new App\Http\Middleware\CoordinateBackupWrites)->handle($request, function () use ($configuration) {
     Illuminate\Support\Facades\DB::transaction(function () use ($configuration) {
         Illuminate\Support\Facades\DB::table('backup_file_reference')->update(['path' => 'new.txt']);
-        foreach (['public', 'private/chat-images'] as $directory) {
+        foreach (['public', 'private/chat-images', 'private/review-images'] as $directory) {
             file_put_contents($configuration['root'] . '/' . $directory . '/new.txt', 'new image');
             unlink($configuration['root'] . '/' . $directory . '/old.txt');
         }

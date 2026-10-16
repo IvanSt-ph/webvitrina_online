@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Review extends Model
 {
     use SoftDeletes;
+
+    private array $forceDeletingImagePaths = [];
 
     // 🔹 Разрешённые поля
     protected $fillable = [
@@ -75,16 +78,25 @@ class Review extends Model
     });
 
     static::deleting(function ($review) {
-        if (!$review->isForceDeleting()) {
-            return;
+        if ($review->isForceDeleting()) {
+            $review->forceDeletingImagePaths = $review->images()->pluck('path')->all();
         }
+    });
 
-        $images = $review->images()->get();
-        $imageService = app(\App\Services\ImageService::class);
-
-        foreach ($images as $image) {
-            $imageService->delete($image->path);
-            $image->delete();
+    static::forceDeleted(function ($review) {
+        foreach ($review->forceDeletingImagePaths as $path) {
+            DB::afterCommit(function () use ($path): void {
+                try {
+                    app(\App\Services\ReviewImageStorage::class)
+                        ->deleteIfUnreferenced($path, throwOnFailure: true);
+                } catch (\Throwable $exception) {
+                    \Illuminate\Support\Facades\Log::error('Review image cleanup failed; retry required', [
+                        'path' => $path,
+                        'phase' => 'force_delete',
+                        'error' => $exception->getMessage(),
+                    ]);
+                }
+            });
         }
     });
 

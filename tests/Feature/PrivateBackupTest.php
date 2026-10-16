@@ -30,6 +30,7 @@ class PrivateBackupTest extends TestCase
     protected function tearDown(): void
     {
         Storage::forgetDisk('local');
+        Storage::forgetDisk('review_images');
         File::deleteDirectory($this->root);
 
         parent::tearDown();
@@ -42,16 +43,19 @@ class PrivateBackupTest extends TestCase
         $backupRoot = $privateRoot . DIRECTORY_SEPARATOR . 'backups';
         File::ensureDirectoryExists($publicRoot . DIRECTORY_SEPARATOR . 'products');
         File::ensureDirectoryExists($privateRoot . DIRECTORY_SEPARATOR . 'chat-images' . DIRECTORY_SEPARATOR . '2026/09');
+        File::ensureDirectoryExists($privateRoot . DIRECTORY_SEPARATOR . 'review-images' . DIRECTORY_SEPARATOR . 'reviews/2026/09');
         File::ensureDirectoryExists($backupRoot . DIRECTORY_SEPARATOR . 'existing');
         file_put_contents($publicRoot . DIRECTORY_SEPARATOR . 'products/item.webp', 'public-image');
         File::ensureDirectoryExists($publicRoot . DIRECTORY_SEPARATOR . 'order-snapshots');
         file_put_contents($publicRoot . DIRECTORY_SEPARATOR . 'order-snapshots/item.webp', 'historical-image');
         file_put_contents($privateRoot . DIRECTORY_SEPARATOR . 'chat-images/2026/09/chat.webp', 'private-image');
+        file_put_contents($privateRoot . DIRECTORY_SEPARATOR . 'review-images/reviews/2026/09/review.webp', 'private-review-image');
         file_put_contents($backupRoot . DIRECTORY_SEPARATOR . 'existing/must-not-be-archived.txt', 'backup-data');
 
         config()->set([
             'filesystems.disks.public.root' => $publicRoot,
             'filesystems.disks.local.root' => $privateRoot,
+            'filesystems.disks.review_images.root' => $privateRoot . DIRECTORY_SEPARATOR . 'review-images',
         ]);
         // Keep the command's actual error in PHPUnit output instead of only its exit code.
         $output = new BufferedOutput();
@@ -65,18 +69,23 @@ class PrivateBackupTest extends TestCase
         $this->assertTrue($health['ok'], implode(' ', $health['issues']));
         $this->assertSame(2, $health['manifest']['storage']['public']['files']);
         $this->assertSame(1, $health['manifest']['storage']['private_chat_images']['files']);
+        $this->assertSame(1, $health['manifest']['storage']['private_review_images']['files']);
         $this->assertStringContainsString('storage-private-chat-images.tar.gz', file_get_contents($backup . DIRECTORY_SEPARATOR . 'SHA256SUMS'));
+        $this->assertStringContainsString('storage-private-review-images.tar.gz', file_get_contents($backup . DIRECTORY_SEPARATOR . 'SHA256SUMS'));
 
         $publicArchive = new \PharData($backup . DIRECTORY_SEPARATOR . 'storage-public.tar.gz');
         $privateArchive = new \PharData($backup . DIRECTORY_SEPARATOR . 'storage-private-chat-images.tar.gz');
+        $reviewArchive = new \PharData($backup . DIRECTORY_SEPARATOR . 'storage-private-review-images.tar.gz');
         $this->assertSame('public-image', $publicArchive['public/products/item.webp']->getContent());
         $this->assertSame('historical-image', $publicArchive['public/order-snapshots/item.webp']->getContent());
         $this->assertSame('private-image', $privateArchive['private/chat-images/2026/09/chat.webp']->getContent());
+        $this->assertSame('private-review-image', $reviewArchive['private/review-images/reviews/2026/09/review.webp']->getContent());
         $this->assertFalse(isset($privateArchive['private/backups/existing/must-not-be-archived.txt']));
-        unset($publicArchive, $privateArchive);
+        unset($publicArchive, $privateArchive, $reviewArchive);
 
         File::deleteDirectory($publicRoot);
         File::deleteDirectory($privateRoot . DIRECTORY_SEPARATOR . 'chat-images');
+        File::deleteDirectory($privateRoot . DIRECTORY_SEPARATOR . 'review-images');
         file_put_contents($backup . DIRECTORY_SEPARATOR . 'must-not-be-archived.txt', 'backup-still-present');
 
         app(BackupStorageService::class)->restore($backup, $publicRoot, $privateRoot);
@@ -85,6 +94,9 @@ class PrivateBackupTest extends TestCase
         $this->assertSame('historical-image', file_get_contents($publicRoot . DIRECTORY_SEPARATOR . 'order-snapshots/item.webp'));
         $restoredPath = $privateRoot . DIRECTORY_SEPARATOR . 'chat-images/2026/09/chat.webp';
         $this->assertSame('private-image', file_get_contents($restoredPath));
+        $this->assertSame('private-review-image', file_get_contents(
+            $privateRoot . DIRECTORY_SEPARATOR . 'review-images/reviews/2026/09/review.webp'
+        ));
         $this->assertFileExists($backup . DIRECTORY_SEPARATOR . 'must-not-be-archived.txt');
 
         config()->set('filesystems.disks.local.root', $privateRoot);
@@ -106,6 +118,14 @@ class PrivateBackupTest extends TestCase
         $this->actingAs($outsider)
             ->get(route('chats.messages.image', [$conversation, $message]))
             ->assertNotFound();
+
+        file_put_contents($backup . DIRECTORY_SEPARATOR . 'storage-private-review-images.tar.gz', 'corrupted');
+        $corrupted = BackupHealth::inspectDirectory($backup);
+        $this->assertFalse($corrupted['ok']);
+        $this->assertStringContainsString(
+            'Checksum не совпадает для storage-private-review-images.tar.gz',
+            implode(' ', $corrupted['issues']),
+        );
     }
 
     public function test_missing_or_corrupted_private_archive_and_legacy_backup_are_rejected(): void

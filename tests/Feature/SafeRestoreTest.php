@@ -53,6 +53,7 @@ class SafeRestoreTest extends TestCase
         $this->artisan('backup:restore-files', ['backup' => $this->backup, '--drill' => $this->root . '/drill'])->assertSuccessful();
         $this->assertSame('new public', file_get_contents($this->root . '/drill/public/new.txt'));
         $this->assertSame('new private', file_get_contents($this->root . '/drill/private/chat-images/new.txt'));
+        $this->assertDirectoryExists($this->root . '/drill/private/review-images');
         $this->assertOldFiles();
     }
 
@@ -64,6 +65,7 @@ class SafeRestoreTest extends TestCase
         $this->artisan('backup:restore-files', ['backup' => $this->backup, '--force' => true])->assertSuccessful();
         $this->assertFileExists($this->root . '/live/public/new.txt');
         $this->assertFileExists($this->root . '/live/private/chat-images/new.txt');
+        $this->assertDirectoryExists($this->root . '/live/private/review-images');
     }
 
     public function test_unsafe_drill_destinations_fail_closed(): void

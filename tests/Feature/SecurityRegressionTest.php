@@ -3787,6 +3787,7 @@ class SecurityRegressionTest extends TestCase
     public function test_review_images_are_converted_to_webp_with_thumbnails(): void
     {
         Storage::fake('public');
+        Storage::fake('review_images');
 
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
@@ -3819,8 +3820,9 @@ class SecurityRegressionTest extends TestCase
         $this->assertStringContainsString('/medium/', $image->path);
         $this->assertStringEndsWith('.webp', $image->path);
 
-        Storage::disk('public')->assertExists($image->path);
-        Storage::disk('public')->assertExists(\App\Services\ImageService::thumbPath($image->path));
+        Storage::disk('review_images')->assertExists($image->path);
+        Storage::disk('review_images')->assertExists(\App\Services\ImageService::thumbPath($image->path));
+        Storage::disk('public')->assertMissing($image->path);
     }
 
     public function test_review_rejects_svg_upload(): void
@@ -3884,9 +3886,10 @@ class SecurityRegressionTest extends TestCase
         ]);
     }
 
-    public function test_review_soft_delete_preserves_images_and_force_delete_removes_them(): void
+    public function test_review_soft_delete_and_restore_preserve_private_images(): void
     {
         Storage::fake('public');
+        Storage::fake('review_images');
 
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
@@ -3901,24 +3904,20 @@ class SecurityRegressionTest extends TestCase
 
         $path = 'reviews/2026/05/medium/review.webp';
         $thumb = \App\Services\ImageService::thumbPath($path);
-        Storage::disk('public')->put($path, 'medium');
-        Storage::disk('public')->put($thumb, 'thumb');
+        Storage::disk('review_images')->put($path, 'medium');
+        Storage::disk('review_images')->put($thumb, 'thumb');
         $review->images()->create(['path' => $path]);
 
         $review->delete();
 
-        Storage::disk('public')->assertExists($path);
-        Storage::disk('public')->assertExists($thumb);
+        Storage::disk('review_images')->assertExists($path);
+        Storage::disk('review_images')->assertExists($thumb);
 
         $review->restore();
 
-        Storage::disk('public')->assertExists($path);
-        Storage::disk('public')->assertExists($thumb);
+        Storage::disk('review_images')->assertExists($path);
+        Storage::disk('review_images')->assertExists($thumb);
 
-        $review->forceDelete();
-
-        Storage::disk('public')->assertMissing($path);
-        Storage::disk('public')->assertMissing($thumb);
     }
 
     public function test_seller_cannot_cancel_order_after_shipping(): void

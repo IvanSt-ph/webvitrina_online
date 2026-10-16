@@ -14,6 +14,8 @@ class BackupHealth
         'SHA256SUMS',
     ];
 
+    private const REVIEW_IMAGES_ARCHIVE = 'storage-private-review-images.tar.gz';
+
     public static function latest(?string $path = null, ?int $maxAgeHours = null, bool $verifyChecksums = true): array
     {
         $backupPath = $path ?: (string) config('backup.path');
@@ -52,7 +54,7 @@ class BackupHealth
             'created_at' => date('d.m.Y H:i', $modifiedAt),
             'age_hours' => $ageHours,
             'value' => 'Последний: ' . date('d.m.Y H:i', $modifiedAt),
-            'detail' => 'Папка: ' . basename($latest) . '. Возраст: ' . $ageHours . ' ч. Проверяются БД, public storage, private chat images, manifest и SHA256SUMS.',
+            'detail' => 'Папка: ' . basename($latest) . '. Возраст: ' . $ageHours . ' ч. Проверяются БД, public storage, private uploads, manifest и SHA256SUMS.',
             'issues' => $issues,
             'files' => $files,
             'manifest' => self::manifest($latest),
@@ -100,7 +102,7 @@ class BackupHealth
     {
         $files = [];
 
-        foreach (self::REQUIRED_FILES as $file) {
+        foreach (self::requiredFiles($directory) as $file) {
             $path = $directory . DIRECTORY_SEPARATOR . $file;
             $size = is_file($path) ? (filesize($path) ?: 0) : 0;
 
@@ -141,7 +143,7 @@ class BackupHealth
             }
         }
 
-        foreach (['database.sql.gz', 'storage-public.tar.gz', 'storage-private-chat-images.tar.gz', 'manifest.json'] as $file) {
+        foreach (self::checksumRequiredFiles($directory) as $file) {
             if (! in_array($file, $seen, true)) {
                 $issues[] = 'В SHA256SUMS нет записи для ' . $file . '.';
             }
@@ -154,7 +156,7 @@ class BackupHealth
     {
         $issues = [];
 
-        foreach (self::REQUIRED_FILES as $file) {
+        foreach (self::requiredFiles($directory) as $file) {
             if (! ($files[$file]['exists'] ?? false)) {
                 $issues[] = 'Нет файла ' . $file . '.';
             } elseif (($files[$file]['size'] ?? 0) <= 0) {
@@ -168,6 +170,11 @@ class BackupHealth
         } elseif (($manifest['storage']['private_chat_images']['archive'] ?? null) !== 'storage-private-chat-images.tar.gz'
             || ($manifest['storage']['private_chat_images']['root'] ?? null) !== 'private/chat-images') {
             $issues[] = 'Manifest не описывает обязательный private chat images archive.';
+        }
+        if (($manifest['version'] ?? 0) >= 3
+            && (($manifest['storage']['private_review_images']['archive'] ?? null) !== self::REVIEW_IMAGES_ARCHIVE
+                || ($manifest['storage']['private_review_images']['root'] ?? null) !== 'private/review-images')) {
+            $issues[] = 'Manifest не описывает обязательный private review images archive.';
         }
 
         if ($verifyChecksums && ($files['SHA256SUMS']['exists'] ?? false)) {
@@ -188,6 +195,21 @@ class BackupHealth
         $data = json_decode((string) file_get_contents($path), true);
 
         return is_array($data) ? $data : null;
+    }
+
+    private static function requiredFiles(string $directory): array
+    {
+        $files = self::REQUIRED_FILES;
+        if ((self::manifest($directory)['version'] ?? 0) >= 3) {
+            $files[] = self::REVIEW_IMAGES_ARCHIVE;
+        }
+
+        return $files;
+    }
+
+    private static function checksumRequiredFiles(string $directory): array
+    {
+        return array_values(array_diff(self::requiredFiles($directory), ['SHA256SUMS']));
     }
 
     private static function formatBytes(float|int $bytes): string

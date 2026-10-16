@@ -49,12 +49,16 @@ class RestoreDestination
             throw new \RuntimeException('Restore roots must be distinct, non-overlapping siblings.');
         }
         $chat = $private . DIRECTORY_SEPARATOR . 'chat-images';
+        $reviews = $private . DIRECTORY_SEPARATOR . 'review-images';
         if ($this->key($this->canonicalFuturePath($chat)) !== $this->key($chat)) {
             throw new \RuntimeException('Private chat root must not be a symlink or alias.');
         }
+        if ($this->key($this->canonicalFuturePath($reviews)) !== $this->key($reviews)) {
+            throw new \RuntimeException('Private review image root must not be a symlink or alias.');
+        }
         $project = $this->key(realpath(base_path()) ?: base_path());
         $source = $this->key($this->canonicalFuturePath($backup));
-        foreach ([$public, $chat] as $target) {
+        foreach ([$public, $chat, $reviews] as $target) {
             $key = $this->key($target);
             if ($key === '' || preg_match('~^[a-z]:$~i', $key)
                 || $project === $key || str_starts_with($project . '/', $key . '/')

@@ -20,6 +20,7 @@ use App\Http\Controllers\{
     CartController,
     OrderController,
     ReviewController,
+    ReviewImageController,
     ProfileController,
     CategoryController,
     UserAddressController,
@@ -157,6 +158,11 @@ Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('categ
 // AJAX загрузка товаров по фильтрам
 Route::get('/category-ajax/{slug}', [CategoryController::class, 'ajax'])
     ->name('category.ajax')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
+
+Route::get('/review-images/{reviewImage}/{variant}', ReviewImageController::class)
+    ->whereNumber('reviewImage')
+    ->whereIn('variant', ['medium', 'thumb'])
+    ->name('review-images.show');
 
 
 // 🌎 Города

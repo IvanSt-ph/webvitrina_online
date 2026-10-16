@@ -101,6 +101,7 @@ class BackupStorageService
         if (! $health['ok']) {
             throw new \RuntimeException('Backup неполный или повреждён: ' . implode(' ', $health['issues']));
         }
+        $hasPrivateReviewImages = (int) ($health['manifest']['version'] ?? 0) >= 3;
         [$publicRoot, $privateRoot] = app(RestoreDestination::class)->storageRoots($publicRoot, $privateRoot, $backupDirectory);
         if (dirname($publicRoot) !== dirname($privateRoot) || $publicRoot === $privateRoot) {
             throw new \RuntimeException('Public и private storage должны иметь разные имена и общий родительский каталог.');
@@ -112,10 +113,16 @@ class BackupStorageService
         $roots = [
             ['live' => $publicRoot, 'new' => $stage . '/public', 'old' => $stage . '/.previous-public', 'saved' => false, 'installed' => false],
             ['live' => $privateRoot . '/chat-images', 'new' => $stage . '/private/chat-images', 'old' => $stage . '/.previous-chat-images', 'saved' => false, 'installed' => false],
+            ['live' => $privateRoot . '/review-images', 'new' => $stage . '/private/review-images', 'old' => $stage . '/.previous-review-images', 'saved' => false, 'installed' => false],
         ];
         try {
             $this->extractArchive($backupDirectory . '/storage-public.tar.gz', $stage, 'public');
             $this->extractArchive($backupDirectory . '/storage-private-chat-images.tar.gz', $stage, 'private/chat-images');
+            if ($hasPrivateReviewImages) {
+                $this->extractArchive($backupDirectory . '/storage-private-review-images.tar.gz', $stage, 'private/review-images');
+            } elseif (! mkdir($stage . '/private/review-images', 0700, true)) {
+                throw new \RuntimeException('Cannot create empty legacy private review image root.');
+            }
             foreach ($roots as $root) {
                 if (! is_dir($root['new'])) {
                     throw new \RuntimeException('Missing required archive directory: ' . $root['new']);
@@ -134,6 +141,7 @@ class BackupStorageService
             }
             unset($root);
             $this->applyPrivatePermissions($privateRoot . '/chat-images');
+            $this->applyPrivatePermissions($privateRoot . '/review-images');
         } catch (\Throwable $original) {
             unset($root);
             $failures = [];
@@ -152,7 +160,7 @@ class BackupStorageService
             }
             if ($failures !== []) {
                 throw new \RuntimeException($original->getMessage() . '; ROLLBACK FAILED. Preserve recovery directory ' . $stage
-                    . '; restore .previous-public / .previous-chat-images to the reported roots after stopping writers. '
+                    . '; restore .previous-public / .previous-chat-images / .previous-review-images to the reported roots after stopping writers. '
                     . implode('; ', $failures), 0, $original);
             }
             try {

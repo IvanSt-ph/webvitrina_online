@@ -34,9 +34,11 @@ class BackupSnapshotTest extends TestCase
         $this->root = storage_path('framework/testing/backup-snapshot-' . uniqid());
         File::ensureDirectoryExists($this->root . '/public');
         File::ensureDirectoryExists($this->root . '/private/chat-images');
+        File::ensureDirectoryExists($this->root . '/private/review-images');
         config()->set([
             'filesystems.disks.public.root' => $this->root . '/public',
             'filesystems.disks.local.root' => $this->root . '/private',
+            'filesystems.disks.review_images.root' => $this->root . '/private/review-images',
         ]);
         DB::statement('CREATE TABLE aaa_snapshot_parent (id INT PRIMARY KEY, value INT NOT NULL) ENGINE=InnoDB');
         DB::statement('CREATE TABLE aaa_snapshot_child (id INT PRIMARY KEY, parent_id INT NOT NULL, value INT NOT NULL, FOREIGN KEY (parent_id) REFERENCES aaa_snapshot_parent(id)) ENGINE=InnoDB');
@@ -90,7 +92,7 @@ class BackupSnapshotTest extends TestCase
         $health = BackupHealth::inspectDirectory($backup);
         $this->assertTrue($health['ok'], implode(' ', $health['issues']));
         $this->assertSame($userCount, $health['manifest']['row_counts']['users']);
-        $this->assertSame(2, $health['manifest']['version']);
+        $this->assertSame(3, $health['manifest']['version']);
     }
 
     public function test_dump_error_rolls_back_snapshot_and_does_not_publish_backup(): void

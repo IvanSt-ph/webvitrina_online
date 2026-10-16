@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Repositories\ProductCrudRepository;
 use App\Services\ImageService;
 use App\Services\ProductService;
+use App\Services\ReviewImageOperation;
+use App\Services\ReviewImageStorage;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Http\UploadedFile;
@@ -36,6 +38,7 @@ class ProductImageLifecycleTest extends TestCase
     {
         parent::setUp();
         Storage::fake('public');
+        Storage::fake('review_images');
         // No test transaction wrapper: callbacks must follow actual MySQL commits.
         $this->beforeApplicationDestroyed(function () {
             while (DB::transactionLevel() > 0) {
@@ -348,6 +351,127 @@ class ProductImageLifecycleTest extends TestCase
         $this->assertPairExists($recent->image);
     }
 
+    public function test_review_image_replacement_rollback_preserves_old_files_and_removes_new_files(): void
+    {
+        [$review, $oldPath] = $this->reviewWithPrivateImage();
+
+        DB::beginTransaction();
+        $operation = new ReviewImageOperation(
+            app(ImageService::class),
+            app(ReviewImageStorage::class),
+            DB::connection(),
+        );
+        $newPath = $operation->uploadGallery(
+            [$this->upload()],
+            app(ImageService::class)->makeDir('reviews'),
+        )[0];
+        $operation->deleteAfterCommit($oldPath);
+        $review->images()->delete();
+        $review->images()->create(['path' => $newPath]);
+        DB::rollBack();
+
+        $this->assertSame($oldPath, $review->images()->sole()->path);
+        Storage::disk('review_images')->assertExists([
+            $oldPath,
+            ImageService::thumbPath($oldPath),
+        ]);
+        Storage::disk('review_images')->assertMissing([
+            $newPath,
+            ImageService::thumbPath($newPath),
+        ]);
+    }
+
+    public function test_review_image_replacement_deletes_old_files_only_after_commit(): void
+    {
+        [$review, $oldPath] = $this->reviewWithPrivateImage();
+
+        DB::beginTransaction();
+        $operation = new ReviewImageOperation(
+            app(ImageService::class),
+            app(ReviewImageStorage::class),
+            DB::connection(),
+        );
+        $newPath = $operation->uploadGallery(
+            [$this->upload()],
+            app(ImageService::class)->makeDir('reviews'),
+        )[0];
+        $operation->deleteAfterCommit($oldPath);
+        $review->images()->delete();
+        $review->images()->create(['path' => $newPath]);
+
+        Storage::disk('review_images')->assertExists($oldPath);
+        DB::commit();
+
+        Storage::disk('review_images')->assertMissing([
+            $oldPath,
+            ImageService::thumbPath($oldPath),
+        ]);
+        Storage::disk('review_images')->assertExists([
+            $newPath,
+            ImageService::thumbPath($newPath),
+        ]);
+    }
+
+    public function test_review_force_delete_keeps_files_on_rollback_and_removes_them_after_commit(): void
+    {
+        [$review, $path] = $this->reviewWithPrivateImage();
+
+        DB::beginTransaction();
+        $review->forceDelete();
+        Storage::disk('review_images')->assertExists($path);
+        DB::rollBack();
+
+        $this->assertDatabaseHas('reviews', ['id' => $review->id]);
+        Storage::disk('review_images')->assertExists([
+            $path,
+            ImageService::thumbPath($path),
+        ]);
+
+        DB::beginTransaction();
+        Review::withTrashed()->findOrFail($review->id)->forceDelete();
+        Storage::disk('review_images')->assertExists($path);
+        DB::commit();
+
+        $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
+        Storage::disk('review_images')->assertMissing([
+            $path,
+            ImageService::thumbPath($path),
+        ]);
+    }
+
+    public function test_review_cleanup_preserves_a_file_still_referenced_by_another_image_row(): void
+    {
+        [$review, $sharedPath] = $this->reviewWithPrivateImage();
+        $other = Review::create([
+            'user_id' => User::factory()->create(['role' => 'buyer'])->id,
+            'product_id' => $review->product_id,
+            'rating' => 5,
+            'status' => Review::STATUS_APPROVED,
+        ]);
+        $other->images()->create(['path' => $sharedPath]);
+
+        DB::beginTransaction();
+        $operation = new ReviewImageOperation(
+            app(ImageService::class),
+            app(ReviewImageStorage::class),
+            DB::connection(),
+        );
+        $operation->deleteAfterCommit($sharedPath);
+        $review->images()->delete();
+        DB::commit();
+
+        Storage::disk('review_images')->assertExists([
+            $sharedPath,
+            ImageService::thumbPath($sharedPath),
+        ]);
+
+        DB::transaction(fn () => $other->forceDelete());
+        Storage::disk('review_images')->assertMissing([
+            $sharedPath,
+            ImageService::thumbPath($sharedPath),
+        ]);
+    }
+
     public function test_filesystem_failure_after_commit_is_logged_without_failing_update(): void
     {
         $product = $this->product();
@@ -406,6 +530,24 @@ class ProductImageLifecycleTest extends TestCase
             'title' => 'Lifecycle ' . uniqid(), 'price' => 100, 'stock' => 5,
             'image' => $this->seedPair($image), 'gallery' => [], 'status' => 'draft',
         ]);
+    }
+
+    /** @return array{Review, string} */
+    private function reviewWithPrivateImage(): array
+    {
+        $product = $this->product();
+        $review = Review::create([
+            'user_id' => User::factory()->create(['role' => 'buyer'])->id,
+            'product_id' => $product->id,
+            'rating' => 4,
+            'status' => Review::STATUS_APPROVED,
+        ]);
+        $path = 'reviews/medium/old-review-'.uniqid().'.webp';
+        Storage::disk('review_images')->put($path, 'old image');
+        Storage::disk('review_images')->put(ImageService::thumbPath($path), 'old thumb');
+        $review->images()->create(['path' => $path]);
+
+        return [$review, $path];
     }
 
     private function seedPair(string $path): string

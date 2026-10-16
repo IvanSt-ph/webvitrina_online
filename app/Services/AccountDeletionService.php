@@ -19,6 +19,7 @@ class AccountDeletionService
     public function anonymize(User $user): void
     {
         $publicFiles = array_filter([$user->avatar, $user->shop?->banner]);
+        $reviewFiles = [];
         $conversations = Conversation::where('buyer_id', $user->id)->orWhere('seller_id', $user->id);
         $conversationIds = $conversations->pluck('id');
         $messages = Message::where(fn ($query) => $query->whereIn('conversation_id', $conversationIds)->orWhere('sender_id', $user->id));
@@ -26,8 +27,8 @@ class AccountDeletionService
         Message::where('sender_id', $user->id)->delete();
         $conversations->delete();
 
-        Review::withTrashed()->where('user_id', $user->id)->get()->each(function (Review $review) use (&$publicFiles) {
-            $publicFiles = array_merge($publicFiles, $review->images()->pluck('path')->all());
+        Review::withTrashed()->where('user_id', $user->id)->get()->each(function (Review $review) use (&$reviewFiles) {
+            $reviewFiles = array_merge($reviewFiles, $review->images()->pluck('path')->all());
             // File removal waits for commit; preserve rating/cache updates without file hooks.
             Review::withTrashed()->whereKey($review->id)->forceDelete();
             app(ReviewObserver::class)->deleted($review);
@@ -50,7 +51,7 @@ class AccountDeletionService
         }
 
         // Keep ordered products and stock intact; withdraw the seller's catalogue.
-        $user->products()->withTrashed()->each(function (Product $product) use (&$publicFiles) {
+        $user->products()->withTrashed()->each(function (Product $product) use (&$publicFiles, &$reviewFiles) {
             ProductRepository::clearProductCache($product);
             if ($product->orderItems()->exists()) {
                 $product->update(['status' => Product::STATUS_BLOCKED]);
@@ -58,8 +59,8 @@ class AccountDeletionService
             }
 
             $publicFiles = array_merge($publicFiles, array_filter([$product->image]), (array) $product->gallery);
-            $product->reviews()->withTrashed()->with('images')->get()->each(function (Review $review) use (&$publicFiles) {
-                $publicFiles = array_merge($publicFiles, $review->images->pluck('path')->all());
+            $product->reviews()->withTrashed()->with('images')->get()->each(function (Review $review) use (&$reviewFiles) {
+                $reviewFiles = array_merge($reviewFiles, $review->images->pluck('path')->all());
             });
             $product->forceDelete();
         });
@@ -81,10 +82,19 @@ class AccountDeletionService
             'notification_preferences' => null,
         ])->save();
 
-        DB::afterCommit(function () use ($publicFiles, $privateFiles) {
+        DB::afterCommit(function () use ($publicFiles, $privateFiles, $reviewFiles) {
             foreach (array_unique($publicFiles) as $file) {
                 try {
                     app(ImageService::class)->delete($file, throwOnFailure: true);
+                } catch (\Throwable $exception) {
+                    \Illuminate\Support\Facades\Log::error('Account file cleanup failed; retry required', [
+                        'path' => $file, 'error' => $exception->getMessage(),
+                    ]);
+                }
+            }
+            foreach (array_unique($reviewFiles) as $file) {
+                try {
+                    app(ReviewImageStorage::class)->deleteIfUnreferenced($file, throwOnFailure: true);
                 } catch (\Throwable $exception) {
                     \Illuminate\Support\Facades\Log::error('Account file cleanup failed; retry required', [
                         'path' => $file, 'error' => $exception->getMessage(),

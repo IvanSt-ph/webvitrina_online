@@ -147,13 +147,18 @@ class ProductService
             }
 
             $files = new ProductImageOperation($this->images, DB::connection());
+            $reviewFiles = new ReviewImageOperation(
+                $this->images,
+                app(ReviewImageStorage::class),
+                DB::connection(),
+            );
             foreach (array_filter([$product->image, ...(array) $product->gallery]) as $path) {
                 $files->deleteAfterCommit($path);
             }
             $product->reviews()->withTrashed()->with('images')->get()
-                ->each(function ($review) use ($files): void {
+                ->each(function ($review) use ($reviewFiles): void {
                     $review->images->each(
-                        fn ($image) => $files->deleteAfterCommit($image->path)
+                        fn ($image) => $reviewFiles->deleteAfterCommit($image->path)
                     );
                 });
             $product->forceDelete();

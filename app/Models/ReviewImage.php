@@ -17,16 +17,39 @@ class ReviewImage extends Model
 
     public function getUrlAttribute(): string
     {
-        return \App\Support\PublicImage::url($this->path);
+        return $this->mediaUrl('medium');
     }
 
     public function getThumbCandidatesAttribute(): array
     {
-        return \App\Support\PublicImage::candidates($this->path, thumb: true);
+        return array_values(array_unique([
+            $this->mediaUrl('thumb'),
+            $this->mediaUrl('medium'),
+            asset('images/image-placeholder.svg'),
+        ]));
     }
 
     public function getThumbUrlAttribute(): string
     {
-        return \App\Support\PublicImage::url($this->path, thumb: true);
+        return $this->mediaUrl('thumb');
+    }
+
+    private function mediaUrl(string $variant): string
+    {
+        if (!$this->exists || !$this->getKey()) {
+            $legacy = \App\Support\PublicImage::path($this->path);
+            if ($legacy === null) {
+                return asset('images/image-placeholder.svg');
+            }
+
+            return \App\Support\PublicImage::url(
+                $variant === 'thumb' ? \App\Services\ImageService::thumbPath($legacy) : $legacy
+            ) ?? asset('images/image-placeholder.svg');
+        }
+
+        return route('review-images.show', [
+            'reviewImage' => $this->getKey(),
+            'variant' => $variant,
+        ]);
     }
 }

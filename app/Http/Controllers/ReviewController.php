@@ -8,6 +8,8 @@ use App\Models\Order;
 use App\Rules\ImageUploadConstraints;
 use App\Repositories\ProductRepository;
 use App\Services\ImageService;
+use App\Services\ReviewImageOperation;
+use App\Services\ReviewImageStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -106,14 +108,19 @@ private function persistReview(Request $request, Product $product)
 
         // 🧩 Обработка загруженных изображений
         if ($request->hasFile('images')) {
-            $newImagePaths = $this->images->uploadGallery(
+            $files = new ReviewImageOperation(
+                $this->images,
+                app(ReviewImageStorage::class),
+                DB::connection(),
+            );
+            $newImagePaths = $files->uploadGallery(
                 $request->file('images'),
                 $this->images->makeDir('reviews')
             );
 
-            // Удаляем старые изображения вместе с миниатюрами
+            // Database rows change atomically. Old files are retained until commit.
             foreach ($review->images as $old) {
-                $this->images->delete($old->path);
+                $files->deleteAfterCommit($old->path);
                 $old->delete();
             }
 

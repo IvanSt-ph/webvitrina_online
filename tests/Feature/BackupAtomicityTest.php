@@ -32,15 +32,18 @@ class BackupAtomicityTest extends TestCase
         $this->root = storage_path('framework/testing/backup-atomicity-' . uniqid());
         File::ensureDirectoryExists($this->root . '/public');
         File::ensureDirectoryExists($this->root . '/private/chat-images');
+        File::ensureDirectoryExists($this->root . '/private/review-images');
         config()->set([
             'filesystems.disks.public.root' => $this->root . '/public',
             'filesystems.disks.local.root' => $this->root . '/private',
+            'filesystems.disks.review_images.root' => $this->root . '/private/review-images',
             'backup.lock_path' => $this->root . '/barrier.lock',
         ]);
         DB::statement('CREATE TABLE backup_file_reference (id INT PRIMARY KEY, path VARCHAR(255)) ENGINE=InnoDB');
         DB::table('backup_file_reference')->insert(['id' => 1, 'path' => 'old.txt']);
         file_put_contents($this->root . '/public/old.txt', 'old image');
         file_put_contents($this->root . '/private/chat-images/old.txt', 'old image');
+        file_put_contents($this->root . '/private/review-images/old.txt', 'old review image');
     }
 
     protected function tearDown(): void
@@ -86,9 +89,13 @@ class BackupAtomicityTest extends TestCase
         $this->assertFalse(isset($archive['public/new.txt']));
         $private = new \PharData($backup . '/storage-private-chat-images.tar.gz');
         $this->assertTrue(isset($private['private/chat-images/old.txt']));
+        $reviews = new \PharData($backup . '/storage-private-review-images.tar.gz');
+        $this->assertTrue(isset($reviews['private/review-images/old.txt']));
         $this->assertSame('new.txt', DB::table('backup_file_reference')->value('path'));
         $this->assertFileDoesNotExist($this->root . '/public/old.txt');
         $this->assertFileDoesNotExist($this->root . '/private/chat-images/old.txt');
+        $this->assertFileDoesNotExist($this->root . '/private/review-images/old.txt');
+        $this->assertFileExists($this->root . '/private/review-images/new.txt');
     }
 
     public function test_direct_account_deletion_holds_barrier_through_outer_commit_cleanup(): void
@@ -121,7 +128,7 @@ class BackupAtomicityTest extends TestCase
 
     public static function backupFailures(): array
     {
-        return [['db'], ['public'], ['private/chat-images'], ['manifest.json'], ['SHA256SUMS']];
+        return [['db'], ['public'], ['private/chat-images'], ['private/review-images'], ['manifest.json'], ['SHA256SUMS']];
     }
 
     #[DataProvider('backupFailures')]

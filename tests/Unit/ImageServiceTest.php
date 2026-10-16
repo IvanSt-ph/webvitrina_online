@@ -89,7 +89,11 @@ class ImageServiceTest extends TestCase
 
         $service = new class extends ImageService
         {
-            protected function uploadOptimized(UploadedFile $file, string $dir): string
+            protected function uploadOptimized(
+                UploadedFile $file,
+                string $dir,
+                string $diskName = 'public',
+            ): string
             {
                 throw new RuntimeException('forced image processing failure');
             }
