@@ -447,7 +447,7 @@ private function requireCurrentPassword(Request $request): void
     }
 
     $request->validate([
-        'current_password' => ['required', 'current_password'],
+        'current_password' => ['bail', 'required', 'string', new \App\Rules\ThrottledCurrentPassword()],
     ], [
         'current_password.required' => 'Для изменения контактов подтвердите текущий пароль.',
         'current_password.current_password' => 'Текущий пароль введён неверно.',
@@ -671,7 +671,7 @@ public function redirectToRoleProfile()
     public function destroy(Request $request): RedirectResponse
     {
         $request->validate([
-            'password' => ['required', 'current_password'],
+            'password' => ['bail', 'required', 'string', new \App\Rules\ThrottledCurrentPassword()],
         ]);
 
         $user = $request->user();

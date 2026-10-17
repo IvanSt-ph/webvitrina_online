@@ -40,26 +40,31 @@ class NewPasswordController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $status = Password::reset(
+        $resetUser = null;
+        $status = $this->passwordSecurity->resetPassword(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user) use ($request) {
-
+            function (User $user) use ($request, &$resetUser) {
                 $this->passwordSecurity->rotate($user, $request->password);
-
-                try {
-                    $user->notify(new PasswordChangedNotification());
-                } catch (\Throwable $exception) {
-                    Log::warning('Password changed notification failed', [
-                        'user_id' => $user->id,
-                        'email_hash' => hash('sha256', (string) $user->email),
-                        'exception' => get_class($exception),
-                        'message' => $exception->getMessage(),
-                    ]);
-                }
-
-                event(new PasswordReset($user));
+                $resetUser = $user;
             }
         );
+
+        // Notify after the credential transaction commits; a synchronous mail
+        // failure must not turn a successfully committed reset into a 500.
+        if ($status === Password::PASSWORD_RESET && $resetUser !== null) {
+            try {
+                $resetUser->notify(new PasswordChangedNotification());
+            } catch (\Throwable $exception) {
+                Log::warning('Password changed notification failed', [
+                    'user_id' => $resetUser->id,
+                    'email_hash' => hash('sha256', (string) $resetUser->email),
+                    'exception' => get_class($exception),
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+
+            event(new PasswordReset($resetUser));
+        }
 
         return $status == Password::PASSWORD_RESET
                     ? redirect()->route('login')->with('status', __($status))

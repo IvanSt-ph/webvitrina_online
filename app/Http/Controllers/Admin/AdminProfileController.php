@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
 use App\Services\AdminActivityLogger;
 use App\Services\PasswordSecurityService;
+use App\Rules\ThrottledCurrentPassword;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 
@@ -42,7 +43,7 @@ class AdminProfileController extends Controller
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'current_password' => $user->hasLocalPassword() && $sensitiveChange
-                ? ['required', 'current_password']
+                ? ['bail', 'required', 'string', new ThrottledCurrentPassword()]
                 : ['nullable'],
         ]);
 

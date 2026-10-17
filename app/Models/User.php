@@ -50,6 +50,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected static function booted(): void
     {
+        static::saving(function (User $user): void {
+            // Verification belongs to the saved email, including admin edits
+            // through PhoneAssignmentService's freshly locked User instance.
+            if ($user->exists && $user->isDirty('email')) {
+                $user->email_verified_at = null;
+            }
+        });
+
         static::saved(function (User $user): void {
             if ($user->wasChanged(['name', 'avatar'])) {
                 Shop::clearRetailMediaCache();

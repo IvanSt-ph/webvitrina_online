@@ -259,11 +259,13 @@ class UserController extends Controller
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
 
         $this->phones->updateUser($user, $phone, $userData);
-        $user->refresh();
 
         if ($password !== null) {
+            // Keep the original credential/email snapshot through rotation; the
+            // service revokes tokens for both this identity and the locked row.
             $this->passwordSecurity->rotate($user, $password);
         }
+        $user->refresh();
 
         $after = $user->fresh()->only(['name', 'email', 'phone', 'role', 'seller_plan']);
 

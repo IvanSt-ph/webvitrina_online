@@ -69,6 +69,8 @@ class PasswordResetTest extends TestCase
 
     public function test_reset_password_link_mail_transport_error_is_shown_without_server_error(): void
     {
+        User::factory()->create(['email' => 'buyer@example.com']);
+
         Password::shouldReceive('sendResetLink')
             ->once()
             ->andThrow(new TransportException('SMTP rate limit'));

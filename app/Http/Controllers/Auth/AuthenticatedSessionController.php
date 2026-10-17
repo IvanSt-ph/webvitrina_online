@@ -5,16 +5,20 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\UserRememberedDevice;
+use App\Services\PasswordSecurityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Cookie;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
     public const REMEMBERED_DEVICES_COOKIE = 'wv_remembered_accounts';
+
+    public function __construct(private readonly PasswordSecurityService $passwordSecurity)
+    {
+    }
 
     /**
      * Display the login view.
@@ -64,23 +68,18 @@ class AuthenticatedSessionController extends Controller
             'token' => ['required', 'string', 'max:128'],
         ]);
 
-        $device = UserRememberedDevice::with('user')
-            ->where('selector', $validated['selector'])
-            ->where('expires_at', '>', now())
-            ->first();
+        $user = $this->passwordSecurity->rememberedUser($validated['selector'], $validated['token']);
 
-        if (! $device || ! hash_equals($device->token_hash, hash('sha256', $validated['token']))) {
+        if ($user === null) {
             return back()->withErrors([
                 'login' => 'Быстрый вход для этого устройства больше недоступен. Введите пароль ещё раз.',
             ]);
         }
 
-        $device->update(['last_used_at' => now()]);
-
-        Auth::login($device->user, false);
+        Auth::login($user, false);
         $request->session()->regenerate();
 
-        return redirect()->intended($this->fallbackRouteFor($device->user));
+        return redirect()->intended($this->fallbackRouteFor($user));
     }
 
     public function forgetRemembered(Request $request): RedirectResponse
@@ -133,17 +132,7 @@ class AuthenticatedSessionController extends Controller
 
     private function rememberDevice(Request $request): void
     {
-        $user = $request->user();
-        $selector = Str::random(32);
-        $token = Str::random(64);
-
-        UserRememberedDevice::create([
-            'user_id' => $user->id,
-            'selector' => $selector,
-            'token_hash' => hash('sha256', $token),
-            'expires_at' => now()->addDays(60),
-            'last_used_at' => now(),
-        ]);
+        ['selector' => $selector, 'token' => $token] = $this->passwordSecurity->issueRememberedDevice($request->user());
 
         $devices = collect($this->rememberedDeviceCookie($request))
             ->reject(fn (array $device) => ($device['selector'] ?? null) === $selector)

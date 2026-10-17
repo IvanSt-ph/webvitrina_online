@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\PasswordSecurityService;
+use App\Rules\ThrottledCurrentPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,7 @@ class PasswordController extends Controller
         ];
 
         if ($request->user()->hasLocalPassword()) {
-            $rules['current_password'] = ['required', 'current_password'];
+            $rules['current_password'] = ['bail', 'required', 'string', new ThrottledCurrentPassword()];
         }
 
         $validated = $request->validateWithBag('updatePassword', $rules, $messages);

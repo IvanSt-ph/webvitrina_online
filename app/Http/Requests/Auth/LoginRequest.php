@@ -5,6 +5,7 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -65,7 +66,10 @@ class LoginRequest extends FormRequest
 
         try {
             // Persistent login is handled exclusively by UserRememberedDevice.
-            $authenticated = Auth::attempt($credentials, false);
+            // Laravel may rehash during attempt(). Serialize that write with
+            // rotation too, so it cannot restore a validated but obsolete hash.
+            $credentials[] = fn ($query) => $query->lockForUpdate();
+            $authenticated = DB::transaction(fn () => Auth::attempt($credentials, false));
         } catch (RuntimeException $exception) {
             report($exception);
             $authenticated = false;

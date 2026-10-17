@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\PasswordSecurityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -12,6 +13,10 @@ use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class PasswordResetLinkController extends Controller
 {
+    public function __construct(private readonly PasswordSecurityService $passwordSecurity)
+    {
+    }
+
     /**
      * Display the password reset link request view.
      */
@@ -32,7 +37,7 @@ class PasswordResetLinkController extends Controller
         ]);
 
         try {
-            $status = Password::sendResetLink(
+            $status = $this->passwordSecurity->sendResetLink(
                 $request->only('email')
             );
         } catch (TransportExceptionInterface $exception) {
