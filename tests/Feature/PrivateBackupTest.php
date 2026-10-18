@@ -15,25 +15,36 @@ use Tests\TestCase;
 
 class PrivateBackupTest extends TestCase
 {
+    private bool $cleanupReady = false;
+
     use RefreshDatabase;
 
     private string $root;
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
 
         $this->root = storage_path('framework/testing/private-backup-' . uniqid());
         File::ensureDirectoryExists($this->root);
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
-        Storage::forgetDisk('local');
-        Storage::forgetDisk('review_images');
-        File::deleteDirectory($this->root);
-
-        parent::tearDown();
+        try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            Storage::forgetDisk('local');
+            Storage::forgetDisk('review_images');
+            \Tests\Support\TestFileSafety::assertDirectory($this->root);
+            File::deleteDirectory($this->root);
+        } finally {
+            parent::tearDown();
+        }
     }
 
     public function test_backup_contains_public_and_private_chat_files_and_restores_controlled_access(): void

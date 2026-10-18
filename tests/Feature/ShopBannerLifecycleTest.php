@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Shop;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Tests\Support\SafeDatabaseTruncation as DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -28,11 +28,7 @@ class ShopBannerLifecycleTest extends TestCase
         parent::setUp();
 
         // afterCommit cleanup must be observed after a real database commit.
-        $this->beforeApplicationDestroyed(function (): void {
-            while (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-        });
+        $this->rollBackTestTransactionsBeforeApplicationDestroyed();
     }
 
     public function test_successful_shop_banner_replacement_commits_new_file_before_removing_old_file(): void

@@ -3,18 +3,12 @@
 // Controlled independent MySQL session; configuration is accepted only for the
 // same guarded test database as the parent suite. Never run against webv3.
 require dirname(__DIR__, 2).'/vendor/autoload.php';
-putenv('APP_ENV=testing');
-$_ENV['APP_ENV'] = $_SERVER['APP_ENV'] = 'testing';
-$app = require dirname(__DIR__, 2).'/bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $input = json_decode(trim(fgets(STDIN)), true, flags: JSON_THROW_ON_ERROR);
-Tests\TestCase::assertSafeTestDatabaseConfiguration($app->environment(), $input['database']);
-$app['config']->set('database', $input['database']);
+$app = Tests\Support\TestWorkerBootstrap::boot($input['database']);
 $app['config']->set('app.key', $input['key']);
 $app['config']->set('hashing', $input['hashing']);
 $app['config']->set('session.driver', 'array');
 $app['config']->set('cache.default', 'array');
-Illuminate\Support\Facades\DB::purge();
 
 use App\Models\User;
 use App\Services\PasswordSecurityService;

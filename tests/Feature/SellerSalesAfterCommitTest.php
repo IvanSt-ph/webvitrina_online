@@ -7,7 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Tests\Support\SafeDatabaseTruncation as DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -27,11 +27,7 @@ class SellerSalesAfterCommitTest extends TestCase
         parent::setUp();
 
         // afterCommit must be exercised against real commits, not a test wrapper.
-        $this->beforeApplicationDestroyed(function (): void {
-            while (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-        });
+        $this->rollBackTestTransactionsBeforeApplicationDestroyed();
     }
 
     public function test_real_commit_updates_sales_count_once_for_an_order_with_multiple_items(): void

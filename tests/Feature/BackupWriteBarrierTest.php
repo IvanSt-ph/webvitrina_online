@@ -9,20 +9,32 @@ use Tests\TestCase;
 
 class BackupWriteBarrierTest extends TestCase
 {
+    private bool $cleanupReady = false;
+
     private string $root;
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
         $this->root = storage_path('framework/testing/backup-barrier-' . uniqid());
         File::ensureDirectoryExists($this->root);
         config()->set('backup.lock_path', $this->root . '/barrier.lock');
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
-        File::deleteDirectory($this->root);
-        parent::tearDown();
+        try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            \Tests\Support\TestFileSafety::assertDirectory($this->root);
+            File::deleteDirectory($this->root);
+        } finally {
+            parent::tearDown();
+        }
     }
 
     public function test_backup_waits_for_inflight_writer_and_process_death_releases_lock(): void

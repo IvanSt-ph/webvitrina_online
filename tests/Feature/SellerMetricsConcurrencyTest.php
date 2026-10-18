@@ -8,7 +8,7 @@ use App\Models\Review;
 use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Database\ConnectionInterface;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Tests\Support\SafeDatabaseTruncation as DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\InputStream;
@@ -29,11 +29,7 @@ class SellerMetricsConcurrencyTest extends TestCase
     {
         parent::setUp();
 
-        $this->beforeApplicationDestroyed(function (): void {
-            while (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-        });
+        $this->rollBackTestTransactionsBeforeApplicationDestroyed();
     }
 
     public function test_parallel_moderation_serializes_reputation_after_commit(): void

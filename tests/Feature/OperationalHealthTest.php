@@ -21,6 +21,8 @@ use Tests\TestCase;
 
 class OperationalHealthTest extends TestCase
 {
+    private bool $cleanupReady = false;
+
     use RefreshDatabase;
 
     private string $root;
@@ -28,6 +30,7 @@ class OperationalHealthTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
         $this->root = storage_path('framework/testing/operational-'.uniqid());
         File::ensureDirectoryExists($this->root);
@@ -36,13 +39,22 @@ class OperationalHealthTest extends TestCase
         config(['backup.lock_path' => $this->root.'/barrier.lock']);
         config(['backup.path' => $this->root.'/backups', 'cache.stores.file.path' => $this->root.'/cache', 'cache.stores.file.lock_path' => $this->root.'/cache']);
         File::ensureDirectoryExists(config('backup.path'));
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
-        app()->useStoragePath($this->originalStorage);
-        File::deleteDirectory($this->root);
-        parent::tearDown();
+        try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            app()->useStoragePath($this->originalStorage);
+            \Tests\Support\TestFileSafety::assertDirectory($this->root);
+            File::deleteDirectory($this->root);
+        } finally {
+            parent::tearDown();
+        }
     }
 
     private function probe(string $method, mixed ...$arguments): array

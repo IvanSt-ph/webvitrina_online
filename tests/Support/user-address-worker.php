@@ -13,25 +13,8 @@ use Illuminate\Support\Facades\DB;
 $stage = 'input';
 try {
     $input = json_decode(trim(fgets(STDIN)), true, flags: JSON_THROW_ON_ERROR);
-    // Check before bootstrapping providers or opening any connection.
-    Tests\TestCase::assertSafeTestDatabaseConfiguration('testing', $input['database']);
-    putenv('APP_ENV=testing');
-    $_ENV['APP_ENV'] = $_SERVER['APP_ENV'] = 'testing';
-    $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
-    $app->afterBootstrapping(Illuminate\Foundation\Bootstrap\LoadConfiguration::class, function ($app) use ($input): void {
-        Tests\TestCase::assertSafeTestDatabaseConfiguration($app->environment(), $input['database']);
-        // No alternative connection can accidentally resolve to a production DB.
-        $database = $input['database'];
-        $database['connections'] = ['mysql' => $database['connections']['mysql']];
-        $app['config']->set('database', $database);
-        $app['config']->set('app.key', $input['key']);
-        $app['config']->set('cache.default', 'array');
-        $app['config']->set('session.driver', 'array');
-        $app['config']->set('queue.default', 'sync');
-        $app['config']->set('mail.default', 'array');
-    });
-    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-    Tests\TestCase::assertSafeTestDatabaseConfiguration($app->environment(), config('database'));
+    $app = Tests\Support\TestWorkerBootstrap::boot($input['database']);
+    $app['config']->set('app.key', $input['key']);
 
     $stage = 'binding';
     $user = User::findOrFail($input['user_id']);

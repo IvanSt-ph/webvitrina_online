@@ -15,6 +15,8 @@ use Tests\TestCase;
 
 class BackupSnapshotTest extends TestCase
 {
+    private bool $cleanupReady = false;
+
     use RefreshDatabase;
 
     private string $root;
@@ -30,6 +32,7 @@ class BackupSnapshotTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
         $this->root = storage_path('framework/testing/backup-snapshot-' . uniqid());
         File::ensureDirectoryExists($this->root . '/public');
@@ -44,12 +47,21 @@ class BackupSnapshotTest extends TestCase
         DB::statement('CREATE TABLE aaa_snapshot_child (id INT PRIMARY KEY, parent_id INT NOT NULL, value INT NOT NULL, FOREIGN KEY (parent_id) REFERENCES aaa_snapshot_parent(id)) ENGINE=InnoDB');
         DB::table('aaa_snapshot_parent')->insert(['id' => 1, 'value' => 100]);
         DB::table('aaa_snapshot_child')->insert(['id' => 1, 'parent_id' => 1, 'value' => 100]);
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
-        File::deleteDirectory($this->root);
-        parent::tearDown();
+        try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            \Tests\Support\TestFileSafety::assertDirectory($this->root);
+            File::deleteDirectory($this->root);
+        } finally {
+            parent::tearDown();
+        }
     }
 
     public function test_dump_and_manifest_keep_the_initial_snapshot_during_committed_writes(): void

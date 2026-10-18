@@ -6,6 +6,22 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function rollBackTestTransactionsBeforeApplicationDestroyed(): void
+    {
+        $connection = $this->app['db']->connection();
+        $pdo = Support\TestDatabaseSafety::assertConnected(
+            $this->app->environment(), $this->app['config']->get('database'), $connection,
+        );
+        $this->beforeApplicationDestroyed(function () use ($connection, $pdo): void {
+            Support\TestDatabaseSafety::assertConnected(
+                $this->app->environment(), $this->app['config']->get('database'), $connection, $pdo,
+            );
+            while ($connection->transactionLevel() > 0) {
+                $connection->rollBack();
+            }
+        });
+    }
+
     public function be(\Illuminate\Contracts\Auth\Authenticatable $user, $guard = null)
     {
         parent::be($user, $guard);
@@ -25,6 +41,19 @@ abstract class TestCase extends BaseTestCase
             $this->app['config']->get('database'),
         );
 
+        Support\TestDatabaseSafety::assertConfiguration($this->app->environment(), $this->app['config']->get('database'));
+        $traits = class_uses_recursive(static::class);
+        if (array_intersect($traits, [
+            \Illuminate\Foundation\Testing\RefreshDatabase::class,
+            \Illuminate\Foundation\Testing\DatabaseTruncation::class,
+            \Illuminate\Foundation\Testing\DatabaseMigrations::class,
+        ])) {
+            $connection = $this->app['db']->connection();
+            Support\TestDatabaseSafety::assertMetadata($this->app->environment(), $this->app['config']->get('database'), $connection);
+            $connection->getPdo();
+            Support\TestDatabaseSafety::assertConnected($this->app->environment(), $this->app['config']->get('database'), $connection);
+        }
+
         return parent::setUpTraits();
     }
 
@@ -36,12 +65,13 @@ abstract class TestCase extends BaseTestCase
             || ($databaseConfig['default'] ?? null) !== 'mysql'
             || ($connection['driver'] ?? null) !== 'mysql'
             || ($connection['database'] ?? null) !== 'webv3_testing'
+            || ($connection['username'] ?? null) !== 'webvitrina_test'
             || ($connection['host'] ?? null) !== '127.127.126.9'
             || (string) ($connection['port'] ?? '') !== '3306'
             || ! empty($connection['url'])
             || ! empty($connection['read'])
             || ! empty($connection['write'])) {
-            throw new \RuntimeException('Tests require the explicitly approved local MySQL database webv3_testing on 127.127.126.9:3306 with APP_ENV=testing and no DB_URL or read/write overrides.');
+            throw new \RuntimeException('Tests require the explicitly approved local MySQL database webv3_testing as webvitrina_test on 127.127.126.9:3306 with APP_ENV=testing and no DB_URL or read/write overrides.');
         }
     }
 }

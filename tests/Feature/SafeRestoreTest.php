@@ -10,11 +10,14 @@ use Tests\TestCase;
 
 class SafeRestoreTest extends TestCase
 {
+    private bool $cleanupReady = false;
+
     private string $root;
     private string $backup;
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
         $this->root = storage_path('framework/testing/safe-restore-' . uniqid());
         $this->backup = $this->root . '/backup';
@@ -40,12 +43,21 @@ class SafeRestoreTest extends TestCase
         ]]));
         $files = ['database.sql.gz', 'storage-public.tar.gz', 'storage-private-chat-images.tar.gz', 'manifest.json'];
         file_put_contents($this->backup . '/SHA256SUMS', implode("\n", array_map(fn ($f) => hash_file('sha256', $this->backup . '/' . $f) . '  ' . $f, $files)) . "\n");
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
-        File::deleteDirectory($this->root);
-        parent::tearDown();
+        try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            \Tests\Support\TestFileSafety::assertDirectory($this->root);
+            File::deleteDirectory($this->root);
+        } finally {
+            parent::tearDown();
+        }
     }
 
     public function test_drill_restores_both_roots_without_changing_live_files(): void

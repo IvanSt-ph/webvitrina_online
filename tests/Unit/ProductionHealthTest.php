@@ -14,11 +14,14 @@ use Tests\TestCase;
 
 class ProductionHealthTest extends TestCase
 {
+    private bool $cleanupReady = false;
+
     private string $temporaryDirectory;
     private string $originalStorage;
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
 
         Carbon::setTestNow('2026-09-16 12:00:00');
@@ -31,15 +34,23 @@ class ProductionHealthTest extends TestCase
         $this->originalStorage = storage_path();
         app()->useStoragePath($this->temporaryDirectory . '/runtime');
         config(['backup.lock_path' => $this->temporaryDirectory . '/barrier.lock']);
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
-        app()->useStoragePath($this->originalStorage);
-        File::deleteDirectory($this->temporaryDirectory);
-        Carbon::setTestNow();
-
-        parent::tearDown();
+        try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            app()->useStoragePath($this->originalStorage);
+            \Tests\Support\TestFileSafety::assertDirectory($this->temporaryDirectory);
+            File::deleteDirectory($this->temporaryDirectory);
+            Carbon::setTestNow();
+        } finally {
+            parent::tearDown();
+        }
     }
 
     public function test_queue_is_not_green_without_a_recent_worker_confirmation(): void

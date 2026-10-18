@@ -1,13 +1,9 @@
 <?php
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
-putenv('APP_ENV=testing');
-$_ENV['APP_ENV'] = $_SERVER['APP_ENV'] = 'testing';
 $configuration = json_decode(trim(fgets(STDIN)), true, flags: JSON_THROW_ON_ERROR);
-Tests\TestCase::assertSafeTestDatabaseConfiguration('testing', $configuration['database']);
-$app = require dirname(__DIR__, 2).'/bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-$app['config']->set('database', $configuration['database']);
+$app = Tests\Support\TestWorkerBootstrap::boot($configuration['database']);
+Tests\Support\TestFileSafety::assertDirectory($configuration['root']);
 $app['config']->set([
     'cache.default' => $configuration['store'],
     'cache.prefix' => $configuration['prefix'],
@@ -20,7 +16,6 @@ $app['config']->set([
     'queue.default' => 'database',
 ]);
 $app->useStoragePath($configuration['root'].'/storage');
-Illuminate\Support\Facades\DB::purge();
 Illuminate\Support\Facades\Cache::forgetDriver();
 
 if ($argv[1] === 'write') {

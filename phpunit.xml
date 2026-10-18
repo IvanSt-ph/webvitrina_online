@@ -26,8 +26,7 @@
     <!-- MySQL для тестов -->
     <env name="DB_CONNECTION" value="mysql"/>
     <env name="DB_DATABASE" value="webv3_testing"/>
-    <env name="DB_USERNAME" value="root"/>
-    <env name="DB_PASSWORD" value=""/>
+    <env name="DB_USERNAME" value="webvitrina_test"/>
     
     <!-- Mail для тестов (array = не отправляет реальные письма) -->
     <env name="MAIL_MAILER" value="array"/>

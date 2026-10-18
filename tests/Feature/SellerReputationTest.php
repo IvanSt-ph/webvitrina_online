@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\Shop;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Tests\Support\SafeDatabaseTruncation as DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;

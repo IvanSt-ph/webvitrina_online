@@ -13,7 +13,7 @@ use App\Services\ImageService;
 use App\Services\ProductService;
 use App\Services\ReviewImageOperation;
 use App\Services\ReviewImageStorage;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Tests\Support\SafeDatabaseTruncation as DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -40,11 +40,7 @@ class ProductImageLifecycleTest extends TestCase
         Storage::fake('public');
         Storage::fake('review_images');
         // No test transaction wrapper: callbacks must follow actual MySQL commits.
-        $this->beforeApplicationDestroyed(function () {
-            while (DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-        });
+        $this->rollBackTestTransactionsBeforeApplicationDestroyed();
     }
 
     public function test_replacement_waits_for_outer_commit_and_cleans_both_derivatives(): void

@@ -17,6 +17,7 @@ class TestDatabaseGuardTest extends PHPUnitTestCase
                     'host' => '127.127.126.9',
                     'port' => '3306',
                     'database' => 'webv3_testing',
+                    'username' => 'webvitrina_test',
                     'url' => null,
                 ],
             ],
@@ -27,7 +28,7 @@ class TestDatabaseGuardTest extends PHPUnitTestCase
         $unsafe = [];
         $unsafe[] = ['production', $safe];
 
-        foreach (['database' => 'webv3', 'host' => 'db.example.com', 'port' => '3307', 'url' => 'mysql://example'] as $key => $value) {
+        foreach (['database' => 'webv3', 'username' => 'root', 'host' => 'db.example.com', 'port' => '3307', 'url' => 'mysql://example'] as $key => $value) {
             $config = $safe;
             $config['connections']['mysql'][$key] = $value;
             $unsafe[] = ['testing', $config];
@@ -44,6 +45,15 @@ class TestDatabaseGuardTest extends PHPUnitTestCase
 
             $unsafe[] = ['testing', $config];
         }
+
+        foreach ([null, '', 'WEBVITRINA_TEST', 'webvitrina_test '] as $username) {
+            $config = $safe;
+            $config['connections']['mysql']['username'] = $username;
+            $unsafe[] = ['testing', $config];
+        }
+        $config = $safe;
+        unset($config['connections']['mysql']['username']);
+        $unsafe[] = ['testing', $config];
 
         foreach ($unsafe as [$environment, $config]) {
             try {

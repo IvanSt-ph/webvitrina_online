@@ -17,6 +17,8 @@ use Symfony\Component\Console\Output\BufferedOutput;
 
 class BackupAtomicityTest extends TestCase
 {
+    private bool $cleanupReady = false;
+
     use RefreshDatabase;
 
     private string $root;
@@ -28,6 +30,7 @@ class BackupAtomicityTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
         $this->root = storage_path('framework/testing/backup-atomicity-' . uniqid());
         File::ensureDirectoryExists($this->root . '/public');
@@ -44,12 +47,21 @@ class BackupAtomicityTest extends TestCase
         file_put_contents($this->root . '/public/old.txt', 'old image');
         file_put_contents($this->root . '/private/chat-images/old.txt', 'old image');
         file_put_contents($this->root . '/private/review-images/old.txt', 'old review image');
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
-        File::deleteDirectory($this->root);
-        parent::tearDown();
+        try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            \Tests\Support\TestFileSafety::assertDirectory($this->root);
+            File::deleteDirectory($this->root);
+        } finally {
+            parent::tearDown();
+        }
     }
 
     public function test_concurrent_request_cannot_remove_snapshot_files_before_both_archives_complete(): void
@@ -64,12 +76,51 @@ class BackupAtomicityTest extends TestCase
             {
                 if ($archiveRoot === 'public') {
                     $this->worker->start();
-                    $this->test->assertTrue($this->worker->waitUntil(fn ($type, $out) => str_contains($out, 'READY')));
+                    try {
+                        $ready = \Tests\Support\WorkerReadyWaiter::wait($this->worker);
+                    } catch (\Symfony\Component\Process\Exception\ExceptionInterface $exception) {
+                        throw new \RuntimeException(
+                            $this->readyFailureDiagnostics(get_class($exception).': '.$exception->getMessage()),
+                            0,
+                            $exception,
+                        );
+                    }
+                    $this->test->assertTrue($ready, $ready ? '' : $this->readyFailureDiagnostics(
+                        'Worker terminated before a complete READY line was confirmed while running.',
+                    ));
                     usleep(200000);
                 }
                 $this->test->assertStringNotContainsString('MUTATED', $this->worker->getOutput());
                 $this->test->assertSame('old.txt', DB::table('backup_file_reference')->value('path'));
                 return parent::archiveDirectory($source, $archiveRoot, $tarPath, $tarGzPath);
+            }
+
+            private function readyFailureDiagnostics(string $reason): string
+            {
+                $details = ['Backup worker READY wait failed: '.$reason];
+                foreach ([
+                    'status' => 'getStatus',
+                    'terminated' => 'isTerminated',
+                    'exit_code' => 'getExitCode',
+                    'stdout' => 'getOutput',
+                    'stderr' => 'getErrorOutput',
+                ] as $label => $method) {
+                    try {
+                        $value = $this->worker->{$method}();
+                        $value = match (true) {
+                            $value === null => '<unavailable>',
+                            is_bool($value) => $value ? 'true' : 'false',
+                            $value === '' => '<empty>',
+                            default => (string) $value,
+                        };
+                    } catch (\Throwable $exception) {
+                        // A diagnostic getter must not hide the original wait failure.
+                        $value = '<unavailable: '.get_class($exception).': '.$exception->getMessage().'>';
+                    }
+                    $details[] = $label.":\n".$value;
+                }
+
+                return implode("\n", $details);
             }
         });
         try {

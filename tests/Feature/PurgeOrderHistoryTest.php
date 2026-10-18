@@ -7,16 +7,23 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\BackupWriteBarrier;
 use App\Services\ImageService;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Tests\Support\SafeDatabaseTruncation as DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use Tests\Support\TestDatabaseSafety;
+use Tests\Support\TestFileSafety;
 
 class PurgeOrderHistoryTest extends TestCase
 {
     use DatabaseTruncation;
+
+    private bool $cleanupReady = false;
+    private \Illuminate\Database\Connection $cleanupConnection;
+    private \PDO $cleanupPdo;
+    private \Illuminate\Filesystem\FilesystemAdapter $cleanupDisk;
 
     public static function tearDownAfterClass(): void
     {
@@ -26,20 +33,47 @@ class PurgeOrderHistoryTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->cleanupReady = false;
         parent::setUp();
-        Storage::fake('public');
+        $fakeRoot = storage_path('framework/testing/disks/public');
+        if ($token = \Illuminate\Support\Facades\ParallelTesting::token()) {
+            $fakeRoot .= '_test_'.$token;
+        }
+        TestFileSafety::assertDirectory($fakeRoot, mustExist: false);
+        $this->cleanupDisk = Storage::fake('public');
         config(['backup.lock_path' => storage_path('framework/testing/prod11-purge.lock')]);
+        $this->cleanupConnection = DB::connection();
+        $this->cleanupPdo = TestDatabaseSafety::assertConnected(
+            $this->app->environment(), config('database'), $this->cleanupConnection,
+        );
+        TestFileSafety::assertDirectory($this->cleanupDisk->path(''));
+        $this->cleanupReady = true;
     }
 
     protected function tearDown(): void
     {
         try {
+            if (! $this->cleanupReady) {
+                return;
+            }
+            $this->cleanupReady = false;
+            TestDatabaseSafety::assertConfiguration($this->app->environment(), config('database'));
+            if (DB::connection() !== $this->cleanupConnection
+                || Storage::disk('public') !== $this->cleanupDisk) {
+                throw new \RuntimeException('Test cleanup resources changed after setup.');
+            }
+            TestDatabaseSafety::assertConnected(
+                $this->app->environment(), config('database'), $this->cleanupConnection, $this->cleanupPdo,
+            );
+            TestFileSafety::assertDirectory($this->cleanupDisk->path(''));
+            TestFileSafety::assertDirectory($this->cleanupDisk->path('products'), mustExist: false);
             while (DB::transactionLevel() > 0) {
                 DB::rollBack();
             }
             // Real commits exercise file callbacks; remove fixtures after the final test too.
             $this->truncateTablesForAllConnections();
-            Storage::disk('public')->deleteDirectory('products');
+            TestFileSafety::assertDirectory($this->cleanupDisk->path('products'), mustExist: false);
+            $this->cleanupDisk->deleteDirectory('products');
             app(BackupWriteBarrier::class)->run(fn () => $this->assertTrue(true), exclusive: true);
         } finally {
             parent::tearDown();
