@@ -1,76 +1,84 @@
 # WebVitrina
 
-Многостраничный маркетплейс на Laravel с ролями:
+WebVitrina — многостраничный маркетплейс на Laravel с ролями покупателя,
+продавца и администратора. На текущем этапе приложение работает как агрегатор
+товаров с самовывозом: заказ оформляется без онлайн-списания, а оплату продавец
+подтверждает при выдаче.
 
-- 👤 Покупатель  
-- 🧑‍💼 Продавец  
-- 🛠 Администратор  
+## Возможности
 
-Проект создаётся как реальный коммерческий продукт, а не учебный пример: с товарами, заказами, атрибутами, кабинетами и аналитикой.
+- каталог, поиск, категории, атрибуты и рекомендации;
+- корзина, избранное и оформление pickup-заказов;
+- кабинеты покупателя, продавца и администратора;
+- управление товарами, остатками, заказами, отзывами и спорами;
+- чаты и приватные вложения;
+- очереди, scheduler, operational health и резервное копирование;
+- Blade, Tailwind CSS, Alpine.js и Vite.
 
----
+## Требования
 
-## 🚀 Основные возможности
+Точные ограничения задают lock-файлы и манифесты проекта:
 
-- Каталог товаров с категориями и атрибутами  
-- Личные кабинеты:
-  - Покупатель: избранное, корзина, заказы, отзывы  
-  - Продавец: добавление товаров, управление заказами, аналитика  
-  - Администратор: управление товарами, категориями, баннерами  
-- Корзина и оформление заказов  
-- Отзывы и рейтинг товаров  
-- Фильтры и сортировка (цена, рейтинг, популярность и т.д.)  
-- Современный стек фронтенда:
-  - Blade  
-  - TailwindCSS  
-  - Alpine.js  
-  - Vite  
+- PHP `^8.4.1`;
+- Laravel `^12.0`;
+- MySQL 8 с InnoDB;
+- Composer;
+- Node.js `^20.19.0 || >=22.12.0` и npm;
+- PHP-расширения, необходимые Laravel, MySQL, GD/WebP и обработке файлов.
 
----
-
-## 🧱 Технологический стек
-
-- PHP 8.2+ (рекомендуется 8.3–8.4)  
-- Laravel 10/11/12 (см. версию в `composer.json`)  
-- MySQL 8.x  
-- Node.js + npm  
-- TailwindCSS, Alpine.js, Vite  
-
----
-
-
-php artisan optimize:clear
-php artisan cache:clear
-php artisan route:clear
-php artisan config:clear
-php artisan view:clear
-
-
-## ⚙️ 1. Требования
-
-- PHP >= 8.2  
-- Composer  
-- MySQL 8.x  
-- Node.js + npm  
-- PHP-расширения:  
-  `pdo_mysql`, `mbstring`, `openssl`, `json`, `fileinfo`
-
----
-
-## 🛠 2. Установка (локальная разработка)
+## Локальная установка
 
 ```bash
 git clone https://github.com/IvanSt-ph/webvitrina.git
 cd webvitrina
-
-# Устанавливаем PHP-зависимости
 composer install
-
-# Устанавливаем frontend-зависимости
-npm install
-
-# Создаём .env
+npm ci
 cp .env.example .env
-
-# Генерируем ключ приложения
 php artisan key:generate
+```
+
+Настройте отдельную локальную базу в `.env`, затем выполните миграции и создайте
+ссылку на публичное хранилище:
+
+```bash
+php artisan migrate
+php artisan storage:link
+npm run build
+php artisan serve
+```
+
+Для постоянного локального worker и scheduler в Windows используется
+[инструкция по фоновым процессам](docs/local-background-services.md).
+
+## Документация
+
+- [Production release runbook](docs/release-runbook.md) — подготовка, deployment,
+  rollback и финальная приёмка.
+- [Production monitoring](docs/production-monitoring.md) — health checks, worker,
+  scheduler и доставка тревог.
+- [Backup and restore safety](docs/backup-restore-safety.md) — формат backup v3,
+  блокировка записей и восстановление.
+- [Domain integrity](docs/domain-integrity.md) — ключевые инварианты заказов,
+  аккаунтов, каталога и файлов.
+- [Production readiness](docs/production-readiness-audit.md) — актуальный остаток
+  работ перед запуском и границы статической проверки.
+
+Исторические аудиты и отчёты завершённых этапов находятся в `docs/archive/` и
+не являются описанием текущего состояния проекта.
+
+## Проверки
+
+PHP-тесты настроены на выделенную MySQL-базу `webv3_testing`. Защитные проверки
+в `tests/TestCase.php` и `tests/Support` намеренно отвергают другую базу или
+учётную запись. Перед запуском тестов проверьте `.env.testing`; production-базу
+для тестов использовать нельзя.
+
+```bash
+php artisan test
+composer audit
+npm run build
+npm audit
+```
+
+Production deployment выполняется только по release runbook. На сервере после
+`composer install --no-dev` PHPUnit не запускается.

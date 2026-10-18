@@ -212,7 +212,6 @@ Changed/added for this item (pre-existing PROD-04–08 working-tree changes are 
 - `deploy/supervisor-webvitrina-worker.conf.example`
 - `deploy/webvitrina-health.service.example`
 - `deploy/webvitrina-health.timer.example`
-- `docs/deployment.md`
 - `docs/production-monitoring.md`
 - `docs/release-runbook.md`
 - `resources/views/admin/production-checklist.blade.php`

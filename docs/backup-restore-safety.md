@@ -1,158 +1,154 @@
-# PROD-10 — Backup/Restore Atomicity & Safe Restore
+# WebVitrina: backup v3 и безопасное восстановление
 
-## Confirmed failures
+Этот документ описывает действующий формат резервной копии, границу согласованности
+и восстановление. Порядок остановки writers и deployment находится в
+[release runbook](release-runbook.md).
 
-Before this change, the InnoDB dump committed before public and private archives.
-A regression reproduction replaced a referenced file at the first archive call:
-the SQL still referenced `old.txt`, both SHA256/health checks passed, and the archive
-did not contain that file (1 passing reproduction, 5 assertions before the fix).
-Checksums establish byte integrity, not DB/files consistency.
+## Формат v3
 
-Restore previously ignored rollback `rename` results and unconditionally deleted
-staging in `finally`, potentially deleting the sole previous-storage copy.
-The old deployment drill created a test directory but invoked `--force` against
-the current application's storage; a separate DB did not isolate files.
+`php artisan backup:run` публикует завершённый каталог только после создания и
+проверки всех компонентов:
 
-## Consistency boundary
+- `database.sql.gz` — согласованный MySQL snapshot;
+- `storage-public.tar.gz` — `storage/app/public`;
+- `storage-private-chat-images.tar.gz` — приватные вложения чатов;
+- `storage-private-review-images.tar.gz` — приватные изображения отзывов;
+- `manifest.json` — format v3, метаданные и статистика snapshot;
+- `SHA256SUMS` — контрольные суммы всех перечисленных файлов.
 
-The current local-filesystem architecture uses a stable `flock` inode at
-`storage/framework/backup-writes.lock`. All PHP processes sharing uploads must
-share this inode and working advisory-lock semantics. Do not delete/rotate this
-file, place it in replaceable upload roots, or deploy separate per-release lock
-files. There is no expiring lease, DB migration, cache row or maintenance flag.
-Deploy the code to all HTTP/CLI processes and restart existing queue workers before
-relying on this boundary. Independent uploads volumes/hosts with separate locks
-are not supported by this model; such a deployment requires shared coordination
-before claiming an application-consistent backup. NFS locking is not assumed.
+Старые v2 backup могут оставаться историческими копиями, но текущий health и
+production recovery должны использовать полный v3. Checksums подтверждают
+целостность байтов, а не самостоятельную восстановимость приложения.
 
-T0: backup acquires the exclusive barrier, waiting up to 60 seconds for active
-protected mutations (including commit/rollback cleanup) to finish. New mutations
-wait outside their operation; after 60 seconds they fail without beginning it.
-HTTP mutation timeouts return 503 with `Retry-After: 60`; controller code does not
-run. CLI backup/restore commands report the barrier error and a failure exit code.
+## Создание и проверка
 
-T1: open a fresh nonpersistent MySQL connection, set REPEATABLE READ, begin READ
-ONLY WITH CONSISTENT SNAPSHOT, take metadata locks and verify all tables are InnoDB.
+Настройки:
 
-T2: export tables and row counts from that snapshot; commit and close the dump
-connection; gzip the SQL. The exclusive barrier remains held.
+```env
+BACKUP_DIR=/var/backups/webvitrina
+BACKUP_DAILY_AT=03:15
+BACKUP_MAX_AGE_HOURS=30
+BACKUP_KEEP_DAYS=14
+```
 
-T3: archive and gzip public storage.
+Ручной запуск и проверка:
 
-T4: archive and gzip private/chat-images.
+```bash
+php artisan backup:run
+php artisan backup:health-check --max-age-hours=30
+```
 
-T5: write the unchanged v2 manifest and SHA256SUMS with checked writes/hashes.
+Команда уже запланирована в `routes/console.php`. Внешний cron запускает Laravel
+scheduler каждую минуту; отдельный ежедневный cron для backup создаст дубль.
 
-T6: publish by renaming the owned `.tmp` directory; apply existing retention.
+Backup-каталог должен находиться вне document root, иметь доступ только у
+оператора и процессов приложения и копироваться на независимый сервер/storage.
+Одна копия на том же диске не защищает от потери узла. Отдельно сохраняются
+стабильный `APP_KEY`, необходимые secrets/config и совместимая ревизия кода.
 
-T7: release the barrier in `finally`; pending writers may proceed. The same barrier
-is released on PHP exceptions/errors. OS process termination closes its handle;
-an abrupt kill can leave an unpublished `.tmp` directory, which health ignores.
-Such an artifact requires operator inspection/removal before retrying that exact
-destination. No cleanup ever removes a pre-existing colliding destination.
+## Согласованность DB и файлов
 
-HTTP mutation requests hold shared protection over the complete controller call.
-This covers product/category/shop/avatar/review/banner/chat uploads and deletes,
-model observers, account cleanup and synchronous after-commit callbacks. The
-admin backup action takes the exclusive barrier itself. GET/HEAD browsing remains
-available; current GET handlers do not mutate backed-up files or their paths.
-Health writable probes acquire shared protection individually. ProductService
-transactions also protect direct service calls and scheduled purge operations,
-retaining the lock through enclosing transactions and their cleanup callbacks.
-Each queue job is protected from JobProcessing through JobProcessed or exception;
-idle workers and scheduler heartbeats do not hold the barrier. Ordinary unrelated
-DB writes may continue: PROD-03 snapshot isolation still protects the SQL dump.
+Backup открывает отдельное непостоянное MySQL-соединение, устанавливает
+`REPEATABLE READ`, начинает `START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY`,
+проверяет InnoDB и читает schema, строки и row counts из одного snapshot. DDL,
+миграции, `TRUNCATE` и внешние SQL-writers во время backup запрещены.
 
-Direct `User::delete()` calls use the same transaction barrier, including an
-enclosing transaction and account-deletion after-commit public/private cleanup.
-The barrier remains held until both archives are complete. At that point the
-captured DB/files state is immutable; holding it through manifest, checksums,
-publication and retention is conservative and keeps one clear failure boundary.
-No duration optimization is applied here. Shared writers can still enter while an
-exclusive acquisition is waiting; the critical window starts only after it obtains
-the lock. A sustained stream of writers can therefore cause a bounded timeout.
+Перед snapshot команда получает exclusive `BackupWriteBarrier`. Это process-owned
+`flock` на стабильном inode `storage/framework/backup-writes.lock`. HTTP mutations,
+поддерживаемые service mutations, jobs, account cleanup и writable health probes
+используют shared lock. Exclusive lock удерживается до завершения архивов,
+manifest, checksums и публикации каталога через rename.
 
-### Reviewed mutation inventory
+Lock-файл нельзя удалять, ротировать или размещать отдельно в каждом release.
+Все PHP-процессы должны видеть один inode с рабочей семантикой `flock`. Модель не
+поддерживает независимые upload volumes/hosts с отдельными locks и не предполагает
+надёжность NFS locking.
 
-| Mutation | Existing entry points | Protection |
-| --- | --- | --- |
-| Product main image, gallery, derivatives, replacement/deletion | Admin ProductController; Seller ProductManageController; ProductService; ProductImageOperation; ImageService | HTTP shared barrier plus ProductService transaction barrier for direct calls; commit/rollback compensation completes inside it |
-| Old-product purge | PurgeOldProducts; scheduled products:purge-old; ProductService::purge | Per-product transaction barrier through deferred deletion |
-| Avatar and shop banner | ProfileController; Admin UserController; ImageService | Mutating HTTP request; account deletion also has model-level transaction protection |
-| Category icon, original, thumbnail, admin image replacement/deletion | CategoryController; Admin CategoryController | Mutating HTTP request |
-| Review upload/replacement and deletion hooks | ReviewController; Admin ReviewController; Review::deleting; ImageService | Mutating HTTP request; account deletion collects files for protected after-commit cleanup |
-| Chat attachment upload/deletion | ChatController; Admin ChatController; ChatImageService; MessageObserver; Conversation deletion cascade | Mutating HTTP request or queue job; account deletion has transaction protection |
-| Admin banner upload, crop, replacement, deletion | Admin BannerController | Mutating HTTP request |
-| Account deletion, public and private cleanup | ProfileController; Admin UserController; User::delete; AccountDeletionService | Model transaction barrier, retained through outer commit/rollback and guarded cleanup callbacks |
-| Writable health probe | ProductionHealth::writable; production:health-check; admin checklist | Explicit shared barrier around unique probe creation/removal |
-| Restore activation and rollback | RestoreBackupFiles; BackupStorageService::restore | Exclusive barrier |
-| Queue execution | All current jobs, including sync/database workers | JobProcessing acquire; JobProcessed/JobExceptionOccurred release |
+Кооперативная блокировка не охватывает:
 
-Repository-wide searches covered Storage writes/deletes, UploadedFile stores,
-native filesystem mutations, model hooks, afterCommit, commands, jobs, routes and
-seeders. Cache invalidation removes framework cache files, not upload roots.
-Current other Artisan commands/jobs do not modify upload files or their references.
-Low-level ImageService/ChatImageService/model hooks are not universal transaction
-wrappers: a future standalone caller must protect its entire DB-plus-files operation,
-not merely the individual filesystem call. Tinker, raw model/SQL updates, seeders,
-shell scripts and external writers are outside the supported operational boundary.
+- raw SQL, migrations, seeders и Tinker;
+- внешние скрипты и прямое изменение файлов;
+- writers, не использующие приложение;
+- новый код, который обходит middleware/service boundary.
 
-New file-mutating GET handlers, console commands, scripts, deferred callbacks or
-external file writers must join this barrier around **both** DB references and file
-mutations. Raw SQL, shell file manipulation, deployments and schema changes are
-operator-controlled activities outside this cooperative boundary. Do not run
-them during backup. This is not a filesystem snapshot or an OS-wide write ban.
+Эти операции требуют остановки writers. GET/HEAD browsing остаётся доступным,
+пока обработчики не меняют DB-ссылки или backup-файлы.
 
-Backup never invokes `down` or `up`. Existing maintenance state and payload are
-preserved on success and failure. DB/public/private/manifest/hash failures do not
-publish; owned staging is cleaned when possible, cleanup errors identify its path.
-Retention failure after publication reports failure but keeps the published copy.
+## Покрытые mutations
+
+Текущий barrier охватывает product images/gallery/purge, avatar и shop banner,
+category/review/chat/admin banner files, account cleanup, queue jobs, writable
+health probes и activation restore. Низкоуровневые ImageService, ChatImageService
+и model hooks сами по себе не являются универсальной транзакционной границей:
+новый вызывающий код обязан защитить всю DB+filesystem операцию.
+
+Файловая компенсация внутри конкретного mutation остаётся необходимой. Barrier
+не исправляет F08/F09: параллельные обычные writers могут одновременно держать
+shared lock, а локальная DB/file операция должна сама обеспечивать rollback.
+
+## Ошибки и публикация
+
+DB/public/private/manifest/hash failure не публикует backup. При возможности
+принадлежащий команде `.tmp` удаляется; после аварийного завершения оставшийся
+временный каталог требует осмотра. Существующий каталог назначения никогда не
+удаляется для разрешения collision. Retention failure после успешной публикации
+сообщает ошибку, но не уничтожает новую копию.
 
 ## Isolated restore drill
 
-Use `backup:restore-files /absolute/backup --drill=/absolute/empty-private-directory`.
-The destination must already exist, be empty and be controlled by the operator.
-The command chooses fixed distinct children `public` and `private/chat-images`;
-arbitrary archive extraction paths and separate overlapping destination options
-are not exposed. Live roots are never defaults in drill mode.
+Restore необходимо проверить до production-запуска. Используйте отдельного DB user
+без прав на production DB, отдельную базу и новый пустой приватный каталог:
 
-Validation rejects relative/empty paths, traversal, filesystem root, project root,
-live public/private roots and their ancestors/descendants, backup-source overlap,
-symlink/junction aliases and nonempty destinations. Canonical existing ancestors
-resolve protected paths that do not yet exist. Use a private parent directory:
-concurrent privileged filesystem renames are outside this tool's trust boundary.
-`--drill` and `--force` are mutually exclusive; no mode/confirmation is rejected.
+```bash
+DRILL_DIR=$(mktemp -d /tmp/webvitrina-restore-check.XXXXXX)
+php artisan backup:restore-files /absolute/path/to/completed-backup --drill="$DRILL_DIR"
+```
 
-Restore SQL separately with credentials limited to an isolated test database.
-Run any application-level drill in a separate checkout with isolated storage,
-cache/session/queue and disabled outbound integrations. File isolation alone
-does not isolate SQL imports or other services.
+Команда проверяет manifest, SHA256 и архивы, затем создаёт фиксированные корни:
 
-## Production destructive restore and recovery
+- `$DRILL_DIR/public`;
+- `$DRILL_DIR/private/chat-images`;
+- `$DRILL_DIR/private/review-images`.
 
-`backup:restore-files /absolute/backup --force` explicitly replaces configured
-live public and private/chat-images. Coordinate the DB restore with stopped
-writers/maintenance for the entire DB-plus-files operation. The command's barrier
-protects file installation only; it cannot wrap a separately invoked SQL import.
+SQL восстанавливается отдельно в изолированную базу. Приложение для проверки
+должно использовать отдельные storage, cache, session и queue, а внешние отправки
+должны быть отключены. Успешно проверить минимум schema/migrations, количества
+основных записей, ссылки на файлы и открытие выборочных public/private объектов.
 
-Both archives are health/checksum validated and extracted before active files move.
-Previous roots move into `.backup-restore-UUID/.previous-public` and
-`.previous-chat-images`. After both replacements and private permissions succeed,
-installation commits; only then may cleanup remove previous copies.
+Restore destination отклоняет относительные и пустые пути, filesystem/project root,
+live roots и их предков/потомков, пересечение с backup source, symlink/junction
+aliases и непустой drill-каталог. `--drill` и `--force` взаимоисключающие.
 
-On activation/permissions failure, each installed new tree is moved back to staging,
-then each saved old tree is renamed home. Every rename is checked independently.
-If any rollback fails, no staging cleanup runs. The error retains the original
-exception and lists the recovery directory and failing roots. Stop writers, inspect
-both live and saved trees, restore the named previous copies, verify contents and
-DB correspondence, then remove artifacts manually. Never blindly delete staging.
+### Локальная Windows-проверка
 
-Cleanup failure after installation reports that new storage is active and gives
-the residual staging path; it never tries rollback after partial old-copy cleanup.
-Cleanup failure after a confirmed rollback reports that old storage is active.
-Process/host death mid-activation is not a two-directory atomic filesystem operation:
-recovery may require the preserved staging copies and operator reconciliation.
+Локально допустим защищённый путь вроде:
 
-Manifest/archive format remains v2. Existing complete v2 backups remain restorable;
-their original DB/files consistency is not retroactively guaranteed. Incomplete
-legacy backups remain rejected. No migrations or Blade changes in PROD-10.
+```env
+BACKUP_DIR=C:/webvitrina_online/storage/app/private/backups
+```
+
+Для регулярного worker/scheduler используйте [локальные фоновые процессы](local-background-services.md).
+Создание и health-check выполняются теми же Artisan-командами, что и на сервере.
+Не используйте root/admin DB account для restore drill.
+
+## Production restore
+
+`php artisan backup:restore-files /absolute/backup --force` заменяет только файловые
+корни. SQL import — отдельная операция. На всё время согласованного DB+files restore:
+
+1. остановите HTTP writers, workers, scheduler и внешние writers;
+2. проверьте manifest/SHA256 и выбранную ревизию backup;
+3. восстановите SQL и все три файловых root из одной копии;
+4. проверьте DB/file соответствие до возобновления процессов;
+5. обновите caches, запустите worker/scheduler, снимите maintenance и выполните
+   health/smoke checks.
+
+Перед activation новые деревья полностью извлекаются и проверяются. Старые roots
+перемещаются в recovery staging, после чего новые ставятся на место. Каждая операция
+rename и rollback проверяется отдельно. При неполном rollback staging не удаляется:
+writers остаются остановленными, оператор восстанавливает указанные previous copies
+и сверяет их с DB. Нельзя автоматически удалять recovery artifacts после ошибки.
+
+Process/host death между несколькими filesystem rename не является атомарной
+операцией для трёх каталогов. Поэтому off-host copy и фактический restore drill —
+обязательная часть release acceptance, а не необязательная рекомендация.

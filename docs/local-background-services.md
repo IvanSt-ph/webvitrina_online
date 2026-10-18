@@ -5,7 +5,7 @@
 - `WebVitrina-Local-Worker` постоянно обрабатывает очередь `database` и перезапускает worker после штатного часового обновления процесса;
 - `WebVitrina-Local-Scheduler` запускает `php artisan schedule:run` каждую минуту и раз в час проверяет свежесть backup. Если свежей корректной копии нет, создаётся новая.
 
-Обе задачи работают с ограниченными правами и только пока текущий пользователь вошёл в Windows. Это локальная настройка разработки; на production нужны Supervisor/systemd и cron из `docs/deployment.md`.
+Обе задачи работают с ограниченными правами и только пока текущий пользователь вошёл в Windows. Это локальная настройка разработки; на production нужны Supervisor/systemd и cron из [release runbook](release-runbook.md).
 
 ## Установка
 

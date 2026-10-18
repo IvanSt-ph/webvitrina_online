@@ -1,6 +1,36 @@
 # WebVitrina Release Runbook
 
-Порядок контролируемого deployment на staging/production. Это инструкция для оператора, не автоматический deploy/rollback. Сначала пройти LOCAL/CI acceptance из [deployment.md](deployment.md) с dev dependencies. На production после `composer install --no-dev` PHP tests не запускаются; локальный test DB guard туда не переносится.
+Порядок контролируемого deployment на staging/production. Это инструкция для оператора, не автоматический deploy/rollback. На production после `composer install --no-dev` PHP tests не запускаются; локальный test DB guard туда не переносится.
+
+## 0. LOCAL/CI acceptance и серверные права
+
+До production install с dev dependencies выполнить в изолированном окружении с
+разрешённой тестовой базой:
+
+```bash
+composer install --optimize-autoloader
+php artisan test
+composer audit
+npm ci
+npm run build
+npm audit
+```
+
+В `package.json` нет отдельного npm test script. Собранный `public/build` можно
+доставить из CI; тогда npm и devDependencies на production-сервере не нужны.
+
+PHP-FPM/nginx получает запись только в `storage/` и `bootstrap/cache/`. Остальной
+код доступен для чтения, `.env` — только оператору и нужному процессу. Не используйте
+`chmod -R 777`. Пример для `/var/www/webvitrina`, пользователя `deploy` и группы
+`www-data` (адаптируйте пользователя/группу к серверу):
+
+```bash
+sudo chown -R deploy:www-data /var/www/webvitrina
+sudo find /var/www/webvitrina -type f -exec chmod 644 {} \;
+sudo find /var/www/webvitrina -type d -exec chmod 755 {} \;
+sudo chmod -R 775 /var/www/webvitrina/storage /var/www/webvitrina/bootstrap/cache
+sudo chmod 600 /var/www/webvitrina/.env
+```
 
 ## 1. Проверить `.env`
 
@@ -24,6 +54,13 @@ BACKUP_MAX_AGE_HOURS=30
 ```
 
 `APP_KEY` должен быть заполнен один раз и не должен меняться между деплоями.
+
+Production DB user не должен быть `root`. Если используется административный
+seeder, задайте реальные уникальные `ADMIN_EMAIL`/`ADMIN_PASSWORD`, включайте
+`SEED_ADMIN_USER=true` только осознанно и выключайте после создания. На production
+оставьте `SEED_DEMO_PRODUCTS=false`. SMTP, Google OAuth и Twilio должны использовать
+production credentials; секреты не хранятся в репозитории и ротируются после
+любого возможного раскрытия.
 
 `QUEUE_CONNECTION=database` обязателен: production queue probe отвергает другие async drivers. HTTP/CLI/worker/scheduler используют общий persistent cache.
 
@@ -111,7 +148,7 @@ find storage/app/public/reviews -type f -print
 
 При безопасно исправимой ошибке предпочтителен проверенный forward fix с остановленными writers. Если требуется полный rollback состояния, восстановите **CODE + DATABASE + FILE STORAGE** из одной проверенной точки: соответствующий code revision/build, SQL и все storage archives одной backup-копии, с совместимыми настройками/APP_KEY. Backup сам по себе код и секреты не содержит — их нужно сохранить отдельно и связать с выбранной копией.
 
-Перед восстановлением проверьте manifest/checksums. SQL импорт выполняется отдельно; `backup:restore-files /absolute/backup --force` восстанавливает только файлы и не блокирует весь DB+files restore. Writers остаются остановленными на всё время восстановления. Следуйте [recovery procedure PROD-10](backup-restore-safety.md), не удаляйте recovery artifacts при ошибке. После восстановления проверьте соответствие DB и обоих storage roots выбранной копии, manifest/checksums, обновите кэши. Затем контролируемо возобновите worker/scheduler/HTTP и проверьте health и smoke; maintenance закономерно мешает получить общий healthy до `up`.
+Перед восстановлением проверьте manifest/checksums. SQL импорт выполняется отдельно; `backup:restore-files /absolute/backup --force` восстанавливает только файлы и не блокирует весь DB+files restore. Writers остаются остановленными на всё время восстановления. Следуйте [процедуре восстановления](backup-restore-safety.md), не удаляйте recovery artifacts при ошибке. После восстановления проверьте соответствие DB и всех трёх storage roots выбранной копии, manifest/checksums, обновите кэши. Затем контролируемо возобновите worker/scheduler/HTTP и проверьте health и smoke; maintenance закономерно мешает получить общий healthy до `up`.
 
 ## 4. Включить очередь
 
@@ -172,7 +209,7 @@ php artisan backup:restore-files /path/to/completed-backup --drill="$DRILL_DIR"
 
 Production destructive restore — отдельная операция: `backup:restore-files /path/to/backup --force`
 заменяет live storage и требует согласованного DB restore при остановленных writers.
-Модель блокировки записей и recovery: [PROD-10](backup-restore-safety.md).
+Модель блокировки записей и recovery: [backup v3 и безопасное восстановление](backup-restore-safety.md).
 
 ## 6. Проверить письма и уведомления
 
