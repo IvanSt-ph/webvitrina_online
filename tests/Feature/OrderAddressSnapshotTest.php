@@ -63,10 +63,15 @@ class OrderAddressSnapshotTest extends TestCase
         $snapshot = $order->address_snapshot;
         $money = $order->only(['total_price', 'currency']);
         $item = $order->items()->sole()->getRawOriginal();
-        $this->put(route('addresses.update', $address), [
+        $this->actingAs($buyer)->put(route('addresses.update', $address), [
             'country' => 'Changed Country', 'city' => 'Changed City', 'street' => 'Changed Street',
             'house' => '99', 'comment' => 'Changed instructions',
-        ])->assertSessionHasNoErrors();
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('user_addresses', [
+            'id' => $address->id, 'user_id' => $buyer->id,
+            'country' => 'Changed Country', 'city' => 'Changed City', 'street' => 'Changed Street',
+            'house' => '99', 'comment' => 'Changed instructions',
+        ]);
         $buyer->update(['name' => 'Changed Recipient', 'phone' => '+37369999999']);
         $this->assertSame($snapshot, $order->fresh()->address_snapshot);
         $this->assertSame('Original Recipient', $order->fresh()->buyer_name);
