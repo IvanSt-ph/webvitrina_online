@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminActivityLog;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use App\Services\AdminActivityLogger;
 use App\Services\PasswordSecurityService;
 use App\Rules\ThrottledCurrentPassword;
@@ -64,7 +66,11 @@ class AdminProfileController extends Controller
             $request->session()->regenerate();
             $this->passwordSecurity->bindSession($request->session(), $user);
         } else {
-            $user->save();
+            DB::transaction(function () use ($user): void {
+                $current = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+                $current->fill($user->only(['name', 'email']))->save();
+                $user->setRawAttributes($current->getAttributes(), true);
+            });
         }
 
         if ($profileChanged) {

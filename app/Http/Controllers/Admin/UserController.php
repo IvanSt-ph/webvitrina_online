@@ -258,7 +258,15 @@ class UserController extends Controller
 
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
 
-        $this->phones->updateUser($user, $phone, $userData);
+        try {
+            $this->phones->updateUser($user, $phone, $userData);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $exception) {
+            // Deletion may win after upload and route-model binding (F06).
+            if (isset($newAvatarPath)) {
+                $this->images->delete($newAvatarPath);
+            }
+            throw $exception;
+        }
 
         if ($password !== null) {
             // Keep the original credential/email snapshot through rotation; the

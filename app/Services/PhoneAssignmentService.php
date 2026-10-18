@@ -34,7 +34,7 @@ class PhoneAssignmentService
     public function updateUser(User $user, ?string $phone, array $attributes = []): bool
     {
         return $this->run($phone, function (?string $normalizedPhone) use ($user, $attributes): bool {
-            $current = User::withTrashed()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $current = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
             if ($current->phone === $normalizedPhone) {
                 $current->fill($attributes)->save();

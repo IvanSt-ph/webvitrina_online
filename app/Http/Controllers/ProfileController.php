@@ -21,6 +21,8 @@ use Illuminate\Validation\ValidationException;
 use App\Services\ImageService;
 use App\Services\PhoneAssignmentService;
 use App\Services\ShopBannerOperation;
+use App\Services\ProfileAvatarOperation;
+use App\Services\BackupWriteBarrier;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -45,7 +47,32 @@ class ProfileController extends Controller
 
     public function update(Request $request)
     {
-        $user = $request->user();
+        $section = $request->input('profile_section');
+        $hasPhone = ! ($request->ajax() && $request->hasFile('avatar'))
+            && ($section === 'phone'
+                || ($section === 'contacts' && $request->boolean('phone_dirty'))
+                || (! in_array($section, ['personal', 'email', 'contacts'], true) && $request->has('phone')));
+        $phone = null;
+        if ($hasPhone) {
+            $data = $request->validate([
+                'phone' => 'nullable|string|max:50',
+                'phone_full' => 'nullable|string|max:50',
+            ]);
+            $phone = ($data['phone_full'] ?? null) ?: ($data['phone'] ?? null);
+        }
+
+        // Preserve phone advisory -> User row lock ordering. Deletion takes
+        // the same row lock, so all fields in a combined update stay atomic.
+        return $this->phones->run($phone, fn () => app(BackupWriteBarrier::class)->transaction(function () use ($request) {
+            $user = User::query()->whereKey($request->user()->getKey())->lockForUpdate()->firstOrFail();
+            $files = new ProfileAvatarOperation(app(ImageService::class), DB::connection());
+
+            return $this->updateActive($request, $user, $files);
+        }));
+    }
+
+    private function updateActive(Request $request, User $user, ProfileAvatarOperation $files)
+    {
         $updatedFields = [];
         $section = $request->input('profile_section');
 
@@ -55,13 +82,13 @@ class ProfileController extends Controller
             ], $this->avatarValidationMessages());
 
             $oldAvatar = $user->avatar;
-            $path = $this->storeAvatar($request->file('avatar'));
+            $path = $this->storeAvatar($request->file('avatar'), $files);
 
             $user->avatar = $path;
             $user->save();
 
             if ($oldAvatar) {
-                app(ImageService::class)->delete($oldAvatar);
+                $files->deleteAfterCommit($oldAvatar);
             }
 
             return response()->json([
@@ -81,7 +108,7 @@ class ProfileController extends Controller
 
             if ($request->hasFile('avatar')) {
                 $oldAvatar = $user->avatar;
-                $path = $this->storeAvatar($request->file('avatar'));
+                $path = $this->storeAvatar($request->file('avatar'), $files);
 
                 $user->avatar = $path;
                 $updatedFields[] = 'avatar';
@@ -96,7 +123,7 @@ class ProfileController extends Controller
                 $user->save();
 
                 if ($oldAvatar) {
-                    app(ImageService::class)->delete($oldAvatar);
+                    $files->deleteAfterCommit($oldAvatar);
                 }
 
                 return back()->with('updated_fields', $updatedFields);
@@ -202,7 +229,7 @@ class ProfileController extends Controller
 
         if ($request->hasFile('avatar')) {
             $oldAvatar = $user->avatar;
-            $path = $this->storeAvatar($request->file('avatar'));
+            $path = $this->storeAvatar($request->file('avatar'), $files);
 
             $user->avatar = $path;
             $updatedFields[] = 'avatar';
@@ -238,7 +265,7 @@ class ProfileController extends Controller
             $user->save();
 
             if ($oldAvatar) {
-                app(ImageService::class)->delete($oldAvatar);
+                $files->deleteAfterCommit($oldAvatar);
             }
         }
 
@@ -470,10 +497,10 @@ private function avatarValidationMessages(): array
     ];
 }
 
-private function storeAvatar(UploadedFile $avatar): string
+private function storeAvatar(UploadedFile $avatar, ProfileAvatarOperation $files): string
 {
     try {
-        return app(ImageService::class)->upload($avatar, 'avatars');
+        return $files->upload($avatar);
     } catch (Throwable $exception) {
         report($exception);
 
