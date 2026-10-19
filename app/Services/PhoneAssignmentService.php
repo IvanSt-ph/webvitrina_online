@@ -33,6 +33,19 @@ class PhoneAssignmentService
 
     public function updateUser(User $user, ?string $phone, array $attributes = []): bool
     {
+        // Acquire membership before the target row, including same-role writes
+        // from a stale form. Keep phone -> membership -> User lock ordering.
+        if (array_key_exists('role', $attributes)) {
+            return $this->run($phone, fn () => app(AdminMembershipService::class)->transaction(
+                fn () => $this->updateUserWithLock($user, $phone, $attributes),
+            ));
+        }
+
+        return $this->updateUserWithLock($user, $phone, $attributes);
+    }
+
+    private function updateUserWithLock(User $user, ?string $phone, array $attributes): bool
+    {
         return $this->run($phone, function (?string $normalizedPhone) use ($user, $attributes): bool {
             $current = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 

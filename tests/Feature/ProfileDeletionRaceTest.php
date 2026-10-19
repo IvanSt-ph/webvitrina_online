@@ -83,6 +83,7 @@ class ProfileDeletionRaceTest extends TestCase
 
     public function test_admin_self_profile_rejects_a_deleted_cached_user(): void
     {
+        User::factory()->create(['role' => 'admin']);
         $user = User::factory()->create(['role' => 'admin']);
         $this->actingAs($user);
         $request = $this->request($user, 'personal');

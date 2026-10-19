@@ -25,6 +25,24 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable, SoftDeletes;
 
+    public function save(array $options = [])
+    {
+        if (! $this->exists || ! $this->isDirty('role')) {
+            return parent::save($options);
+        }
+
+        $membership = app(\App\Services\AdminMembershipService::class);
+
+        return $membership->transaction(function () use ($membership, $options) {
+            $current = static::query()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            if ($this->role !== 'admin') {
+                $membership->assertCanRemove($current, 'role');
+            }
+
+            return parent::save($options);
+        });
+    }
+
     public function delete()
     {
         if ($this->isForceDeleting()) {
@@ -35,17 +53,21 @@ class User extends Authenticatable implements MustVerifyEmail
             return null;
         }
 
-        return app(\App\Services\BackupWriteBarrier::class)->transaction(function () {
+        $membership = app(\App\Services\AdminMembershipService::class);
+
+        return $membership->transaction(fn () => app(\App\Services\BackupWriteBarrier::class)->transaction(function () use ($membership) {
             $current = static::withTrashed()->whereKey($this->getKey())->lockForUpdate()->first();
             if (! $current || $current->trashed()) {
                 return false;
             }
 
+            $membership->assertCanRemove($current);
+
             $this->setRawAttributes($current->getAttributes(), true);
             app(\App\Services\AccountDeletionService::class)->anonymize($this);
 
             return parent::delete();
-        });
+        }));
     }
 
     protected static function booted(): void
