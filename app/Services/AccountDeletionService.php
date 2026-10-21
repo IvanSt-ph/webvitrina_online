@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Observers\ReviewObserver;
 use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AccountDeletionService
@@ -21,11 +20,18 @@ class AccountDeletionService
         $publicFiles = array_filter([$user->avatar, $user->shop?->banner]);
         $reviewFiles = [];
         $conversations = Conversation::where('buyer_id', $user->id)->orWhere('seller_id', $user->id);
-        $conversationIds = $conversations->pluck('id');
+        // User is already locked. Freeze owned conversations before taking a
+        // current read of attachments; sending takes User -> Conversation too.
+        $conversationIds = $conversations->orderBy('id')->lockForUpdate()->pluck('id');
         $messages = Message::where(fn ($query) => $query->whereIn('conversation_id', $conversationIds)->orWhere('sender_id', $user->id));
-        $privateFiles = $messages->whereNotNull('image_path')->pluck('image_path')->all();
+        // Authored messages in other conversations cannot grow while this User
+        // is locked. Lock Message last; do not acquire more Conversation locks.
+        $privateFiles = $messages->orderBy('id')->lockForUpdate()->get(['id', 'image_path'])->pluck('image_path')->filter();
+        foreach ($privateFiles->unique() as $path) {
+            ChatImageOperation::deleteAfterCommit(DB::connection(), $path);
+        }
         Message::where('sender_id', $user->id)->delete();
-        $conversations->delete();
+        Conversation::whereKey($conversationIds)->delete();
 
         Review::withTrashed()->where('user_id', $user->id)->get()->each(function (Review $review) use (&$reviewFiles) {
             $reviewFiles = array_merge($reviewFiles, $review->images()->pluck('path')->all());
@@ -82,7 +88,7 @@ class AccountDeletionService
             'notification_preferences' => null,
         ])->save();
 
-        DB::afterCommit(function () use ($publicFiles, $privateFiles, $reviewFiles) {
+        DB::afterCommit(function () use ($publicFiles, $reviewFiles) {
             foreach (array_unique($publicFiles) as $file) {
                 try {
                     app(ImageService::class)->delete($file, throwOnFailure: true);
@@ -100,15 +106,6 @@ class AccountDeletionService
                         'path' => $file, 'error' => $exception->getMessage(),
                     ]);
                 }
-            }
-            try {
-                if (! Storage::disk('local')->delete($privateFiles)) {
-                    throw new \RuntimeException('Cannot delete private account attachments.');
-                }
-            } catch (\Throwable $exception) {
-                \Illuminate\Support\Facades\Log::error('Account file cleanup failed; retry required', [
-                    'paths' => $privateFiles, 'error' => $exception->getMessage(),
-                ]);
             }
         });
     }

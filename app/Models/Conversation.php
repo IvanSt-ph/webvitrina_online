@@ -9,6 +9,23 @@ class Conversation extends Model
 {
     use HasFactory;
 
+    public function delete()
+    {
+        if (! $this->exists) {
+            return null;
+        }
+
+        return app(\App\Services\BackupWriteBarrier::class)->transaction(function () {
+            $current = static::query()->whereKey($this->getKey())->lockForUpdate()->first();
+            if (! $current) {
+                return false;
+            }
+            $this->setRawAttributes($current->getAttributes(), true);
+
+            return parent::delete();
+        });
+    }
+
     public function getHistoricalSellerLabelAttribute(): ?string
     {
         if (! $this->order_id) {
@@ -116,7 +133,7 @@ class Conversation extends Model
         });
 
         static::deleting(function (Conversation $conversation) {
-            $conversation->messages()->each(function (Message $message) {
+            $conversation->messages()->orderBy('id')->lockForUpdate()->get()->each(function (Message $message) {
                 $message->delete();
             });
         });

@@ -9,18 +9,19 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\Message;
 use App\Models\User;
-use App\Services\ChatImageService;
+use App\Services\ChatMessageService;
 use App\Services\UserNotificationService;
 use App\Support\SafeRedirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ChatController extends Controller
 {
     private const RECENT_MESSAGES_LIMIT = 50;
 
-    public function __construct(private readonly ChatImageService $chatImages)
+    public function __construct(private readonly ChatMessageService $chatMessages)
     {
     }
 
@@ -357,25 +358,25 @@ class ChatController extends Controller
             ]);
         }
 
-        $message = $conversation->messages()->create([
-            'sender_id' => $request->user()->id,
-            'body' => $body,
-            'image_path' => $request->hasFile('image')
-                ? $this->chatImages->upload($request->file('image'))
-                : null,
-        ]);
-
-        $conversation->update(['last_message_at' => now()]);
-        $this->restoreForOtherParticipant($conversation, $request->user());
-        $other = $conversation->otherParticipant($request->user());
-        app(UserNotificationService::class)->create(
-            $other,
-            'chat_message',
-            'Новое сообщение',
-            $request->user()->name . ' написал(а) в чате.',
-            route('chats.show', $conversation, false),
-            ['conversation_id' => $conversation->id]
+        $message = $this->chatMessages->send(
+            $request->user(), $conversation, $body, $request->file('image'),
         );
+        $recipientId = $conversation->buyer_id === $request->user()->id ? $conversation->seller_id : $conversation->buyer_id;
+        // No recipient User lock may be acquired while holding Conversation.
+        // Register after send's file/barrier callbacks, including outer transactions.
+        DB::afterCommit(function () use ($recipientId, $message, $request, $conversation): void {
+            DB::transaction(function () use ($recipientId, $message, $request, $conversation): void {
+                $recipient = User::query()->whereKey($recipientId)->lockForUpdate()->first();
+                if (! $recipient || ! Message::query()->whereKey($message->id)->exists()) {
+                    return;
+                }
+                app(UserNotificationService::class)->create(
+                    $recipient, 'chat_message', 'Новое сообщение',
+                    $request->user()->name . ' написал(а) в чате.',
+                    route('chats.show', $conversation, false), ['conversation_id' => $conversation->id],
+                );
+            });
+        });
 
         if ($request->expectsJson()) {
             $messages = collect([$message->load('sender')]);

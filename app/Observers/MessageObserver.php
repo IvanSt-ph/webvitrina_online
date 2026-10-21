@@ -3,14 +3,12 @@
 namespace App\Observers;
 
 use App\Models\Message;
-use Illuminate\Support\Facades\Storage;
+use App\Services\ChatImageOperation;
 
 class MessageObserver
 {
     public function deleted(Message $message): void
     {
-        if ($message->image_path && Storage::disk('local')->exists($message->image_path)) {
-            Storage::disk('local')->delete($message->image_path);
-        }
+        ChatImageOperation::deleteAfterCommit($message->getConnection(), $message->image_path);
     }
 }

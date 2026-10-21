@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use App\Services\ChatImageService;
+use App\Services\ChatMessageService;
 use App\Services\AdminActivityLogger;
 use App\Services\UserTrustService;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class ChatController extends Controller
     private const RECENT_MESSAGES_LIMIT = 80;
 
     public function __construct(
-        private readonly ChatImageService $chatImages,
+        private readonly ChatMessageService $chatMessages,
         private readonly UserTrustService $trustService,
         private readonly AdminActivityLogger $activity
     ) {
@@ -133,16 +133,9 @@ class ChatController extends Controller
             ]);
         }
 
-        $message = $conversation->messages()->create([
-            'sender_id' => $request->user()->id,
-            'body' => $body,
-            'image_path' => $request->hasFile('image')
-                ? $this->chatImages->upload($request->file('image'))
-                : null,
-        ]);
-
-        $conversation->update(['last_message_at' => now()]);
-        $this->restoreUserSideAfterAdminMessage($conversation);
+        $message = $this->chatMessages->send(
+            $request->user(), $conversation, $body, $request->file('image'), admin: true,
+        );
 
         if ($request->expectsJson()) {
             return response()->json([
