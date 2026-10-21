@@ -98,7 +98,7 @@ class ProfileDeletionRaceTest extends TestCase
         $this->assertAnonymized($user);
     }
 
-    public function test_admin_upload_is_compensated_if_deletion_wins_before_assignment(): void
+    public function test_admin_avatar_update_rejects_deleted_route_bound_user_before_upload(): void
     {
         Storage::fake('public');
         $admin = User::factory()->create(['role' => 'admin']);
@@ -106,13 +106,10 @@ class ProfileDeletionRaceTest extends TestCase
         $this->actingAs($admin);
         $request = $this->request($admin, 'personal');
         $request->merge(['role' => 'buyer', 'email' => $user->email]);
-        $images = $this->partialMock(ImageService::class);
-        $images->shouldReceive('upload')->once()->andReturnUsing(function () use ($user): string {
-            User::findOrFail($user->id)->delete();
-            Storage::disk('public')->put('avatars/rejected.webp', 'new upload');
-
-            return 'avatars/rejected.webp';
-        });
+        // F09 locks User before upload. A competing deletion can only win
+        // before that lock, not from inside upload on the same transaction.
+        User::findOrFail($user->id)->delete();
+        $this->mock(ImageService::class)->shouldNotReceive('upload');
         try {
             app(UserController::class)->update($request, $user);
             $this->fail('Deleted target must not receive the new avatar.');
@@ -120,7 +117,7 @@ class ProfileDeletionRaceTest extends TestCase
             $this->assertSame(User::class, $exception->getModel());
         }
         $this->assertAnonymized($user);
-        Storage::disk('public')->assertMissing('avatars/rejected.webp');
+        $this->assertSame([], Storage::disk('public')->allFiles('avatars'));
     }
 
     public function test_upload_is_cleaned_when_user_save_fails(): void

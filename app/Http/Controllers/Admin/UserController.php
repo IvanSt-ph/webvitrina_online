@@ -12,6 +12,9 @@ use App\Rules\ImageUploadConstraints;
 use App\Services\SellerPlanService;
 use App\Services\AdminActivityLogger;
 use App\Services\ImageService;
+use App\Services\AdminMembershipService;
+use App\Services\BackupWriteBarrier;
+use App\Services\ProfileAvatarOperation;
 use App\Services\PasswordSecurityService;
 use App\Services\PhoneAssignmentService;
 use App\Services\UserTrustService;
@@ -246,25 +249,31 @@ class UserController extends Controller
 
         $password = $request->filled('password') ? $validated['password'] : null;
 
-        if ($request->hasFile('avatar')) {
-            $newAvatarPath = $this->images->upload($request->file('avatar'), 'avatars');
-
-            if ($user->avatar) {
-                $this->images->delete($user->avatar);
-            }
-
-            $userData['avatar'] = $newAvatarPath;
-        }
-
         $before = $user->only(['name', 'email', 'phone', 'role', 'seller_plan']);
 
+        $files = null;
         try {
-            $this->phones->updateUser($user, $phone, $userData);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $exception) {
-            // Deletion may win after upload and route-model binding (F06).
-            if (isset($newAvatarPath)) {
-                $this->images->delete($newAvatarPath);
-            }
+            app(BackupWriteBarrier::class)->transaction(function () use ($request, $user, $phone, $userData, &$files): void {
+                $this->phones->run($phone, function () use ($request, $user, $phone, $userData, &$files): void {
+                    app(AdminMembershipService::class)->transaction(function () use ($request, $user, $phone, $userData, &$files): void {
+                        // Preserve phone -> membership -> User, including stale role forms.
+                        $current = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+                        $files = new ProfileAvatarOperation($this->images, DB::connection());
+                        if ($request->hasFile('avatar')) {
+                            $userData['avatar'] = $files->upload($request->file('avatar'));
+                        }
+                        $this->phones->updateUser($user, $phone, $userData);
+                        if (isset($userData['avatar'])) {
+                            if (User::whereKey($user->id)->lockForUpdate()->value('avatar') !== $userData['avatar']) {
+                                throw new \RuntimeException('Avatar assignment was cancelled.');
+                            }
+                            $files->deleteAfterCommit($current->avatar);
+                        }
+                    });
+                });
+            });
+        } catch (Throwable $exception) {
+            $files?->handleFailure();
             throw $exception;
         }
 
@@ -330,52 +339,61 @@ class UserController extends Controller
             'avatar'   => ImageUploadConstraints::rules(2048),
         ]);
 
+        $files = null;
         try {
-            $user = $this->phones->run(
-                $request->phone,
-                function (?string $phone, PhoneAssignmentService $phones) use ($request): User {
-                    $userData = [
-                        'name'     => $request->name,
-                        'email'    => $request->email,
-                        'phone'    => null,
-                        'password' => Hash::make($request->password),
-                        'password_set_at' => now(),
-                        'role'     => $request->role,
-                        'seller_plan' => SellerPlanService::STARTER,
-                    ];
+            $user = app(BackupWriteBarrier::class)->transaction(function () use ($request, &$files): User {
+                return $this->phones->run(
+                    $request->phone,
+                    function (?string $phone, PhoneAssignmentService $phones) use ($request, &$files): User {
+                        $files = new ProfileAvatarOperation($this->images, DB::connection());
+                        $userData = [
+                            'name'     => $request->name,
+                            'email'    => $request->email,
+                            'phone'    => null,
+                            'password' => Hash::make($request->password),
+                            'password_set_at' => now(),
+                            'role'     => $request->role,
+                            'seller_plan' => SellerPlanService::STARTER,
+                        ];
 
-                    if ($request->hasFile('avatar')) {
-                        $userData['avatar'] = $this->images->upload($request->file('avatar'), 'avatars');
-                    }
+                        if ($request->hasFile('avatar')) {
+                            $userData['avatar'] = $files->upload($request->file('avatar'));
+                        }
 
-                    $user = User::create($userData);
+                        $user = User::create($userData);
+                        if (! $user->exists) {
+                            throw new \RuntimeException('User creation was cancelled.');
+                        }
 
-                    if ($phone !== null) {
-                        $phones->assertAvailableForUser($phone, $user->id, $user->id);
-                        $user->forceFill(['phone' => $phone])->save();
-                    }
+                        if ($phone !== null) {
+                            $phones->assertAvailableForUser($phone, $user->id, $user->id);
+                            $user->forceFill(['phone' => $phone])->save();
+                        }
 
-                    if ($user->role === 'seller') {
-                        $phones->assertAvailableForShop($phone, $user->id);
-                        $this->createShopForSeller($user, $phone);
-                    }
+                        if ($user->role === 'seller') {
+                            $phones->assertAvailableForShop($phone, $user->id);
+                            $this->createShopForSeller($user, $phone);
+                        }
 
-                    $this->activity->log('user.created', $user, 'Администратор создал пользователя.', [
-                        'role' => $user->role,
-                    ]);
+                        $this->activity->log('user.created', $user, 'Администратор создал пользователя.', [
+                            'role' => $user->role,
+                        ]);
 
-                    return $user;
-                },
-            );
+                        return $user;
+                    },
+                );
+            });
 
             return redirect()
                 ->route('admin.users.index')
                 ->with('success', "Пользователь {$user->name} успешно создан");
 
         } catch (ValidationException $e) {
+            $files?->handleFailure();
             throw $e;
 
         } catch (Throwable $e) {
+            $files?->handleFailure();
             Log::error('Admin user creation failed', [
                 'error' => $e->getMessage(),
                 'exception' => get_class($e),

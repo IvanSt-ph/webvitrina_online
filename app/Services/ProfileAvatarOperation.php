@@ -18,6 +18,9 @@ class ProfileAvatarOperation
         private readonly ImageService $images,
         private readonly Connection $connection,
     ) {
+        if ($connection->transactionLevel() === 0) {
+            throw new \LogicException('Profile avatar operation requires a transaction.');
+        }
         foreach (app('db.transactions')->getPendingTransactions() as $transaction) {
             if ($transaction->connection === $connection->getName()) {
                 $transaction->addCallbackForRollback(fn () => $this->rollback());
@@ -35,6 +38,17 @@ class ProfileAvatarOperation
         return $this->created[] = $this->images->upload($file, 'avatars');
     }
 
+    public function handleFailure(): void
+    {
+        // Only a confirmed rollback may remove new files. Commit failures and
+        // exceptions in afterCommit callbacks do not prove that the DB rolled back.
+        if (! $this->finished && $this->created !== []) {
+            Log::error('Profile avatar transaction outcome unknown; reconciliation required', [
+                'paths' => $this->created,
+            ]);
+        }
+    }
+
     public function deleteAfterCommit(?string $path): void
     {
         if (!$path) {
@@ -43,7 +57,7 @@ class ProfileAvatarOperation
 
         $this->connection->afterCommit(function () use ($path): void {
             try {
-                if (User::query()->where('avatar', $path)->exists()) {
+                if (User::query()->useWritePdo()->where('avatar', $path)->exists()) {
                     return;
                 }
 
