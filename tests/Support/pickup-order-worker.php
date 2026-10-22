@@ -4,6 +4,7 @@
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 $database = json_decode(trim(fgets(STDIN)), true, flags: JSON_THROW_ON_ERROR);
 $app = Tests\Support\TestWorkerBootstrap::boot($database);
+Tests\Support\ConcurrencyLockProbe::install(Illuminate\Support\Facades\DB::connection(), 'orders');
 
 $order = App\Models\Order::findOrFail((int) $argv[1]);
 $actor = App\Models\User::findOrFail((int) $argv[2]);

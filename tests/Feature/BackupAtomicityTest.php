@@ -153,23 +153,61 @@ class BackupAtomicityTest extends TestCase
     {
         $user = \App\Models\User::factory()->create(['avatar' => 'avatar.webp']);
         \Illuminate\Support\Facades\Storage::disk('public')->put('avatar.webp', 'avatar');
+        $seller = \App\Models\User::factory()->create(['role' => 'seller']);
+        $conversation = \App\Models\Conversation::create([
+            'buyer_id' => $user->id,
+            'seller_id' => $seller->id,
+            'conversation_type' => \App\Models\Conversation::TYPE_MARKETPLACE,
+        ]);
+        $privatePath = 'chat-images/account-cleanup.webp';
+        $message = \App\Models\Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'type' => \App\Models\Message::TYPE_MESSAGE,
+            'image_path' => $privatePath,
+            'body' => 'Private attachment',
+        ]);
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        $this->assertTrue($disk->put($privatePath, 'private image fixture'));
+        $barrierHeldDuringCleanup = null;
+        $pdoTransactionDuringCleanup = null;
         $handle = fopen(config('backup.lock_path'), 'c+b');
         try {
             DB::beginTransaction();
             $user->delete();
             $this->assertFalse(flock($handle, LOCK_EX | LOCK_NB));
             $this->assertFileExists($this->root . '/public/avatar.webp');
-            $disk = \Illuminate\Support\Facades\Storage::disk('local');
+            $this->assertTrue($disk->exists($privatePath));
             $proxy = \Mockery::mock($disk)->makePartial();
-            $proxy->shouldReceive('delete')->once()->andReturnUsing(function () use ($handle) {
-                $this->assertFalse(flock($handle, LOCK_EX | LOCK_NB));
-                $this->assertFileDoesNotExist($this->root . '/public/avatar.webp');
+            $proxy->shouldReceive('delete')->with($privatePath)->once()->andReturnUsing(function () use (
+                $handle, &$barrierHeldDuringCleanup, &$pdoTransactionDuringCleanup,
+            ) {
+                // Production catches cleanup exceptions, including assertion failures.
+                // Observe here and assert only after commit has returned.
+                $acquired = flock($handle, LOCK_EX | LOCK_NB);
+                $barrierHeldDuringCleanup = ! $acquired;
+                if ($acquired) {
+                    flock($handle, LOCK_UN);
+                }
+                $pdoTransactionDuringCleanup = DB::connection()->getRawPdo()->inTransaction();
                 throw new \RuntimeException('injected private account cleanup failure');
             });
             \Illuminate\Support\Facades\Storage::set('local', $proxy);
             DB::commit();
+            $this->assertTrue($barrierHeldDuringCleanup);
+            $this->assertFalse($pdoTransactionDuringCleanup);
+            $this->assertSame(0, DB::transactionLevel());
+            $this->assertFalse(DB::connection()->getRawPdo()->inTransaction());
+            $deletedUser = \App\Models\User::withTrashed()->findOrFail($user->id);
+            $this->assertTrue($deletedUser->trashed());
+            $this->assertNull($deletedUser->avatar);
+            $this->assertNull(\App\Models\Message::find($message->id));
+            $this->assertNull(\App\Models\Conversation::find($conversation->id));
+            $this->assertFileDoesNotExist($this->root . '/public/avatar.webp');
+            $this->assertTrue($disk->exists($privatePath), 'Failed cleanup leaves the file for reconciliation.');
             $this->assertTrue(flock($handle, LOCK_EX | LOCK_NB));
         } finally {
+            \Illuminate\Support\Facades\Storage::set('local', $disk);
             fclose($handle);
             while (DB::transactionLevel() > 0) {
                 DB::rollBack();

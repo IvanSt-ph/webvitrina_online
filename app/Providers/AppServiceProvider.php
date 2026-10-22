@@ -28,6 +28,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // DatabaseManager attaches this singleton to every newly resolved connection.
+        // Never replace a manager underneath an already active transaction.
+        $connections = $this->app->resolved('db') ? $this->app['db']->getConnections() : [];
+        foreach ($connections as $connection) {
+            if ($connection->transactionLevel() !== 0) {
+                throw new \LogicException('Register the safe transaction manager before starting transactions.');
+            }
+        }
+        $this->app->singleton('db.transactions', fn () => new \App\Database\SafeDatabaseTransactionsManager());
+        foreach ($connections as $connection) {
+            $connection->setTransactionManager($this->app['db.transactions']);
+        }
         $this->app->singleton(\App\Services\BackupWriteBarrier::class);
     }
 

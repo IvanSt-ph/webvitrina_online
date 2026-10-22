@@ -40,12 +40,10 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
 
         $processes = [];
         $inputs = [];
-        $milestones = [];
         $connection = DB::connection();
         try {
             $connection->beginTransaction();
             Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            $milestones['parent_locked'] = microtime(true);
             foreach ([['payment', $seller], ['receipt', $buyer]] as [$action, $actor]) {
                 $input = new InputStream();
                 $input->write(json_encode(config('database'), JSON_THROW_ON_ERROR)."\n");
@@ -57,32 +55,16 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
                 $inputs[] = $input;
                 $processes[] = $process;
                 $process->start();
-                $this->awaitOutput($process, 'ATTEMPT');
-                $milestones[$action.'_attempt'] = microtime(true);
+                $this->awaitOutput($process, 'LOCK_CONFLICT');
             }
 
-            $waiting = false;
-            $deadline = microtime(true) + 8;
-            $milestones['poll_started'] = microtime(true);
-            $lastTransactions = [];
-            do {
-                $ids = [];
-                foreach ($processes as $process) {
-                    preg_match('/CONNECTION:(\d+)/', $process->getOutput(), $matches);
-                    $ids[] = (int) ($matches[1] ?? 0);
-                }
-                $lastTransactions = DB::table('information_schema.INNODB_TRX')
-                    ->whereIn('trx_mysql_thread_id', $ids)
-                    ->get(['trx_mysql_thread_id', 'trx_state', 'trx_wait_started'])
-                    ->map(fn ($row) => (array) $row)->all();
-                $milestones['last_poll'] = microtime(true);
-                $waiting = collect($lastTransactions)->where('trx_state', 'LOCK WAIT')->count() === 2;
-                if (! $waiting) {
-                    usleep(50000);
-                }
-            } while (! $waiting && microtime(true) < $deadline);
-            $this->assertTrue($waiting, $waiting ? '' : 'Both actions must wait on the same order row.'
-                .$this->lockWaitDiagnostics($processes, $milestones, $lastTransactions));
+            foreach ($inputs as $input) {
+                $input->write("continue\n");
+            }
+            foreach ($processes as $process) {
+                $this->awaitOutput($process, 'LOCK_RESUMING');
+                $this->assertStringNotContainsString('DONE', $process->getOutput());
+            }
             $connection->commit();
 
             foreach ($processes as $process) {
@@ -103,6 +85,7 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
                 $process->stop(0);
             }
             $this->assertSame(0, $connection->transactionLevel());
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['orders' => [$order->id]], $processes);
         }
     }
 
@@ -126,11 +109,9 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
         $connection = DB::connection();
         $input = new InputStream();
         $process = null;
-        $milestones = [];
         try {
             $connection->beginTransaction();
             Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            $milestones['parent_locked'] = microtime(true);
             $input->write(json_encode(config('database'), JSON_THROW_ON_ERROR)."\n");
             $process = new Process([
                 PHP_BINARY, base_path('tests/Support/pickup-order-worker.php'),
@@ -138,34 +119,15 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             ], base_path(), timeout: 20);
             $process->setInput($input);
             $process->start();
-            $this->awaitOutput($process, 'ATTEMPT');
-            $milestones['reminder_attempt'] = microtime(true);
-
-            preg_match('/CONNECTION:(\d+)/', $process->getOutput(), $matches);
-            $workerId = (int) ($matches[1] ?? 0);
-            $waiting = false;
-            $deadline = microtime(true) + 8;
-            $milestones['poll_started'] = microtime(true);
-            $lastTransactions = [];
-            do {
-                $lastTransactions = DB::table('information_schema.INNODB_TRX')
-                    ->where('trx_mysql_thread_id', $workerId)
-                    ->get(['trx_mysql_thread_id', 'trx_state', 'trx_wait_started'])
-                    ->map(fn ($row) => (array) $row)->all();
-                $milestones['last_poll'] = microtime(true);
-                $waiting = collect($lastTransactions)->contains('trx_state', 'LOCK WAIT');
-                if (! $waiting) {
-                    usleep(50000);
-                }
-            } while (! $waiting && microtime(true) < $deadline);
-            $this->assertTrue($waiting, $waiting ? '' : 'Reminder must wait for the locked order.'
-                .$this->lockWaitDiagnostics([$process], $milestones, $lastTransactions));
+            $this->awaitOutput($process, 'LOCK_CONFLICT');
+            $this->assertStringNotContainsString('DONE', $process->getOutput());
 
             // The lock holder confirms receipt through the real workflow before the reminder resumes.
             $this->assertTrue(app(\App\Services\OrderPickupWorkflow::class)->buyerConfirmReceipt($order, $buyer));
             $this->assertNotNull($order->fresh()->buyer_confirmed_at, 'Receipt must be persisted before releasing the lock.');
             $connection->commit();
 
+            $input->write("continue\n");
             $exitCode = $process->wait();
             $workerOutput = 'stdout='.$this->safeWorkerOutput($process->getOutput())
                 .' stderr='.$this->safeWorkerOutput($process->getErrorOutput());
@@ -184,6 +146,7 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             $input->close();
             $process?->stop(0);
             $this->assertSame(0, $connection->transactionLevel());
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['orders' => [$order->id]], $process ? [$process] : []);
         }
     }
 
@@ -194,39 +157,6 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             usleep(20000);
         }
         $this->assertStringContainsString($text, $process->getOutput(), $this->safeWorkerOutput($process->getErrorOutput()));
-    }
-
-    private function lockWaitDiagnostics(array $processes, array $milestones, array $lastTransactions): string
-    {
-        $workers = [];
-        $connectionIds = [];
-        foreach ($processes as $process) {
-            $stdout = $process->getOutput();
-            if (preg_match('/CONNECTION:(\d+)/', $stdout, $match)) {
-                $connectionIds[] = (int) $match[1];
-            }
-            $workers[] = [
-                'status' => $process->getStatus(),
-                'exit_code' => $process->getExitCode(),
-                'stdout' => $this->safeWorkerOutput($stdout),
-                'stderr' => $this->safeWorkerOutput($process->getErrorOutput()),
-            ];
-        }
-        try {
-            $processlist = DB::table('information_schema.PROCESSLIST')->whereIn('ID', $connectionIds)
-                ->get(['ID', 'COMMAND', 'TIME', 'STATE'])->map(fn ($row) => (array) $row)->all();
-        } catch (\Throwable $exception) {
-            $processlist = ['unavailable' => $exception::class];
-        }
-        $times = array_map(fn ($time) => date('c', (int) $time).' +'.round(($time - floor($time)) * 1000).'ms', $milestones);
-
-        return "\nLock-wait diagnostics: ".json_encode([
-            'times' => $times,
-            'elapsed_poll_ms' => round((microtime(true) - ($milestones['poll_started'] ?? microtime(true))) * 1000),
-            'workers' => $workers,
-            'last_innodb_trx' => $lastTransactions,
-            'processlist' => $processlist,
-        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     private function safeWorkerOutput(string $output): string

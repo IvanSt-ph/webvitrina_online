@@ -8,6 +8,9 @@ $connection = Illuminate\Support\Facades\DB::connection();
 $order = App\Models\Order::findOrFail((int) $argv[1]);
 echo 'CONNECTION:'.$connection->selectOne('SELECT CONNECTION_ID() AS id')->id.PHP_EOL;
 flush();
+if ($argv[2] === 'second') {
+    Tests\Support\ConcurrencyLockProbe::install($connection, 'orders');
+}
 if ($argv[2] === 'first') {
     $connection->beginTransaction();
     App\Models\Order::whereKey($order->id)->lockForUpdate()->firstOrFail();

@@ -7,7 +7,6 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\Shop;
 use App\Models\User;
-use Illuminate\Database\ConnectionInterface;
 use Tests\Support\SafeDatabaseTruncation as DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\DB;
@@ -103,14 +102,6 @@ class SellerMetricsConcurrencyTest extends TestCase
     {
         $processes = [];
         $inputs = [];
-        $monitorConnectionName = 'seller_metrics_monitor';
-        $defaultConnectionName = config('database.default');
-        config([
-            "database.connections.{$monitorConnectionName}" => config("database.connections.{$defaultConnectionName}"),
-        ]);
-        DB::purge($monitorConnectionName);
-        $monitor = DB::connection($monitorConnectionName);
-
         DB::beginTransaction();
         Shop::whereKey($shop->id)->lockForUpdate()->firstOrFail();
 
@@ -124,10 +115,10 @@ class SellerMetricsConcurrencyTest extends TestCase
                     ...$arguments,
                 ], base_path(), timeout: 30);
                 $process->setInput($input);
-                $process->start();
-                $this->awaitOutput($process, 'READY');
                 $inputs[] = $input;
                 $processes[] = $process;
+                $process->start();
+                $this->awaitOutput($process, 'READY');
             }
 
             foreach ($inputs as $input) {
@@ -137,24 +128,24 @@ class SellerMetricsConcurrencyTest extends TestCase
                 $this->awaitOutput($process, 'ATTEMPT');
             }
 
-            // ATTEMPT only means the domain operation has started. Wait until
-            // both independent connections are immediately before the real
-            // SELECT ... FOR UPDATE on the same shop row.
             foreach ($processes as $process) {
-                $this->awaitOutput($process, 'SHOP_LOCK_READY');
-            }
-            foreach ($inputs as $input) {
-                $input->write("lock\n");
-            }
-            foreach ($processes as $process) {
-                $this->awaitOutput($process, 'SHOP_LOCK_ATTEMPT');
-            }
-
-            $this->awaitAllLockWaits($processes, $monitor);
-            foreach ($processes as $process) {
+                $this->awaitOutput($process, 'LOCK_CONFLICT');
+                $this->assertTrue($process->isRunning());
                 $this->assertStringNotContainsString('DONE', $process->getOutput());
             }
-
+            $ids = array_map(function (Process $process): int {
+                preg_match('/CONNECTION:(\d+)/', $process->getOutput(), $match);
+                $this->assertNotEmpty($match);
+                return (int) $match[1];
+            }, $processes);
+            $this->assertCount(count($ids), array_unique($ids), 'Workers must use independent MySQL sessions.');
+            foreach ($inputs as $input) {
+                $input->write("continue\n");
+            }
+            foreach ($processes as $process) {
+                $this->awaitOutput($process, 'LOCK_RESUMING');
+                $this->assertStringNotContainsString('DONE', $process->getOutput());
+            }
             DB::commit();
 
             foreach ($processes as $process) {
@@ -171,50 +162,8 @@ class SellerMetricsConcurrencyTest extends TestCase
             foreach ($processes as $process) {
                 $process->stop(0);
             }
-            DB::purge($monitorConnectionName);
-            config(["database.connections.{$monitorConnectionName}" => null]);
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['shops' => [$shop->id]], $processes);
         }
-    }
-
-    private function awaitAllLockWaits(array $processes, ConnectionInterface $monitor): void
-    {
-        $connectionIds = collect($processes)->map(function (Process $process): int {
-            preg_match('/CONNECTION:(\d+)/', $process->getOutput(), $matches);
-            $this->assertNotEmpty($matches);
-
-            return (int) $matches[1];
-        })->all();
-        $this->assertCount(count($connectionIds), array_unique($connectionIds),
-            'Metrics workers must use independent MySQL connections.');
-        $deadline = microtime(true) + 8;
-        $waitingCount = 0;
-
-        do {
-            foreach ($processes as $index => $process) {
-                if (!$process->isRunning()) {
-                    $this->fail(sprintf(
-                        "Metrics worker %d exited before the parent released the shop lock.\nSTDOUT:\n%s\nSTDERR:\n%s",
-                        $index + 1,
-                        $process->getOutput(),
-                        $process->getErrorOutput(),
-                    ));
-                }
-            }
-
-            $waitingCount = $monitor->table('information_schema.INNODB_TRX')
-                ->whereIn('trx_mysql_thread_id', $connectionIds)
-                ->where('trx_state', 'LOCK WAIT')
-                ->count();
-            if ($waitingCount !== count($connectionIds)) {
-                usleep(50000);
-            }
-        } while ($waitingCount !== count($connectionIds) && microtime(true) < $deadline);
-
-        $this->assertSame(
-            count($connectionIds),
-            $waitingCount,
-            'Every metrics worker must wait on the same locked shop row.'
-        );
     }
 
     private function awaitOutput(Process $process, string $text): void
