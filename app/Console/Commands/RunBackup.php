@@ -5,8 +5,6 @@ namespace App\Console\Commands;
 use App\Services\BackupStorageService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use Throwable;
 
 class RunBackup extends Command
@@ -357,36 +355,199 @@ class RunBackup extends Command
 
     private function removeOldBackups(string $backupPath, int $keepDays): void
     {
-        if ($keepDays <= 0 || ! is_dir($backupPath)) {
+        if ($keepDays <= 0) {
             return;
         }
-
+        $root = $this->checkedDirectory($backupPath);
         $cutoff = now()->subDays($keepDays)->getTimestamp();
-
-        foreach (scandir($backupPath) ?: [] as $entry) {
-            if (in_array($entry, ['.', '..'], true)) {
+        foreach ($this->directoryEntries($root) as $entry) {
+            if (! $this->isBackupName($entry)) {
                 continue;
             }
-
-            $path = rtrim($backupPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $entry;
-
-            if (is_dir($path) && (filemtime($path) ?: time()) < $cutoff) {
-                $this->removeDirectory($path);
+            $path = $root . DIRECTORY_SEPARATOR . $entry;
+            try {
+                $this->checkedDirectory($path);
+                $modified = filemtime($path);
+                if ($modified === false) {
+                    throw new \RuntimeException('Cannot read directory modification time.');
+                }
+                if ($modified >= $cutoff) {
+                    continue;
+                }
+                $files = $this->checkedBackupFiles($path);
+                $this->removeFlatDirectory($root, $path, $files);
+            } catch (Throwable $exception) {
+                $this->error('Backup retention skipped ' . $entry . ': ' . $exception->getMessage());
             }
         }
     }
 
+    private function isBackupName(string $name): bool
+    {
+        if (! preg_match('/\A[0-9]{8}-[0-9]{6}\z/', $name)) {
+            return false;
+        }
+        $date = \DateTimeImmutable::createFromFormat('!Ymd-His', $name);
+        return $date !== false && $date->format('Ymd-His') === $name;
+    }
+
+    private function pathKey(string $path): string
+    {
+        $path = rtrim(str_replace('\\', '/', $path), '/');
+        return PHP_OS_FAMILY === 'Windows' ? strtolower($path) : $path;
+    }
+
+    private function checkedDirectory(string $path): string
+    {
+        clearstatcache(true);
+        if ($path === '' || str_contains($path, "\0")
+            || ! preg_match('~^(?:/(?!/)|[A-Za-z]:[/\\\\])~', $path)
+            || preg_match('~(?:^|[/\\\\])\.{1,2}(?:[/\\\\]|$)~', $path)) {
+            throw new \RuntimeException('Backup cleanup requires an absolute path without traversal.');
+        }
+        $real = realpath($path);
+        if ($real === false || ! is_dir($path) || is_link($path)
+            || $this->pathKey($path) !== $this->pathKey($real)) {
+            throw new \RuntimeException('Backup cleanup rejects missing directories, symlinks and aliases.');
+        }
+        if ($this->pathKey($real) === '' || preg_match('/\A[a-z]:\z/i', $this->pathKey($real))
+            || $this->pathKey($real) === $this->pathKey(base_path())) {
+            throw new \RuntimeException('Backup cleanup rejects filesystem and project roots.');
+        }
+        for ($ancestor = $real; dirname($ancestor) !== $ancestor; $ancestor = dirname($ancestor)) {
+            if (is_link($ancestor)) {
+                throw new \RuntimeException('Backup cleanup rejects linked ancestors.');
+            }
+        }
+        return $real;
+    }
+
+    private function directoryEntries(string $path): array
+    {
+        $entries = @scandir($path);
+        if ($entries === false) {
+            throw new \RuntimeException('Cannot list backup directory.');
+        }
+        return array_values(array_diff($entries, ['.', '..']));
+    }
+
+    private function checkedFile(string $path): void
+    {
+        clearstatcache(true, $path);
+        $stat = @lstat($path);
+        if ($stat === false || ($stat['mode'] & 0170000) !== 0100000 || is_link($path)
+            || $this->pathKey(realpath($path) ?: '') !== $this->pathKey($path)) {
+            throw new \RuntimeException('Backup cleanup requires regular, unlinked files.');
+        }
+    }
+
+    private function checkedBackupFiles(string $path): array
+    {
+        $files = $this->directoryEntries($path);
+        $allowed = ['database.sql.gz', 'storage-public.tar.gz', 'storage-private-chat-images.tar.gz',
+            'storage-private-review-images.tar.gz', 'manifest.json', 'SHA256SUMS'];
+        if (array_diff($files, $allowed) !== [] || ! in_array('manifest.json', $files, true)) {
+            throw new \RuntimeException('Unrecognized backup contents; nothing deleted.');
+        }
+        foreach ($files as $file) {
+            $this->checkedFile($path . DIRECTORY_SEPARATOR . $file);
+        }
+        $contents = @file_get_contents($path . '/manifest.json');
+        if ($contents === false) {
+            throw new \RuntimeException('Cannot read backup manifest.');
+        }
+        $manifest = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        $version = $manifest['version'] ?? null;
+        if (! in_array($version, [2, 3], true)) {
+            throw new \RuntimeException('Unknown backup manifest version.');
+        }
+        $roots = ['public' => 'public', 'private_chat_images' => 'private/chat-images'];
+        if ($version === 3) {
+            $roots['private_review_images'] = 'private/review-images';
+        } else {
+            $allowed = array_values(array_diff($allowed, ['storage-private-review-images.tar.gz']));
+        }
+        if (array_diff($allowed, $files) !== [] || array_diff($files, $allowed) !== []) {
+            throw new \RuntimeException('Incomplete or unexpected backup file set.');
+        }
+        foreach ($roots as $key => $root) {
+            $archive = 'storage-' . str_replace('/', '-', $root) . '.tar.gz';
+            if (($manifest['storage'][$key]['archive'] ?? null) !== $archive
+                || ($manifest['storage'][$key]['root'] ?? null) !== $root) {
+                throw new \RuntimeException('Unrecognized backup manifest storage layout.');
+            }
+        }
+        $checksums = @file($path . '/SHA256SUMS', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($checksums === false) {
+            throw new \RuntimeException('Cannot read backup checksums.');
+        }
+        $seen = [];
+        foreach ($checksums as $line) {
+            if (! preg_match('/\A([a-f0-9]{64})  ([a-zA-Z0-9.-]+)\z/', $line, $match)
+                || ! in_array($match[2], $allowed, true) || $match[2] === 'SHA256SUMS'
+                || isset($seen[$match[2]])) {
+                throw new \RuntimeException('Invalid backup checksum entry.');
+            }
+            $file = $path . DIRECTORY_SEPARATOR . $match[2];
+            $this->checkedFile($file);
+            $hash = @hash_file('sha256', $file);
+            if ($hash === false || ! hash_equals($match[1], $hash) || filesize($file) <= 0) {
+                throw new \RuntimeException('Backup checksum mismatch or unreadable/empty file.');
+            }
+            $seen[$match[2]] = true;
+        }
+        if (array_diff($allowed, ['SHA256SUMS'], array_keys($seen)) !== []) {
+            throw new \RuntimeException('Incomplete backup checksums.');
+        }
+        return $files;
+    }
+
+    /** No recursive traversal, even for cleanup of our failed temporary backup. */
     private function removeDirectory(string $directory): void
     {
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST
-        );
-
-        foreach ($iterator as $file) {
-            $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+        $root = $this->checkedDirectory(dirname($directory));
+        $this->checkedDirectory($directory);
+        $name = basename($directory);
+        if (! str_ends_with($name, '.tmp') || ! $this->isBackupName(substr($name, 0, -4))) {
+            throw new \RuntimeException('Refusing cleanup of an unrecognized temporary backup.');
         }
+        $files = $this->directoryEntries($directory);
+        $allowed = ['database.sql', 'database.sql.gz', 'manifest.json', 'SHA256SUMS'];
+        foreach (['storage-public', 'storage-private-chat-images', 'storage-private-review-images'] as $archive) {
+            $allowed[] = $archive . '.tar';
+            $allowed[] = $archive . '.tar.gz';
+        }
+        if (array_diff($files, $allowed) !== []) {
+            throw new \RuntimeException('Unexpected files in temporary backup; cleanup skipped.');
+        }
+        $this->removeFlatDirectory($root, $directory, $files);
+    }
 
-        rmdir($directory);
+    private function removeFlatDirectory(string $root, string $directory, array $files): void
+    {
+        $check = function () use ($root, $directory): void {
+            $this->checkedDirectory($root);
+            $real = $this->checkedDirectory($directory);
+            if ($this->pathKey(dirname($real)) !== $this->pathKey($root)) {
+                throw new \RuntimeException('Backup deletion target escaped its parent directory.');
+            }
+        };
+        $check();
+        // Validate the whole flat set before the first deletion.
+        foreach ($files as $file) {
+            $this->checkedFile($directory . DIRECTORY_SEPARATOR . $file);
+        }
+        foreach ($files as $file) {
+            $check();
+            $path = $directory . DIRECTORY_SEPARATOR . $file;
+            $this->checkedFile($path);
+            if (! @unlink($path)) {
+                throw new \RuntimeException('Cannot delete backup file: ' . $file);
+            }
+        }
+        $check();
+        if (! @rmdir($directory)) {
+            throw new \RuntimeException('Cannot remove backup directory; inspect remaining contents.');
+        }
     }
 }
