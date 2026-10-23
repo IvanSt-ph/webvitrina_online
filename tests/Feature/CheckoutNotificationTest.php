@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Models\UserNotification;
 use App\Notifications\MarketplaceEventNotification;
 use App\Services\UserNotificationService;
-use Illuminate\Database\DatabaseTransactionsManager;
+use App\Database\SafeDatabaseTransactionsManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Notifications\SendQueuedNotifications;
@@ -22,6 +22,13 @@ use Tests\TestCase;
 class CheckoutNotificationTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function beginDatabaseTransaction(): void
+    {
+        $this->beforeApplicationDestroyed(fn () => RefreshDatabaseState::$migrated = false);
+        $this->assertSame(SafeDatabaseTransactionsManager::class, app('db.transactions')::class);
+        $this->rollBackTestTransactionsBeforeApplicationDestroyed();
+    }
 
     public function test_checkout_creates_unread_seller_notification_with_own_order_link(): void
     {
@@ -70,10 +77,10 @@ class CheckoutNotificationTest extends TestCase
     {
         Notification::fake();
         $this->prepareCart();
-        $snapshot = session()->only(['checkout_cart', 'checkout_token']);
+        $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
         $this->submit()->assertSessionHasNoErrors();
         // Simulate the stale session snapshot of a concurrent/replayed submit.
-        $this->withSession($snapshot)->submit()->assertRedirect(route('checkout.confirm'))->assertSessionHas('error');
+        $this->withSession($snapshot)->submit()->assertRedirect(route('orders.show', Order::sole()))->assertSessionHas('success');
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);
     }
@@ -146,12 +153,12 @@ class CheckoutNotificationTest extends TestCase
         config(['queue.default' => 'database', 'queue.connections.database.table' => 'missing_notification_jobs']);
         Log::spy();
         $this->prepareCart(email: true);
-        $snapshot = session()->only(['checkout_cart', 'checkout_token']);
+        $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
         $this->submit()->assertSessionHasNoErrors()->assertSessionHas('success');
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);
         Log::shouldHaveReceived('error')->once();
-        $this->withSession($snapshot)->submit()->assertSessionHas('error');
+        $this->withSession($snapshot)->submit()->assertSessionHas('success');
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);
     }
@@ -194,14 +201,10 @@ class CheckoutNotificationTest extends TestCase
     {
         // Use actual MySQL commits and production callback semantics, not the
         // RefreshDatabase manager that executes callbacks inside its test wrapper.
-        DB::rollBack();
-        $manager = new DatabaseTransactionsManager;
-        $this->app->instance('db.transactions', $manager);
-        DB::connection()->setTransactionManager($manager);
-        $this->beforeApplicationDestroyed(fn () => RefreshDatabaseState::$migrated = false);
+        $this->assertSame(SafeDatabaseTransactionsManager::class, app('db.transactions')::class);
         config(['queue.default' => 'database']);
         $this->prepareCart(2, true);
-        $cart = session('checkout_cart');
+        $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
         DB::beginTransaction();
         $this->submit()->assertSessionHasNoErrors();
         $this->assertDatabaseCount('orders', 2);
@@ -212,7 +215,7 @@ class CheckoutNotificationTest extends TestCase
         $this->assertDatabaseCount('user_notifications', 0);
         $this->assertDatabaseCount('jobs', 0);
 
-        $this->withSession(['checkout_cart' => $cart])->get(route('checkout.confirm'))->assertOk();
+        $this->withSession($snapshot)->get(route('checkout.confirm'))->assertOk();
         $levels = [];
         DB::listen(function ($query) use (&$levels) {
             if (str_starts_with($query->sql, 'insert into `user_notifications`')

@@ -6,11 +6,11 @@ use App\Models\Product;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\CheckoutIdempotencyService;
 use App\Services\CurrencyService;
 use App\Services\UserNotificationService;
 use App\Support\MoneyLimits;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -67,6 +67,8 @@ return redirect()
                 'qty' => "Доступно только {$product->stock} шт. Возможно, часть товара уже купили другие пользователи.",
             ]);
         }
+
+        session()->put(['checkout_token' => Str::random(40), 'checkout_version' => 11]);
 
         // Кладём "корзину для оформления" в сессию
         $checkoutCurrency = $this->currency->checkoutCurrency(session('currency'));
@@ -130,6 +132,8 @@ return redirect()
 
         session()->put('checkout_cart', $cart);
 
+        session()->put(['checkout_token' => Str::random(40), 'checkout_version' => 11]);
+
         return redirect()->route('checkout.confirm');
     }
 
@@ -139,6 +143,9 @@ return redirect()
      */
     public function confirm()
     {
+        if ($response = $this->existingCheckout()) {
+            return $response;
+        }
         $cart = session('checkout_cart');
 
         if (!$cart || !count($cart)) {
@@ -224,9 +231,7 @@ return redirect()
         $deliveryCost = $deliveryPrices[$defaultDelivery] ?? 0;
         $totalDeliveryCost = $deliveryCost * $orderGroups->count();
         $totalWithDelivery = $total + $totalDeliveryCost;
-        $checkoutToken = Str::random(40);
-
-        session()->put('checkout_token', $checkoutToken);
+        $checkoutToken = session('checkout_token');
 
         return view('shop.order-confirm', [
             'cart'                => $cart,
@@ -255,6 +260,9 @@ return redirect()
      */
     public function create(Request $request)
     {
+        if ($response = $this->existingCheckout($request)) {
+            return $response;
+        }
         $cart = session('checkout_cart');
 
         if (!$cart || !count($cart)) {
@@ -375,16 +383,9 @@ return redirect()
         $groups = $cartWithSellers->groupBy('seller_id');
         $this->assertOrderAmountsFitStorage($groups, $deliveryCost);
 
-        $checkoutCacheKey = 'checkout:used:' . hash('sha256', $expectedToken);
-        if (! Cache::add($checkoutCacheKey, true, now()->addMinutes(10))) {
-            return redirect()->route('checkout.confirm')
-                ->with('error', 'Этот заказ уже отправлен. Проверьте список заказов перед повторным оформлением.');
-        }
-
-        $createdOrders = [];
-
-        try {
-            DB::transaction(function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, &$createdOrders, $userId, $checkoutCurrency) {
+        $createdOrders = app(CheckoutIdempotencyService::class)->execute($expectedToken, $userId,
+            function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, $userId, $checkoutCurrency) {
+                $createdOrders = [];
                 foreach ($groups as $sellerId => $items) {
                     $totalCents = $items->sum(fn ($item) => $this->lineTotalCents($item));
 
@@ -480,36 +481,46 @@ return redirect()
                         } catch (\Throwable $exception) {
                             // The order is committed. Do not fail checkout or prevent
                             // callbacks for the remaining sellers from running.
-                            Log::error('Seller new-order notification failed', [
-                                'order_id' => $order->id,
-                                'seller_id' => $order->seller_id,
-                                'exception' => get_class($exception),
-                                'message' => $exception->getMessage(),
-                            ]);
+                            try {
+                                Log::error('Seller new-order notification failed', [
+                                    'order_id' => $order->id,
+                                    'seller_id' => $order->seller_id,
+                                    'exception' => get_class($exception),
+                                    'message' => $exception->getMessage(),
+                                ]);
+                            } catch (\Throwable) {
+                                // Logging failure must not fail an already committed order.
+                            }
                         }
                     });
                 }
+                return $createdOrders;
             });
-        } catch (\Throwable $exception) {
-            // A reservation prevents concurrent duplicates, but a rolled-back
-            // checkout must remain retryable with the same confirmation token.
-            Cache::forget($checkoutCacheKey);
+        return $this->checkoutResponse($createdOrders);
+    }
 
-            throw $exception;
+    private function existingCheckout(?Request $request = null)
+    {
+        $token = session('checkout_token');
+        if (session('checkout_version') !== 11 || ! is_string($token) || $token === '') {
+            session()->forget(['checkout_cart', 'checkout_token', 'checkout_version']);
+            return redirect()->route('orders.index')->with('error', 'Оформление устарело. Проверьте заказы и начните новое оформление из корзины.');
         }
-
-        // Чистим "корзину для оформления"
-        session()->forget(['checkout_cart', 'checkout_token']);
-
-        // Если создан один заказ — ведём на его страницу
-        if (count($createdOrders) === 1) {
-            return redirect()->route('orders.show', $createdOrders[0])
-                ->with('success', 'Заказ создан!');
+        if ($request !== null && (! is_string($request->input('checkout_token'))
+            || ! hash_equals($token, $request->input('checkout_token')))) {
+            return redirect()->route('checkout.confirm')->with('error', 'Страница оформления устарела.');
         }
+        $orders = app(CheckoutIdempotencyService::class)->result($token, (int) auth()->id());
+        return $orders === null ? null : $this->checkoutResponse($orders);
+    }
 
-        // Если несколько — на список заказов
-        return redirect()->route('orders.index')
-            ->with('success', 'Создано заказов: ' . count($createdOrders));
+    private function checkoutResponse(array $orders)
+    {
+        session()->forget(['checkout_cart', 'checkout_token', 'checkout_version']);
+        if (count($orders) === 1) {
+            return redirect()->route('orders.show', $orders[0])->with('success', 'Заказ создан!');
+        }
+        return redirect()->route('orders.index')->with('success', 'Создано заказов: '.count($orders));
     }
 
     private function checkoutLine(Product $product, int $quantity, ?int $cartId, string $currency): array
