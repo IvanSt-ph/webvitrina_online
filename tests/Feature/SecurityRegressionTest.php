@@ -29,6 +29,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use Tests\Support\TestDatabaseSafety;
+use App\Database\SafeDatabaseTransactionsManager;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\InputStream;
 
 class SecurityRegressionTest extends TestCase
 {
@@ -225,23 +231,19 @@ class SecurityRegressionTest extends TestCase
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller);
 
-        $this->actingAs($buyer)
-            ->withSession([
-                'checkout_cart' => [[
-                    'cart_id' => null,
-                    'product_id' => $product->id,
-                    'title' => $product->title,
-                    'price' => 100,
-                    'qty' => 1,
-                    'image' => $product->image,
-                ]],
-            ])
+        $this->startCheckout($buyer, [$this->checkoutCartRow($product)]);
+        $this
             ->postJson(route('checkout.create'), [
+                'checkout_token' => session('checkout_token'),
                 'payment_method' => 'lol',
                 'delivery_method' => 'free_delivery',
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['payment_method', 'delivery_method']);
+        $this->assertSame($product->stock, $product->fresh()->stock);
+        foreach (['orders', 'checkout_attempts', 'order_events', 'user_notifications'] as $table) {
+            $this->assertDatabaseCount($table, 0);
+        }
     }
 
     public function test_checkout_rejects_delivery_methods_other_than_pickup(): void
@@ -250,18 +252,10 @@ class SecurityRegressionTest extends TestCase
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller);
 
-        $this->actingAs($buyer)
-            ->withSession([
-                'checkout_cart' => [[
-                    'cart_id' => null,
-                    'product_id' => $product->id,
-                    'title' => $product->title,
-                    'price' => 100,
-                    'qty' => 1,
-                    'image' => $product->image,
-                ]],
-            ])
+        $this->startCheckout($buyer, [$this->checkoutCartRow($product)]);
+        $this
             ->postJson(route('checkout.create'), [
+                'checkout_token' => session('checkout_token'),
                 'payment_method' => 'cash',
                 'delivery_method' => 'courier',
             ])
@@ -272,6 +266,10 @@ class SecurityRegressionTest extends TestCase
             'user_id' => $buyer->id,
             'seller_id' => $seller->id,
         ]);
+        $this->assertSame($product->stock, $product->fresh()->stock);
+        foreach (['orders', 'checkout_attempts', 'order_events', 'user_notifications'] as $table) {
+            $this->assertDatabaseCount($table, 0);
+        }
     }
 
     public function test_checkout_rejects_address_that_does_not_belong_to_buyer(): void
@@ -298,18 +296,10 @@ class SecurityRegressionTest extends TestCase
             'is_default' => true,
         ]);
 
-        $this->actingAs($buyer)
-            ->withSession([
-                'checkout_cart' => [[
-                    'cart_id' => null,
-                    'product_id' => $product->id,
-                    'title' => $product->title,
-                    'price' => 100,
-                    'qty' => 1,
-                    'image' => $product->image,
-                ]],
-            ])
+        $this->startCheckout($buyer, [$this->checkoutCartRow($product)]);
+        $this
             ->postJson(route('checkout.create'), [
+                'checkout_token' => session('checkout_token'),
                 'address_id' => $foreignAddress->id,
                 'payment_method' => 'cash',
                 'delivery_method' => 'pickup',
@@ -321,6 +311,10 @@ class SecurityRegressionTest extends TestCase
             'user_id' => $buyer->id,
             'seller_id' => $seller->id,
         ]);
+        $this->assertSame($product->stock, $product->fresh()->stock);
+        foreach (['orders', 'checkout_attempts', 'order_events', 'user_notifications'] as $table) {
+            $this->assertDatabaseCount($table, 0);
+        }
     }
 
     public function test_checkout_confirm_uses_mobile_safe_layout_for_long_titles(): void
@@ -331,17 +325,8 @@ class SecurityRegressionTest extends TestCase
             'title' => 'КроссовкиTommyHilfigerEM0EM01527BDSбелыессинейподошвойдлинноеназваниебезпробелов',
         ]);
 
-        $this->actingAs($buyer)
-            ->withSession([
-                'checkout_cart' => [[
-                    'cart_id' => null,
-                    'product_id' => $product->id,
-                    'title' => $product->title,
-                    'price' => 100,
-                    'qty' => 1,
-                    'image' => $product->image,
-                ]],
-            ])
+        $this->startCheckout($buyer, [$this->checkoutCartRow($product)]);
+        $this
             ->get(route('checkout.confirm'))
             ->assertOk()
             ->assertSee('checkout-confirm-safe', false)
@@ -3014,10 +2999,8 @@ class SecurityRegressionTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->actingAs($buyer)
-            ->withSession([
-                'checkout_cart' => [$this->checkoutCartRow($product, 2)],
-            ])
+        $this->startCheckout($buyer, [$this->checkoutCartRow($product, 2)]);
+        $this
             ->get(route('checkout.confirm'))
             ->assertOk();
 
@@ -3044,15 +3027,18 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($buyer)
             ->withSession(['checkout_cart' => $cart, 'checkout_token' => null])
             ->post(route('checkout.create'), $payload)
-            ->assertRedirect(route('checkout.confirm'))
-            ->assertSessionHas('error');
+            ->assertRedirect(route('orders.index'))
+            ->assertSessionHas('error')
+            ->assertSessionMissing(['checkout_cart', 'checkout_token', 'checkout_version']);
 
         $this->actingAs($buyer)
             ->withSession(['checkout_token' => ''])
             ->post(route('checkout.create'), $payload + ['checkout_token' => ''])
-            ->assertRedirect(route('checkout.confirm'))
-            ->assertSessionHas('error');
+            ->assertRedirect(route('orders.index'))
+            ->assertSessionHas('error')
+            ->assertSessionMissing(['checkout_cart', 'checkout_token', 'checkout_version']);
 
+        $this->startCheckout($buyer, $cart);
         $this->actingAs($buyer)
             ->get(route('checkout.confirm'))
             ->assertOk();
@@ -3069,12 +3055,15 @@ class SecurityRegressionTest extends TestCase
 
         $this->assertSame(0, Order::where('user_id', $buyer->id)->count());
         $this->assertSame(3, $product->fresh()->stock);
+        foreach (['checkout_attempts', 'order_events', 'user_notifications'] as $table) {
+            $this->assertDatabaseCount($table, 0);
+        }
 
         $this->actingAs($buyer)
             ->get(route('checkout.confirm'))
             ->assertOk();
 
-        $this->assertNotSame($token, session('checkout_token'));
+        $this->assertSame($token, session('checkout_token'));
 
         $this->actingAs($buyer)
             ->post(route('checkout.create'), $payload + ['checkout_token' => session('checkout_token')])
@@ -3097,8 +3086,8 @@ class SecurityRegressionTest extends TestCase
             ->map(fn (Product $product) => $this->checkoutCartRow($product))
             ->all();
 
-        $this->actingAs($buyer)
-            ->withSession(['checkout_cart' => $cart])
+        $this->startCheckout($buyer, $cart);
+        $this
             ->get(route('checkout.confirm'))
             ->assertOk()
             ->assertSee('First shop')
@@ -3130,8 +3119,8 @@ class SecurityRegressionTest extends TestCase
         $product = $this->createProduct($seller);
         $cart = [$this->checkoutCartRow($product)];
 
-        $this->actingAs($buyer)
-            ->withSession(['checkout_cart' => $cart])
+        $this->startCheckout($buyer, $cart);
+        $this
             ->get(route('checkout.confirm'))
             ->assertOk();
 
@@ -3157,11 +3146,12 @@ class SecurityRegressionTest extends TestCase
         $product = $this->createProduct($seller, ['stock' => 3]);
         $cart = [$this->checkoutCartRow($product)];
 
-        $this->actingAs($buyer)
-            ->withSession(['checkout_cart' => $cart])
+        $this->startCheckout($buyer, $cart);
+        $this
             ->get(route('checkout.confirm'))
             ->assertOk();
 
+        $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
         $token = session('checkout_token');
         $payload = [
             'checkout_token' => $token,
@@ -3173,14 +3163,17 @@ class SecurityRegressionTest extends TestCase
             ->post(route('checkout.create'), $payload)
             ->assertRedirect();
 
-        $this->actingAs($buyer)
-            ->withSession([
-                'checkout_cart' => $cart,
-                'checkout_token' => $token,
-            ])
+        $order = Order::where('user_id', $buyer->id)->sole();
+        $notifications = DB::table('user_notifications')->orderBy('id')->get()->toArray();
+        $events = DB::table('order_events')->orderBy('id')->get()->toArray();
+        $this->assertCount(1, $notifications);
+        $this->actingAs($buyer)->withSession($snapshot)
             ->post(route('checkout.create'), $payload)
-            ->assertRedirect(route('checkout.confirm'))
-            ->assertSessionHas('error');
+            ->assertRedirect(route('orders.show', $order))
+            ->assertSessionHasNoErrors();
+        $this->assertEquals($notifications, DB::table('user_notifications')->orderBy('id')->get()->toArray());
+        $this->assertEquals($events, DB::table('order_events')->orderBy('id')->get()->toArray());
+        $this->assertDatabaseCount('checkout_attempts', 1);
 
         $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
         $this->assertSame(2, $product->fresh()->stock);
@@ -3188,47 +3181,94 @@ class SecurityRegressionTest extends TestCase
 
     public function test_overlapping_checkout_submissions_with_one_token_create_one_order(): void
     {
+        TestDatabaseSafety::assertConnected(app()->environment(), config('database'), DB::connection());
+        $this->assertSame(1, DB::transactionLevel());
+        DB::rollBack();
+        $this->beforeApplicationDestroyed(fn () => RefreshDatabaseState::$migrated = false);
+        $manager = new SafeDatabaseTransactionsManager;
+        $this->app->instance('db.transactions', $manager);
+        DB::connection()->setTransactionManager($manager);
+        $this->rollBackTestTransactionsBeforeApplicationDestroyed();
+        // RefreshDatabase already registered a callback that disconnects this PDO.
+        // Run our original-PDO safety check and rollback before that callback.
+        $cleanup = array_pop($this->beforeApplicationDestroyedCallbacks);
+        array_unshift($this->beforeApplicationDestroyedCallbacks, $cleanup);
+
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
         $product = $this->createProduct($seller, ['stock' => 3]);
-
-        $this->actingAs($buyer)
-            ->withSession(['checkout_cart' => [$this->checkoutCartRow($product)]])
-            ->get(route('checkout.confirm'))
-            ->assertOk();
-
-        $payload = [
-            'checkout_token' => session('checkout_token'),
-            'payment_method' => 'cash',
-            'delivery_method' => 'pickup',
-        ];
-        $cache = Cache::store();
-        $overlappingResponse = null;
-        $reservations = 0;
-
-        Cache::shouldReceive('add')->twice()
-            ->andReturnUsing(function ($key, $value, $ttl) use ($cache, $payload, &$overlappingResponse, &$reservations) {
-                $accepted = $cache->add($key, $value, $ttl);
-                $reservations++;
-
-                // Start the second request after the first has reserved the token,
-                // while the first order transaction has not started yet.
-                if ($accepted && $reservations === 1) {
-                    $overlappingResponse = $this->post(route('checkout.create'), $payload);
+        $this->startCheckout($buyer, [$this->checkoutCartRow($product)]);
+        $this->get(route('checkout.confirm'))->assertOk();
+        $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
+        $inputs = $processes = [];
+        $await = function (Process $process, string $signal): void {
+            while (! str_contains($process->getOutput(), $signal) && $process->isRunning()) {
+                $process->checkTimeout();
+                usleep(20000); // Poll only; NOWAIT error 3572 proves the conflict.
+            }
+            $this->assertStringContainsString($signal, $process->getOutput(), 'Worker synchronization failed');
+        };
+        try {
+            foreach (['first', 'second'] as $mode) {
+                $input = new InputStream();
+                $input->write(json_encode([
+                    'database' => config('database'), 'buyer' => $buyer->id,
+                    'snapshot' => $snapshot, 'mode' => $mode,
+                    'outcome' => 'commit', 'different' => false,
+                ], JSON_THROW_ON_ERROR)."\n");
+                $process = new Process([PHP_BINARY, base_path('tests/Support/checkout-idempotency-worker.php')], base_path(), timeout: 40);
+                $process->setInput($input);
+                $inputs[] = $input;
+                $processes[] = $process;
+                $process->start();
+                $await($process, $mode === 'first' ? 'LOCKED' : 'LOCK_CONFLICT');
+            }
+            $connections = [];
+            foreach ($processes as $process) {
+                preg_match('/CONNECTION:(\d+)/', $process->getOutput(), $match);
+                $this->assertNotEmpty($match);
+                $connections[] = $match[1];
+                $this->assertTrue($process->isRunning());
+            }
+            $this->assertNotSame($connections[0], $connections[1]);
+            $this->assertStringNotContainsString('DONE', $processes[1]->getOutput());
+            $inputs[1]->write("continue\n");
+            $await($processes[1], 'CONTINUING');
+            $inputs[0]->write("release\n");
+            foreach ($processes as $process) {
+                $this->assertSame(0, $process->wait(), 'Checkout worker failed');
+                $this->assertStringContainsString('DONE', $process->getOutput());
+            }
+            $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
+            $this->assertSame(2, $product->fresh()->stock);
+            foreach (['checkout_attempts', 'order_items', 'order_events', 'user_notifications'] as $table) {
+                $this->assertDatabaseCount($table, 1);
+            }
+            $order = Order::sole();
+            $this->assertSame($seller->id, $order->seller_id);
+            $this->assertDatabaseHas('user_notifications', [
+                'user_id' => $seller->id, 'type' => 'order_created', 'data->order_id' => $order->id,
+            ]);
+        } finally {
+            foreach ($inputs as $input) { $input->close(); }
+            foreach ($processes as $process) { $process->stop(0); }
+            $probe = app('db.factory')->make(config('database.connections.mysql'), 'mysql');
+            try {
+                TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $probe);
+                $probe->getPdo();
+                TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $probe);
+                $probe->beginTransaction();
+                $probe->select('SELECT id FROM products WHERE id = ? FOR UPDATE NOWAIT', [$product->id]);
+                $probe->select('SELECT token_hash FROM checkout_attempts FOR UPDATE NOWAIT');
+                $probe->select('SELECT id FROM orders FOR UPDATE NOWAIT');
+            } finally {
+                try {
+                    if ($probe->transactionLevel() > 0) { $probe->rollBack(); }
+                } finally {
+                    $probe->disconnect();
                 }
-
-                return $accepted;
-            });
-
-        $this->actingAs($buyer)
-            ->post(route('checkout.create'), $payload)
-            ->assertRedirect();
-
-        $this->assertNotNull($overlappingResponse);
-        $overlappingResponse->assertRedirect(route('checkout.confirm'));
-        $this->assertSame(2, $reservations);
-        $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
-        $this->assertSame(2, $product->fresh()->stock);
+            }
+        }
     }
 
     public function test_buyer_order_page_exposes_only_working_status_actions(): void
@@ -5555,6 +5595,20 @@ class SecurityRegressionTest extends TestCase
             'description' => 'Test product',
             'status' => 'active',
         ], $overrides));
+    }
+
+    private function startCheckout(User $buyer, array $rows): void
+    {
+        foreach ($rows as $row) {
+            CartItem::updateOrCreate(
+                ['user_id' => $buyer->id, 'product_id' => $row['product_id']],
+                ['qty' => $row['qty']],
+            );
+        }
+        $this->actingAs($buyer)->withSession(['currency' => 'PRB'])
+            ->post(route('checkout.prepare'))->assertRedirect(route('checkout.confirm'));
+        $this->assertSame(11, session('checkout_version'));
+        $this->assertNotEmpty(session('checkout_token'));
     }
 
     private function checkoutCartRow(Product $product, int $quantity = 1): array

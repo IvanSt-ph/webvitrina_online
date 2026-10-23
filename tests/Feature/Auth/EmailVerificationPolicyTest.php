@@ -133,9 +133,11 @@ class EmailVerificationPolicyTest extends TestCase
             ])
             ->assertSessionHasNoErrors();
 
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $user->refresh(); // Update the instance cached by the guard between test requests.
+        $this->assertFalse($user->hasVerifiedEmail());
         $this->post(route('addresses.store'), $this->addressPayload())
             ->assertRedirect(route('verification.notice'));
+        $this->assertDatabaseMissing('user_addresses', ['user_id' => $user->id]);
         $this->get(route('verification.notice'))->assertOk();
         $this->post(route('verification.send'))->assertRedirect();
     }

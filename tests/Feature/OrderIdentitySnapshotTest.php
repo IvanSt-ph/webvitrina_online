@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\{CartItem, Order, OrderItem, Product, User};
 use App\Services\{OrderIdentitySnapshot, ProductService};
-use Illuminate\Database\DatabaseTransactionsManager;
+use App\Database\SafeDatabaseTransactionsManager;
 use Illuminate\Foundation\Testing\{RefreshDatabase, RefreshDatabaseState};
 use Illuminate\Support\Facades\{DB, Notification, Storage};
 use Tests\TestCase;
@@ -260,25 +260,37 @@ class OrderIdentitySnapshotTest extends TestCase
 
     public function test_real_outer_rollback_removes_copies_from_committed_child_checkout(): void
     {
+        \Tests\Support\TestDatabaseSafety::assertConnected(app()->environment(), config('database'), DB::connection());
+        $this->assertSame(1, DB::transactionLevel());
         DB::rollBack();
-        $manager = new DatabaseTransactionsManager;
+        $manager = new SafeDatabaseTransactionsManager;
         $this->app->instance('db.transactions', $manager);
         DB::connection()->setTransactionManager($manager);
         $this->beforeApplicationDestroyed(fn () => RefreshDatabaseState::$migrated = false);
+        $this->rollBackTestTransactionsBeforeApplicationDestroyed();
+        // RefreshDatabase already registered a callback that disconnects this PDO.
+        // Run our original-PDO safety check and rollback before that callback.
+        $cleanup = array_pop($this->beforeApplicationDestroyedCallbacks);
+        array_unshift($this->beforeApplicationDestroyedCallbacks, $cleanup);
         $this->prepare(2);
-        $cart = session('checkout_cart');
+        $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
         DB::beginTransaction();
         $this->submit()->assertSessionHasNoErrors();
         $this->assertCount(2, Storage::disk('public')->files('order-snapshots'));
         DB::rollBack();
+        $this->assertDatabaseCount('checkout_attempts', 0);
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('order_items', 0);
         $this->assertSame([], Storage::disk('public')->files('order-snapshots'));
         $this->assertSame([5, 5], Product::orderBy('id')->pluck('stock')->all());
-        $this->withSession(['checkout_cart' => $cart])->get(route('checkout.confirm'))->assertOk();
+        $this->withSession($snapshot)->get(route('checkout.confirm'))->assertOk();
+        $this->assertSame($snapshot['checkout_token'], session('checkout_token'));
         DB::beginTransaction();
         $this->submit()->assertSessionHasNoErrors();
         DB::commit();
+        $this->assertDatabaseHas('checkout_attempts', ['token_hash' => hash('sha256', $snapshot['checkout_token'])]);
+        $this->assertDatabaseCount('checkout_attempts', 1);
+        $this->assertSame([4, 4], Product::orderBy('id')->pluck('stock')->all());
         $this->assertDatabaseCount('orders', 2);
         $this->assertCount(2, Storage::disk('public')->files('order-snapshots'));
     }
