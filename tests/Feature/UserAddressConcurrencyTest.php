@@ -136,7 +136,7 @@ class UserAddressConcurrencyTest extends TestCase
             foreach ([$first, $second] as $i => $operation) {
                 $input = new InputStream();
                 $input->write(json_encode($operation + [
-                    'database' => config('database'), 'key' => config('app.key'), 'pause' => $i === 0,
+                    'database' => config('database'), 'key' => config('app.key'), 'pause' => $i === 0, 'probe_lock' => $i === 1 && $mustWait,
                 ], JSON_THROW_ON_ERROR)."\n");
                 $process = new Process([PHP_BINARY, base_path('tests/Support/user-address-worker.php')], base_path(), timeout: 30);
                 $process->setInput($input);
@@ -152,27 +152,12 @@ class UserAddressConcurrencyTest extends TestCase
             }
             $this->assertNotSame($connections[0], $connections[1]);
             if ($mustWait) {
-                $deadline = microtime(true) + 8;
-                $waiting = false;
-                $lastState = 'not observed';
-                do {
-                    // INNODB_TRX needs >100 ms idle since its last read to refresh.
-                    // Delay controls observation cadence; only LOCK WAIT proves contention.
-                    usleep(200000);
-                    if (! $processes[0]->isRunning() || ! $processes[1]->isRunning()
-                        || str_contains($processes[1]->getOutput(), 'USER_LOCK_ACQUIRED')) {
-                        break;
-                    }
-                    $transaction = DB::table('information_schema.INNODB_TRX')
-                        ->where('trx_mysql_thread_id', $connections[1])->first(['trx_state', 'trx_query']);
-                    $lastState = $transaction?->trx_state ?? 'absent';
-                    $sql = strtolower((string) ($transaction?->trx_query));
-                    $waiting = $lastState === 'LOCK WAIT' && str_contains($sql, 'from `users`') && str_contains($sql, 'for update');
-                } while (! $waiting && microtime(true) < $deadline);
-                $this->assertTrue($waiting, 'Expected real User row LOCK WAIT; state='.$lastState.'; '.$this->diagnostic($processes));
+                $this->awaitOutput($processes[1], 'LOCK_CONFLICT');
                 $this->assertStringNotContainsString('USER_LOCK_ACQUIRED', $processes[1]->getOutput());
                 $this->assertStringNotContainsString('RESULT:', $processes[1]->getOutput());
                 $this->assertTrue($processes[1]->isRunning());
+                $inputs[1]->write("continue\n");
+                $this->awaitOutput($processes[1], 'LOCK_RESUMING');
             } else {
                 // Independent owner must commit while the first owner is still paused.
                 $this->awaitOutput($processes[1], 'RESULT:');
@@ -195,6 +180,9 @@ class UserAddressConcurrencyTest extends TestCase
                 $process->stop(0);
                 $this->assertFalse($process->isRunning());
             }
+            \Tests\Support\ConcurrencyLockProbe::assertReleased([
+                'users' => array_values(array_unique([$first['user_id'], $second['user_id']])),
+            ], $processes);
         }
 
         return $results;

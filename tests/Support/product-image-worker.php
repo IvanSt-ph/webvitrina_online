@@ -15,6 +15,9 @@ $connection->beforeExecuting(function (string $query): void {
     }
 });
 $product = App\Models\Product::findOrFail((int) $argv[1]);
+if ($argv[2] === 'second') {
+    Tests\Support\ConcurrencyLockProbe::install($connection, 'products');
+}
 $service = app(App\Services\ProductService::class);
 $mainImage = Illuminate\Http\UploadedFile::fake()->image('main.jpg', 24, 24);
 $galleryImage = Illuminate\Http\UploadedFile::fake()->image('gallery.jpg', 24, 24);

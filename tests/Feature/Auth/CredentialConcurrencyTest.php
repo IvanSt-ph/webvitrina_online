@@ -73,41 +73,19 @@ class CredentialConcurrencyTest extends TestCase
             }
             preg_match('/CONNECTION:(\d+)/', $processes[1]->getOutput(), $match);
             $this->assertNotEmpty($match);
-            $deadline = microtime(true) + 8;
-            $waiting = false;
-            $lastState = 'not observed';
-            $polls = 0;
-            do {
-                // INNODB_TRX refresh requires >100 ms since its LAST READ, not
-                // its last refresh. Polling every 20 ms can keep an early empty
-                // snapshot alive forever. Leave an idle interval before EVERY
-                // read, including the first; this is cadence, not lock proof.
-                // MySQL: storage/innobase/trx/trx0i_s.cc,
-                // can_cache_be_updated() and trx_i_s_cache_end_read().
-                usleep(200000);
-                if (! $processes[0]->isRunning() || ! $processes[1]->isRunning()
-                    || str_contains($processes[1]->getOutput(), 'USER_LOCK_ACQUIRED')
-                    || str_contains($processes[1]->getOutput(), 'RESULT:')) {
-                    break;
-                }
-                $transaction = DB::table('information_schema.INNODB_TRX')
-                    ->where('trx_mysql_thread_id', $match[1])
-                    ->first(['trx_state', 'trx_query']);
-                $polls++;
-                $lastState = $transaction?->trx_state ?? 'absent';
-                $query = strtolower((string) ($transaction?->trx_query));
-                $waiting = $lastState === 'LOCK WAIT'
-                    && str_contains($query, 'from `users`') && str_contains($query, 'for update');
-                if ($waiting) {
-                    break;
-                }
-            } while (microtime(true) < $deadline);
-            $diagnostic = $first.' -> '.$second.'; polls='.$polls.'; last_state='.$lastState
+            preg_match('/CONNECTION:(\d+)/', $processes[0]->getOutput(), $holder);
+            $this->assertNotEmpty($holder);
+            $this->assertNotSame($holder[1], $match[1]);
+            $this->awaitOutput($processes[1], 'LOCK_CONFLICT');
+            $diagnostic = $first.' -> '.$second
                 .'; holder='.$this->workerState($processes[0]).'; contender='.$this->workerState($processes[1]);
-            $this->assertTrue($waiting, 'The second MySQL connection must actually wait for the user row lock. '.$diagnostic);
+            $this->assertStringContainsString('LOCK_CONFLICT', $processes[1]->getOutput(),
+                'NOWAIT must prove the second session conflicts on the user row. '.$diagnostic);
             $this->assertTrue($processes[0]->isRunning() && $processes[1]->isRunning(), $diagnostic);
             $this->assertStringNotContainsString('USER_LOCK_ACQUIRED', $processes[1]->getOutput(), $diagnostic);
             $this->assertStringNotContainsString('RESULT:', $processes[1]->getOutput());
+            $inputs[1]->write("continue\n");
+            $this->awaitOutput($processes[1], 'LOCK_RESUMING');
             $inputs[0]->write("release\n");
             foreach ($processes as $process) {
                 $this->assertSame(0, $process->wait(), $process->getErrorOutput());
@@ -123,6 +101,7 @@ class CredentialConcurrencyTest extends TestCase
                 $process->stop(0);
                 $this->assertFalse($process->isRunning());
             }
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['users' => [$user->id]], $processes);
         }
         $this->assertSame($firstStatus, $results[0]['status']);
         $this->assertSame($secondStatus, $results[1]['status']);
@@ -182,6 +161,8 @@ class CredentialConcurrencyTest extends TestCase
             'connection' => $connection[1] ?? null,
             'running' => $process->isRunning(), 'exit' => $process->getExitCode(),
             'lock_attempt' => str_contains($output, 'USER_LOCK_ATTEMPT'),
+            'lock_conflict' => str_contains($output, 'LOCK_CONFLICT'),
+            'lock_resuming' => str_contains($output, 'LOCK_RESUMING'),
             'lock_acquired' => str_contains($output, 'USER_LOCK_ACQUIRED'),
             'paused' => str_contains($output, 'LOCKED'), 'result_status' => $status,
             'error' => trim($process->getErrorOutput()),

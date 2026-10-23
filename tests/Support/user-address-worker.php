@@ -39,6 +39,9 @@ try {
             flush();
         }
     });
+    if ($input['probe_lock'] ?? false) {
+        Tests\Support\ConcurrencyLockProbe::install(DB::connection(), 'users');
+    }
     $paused = false;
     DB::listen(function ($query) use ($input, &$paused, &$stage): void {
         if (str_contains($query->sql, 'from `users`') && str_contains($query->sql, 'for update')) {

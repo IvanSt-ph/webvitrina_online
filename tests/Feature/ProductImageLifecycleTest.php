@@ -259,10 +259,9 @@ class ProductImageLifecycleTest extends TestCase
                 $inputs[] = $input;
                 $processes[] = $process;
                 $process->start();
-                // ATTEMPT is emitted before ProductService enters its transaction.
-                // Wait for the database hook so lock observation starts only when
-                // the second worker is dispatching the actual SELECT ... FOR UPDATE.
-                $expected = $mode === 'first' ? 'LOCKED' : 'LOCK_QUERY';
+                // Require a real NOWAIT conflict in ProductService's transaction,
+                // not just a marker preceding the locking query.
+                $expected = $mode === 'first' ? 'LOCKED' : 'LOCK_CONFLICT';
                 $deadline = microtime(true) + 10;
                 while (! str_contains($process->getOutput(), $expected) && $process->isRunning() && microtime(true) < $deadline) {
                     usleep(20000);
@@ -271,18 +270,19 @@ class ProductImageLifecycleTest extends TestCase
             }
             preg_match('/CONNECTION:(\d+)/', $processes[1]->getOutput(), $matches);
             $this->assertNotEmpty($matches);
-            $deadline = microtime(true) + 8;
-            do {
-                $waiting = DB::table('information_schema.INNODB_TRX')
-                    ->where('trx_mysql_thread_id', $matches[1])->where('trx_state', 'LOCK WAIT')->exists();
-                if (! $waiting) {
-                    usleep(50000);
-                }
-            } while (! $waiting && microtime(true) < $deadline);
-            $this->assertTrue($waiting, 'Second update must actually wait on the product row lock. ' .
-                implode("\n", array_map(fn ($process) => $process->getOutput() . $process->getErrorOutput(), $processes)));
+            preg_match('/CONNECTION:(\d+)/', $processes[0]->getOutput(), $holder);
+            $this->assertNotEmpty($holder);
+            $this->assertNotSame($holder[1], $matches[1]);
+            $this->assertStringContainsString('LOCK_CONFLICT', $processes[1]->getOutput(),
+                'NOWAIT must prove contention on the product row.');
             $this->assertStringNotContainsString('DONE', $processes[1]->getOutput());
             $this->assertPairExists($product->image);
+            $inputs[1]->write("continue\n");
+            $deadline = microtime(true) + 10;
+            while (! str_contains($processes[1]->getOutput(), 'LOCK_RESUMING') && $processes[1]->isRunning() && microtime(true) < $deadline) {
+                usleep(20000); // Polling only; progression requires an explicit worker signal.
+            }
+            $this->assertStringContainsString('LOCK_RESUMING', $processes[1]->getOutput(), $processes[1]->getErrorOutput());
             $inputs[0]->write("release\n");
             foreach ($processes as $process) {
                 $this->assertSame(0, $process->wait(), $process->getErrorOutput());
@@ -302,6 +302,7 @@ class ProductImageLifecycleTest extends TestCase
                 $process->stop(0);
                 $this->assertFalse($process->isRunning());
             }
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['products' => [$product->id]], $processes);
         }
     }
 
