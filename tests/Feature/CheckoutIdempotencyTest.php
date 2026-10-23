@@ -39,15 +39,16 @@ class CheckoutIdempotencyTest extends CheckoutTestCase
         $this->assertSame([0, 0], Product::orderBy('id')->pluck('stock')->all());
     }
 
-    public function test_notification_and_logger_failure_do_not_fail_committed_checkout(): void
+    public function test_email_and_logger_failure_do_not_fail_committed_checkout(): void
     {
         $this->prepareCart();
         $snapshot = $this->snapshot();
-        $this->mock(UserNotificationService::class)->shouldReceive('create')->once()->andThrow(new \RuntimeException('notification'));
+        $this->partialMock(UserNotificationService::class)->shouldReceive('sendEmail')->once()->andThrow(new \RuntimeException('email'));
         Log::shouldReceive('error')->once()->andThrow(new \RuntimeException('logger'));
         $this->submit()->assertSessionHas('success');
         $this->withSession($snapshot)->submit()->assertRedirect(route('orders.show', Order::sole()));
         $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseCount('user_notifications', 1);
         $this->assertSame(4, Product::sole()->stock);
     }
 
@@ -114,12 +115,14 @@ class CheckoutIdempotencyTest extends CheckoutTestCase
         DB::beginTransaction();
         DB::beginTransaction();
         $this->submit()->assertSessionHas('success');
-        $this->assertDatabaseCount('user_notifications', 0);
+        $this->assertDatabaseCount('user_notifications', 1);
         DB::rollBack();
         $this->assertDatabaseCount('checkout_attempts', 0);
+        $this->assertDatabaseCount('user_notifications', 0);
         $this->withSession($snapshot)->submit()->assertSessionHas('success');
         DB::rollBack();
         $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('user_notifications', 0);
         $this->assertDatabaseCount('checkout_attempts', 0);
         $this->assertSame(5, Product::sole()->stock);
         $this->withSession($snapshot)->submit()->assertSessionHas('success');
@@ -132,7 +135,7 @@ class CheckoutIdempotencyTest extends CheckoutTestCase
         $snapshot = $this->snapshot();
         DB::beginTransaction();
         $this->submit()->assertSessionHas('success');
-        $this->assertDatabaseCount('user_notifications', 0);
+        $this->assertDatabaseCount('user_notifications', 1);
         DB::commit();
         $this->withSession($snapshot)->submit()->assertSessionHas('success');
         $this->assertDatabaseCount('checkout_attempts', 1);

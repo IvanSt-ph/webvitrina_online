@@ -466,17 +466,32 @@ return redirect()
 
                     $createdOrders[] = $order;
 
-                // Keep both the site notification and email dispatch outside all
-                // checkout transactions; rollback discards this callback.
+                    // The site notification and order share the F11 transaction.
+                    // Failure must roll back the entire checkout, including its key.
+                    $notification = app(UserNotificationService::class)->createSite(
+                        $order->seller,
+                        'order_created',
+                        'Новый заказ',
+                        "Поступил новый заказ {$order->number}.",
+                        route('seller.orders.show', $order, false),
+                        ['order_id' => $order->id],
+                    );
+                    if ($notification === null) {
+                        throw ValidationException::withMessages([
+                            'cart' => 'Продавец больше недоступен. Обновите корзину.',
+                        ]);
+                    }
+
+                    // Email remains best effort after the final commit. Its failure
+                    // cannot undo the durable site notification or order.
                     DB::afterCommit(function () use ($order): void {
                         try {
-                            app(UserNotificationService::class)->create(
-                                $order->seller,
+                            app(UserNotificationService::class)->sendEmail(
+                                $order->seller()->first(),
                                 'order_created',
                                 'Новый заказ',
                                 "Поступил новый заказ {$order->number}.",
                                 route('seller.orders.show', $order, false),
-                                ['order_id' => $order->id],
                             );
                         } catch (\Throwable $exception) {
                             // The order is committed. Do not fail checkout or prevent

@@ -11,25 +11,37 @@ class UserNotificationService
 {
     public function create(?User $user, string $type, string $title, ?string $body = null, ?string $url = null, array $data = []): ?UserNotification
     {
+        $notification = $this->createSite($user, $type, $title, $body, $url, $data);
+        if ($notification !== null) {
+            $this->sendEmail($user, $type, $title, $body, $notification->url);
+        }
+
+        return $notification;
+    }
+
+    /** Persist on the caller's transaction; never dispatch email here. */
+    public function createSite(?User $user, string $type, string $title, ?string $body = null, ?string $url = null, array $data = []): ?UserNotification
+    {
         if (! $user || ! $user->exists || $user->trashed() || ! User::whereKey($user->id)->exists()) {
             return null;
         }
 
         $safeUrl = SafeRedirect::internalPath($url);
 
-        $notification = $user->notifications()->create([
+        return $user->notifications()->create([
             'type' => $type,
             'title' => $title,
             'body' => $body,
             'url' => $safeUrl,
             'data' => $data ?: null,
         ]);
+    }
 
-        if ($this->shouldSendEmail($user, $type)) {
-            $user->notify(new MarketplaceEventNotification($title, $body, $safeUrl));
+    public function sendEmail(?User $user, string $type, string $title, ?string $body = null, ?string $url = null): void
+    {
+        if ($user && $user->exists && ! $user->trashed() && $this->shouldSendEmail($user, $type)) {
+            $user->notify(new MarketplaceEventNotification($title, $body, SafeRedirect::internalPath($url)));
         }
-
-        return $notification;
     }
 
     private function shouldSendEmail(User $user, string $type): bool

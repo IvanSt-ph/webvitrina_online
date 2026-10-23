@@ -124,23 +124,26 @@ class CheckoutNotificationTest extends TestCase
         $this->assertSame([4, 4], Product::orderBy('id')->pluck('stock')->all());
     }
 
-    public function test_notification_failure_is_logged_and_other_seller_is_still_notified(): void
+    public function test_email_failure_is_logged_and_other_seller_is_still_notified(): void
     {
         Notification::fake();
         Log::spy();
-        [, $sellers] = $this->prepareCart(2);
+        [, $sellers] = $this->prepareCart(2, true);
         $real = new UserNotificationService;
-        $mock = \Mockery::mock(UserNotificationService::class);
-        $mock->shouldReceive('create')->twice()->andReturnUsing(function (...$arguments) use ($real, $sellers) {
+        $mock = \Mockery::mock(UserNotificationService::class)->makePartial();
+        $mock->shouldReceive('sendEmail')->twice()->andReturnUsing(function (...$arguments) use ($real, $sellers) {
             if ($arguments[0]->id === $sellers[0]->id) {
-                throw new \RuntimeException('Injected notification failure');
+                throw new \RuntimeException('Injected email failure');
             }
-            return $real->create(...$arguments);
+            $real->sendEmail(...$arguments);
         });
         $this->app->instance(UserNotificationService::class, $mock);
         $this->submit()->assertSessionHasNoErrors()->assertRedirect(route('orders.index'));
         $this->assertDatabaseCount('orders', 2);
+        $this->assertSame(1, $sellers[0]->notifications()->count());
         $this->assertSame(1, $sellers[1]->notifications()->count());
+        Notification::assertNotSentTo($sellers[0], MarketplaceEventNotification::class);
+        Notification::assertSentToTimes($sellers[1], MarketplaceEventNotification::class, 1);
         Log::shouldHaveReceived('error')->once()->with('Seller new-order notification failed', \Mockery::on(
             fn ($context) => $context['seller_id'] === $sellers[0]->id
                 && $context['order_id'] === Order::where('seller_id', $sellers[0]->id)->sole()->id
@@ -208,7 +211,7 @@ class CheckoutNotificationTest extends TestCase
         DB::beginTransaction();
         $this->submit()->assertSessionHasNoErrors();
         $this->assertDatabaseCount('orders', 2);
-        $this->assertDatabaseCount('user_notifications', 0);
+        $this->assertDatabaseCount('user_notifications', 2);
         $this->assertDatabaseCount('jobs', 0);
         DB::rollBack();
         $this->assertDatabaseCount('orders', 0);
@@ -216,19 +219,22 @@ class CheckoutNotificationTest extends TestCase
         $this->assertDatabaseCount('jobs', 0);
 
         $this->withSession($snapshot)->get(route('checkout.confirm'))->assertOk();
-        $levels = [];
-        DB::listen(function ($query) use (&$levels) {
-            if (str_starts_with($query->sql, 'insert into `user_notifications`')
-                || str_starts_with($query->sql, 'insert into `jobs`')) {
-                $levels[] = DB::transactionLevel();
+        $siteLevels = $jobLevels = [];
+        DB::listen(function ($query) use (&$siteLevels, &$jobLevels) {
+            if (str_starts_with($query->sql, 'insert into `user_notifications`')) {
+                $siteLevels[] = DB::transactionLevel();
+            }
+            if (str_starts_with($query->sql, 'insert into `jobs`')) {
+                $jobLevels[] = DB::transactionLevel();
             }
         });
         DB::beginTransaction();
         $this->submit()->assertSessionHasNoErrors();
-        $this->assertDatabaseCount('user_notifications', 0);
+        $this->assertDatabaseCount('user_notifications', 2);
         $this->assertDatabaseCount('jobs', 0);
         DB::commit();
-        $this->assertSame([0, 0, 0, 0], $levels);
+        $this->assertSame([2, 2], $siteLevels);
+        $this->assertSame([0, 0], $jobLevels);
         $this->assertDatabaseCount('orders', 2);
         $this->assertDatabaseCount('user_notifications', 2);
         $jobs = DB::table('jobs')->get();

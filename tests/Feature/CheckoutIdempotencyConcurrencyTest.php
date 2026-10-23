@@ -86,8 +86,15 @@ class CheckoutIdempotencyConcurrencyTest extends CheckoutTestCase
             foreach (['orders', 'order_items', 'order_events', 'checkout_attempts'] as $table) {
                 $this->assertDatabaseCount($table, $count);
             }
-            // Death in the early callback demonstrates the separate, known delivery gap.
-            $this->assertDatabaseCount('user_notifications', in_array($outcome, ['crash after commit', 'unknown committed'], true) ? 0 : $count);
+            // Site notifications survive even if PHP dies in the first afterCommit
+            // callback or never receives the commit acknowledgement.
+            $this->assertDatabaseCount('user_notifications', $count);
+            foreach (Order::all() as $order) {
+                $notification = \App\Models\UserNotification::where('data->order_id', $order->id)->sole();
+                $this->assertSame($order->seller_id, $notification->user_id);
+                $this->assertSame('order_created', $notification->type);
+                $this->assertSame(route('seller.orders.show', $order, false), $notification->url);
+            }
             $this->assertSame($stock - $count, $product->fresh()->stock);
             $this->assertSame([$buyer->id], Order::pluck('user_id')->unique()->values()->all());
         } catch (ProcessTimedOutException $exception) {
