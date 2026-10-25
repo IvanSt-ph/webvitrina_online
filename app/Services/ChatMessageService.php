@@ -57,6 +57,9 @@ class ChatMessageService
                     $current->save();
                     $conversation->setRawAttributes($current->getAttributes(), true);
 
+                    if ($admin) {
+                        DB::afterCommit(fn () => app(SupportReplyNotificationService::class)->send($message));
+                    }
                     return $message;
                 });
             } catch (\Throwable $exception) {

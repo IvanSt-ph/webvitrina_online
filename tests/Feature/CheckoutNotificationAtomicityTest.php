@@ -48,16 +48,19 @@ class CheckoutNotificationAtomicityTest extends CheckoutTestCase
         $this->assertSame([4, 4], Product::orderBy('id')->pluck('stock')->all());
     }
 
-    public function test_missing_site_recipient_cannot_leave_a_committed_order(): void
+    public function test_disabled_channels_preserve_complete_order_and_replay_protection(): void
     {
         Notification::fake();
-        $this->prepareCart();
-        $this->partialMock(UserNotificationService::class)->shouldReceive('createSite')->once()->andReturnNull();
-        $this->submit()->assertSessionHasErrors('cart');
-        $this->assertDatabaseCount('orders', 0);
-        $this->assertDatabaseCount('checkout_attempts', 0);
+        [, $sellers] = $this->prepareCart();
+        $sellers[0]->update(['notification_preferences' => ['site_orders' => false, 'email_orders' => false]]);
+        $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
+        $this->submit()->assertSessionHasNoErrors();
+        $this->withSession($snapshot)->submit()->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseCount('order_items', 1);
+        $this->assertDatabaseCount('checkout_attempts', 1);
         $this->assertDatabaseCount('user_notifications', 0);
-        $this->assertSame(5, Product::sole()->stock);
+        $this->assertSame(4, Product::sole()->stock);
         Notification::assertNothingSent();
     }
 

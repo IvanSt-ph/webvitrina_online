@@ -70,6 +70,13 @@ class User extends Authenticatable implements MustVerifyEmail
         }));
     }
 
+    public function routeNotificationForMail($notification): ?string
+    {
+        return $notification instanceof \App\Notifications\PasswordChangedNotification
+            ? ($notification->recipientEmail ?? $this->email)
+            : $this->email;
+    }
+
     protected static function booted(): void
     {
         static::saving(function (User $user): void {
@@ -77,6 +84,23 @@ class User extends Authenticatable implements MustVerifyEmail
             // through PhoneAssignmentService's freshly locked User instance.
             if ($user->exists && $user->isDirty('email')) {
                 $user->email_verified_at = null;
+            }
+        });
+
+        static::updated(function (User $user): void {
+            // Account anonymization clears email: it is not a credential-change alert.
+            if (! $user->email || $user->trashed()) {
+                return;
+            }
+            $address = $user->wasChanged('email') ? $user->getRawOriginal('email') : $user->email;
+            if ($user->wasChanged('password')) {
+                $user->notify(new \App\Notifications\PasswordChangedNotification($address));
+            }
+            foreach (['email', 'phone'] as $field) {
+                if ($address && $user->wasChanged($field)) {
+                    \Illuminate\Support\Facades\Notification::route('mail', $address)
+                        ->notify(new \App\Notifications\ContactChangedNotification($field));
+                }
             }
         });
 

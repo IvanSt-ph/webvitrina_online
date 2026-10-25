@@ -154,6 +154,47 @@ class PickupOrderWorkflowTest extends TestCase
         $this->assertSame(1, $order->events()->count());
     }
 
+    public function test_cancellation_form_submits_preset_and_custom_reasons_without_changing_order_status(): void
+    {
+        foreach (['Передумал(а) покупать.', 'Не смогу приехать в согласованный день'] as $reason) {
+            [$order, $buyer] = $this->pickup();
+            $this->actingAs($buyer)->post(route('orders.requestCancellation', $order), [
+                'cancellation_reason' => $reason,
+            ])->assertSessionHasNoErrors();
+            $this->assertSame($reason, $order->fresh()->cancellation_reason);
+            $this->assertSame(Order::STATUS_PENDING, $order->fresh()->status);
+            $this->assertSame($reason, $order->events()->firstOrFail()->metadata['reason']);
+        }
+    }
+
+    public function test_cancellation_form_rejects_invalid_reasons_even_without_javascript(): void
+    {
+        foreach ([null, '', '   ', ['invalid'], str_repeat('я', 701)] as $reason) {
+            [$order, $buyer] = $this->pickup();
+            $this->actingAs($buyer)->postJson(route('orders.requestCancellation', $order), [
+                'cancellation_reason' => $reason,
+            ])->assertUnprocessable()->assertJsonValidationErrors('cancellation_reason');
+            $this->assertNull($order->fresh()->cancellation_requested_at);
+            $this->assertSame(0, $order->events()->count());
+        }
+    }
+
+    public function test_cancellation_form_validation_preserves_custom_reason_and_choice(): void
+    {
+        [$order, $buyer] = $this->pickup();
+        $reason = str_repeat('я', 701);
+        $this->actingAs($buyer)->from(route('orders.show', $order))
+            ->post(route('orders.requestCancellation', $order), [
+                'cancellation_reason' => $reason,
+                'cancellation_reason_choice' => 'other',
+            ])->assertRedirect(route('orders.show', $order))
+            ->assertSessionHasErrors('cancellation_reason')
+            ->assertSessionHasInput('cancellation_reason', $reason)
+            ->assertSessionHasInput('cancellation_reason_choice', 'other');
+        $this->get(route('orders.show', $order))->assertOk()
+            ->assertSee('Причина отмены')->assertSee('cancellation-reason-error');
+    }
+
     public function test_cancellation_request_and_rejection_are_idempotent_and_keep_reason_in_event(): void
     {
         [$order, $buyer, $seller] = $this->pickup();

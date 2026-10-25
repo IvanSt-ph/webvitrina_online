@@ -157,11 +157,10 @@ class OrderPickupWorkflow
                 'from_status' => $locked->status,
                 'to_status' => $locked->status,
             ]);
-            $notification = $this->notifications->create($buyer, 'pickup_confirmation_requested',
+            $this->notifications->create($buyer, 'pickup_confirmation_requested',
                 'Подтвердите получение заказа',
                 "Продавец просит подтвердить получение заказа {$locked->number}, если товар действительно получен.",
                 route('orders.show', $locked, false), ['order_id' => $locked->id]);
-            $this->require($notification !== null, 'Уведомление покупателю недоступно. Обратитесь в поддержку.');
 
             return true;
         }, 3);

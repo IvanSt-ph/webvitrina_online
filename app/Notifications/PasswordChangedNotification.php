@@ -10,7 +10,7 @@ class PasswordChangedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct()
+    public function __construct(public ?string $recipientEmail = null)
     {
         $this->afterCommit();
     }

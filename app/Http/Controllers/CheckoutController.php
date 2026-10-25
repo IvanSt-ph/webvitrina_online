@@ -12,7 +12,6 @@ use App\Services\UserNotificationService;
 use App\Support\MoneyLimits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -468,7 +467,10 @@ return redirect()
 
                     // The site notification and order share the F11 transaction.
                     // Failure must roll back the entire checkout, including its key.
-                    $notification = app(UserNotificationService::class)->createSite(
+                    if (! $order->seller || ! \App\Models\User::whereKey($order->seller_id)->exists()) {
+                        throw ValidationException::withMessages(['cart' => 'Продавец больше недоступен. Обновите корзину.']);
+                    }
+                    app(UserNotificationService::class)->createSite(
                         $order->seller,
                         'order_created',
                         'Новый заказ',
@@ -476,37 +478,13 @@ return redirect()
                         route('seller.orders.show', $order, false),
                         ['order_id' => $order->id],
                     );
-                    if ($notification === null) {
-                        throw ValidationException::withMessages([
-                            'cart' => 'Продавец больше недоступен. Обновите корзину.',
-                        ]);
-                    }
-
-                    // Email remains best effort after the final commit. Its failure
-                    // cannot undo the durable site notification or order.
+                    // Delivery errors propagate after commit; replay still returns the committed order.
                     DB::afterCommit(function () use ($order): void {
-                        try {
-                            app(UserNotificationService::class)->sendEmail(
-                                $order->seller()->first(),
-                                'order_created',
-                                'Новый заказ',
-                                "Поступил новый заказ {$order->number}.",
-                                route('seller.orders.show', $order, false),
-                            );
-                        } catch (\Throwable $exception) {
-                            // The order is committed. Do not fail checkout or prevent
-                            // callbacks for the remaining sellers from running.
-                            try {
-                                Log::error('Seller new-order notification failed', [
-                                    'order_id' => $order->id,
-                                    'seller_id' => $order->seller_id,
-                                    'exception' => get_class($exception),
-                                    'message' => $exception->getMessage(),
-                                ]);
-                            } catch (\Throwable) {
-                                // Logging failure must not fail an already committed order.
-                            }
-                        }
+                        app(UserNotificationService::class)->sendEmail(
+                            $order->seller()->first(), 'order_created', 'Новый заказ',
+                            "Поступил новый заказ {$order->number}.",
+                            route('seller.orders.show', $order, false),
+                        );
                     });
                 }
                 return $createdOrders;

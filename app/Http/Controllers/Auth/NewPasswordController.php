@@ -8,12 +8,10 @@ use App\Services\PasswordSecurityService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
-use App\Notifications\PasswordChangedNotification;
 
 class NewPasswordController extends Controller
 {
@@ -49,20 +47,7 @@ class NewPasswordController extends Controller
             }
         );
 
-        // Notify after the credential transaction commits; a synchronous mail
-        // failure must not turn a successfully committed reset into a 500.
         if ($status === Password::PASSWORD_RESET && $resetUser !== null) {
-            try {
-                $resetUser->notify(new PasswordChangedNotification());
-            } catch (\Throwable $exception) {
-                Log::warning('Password changed notification failed', [
-                    'user_id' => $resetUser->id,
-                    'email_hash' => hash('sha256', (string) $resetUser->email),
-                    'exception' => get_class($exception),
-                    'message' => $exception->getMessage(),
-                ]);
-            }
-
             event(new PasswordReset($resetUser));
         }
 

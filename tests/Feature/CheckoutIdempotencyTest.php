@@ -39,13 +39,18 @@ class CheckoutIdempotencyTest extends CheckoutTestCase
         $this->assertSame([0, 0], Product::orderBy('id')->pluck('stock')->all());
     }
 
-    public function test_email_and_logger_failure_do_not_fail_committed_checkout(): void
+    public function test_email_failure_propagates_without_duplicating_committed_checkout(): void
     {
         $this->prepareCart();
         $snapshot = $this->snapshot();
         $this->partialMock(UserNotificationService::class)->shouldReceive('sendEmail')->once()->andThrow(new \RuntimeException('email'));
-        Log::shouldReceive('error')->once()->andThrow(new \RuntimeException('logger'));
-        $this->submit()->assertSessionHas('success');
+        $this->withoutExceptionHandling();
+        try {
+            $this->submit();
+            $this->fail('Expected delivery error');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('email', $exception->getMessage());
+        }
         $this->withSession($snapshot)->submit()->assertRedirect(route('orders.show', Order::sole()));
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);

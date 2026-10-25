@@ -371,7 +371,7 @@ class ChatController extends Controller
                     return;
                 }
                 app(UserNotificationService::class)->create(
-                    $recipient, 'chat_message', 'Новое сообщение',
+                    $recipient, $conversation->isSupport() ? 'support_message' : 'chat_message', 'Новое сообщение',
                     $request->user()->name . ' написал(а) в чате.',
                     route('chats.show', $conversation, false), ['conversation_id' => $conversation->id],
                 );

@@ -38,25 +38,17 @@ class UserSettingsController extends Controller
             'email_orders' => ['nullable', 'boolean'],
             'email_messages' => ['nullable', 'boolean'],
             'email_reviews' => ['nullable', 'boolean'],
-            'email_security' => ['nullable', 'boolean'],
             'site_orders' => ['nullable', 'boolean'],
             'site_messages' => ['nullable', 'boolean'],
             'site_reviews' => ['nullable', 'boolean'],
             'site_support' => ['nullable', 'boolean'],
         ]);
 
-        $request->user()->forceFill([
-            'notification_preferences' => [
-                'email_orders' => (bool) ($data['email_orders'] ?? false),
-                'email_messages' => (bool) ($data['email_messages'] ?? false),
-                'email_reviews' => (bool) ($data['email_reviews'] ?? false),
-                'email_security' => (bool) ($data['email_security'] ?? false),
-                'site_orders' => (bool) ($data['site_orders'] ?? false),
-                'site_messages' => (bool) ($data['site_messages'] ?? false),
-                'site_reviews' => (bool) ($data['site_reviews'] ?? false),
-                'site_support' => (bool) ($data['site_support'] ?? false),
-            ],
-        ])->save();
+        $preferences = array_replace(\App\Support\NotificationPreferences::DEFAULTS, $request->user()->notification_preferences ?? []);
+        foreach ($data as $key => $value) {
+            $preferences[$key] = (bool) $value;
+        }
+        $request->user()->forceFill(['notification_preferences' => $preferences])->save();
 
         return back()->with('success', 'Настройки уведомлений сохранены.');
     }

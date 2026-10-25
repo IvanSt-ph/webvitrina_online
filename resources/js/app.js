@@ -1,6 +1,7 @@
 import './runtime-libraries';
 import './image-fallback';
 import Alpine from 'alpinejs'
+import orderCancellationReason from './order-cancellation-reason'
 
 window.Alpine = Alpine
 
@@ -62,6 +63,8 @@ Alpine.data('mobileHeader', () => ({
     })
   },
 }))
+
+Alpine.data('orderCancellationReason', orderCancellationReason)
 
 Alpine.start()
 

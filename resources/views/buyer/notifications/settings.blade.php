@@ -1,11 +1,11 @@
 @php
     $user = auth()->user();
-    $prefs = $user->notification_preferences ?? [];
+    $prefs = array_replace(\App\Support\NotificationPreferences::DEFAULTS, $user->notification_preferences ?? []);
     $enabled = fn (string $key, bool $default = true) => old($key, $prefs[$key] ?? $default);
     $settingsLayout = $user->isSeller() ? 'seller-layout' : 'buyer-layout';
 
     $siteOptions = [
-        'site_orders' => ['ri-shopping-bag-3-line', 'Заказы', 'Новые статусы, отмены и споры.'],
+        'site_orders' => ['ri-shopping-bag-3-line', 'Заказы', 'Статусы заказов, отмены и самовывоз.'],
         'site_messages' => ['ri-chat-3-line', 'Сообщения', 'Новые сообщения в чатах.'],
         'site_reviews' => ['ri-star-line', 'Отзывы', 'Модерация и ответы по отзывам.'],
         'site_support' => ['ri-customer-service-2-line', 'Поддержка', 'Ответы и решения поддержки.'],
@@ -13,9 +13,8 @@
 
     $emailOptions = [
         'email_orders' => ['ri-shopping-bag-3-line', 'Заказы', 'Создание, изменение статуса и отмена.'],
-        'email_messages' => ['ri-mail-line', 'Сообщения', 'Важные сообщения от продавца или поддержки.'],
+        'email_messages' => ['ri-mail-line', 'Сообщения', 'Новые сообщения в обычных чатах.'],
         'email_reviews' => ['ri-star-line', 'Отзывы', 'Результат модерации отзыва.'],
-        'email_security' => ['ri-shield-check-line', 'Безопасность', 'Изменения пароля, email, телефона и входа.'],
     ];
 @endphp
 
@@ -66,7 +65,7 @@
                 @csrf
                 @method('PATCH')
 
-                <div class="grid gap-5 xl:grid-cols-2">
+                <div class="grid w-full grid-cols-1 gap-5">
                     <section class="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
                         <div class="flex items-start gap-3 border-b border-neutral-100 px-4 py-4 sm:px-5">
                             <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
@@ -128,7 +127,7 @@
 
                 <div class="flex flex-col-reverse gap-3 border-t border-neutral-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-xs leading-5 text-neutral-500">
-                        Настройки можно изменить в любое время. Важные сообщения безопасности могут отправляться независимо от маркетинговых предпочтений.
+                        Настройки действуют для новых уведомлений. История и непрочитанные уведомления сохраняются. Письма подтверждения email, восстановления и изменения пароля, изменения email и телефона обязательны.
                     </p>
                     <button type="submit" class="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 text-sm font-semibold text-white transition hover:bg-brand-600 sm:w-auto">
                         <i class="ri-save-3-line" aria-hidden="true"></i>

@@ -124,7 +124,7 @@ class CheckoutNotificationTest extends TestCase
         $this->assertSame([4, 4], Product::orderBy('id')->pluck('stock')->all());
     }
 
-    public function test_email_failure_is_logged_and_other_seller_is_still_notified(): void
+    public function test_email_failure_propagates_and_other_seller_is_still_notified(): void
     {
         Notification::fake();
         Log::spy();
@@ -138,17 +138,13 @@ class CheckoutNotificationTest extends TestCase
             $real->sendEmail(...$arguments);
         });
         $this->app->instance(UserNotificationService::class, $mock);
-        $this->submit()->assertSessionHasNoErrors()->assertRedirect(route('orders.index'));
+        $this->assertDeliveryFails();
         $this->assertDatabaseCount('orders', 2);
         $this->assertSame(1, $sellers[0]->notifications()->count());
         $this->assertSame(1, $sellers[1]->notifications()->count());
         Notification::assertNotSentTo($sellers[0], MarketplaceEventNotification::class);
         Notification::assertSentToTimes($sellers[1], MarketplaceEventNotification::class, 1);
-        Log::shouldHaveReceived('error')->once()->with('Seller new-order notification failed', \Mockery::on(
-            fn ($context) => $context['seller_id'] === $sellers[0]->id
-                && $context['order_id'] === Order::where('seller_id', $sellers[0]->id)->sole()->id
-                && $context['exception'] === \RuntimeException::class
-        ));
+
     }
 
     public function test_queue_failure_preserves_database_notification_and_replay_protection(): void
@@ -157,16 +153,15 @@ class CheckoutNotificationTest extends TestCase
         Log::spy();
         $this->prepareCart(email: true);
         $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
-        $this->submit()->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->assertDeliveryFails();
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);
-        Log::shouldHaveReceived('error')->once();
         $this->withSession($snapshot)->submit()->assertSessionHas('success');
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);
     }
 
-    public function test_sync_mail_failure_does_not_fail_checkout(): void
+    public function test_sync_mail_failure_propagates_after_commit(): void
     {
         config(['queue.default' => 'sync']);
         Log::spy();
@@ -176,14 +171,13 @@ class CheckoutNotificationTest extends TestCase
             $attempted = true;
             throw new \RuntimeException('Injected mail failure');
         });
-        $this->submit()->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->assertDeliveryFails();
         $this->assertTrue($attempted);
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);
-        Log::shouldHaveReceived('error')->once();
     }
 
-    public function test_mail_rendering_failure_does_not_fail_checkout(): void
+    public function test_mail_rendering_failure_propagates_after_commit(): void
     {
         config(['queue.default' => 'sync']);
         Log::spy();
@@ -192,12 +186,18 @@ class CheckoutNotificationTest extends TestCase
             $mock->shouldReceive('theme')->andReturnSelf();
             $mock->shouldReceive('render')->once()->andThrow(new \RuntimeException('Injected render failure'));
         });
-        $this->submit()->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->assertDeliveryFails();
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('user_notifications', 1);
-        Log::shouldHaveReceived('error')->once()->with('Seller new-order notification failed', \Mockery::on(
-            fn ($context) => $context['message'] === 'Injected render failure'
-        ));
+
+    }
+
+    private function assertDeliveryFails(): void
+    {
+        $this->withoutExceptionHandling();
+        $error = null;
+        try { $this->submit(); } catch (\Throwable $exception) { $error = $exception; }
+        $this->assertNotNull($error, 'Delivery failure must not be reported as success');
     }
 
     public function test_real_outer_commit_and_rollback_control_database_notification_and_email_job(): void
@@ -258,7 +258,7 @@ class CheckoutNotificationTest extends TestCase
         $sellers = [];
         for ($i = 0; $i < $sellerCount; $i++) {
             $seller = User::factory()->create([
-                'role' => 'seller', 'notification_preferences' => ['email_orders' => $email, 'site_orders' => false],
+                'role' => 'seller', 'notification_preferences' => ['email_orders' => $email, 'site_orders' => true],
             ]);
             $sellers[] = $seller;
             $product = Product::create([

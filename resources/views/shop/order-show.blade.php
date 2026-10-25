@@ -465,77 +465,138 @@
 
     </div>
 
-    @if(! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at)
-        <section class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
-            <h3 class="font-semibold text-amber-900">Запрос на отмену отправлен</h3>
-            <p class="mt-1 text-sm text-amber-800">Отправлен {{ $order->cancellation_requested_at->format('d.m.Y H:i') }}. Продавец или поддержка рассмотрят запрос.</p>
-            @if(filled($order->cancellation_reason))
-                <p class="mt-3 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700">{{ $order->cancellation_reason }}</p>
-            @endif
-        </section>
-    @elseif($canRequestCancellation)
-        <section class="wv-card p-4 sm:p-5">
-            <h3 class="font-semibold text-neutral-900">Нужно отменить заказ?</h3>
-            <p class="mt-1 text-sm text-neutral-500">Пока товар не отправлен, можно направить продавцу запрос на отмену.</p>
-            <form method="POST" action="{{ route('orders.requestCancellation', $order) }}" class="mt-4 max-w-xl space-y-3">
-                @csrf
-                <textarea name="cancellation_reason" rows="3" required maxlength="700"
-                          placeholder="Напишите причину отмены"
-                          class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100">{{ old('cancellation_reason') }}</textarea>
-                @error('cancellation_reason')
-                    <p class="text-sm text-rose-600">{{ $message }}</p>
-                @enderror
-                <button class="inline-flex h-11 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
-                    Запросить отмену
-                </button>
-            </form>
-        </section>
-    @endif
-
-    @php $openDispute = $order->openDispute; @endphp
-    @if($openDispute)
-        <section class="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
-            <h3 class="font-semibold text-rose-900">Спор открыт</h3>
-            <p class="mt-1 text-sm text-rose-800">
-                Причина: {{ $openDispute->reason }}. Поддержка проверит заказ, переписку и данные продавца.
-            </p>
-            @if($openDispute->details)
-                <p class="mt-3 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700">{{ $openDispute->details }}</p>
-            @endif
-        </section>
-    @else
-        <section class="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
-            <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                    <h3 class="font-semibold text-neutral-900">Возникла проблема с заказом?</h3>
-                    <p class="mt-1 max-w-2xl text-sm text-neutral-500">
-                        Если отмены или обычного сообщения продавцу недостаточно, откройте спор. Его увидят продавец и поддержка.
-                    </p>
-                </div>
-                <details class="w-full lg:max-w-md">
-                    <summary class="cursor-pointer rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-center text-sm font-semibold text-rose-700">
-                        Открыть спор
-                    </summary>
-                    <form method="POST" action="{{ route('orders.disputes.store', $order) }}" class="mt-3 space-y-3 rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+    <section aria-labelledby="order-problems-title" class="min-w-0 space-y-3">
+        <h2 id="order-problems-title" class="text-lg font-semibold text-neutral-900">Проблемы с заказом</h2>
+        <div class="grid min-w-0 grid-cols-1 gap-4 {{ ((! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at) || $canRequestCancellation) ? 'lg:grid-cols-2' : '' }}">
+            @if(! $order->isUnsupportedWorkflow() && $order->cancellation_requested_at)
+                <section class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
+                    <h3 class="font-semibold text-amber-900">Запрос на отмену отправлен</h3>
+                    <p class="mt-1 text-sm text-amber-800">Отправлен {{ $order->cancellation_requested_at->format('d.m.Y H:i') }}. Продавец или поддержка рассмотрят запрос.</p>
+                    @if(filled($order->cancellation_reason))
+                        <p class="mt-3 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700">{{ $order->cancellation_reason }}</p>
+                    @endif
+                </section>
+            @elseif($canRequestCancellation)
+                <section class="wv-card min-w-0 p-4 sm:p-5">
+                    <h3 class="font-semibold text-neutral-900">Отмена заказа</h3>
+                    <p class="mt-1 text-sm text-neutral-500">Можно направить продавцу запрос на отмену заказа. Укажите причину — продавец рассмотрит обращение.</p>
+                    @php
+                        $cancellationReasons = [
+                            'Передумал(а) покупать.',
+                            'Нашёл(ла) более подходящий товар.',
+                            'Заказ оформлен по ошибке.',
+                            'Хочу изменить состав заказа.',
+                            'Не устраивает цена.',
+                            'Не устраивают условия самовывоза.',
+                            'Не получается связаться с продавцом.',
+                        ];
+                    @endphp
+                    <form method="POST" action="{{ route('orders.requestCancellation', $order) }}" class="mt-3 space-y-3"
+                          x-data="orderCancellationReason({{ \Illuminate\Support\Js::from(['options' => $cancellationReasons, 'reason' => old('cancellation_reason', ''), 'choice' => old('cancellation_reason_choice', '')]) }})"
+                          @submit="if (!canSubmit) $event.preventDefault()">
                         @csrf
-                        <select name="reason" required class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100">
-                            <option value="">Выберите причину</option>
-                            <option value="Товар не получен">Товар не получен</option>
-                            <option value="Товар не соответствует описанию">Товар не соответствует описанию</option>
-                            <option value="Проблема с оплатой">Проблема с оплатой</option>
-                            <option value="Продавец не отвечает">Продавец не отвечает</option>
-                            <option value="Другое">Другое</option>
-                        </select>
-                        <textarea name="details" rows="3" maxlength="1200" placeholder="Опишите ситуацию для поддержки"
-                                  class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100"></textarea>
-                        <button class="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700">
-                            Отправить спор
+                        <input type="hidden" name="cancellation_reason" :value="selectedReason">
+                        <input type="hidden" name="cancellation_reason_choice" :value="choice">
+                        <div class="relative min-w-0" @click.outside="closeMenu()"
+                             @focusout="if (!$el.contains($event.relatedTarget)) closeMenu()">
+                            <label id="cancellation-reason-label" for="cancellation-reason-choice" class="mb-1 block text-sm font-medium text-neutral-700">Причина отмены</label>
+                            <button id="cancellation-reason-choice" type="button" x-ref="reasonTrigger"
+                                    aria-haspopup="listbox" aria-controls="cancellation-reason-list" :aria-expanded="menuOpen"
+                                    aria-labelledby="cancellation-reason-label cancellation-reason-value"
+                                    @click="menuOpen ? closeMenu() : openMenu()"
+                                    @keydown.arrow-down.prevent="openMenu()" @keydown.arrow-up.prevent="openMenu()"
+                                    @if($errors->has('cancellation_reason')) aria-invalid="true" aria-describedby="cancellation-reason-error" @endif
+                                    class="flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left text-sm focus:border-brand-300 focus:outline-none focus:ring-4 focus:ring-brand-100">
+                                <span id="cancellation-reason-value" class="min-w-0 whitespace-normal break-words" x-text="choiceLabel">Выберите причину</span>
+                                <i class="ri-arrow-down-s-line shrink-0 transition-transform" :class="{ 'rotate-180': menuOpen }" aria-hidden="true"></i>
+                            </button>
+                            <ul id="cancellation-reason-list" x-ref="reasonList" x-show="menuOpen" x-cloak
+                                x-transition.opacity.duration.150ms role="listbox" tabindex="-1"
+                                aria-labelledby="cancellation-reason-label"
+                                :aria-activedescendant="'cancellation-reason-option-' + activeIndex"
+                                @keydown.arrow-down.prevent="moveOption(activeIndex + 1)"
+                                @keydown.arrow-up.prevent="moveOption(activeIndex - 1)"
+                                @keydown.home.prevent="moveOption(0)" @keydown.end.prevent="moveOption(menuOptions.length - 1)"
+                                @keydown.enter.prevent="chooseOption(activeIndex)" @keydown.space.prevent="chooseOption(activeIndex)"
+                                @keydown.escape.prevent.stop="closeMenu(true)" @keydown.tab="closeMenu()"
+                                class="absolute inset-x-0 top-full z-30 mt-1 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-neutral-200 bg-white p-1 shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-100">
+                                <template x-for="(option, index) in menuOptions" :key="option.value">
+                                    <li :id="'cancellation-reason-option-' + index" role="option" :aria-selected="choice === option.value"
+                                        @click="chooseOption(index)" @mousemove="activeIndex = index"
+                                        :class="activeIndex === index ? 'bg-brand-50 text-brand-700' : 'text-neutral-700'"
+                                        class="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm">
+                                        <span class="min-w-0 flex-1 whitespace-normal break-words" x-text="option.label"></span>
+                                        <i x-show="choice === option.value" class="ri-check-line shrink-0 text-brand-600" aria-hidden="true"></i>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                        <div x-show="choice === 'other'" x-cloak x-transition.duration.200ms>
+                            <label for="cancellation-custom-reason" class="mb-1 block text-sm font-medium text-neutral-700">Ваша причина</label>
+                            <textarea id="cancellation-custom-reason" x-model="customReason" rows="2" maxlength="700"
+                                      :required="choice === 'other'" :disabled="choice !== 'other'"
+                                      @if($errors->has('cancellation_reason')) aria-invalid="true" aria-describedby="cancellation-reason-error" @endif
+                                      placeholder="Напишите причину отмены"
+                                      class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100"></textarea>
+                        </div>
+                        @error('cancellation_reason')
+                            <p id="cancellation-reason-error" class="text-sm text-rose-600">{{ $message }}</p>
+                        @enderror
+                        <button type="submit" disabled :disabled="!canSubmit"
+                                class="inline-flex h-11 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50">
+                            Запросить отмену
                         </button>
                     </form>
-                </details>
-            </div>
-        </section>
-    @endif
+                </section>
+            @endif
+
+            @php $openDispute = $order->openDispute; @endphp
+            @if($openDispute)
+                <section class="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm sm:rounded-2xl sm:p-6">
+                    <h3 class="font-semibold text-rose-900">Спор открыт</h3>
+                    <p class="mt-1 text-sm text-rose-800">
+                        Причина: {{ $openDispute->reason }}. Поддержка проверит заказ, переписку и данные продавца.
+                    </p>
+                    @if($openDispute->details)
+                        <p class="mt-3 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-700">{{ $openDispute->details }}</p>
+                    @endif
+                </section>
+            @else
+                <section class="min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <h3 class="font-semibold text-neutral-900">Спор по заказу</h3>
+                            <p class="mt-1 text-sm text-neutral-500">
+                                Если отмены или обычного сообщения продавцу недостаточно, откройте спор. Его увидят продавец и поддержка.
+                            </p>
+                        </div>
+                        <details class="w-full">
+                            <summary class="cursor-pointer rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-center text-sm font-semibold text-rose-700">
+                                Открыть спор
+                            </summary>
+                            <form method="POST" action="{{ route('orders.disputes.store', $order) }}" class="mt-3 space-y-3 rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+                                @csrf
+                                <select name="reason" required class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100">
+                                    <option value="">Выберите причину</option>
+                                    <option value="Товар не получен">Товар не получен</option>
+                                    <option value="Товар не соответствует описанию">Товар не соответствует описанию</option>
+                                    <option value="Проблема с оплатой">Проблема с оплатой</option>
+                                    <option value="Продавец не отвечает">Продавец не отвечает</option>
+                                    <option value="Другое">Другое</option>
+                                </select>
+                                <textarea name="details" rows="3" maxlength="1200" placeholder="Опишите ситуацию для поддержки"
+                                          class="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-300 focus:ring-4 focus:ring-brand-100"></textarea>
+                                <button class="inline-flex h-10 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700">
+                                    Отправить спор
+                                </button>
+                            </form>
+                        </details>
+                    </div>
+                </section>
+            @endif
+
+        </div>
+    </section>
 
     @if($chatProducts->count() > 1)
         <section id="order-product-chats" class="w-full max-w-full overflow-hidden rounded-2xl border border-brand-100 bg-brand-50/50 p-4 shadow-sm sm:p-5">

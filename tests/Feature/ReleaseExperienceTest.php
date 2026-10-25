@@ -54,7 +54,7 @@ class ReleaseExperienceTest extends TestCase
         $this->assertSame('ro', $buyer->locale);
         $this->assertTrue($buyer->notification_preferences['site_orders']);
         $this->assertTrue($buyer->notification_preferences['email_orders']);
-        $this->assertFalse($buyer->notification_preferences['email_security']);
+        $this->assertArrayNotHasKey('email_security', $buyer->notification_preferences);
     }
 
     public function test_user_notification_center_marks_notifications_as_read(): void
@@ -90,14 +90,14 @@ class ReleaseExperienceTest extends TestCase
         ]);
         $internal = app(\App\Services\UserNotificationService::class)->create(
             $buyer,
-            'test',
+            'order_created',
             'Internal',
             null,
             route('orders.index')
         );
         $stripped = app(\App\Services\UserNotificationService::class)->create(
             $buyer,
-            'test',
+            'order_created',
             'External stripped',
             null,
             'https://evil.example/phishing'
@@ -763,7 +763,7 @@ class ReleaseExperienceTest extends TestCase
 
         app(\App\Services\UserNotificationService::class)->create(
             $buyer,
-            'order_status_changed',
+            'order_status_updated',
             'Статус заказа изменён',
             'Ваш заказ обновлён.',
             '/orders'
