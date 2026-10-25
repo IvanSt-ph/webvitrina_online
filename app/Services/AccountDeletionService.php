@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
@@ -11,12 +12,28 @@ use App\Observers\ReviewObserver;
 use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AccountDeletionService
 {
     // Called only by User::delete(), under its transaction and row lock.
     public function anonymize(User $user): void
     {
+        // The caller holds User; checkout locks both participants before creating orders.
+        // Use a current read so a checkout committed while deletion waited is visible.
+        $activeOrder = Order::query()
+            ->where(fn ($query) => $query->where('user_id', $user->id)->orWhere('seller_id', $user->id))
+            ->whereNotIn('status', [Order::STATUS_COMPLETED, Order::STATUS_CANCELED])
+            ->where(fn ($query) => $query->whereNotNull('workflow_version')
+                ->orWhere('status', '!=', Order::STATUS_DELIVERED)
+                ->orWhereNull('buyer_confirmed_at'))
+            ->orderBy('id')->lockForUpdate()->first(['id']);
+        if ($activeOrder) {
+            throw ValidationException::withMessages([
+                'user' => 'Нельзя удалить аккаунт, пока у вас есть незавершённые заказы как у покупателя или продавца. Сначала завершите или отмените их.',
+            ]);
+        }
+
         $publicFiles = array_filter([$user->avatar, $user->shop?->banner]);
         $reviewFiles = [];
         $conversations = Conversation::where('buyer_id', $user->id)->orWhere('seller_id', $user->id);

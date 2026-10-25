@@ -15,6 +15,21 @@ class CheckoutPickupWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    private array $baselineCounts;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        foreach (['orders', 'order_items', 'order_events', 'user_notifications'] as $table) {
+            $this->baselineCounts[$table] = DB::table($table)->count();
+        }
+    }
+
+    private function assertAddedRows(string $table, int $count): void
+    {
+        $this->assertDatabaseCount($table, $this->baselineCounts[$table] + $count);
+    }
+
     public function test_new_pickup_order_starts_unpaid_and_ignores_forged_workflow_fields(): void
     {
         [$buyer, $seller, $product] = $this->fixture();
@@ -35,7 +50,7 @@ class CheckoutPickupWorkflowTest extends TestCase
             'completed_at' => now()->toDateTimeString(),
         ])->assertRedirect();
 
-        $order = Order::with('items')->sole();
+        $order = Order::where('user_id', $buyer->id)->with('items')->sole();
         $this->assertSame(Order::WORKFLOW_PICKUP, $order->workflow_version);
         $this->assertSame(Order::STATUS_PENDING, $order->status);
         $this->assertSame(Order::PAYMENT_UNPAID, $order->payment_status);
@@ -83,13 +98,13 @@ class CheckoutPickupWorkflowTest extends TestCase
             'address_id' => 123,
         ])->assertSessionHasErrors('address_id');
 
-        $this->assertDatabaseCount('orders', 0);
+        $this->assertAddedRows('orders', 0);
         $this->assertSame(3, $product->fresh()->stock);
         $this->assertSame($token, session('checkout_token'));
         $this->post(route('checkout.create'), [
             'checkout_token' => $token, 'payment_method' => 'cash', 'delivery_method' => 'pickup',
         ])->assertRedirect();
-        $this->assertSame('cash', Order::sole()->payment_method);
+        $this->assertSame('cash', Order::where('user_id', $buyer->id)->sole()->payment_method);
     }
 
     public function test_multi_seller_pickup_preserves_currency_and_splits_orders_without_delivery_charge(): void
@@ -106,7 +121,7 @@ class CheckoutPickupWorkflowTest extends TestCase
             'payment_method' => 'cash', 'delivery_method' => 'pickup',
         ])->assertRedirect(route('orders.index'));
 
-        $orders = Order::with('items')->orderBy('seller_id')->get()->keyBy('seller_id');
+        $orders = Order::where('user_id', $buyer->id)->with('items')->orderBy('seller_id')->get()->keyBy('seller_id');
         $this->assertCount(2, $orders);
         $this->assertSame('50.00', $orders[$firstSeller->id]->total_price);
         $this->assertSame('30.00', $orders[$secondSeller->id]->total_price);
@@ -151,10 +166,10 @@ class CheckoutPickupWorkflowTest extends TestCase
             ]);
         } finally {
             $this->assertSame(2, $eventWrites, 'The second seller must reach the event insert.');
-            $this->assertDatabaseCount('orders', 0);
-            $this->assertDatabaseCount('order_items', 0);
-            $this->assertDatabaseCount('order_events', 0);
-            $this->assertDatabaseCount('user_notifications', 0);
+            $this->assertAddedRows('orders', 0);
+            $this->assertAddedRows('order_items', 0);
+            $this->assertAddedRows('order_events', 0);
+            $this->assertAddedRows('user_notifications', 0);
             $this->assertSame([3, 3], Product::whereIn('id', [$firstProduct->id, $secondProduct->id])
                 ->orderBy('id')->pluck('stock')->all());
             $this->assertSame($token, session('checkout_token'));
@@ -166,13 +181,13 @@ class CheckoutPickupWorkflowTest extends TestCase
                 'checkout_token' => $token,
                 'payment_method' => 'cash', 'delivery_method' => 'pickup',
             ])->assertRedirect(route('orders.index'))->assertSessionHasNoErrors();
-            $this->assertDatabaseCount('orders', 2);
-            $this->assertDatabaseCount('order_items', 2);
-            $this->assertDatabaseCount('order_events', 2);
+            $this->assertAddedRows('orders', 2);
+            $this->assertAddedRows('order_items', 2);
+            $this->assertAddedRows('order_events', 2);
             $this->assertSame([2, 2], Product::whereIn('id', [$firstProduct->id, $secondProduct->id])
                 ->orderBy('id')->pluck('stock')->all());
-            $this->assertSame(['75.00', '100.00'], Order::orderBy('total_price')->pluck('total_price')->all());
-            foreach (Order::all() as $order) {
+            $this->assertSame(['75.00', '100.00'], Order::where('user_id', $buyer->id)->orderBy('total_price')->pluck('total_price')->all());
+            foreach (Order::where('user_id', $buyer->id)->get() as $order) {
                 $this->assertSame('PRB', $order->currency);
                 $this->assertSame(Order::WORKFLOW_PICKUP, $order->workflow_version);
                 $this->assertSame(Order::PAYMENT_UNPAID, $order->payment_status);

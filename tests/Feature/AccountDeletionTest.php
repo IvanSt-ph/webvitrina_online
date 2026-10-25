@@ -50,13 +50,13 @@ class AccountDeletionTest extends TestCase
         Storage::disk('local')->assertMissing('chat-images/deleted.webp');
     }
 
-    public function test_all_order_states_items_and_money_survive_self_deletion_and_remain_viewable(): void
+    public function test_terminal_orders_items_and_money_survive_self_deletion_and_remain_viewable(): void
     {
         $buyer = User::factory()->create(['name' => 'Original Buyer', 'phone' => '+37369222222']);
         $seller = User::factory()->create(['role' => 'seller']);
         $admin = User::factory()->create(['role' => 'admin']);
         $address = $buyer->addresses()->create(['city' => 'Order city', 'street' => 'Order street']);
-        $orders = collect(Order::allStatuses())->map(fn ($status) => $this->order($buyer, $seller, $status, $address->id));
+        $orders = collect([Order::STATUS_COMPLETED, Order::STATUS_CANCELED])->map(fn ($status) => $this->order($buyer, $seller, $status, $address->id));
         $before = $orders->mapWithKeys(fn ($order) => [$order->id => [
             'order' => $order->getRawOriginal(),
             'item' => $order->items()->first()->getRawOriginal(),
@@ -78,9 +78,6 @@ class AccountDeletionTest extends TestCase
         $this->actingAs($admin)->get(route('admin.orders.show', $completed))->assertOk()->assertSee('Original Buyer')->assertSee('Order street');
         $this->get(route('admin.orders.index'))->assertOk()->assertSee('Original Buyer');
         $this->actingAs($seller)->post(route('seller.orders.chat.buyer', $completed))->assertRedirect()->assertSessionHas('error');
-        $pending = $orders->firstWhere('status', Order::STATUS_PENDING);
-        $this->post(route('seller.orders.updateStatus', $pending), ['status' => Order::STATUS_PROCESSING])->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertSame(Order::STATUS_PROCESSING, $pending->fresh()->status);
         $this->assertDatabaseMissing('user_notifications', ['user_id' => $buyer->id]);
     }
 
@@ -190,7 +187,7 @@ class AccountDeletionTest extends TestCase
         $this->assertSame(1, $order->items()->count());
     }
 
-    private function order(User $buyer, User $seller, string $status = Order::STATUS_PENDING, ?int $addressId = null): Order
+    private function order(User $buyer, User $seller, string $status = Order::STATUS_COMPLETED, ?int $addressId = null): Order
     {
         $product = Product::create(['user_id' => $seller->id, 'title' => 'History product', 'slug' => 'history-'.uniqid(), 'price' => 100, 'stock' => 7, 'status' => Product::STATUS_ACTIVE]);
         $order = Order::create(['user_id' => $buyer->id, 'seller_id' => $seller->id, 'address_id' => $addressId, 'number' => Order::generateNumber(), 'status' => $status, 'currency' => 'MDL', 'total_price' => 50, 'payment_method' => 'cash', 'delivery_method' => 'pickup']);

@@ -95,7 +95,7 @@ class OrderPickupWorkflow
     {
         return DB::transaction(function () use ($order, $buyer): bool {
             $locked = $this->lock($order);
-            abort_unless($locked->user_id === $buyer->id && $buyer->role === 'buyer', 403);
+            abort_unless($locked->user_id === $buyer->id, 403);
 
             if ($locked->isLegacyWorkflow()) {
                 return $this->legacyBuyerConfirmReceipt($locked, $buyer);
@@ -170,7 +170,7 @@ class OrderPickupWorkflow
     {
         return DB::transaction(function () use ($order, $buyer, $reason): bool {
             $locked = $this->lock($order);
-            abort_unless($locked->user_id === $buyer->id && $buyer->role === 'buyer', 403);
+            abort_unless($locked->user_id === $buyer->id, 403);
             $reason = trim($reason);
             $this->require($reason !== '' && mb_strlen($reason) <= 700, 'Укажите причину запроса отмены.');
 
@@ -390,7 +390,16 @@ class OrderPickupWorkflow
 
     private function lock(Order $order): Order
     {
-        return Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+        // Match checkout/deletion: participants first, then Order, then Product.
+        // Read persisted IDs, not potentially stale or modified model attributes.
+        $participants = Order::query()->whereKey($order->getKey())->firstOrFail(['user_id', 'seller_id']);
+        User::withTrashed()->whereIn('id', [$participants->user_id, $participants->seller_id])
+            ->orderBy('id')->lockForUpdate()->get(['id']);
+        $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+        $this->require($locked->user_id === $participants->user_id && $locked->seller_id === $participants->seller_id,
+            'Участники заказа изменились. Обновите страницу и повторите действие.');
+
+        return $locked;
     }
 
     private function write(Order $order, array $values): void

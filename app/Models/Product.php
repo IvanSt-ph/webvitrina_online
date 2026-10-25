@@ -176,7 +176,10 @@ class Product extends Model
         ];
 
         $amount = $map[$code] ?? null;
-        $amount = $amount ?? $this->price;
+        if ($amount === null) {
+            $amount = $this->price;
+            $code = self::normalizeCurrencyCode($this->currency_base);
+        }
 
         return [
             'amount' => (float) $amount,
@@ -187,7 +190,8 @@ class Product extends Model
 
     public function getOldPriceForCurrentCurrencyAttribute(): ?array
     {
-        $code = self::normalizeCurrencyCode(session('currency', $this->currency_base ?: 'MDL'));
+        // A discount must compare amounts in the currency actually displayed.
+        $code = $this->price_for_current_currency['code'];
 
         $map = [
             'PRB' => $this->old_price_prb,
@@ -196,7 +200,9 @@ class Product extends Model
         ];
 
         $amount = $map[$code] ?? null;
-        $amount = $amount ?? $this->old_price;
+        if ($amount === null && $code === self::normalizeCurrencyCode($this->currency_base)) {
+            $amount = $this->old_price;
+        }
 
         if (! $amount || (float) $amount <= 0) {
             return null;
@@ -212,7 +218,9 @@ class Product extends Model
     public function getDiscountPercentAttribute(): ?int
     {
         $price = (float) ($this->price_for_current_currency['amount'] ?? $this->price ?? 0);
-        $oldPrice = (float) ($this->old_price_for_current_currency['amount'] ?? $this->old_price ?? 0);
+        // A missing old price in the displayed currency must not fall back again
+        // to a base-currency amount rejected by the accessor above.
+        $oldPrice = (float) ($this->old_price_for_current_currency['amount'] ?? 0);
 
         if ($price <= 0 || $oldPrice <= $price) {
             return null;

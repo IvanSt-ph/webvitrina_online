@@ -4,6 +4,7 @@
 @php $fields = session('updated_fields', []); @endphp
 
 <div class="space-y-8">
+    <x-input-error :messages="$errors->get('user')" />
     <section class="grid items-center gap-8 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
         <div class="max-w-xl">
             <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#e8f0fe] text-[#1967d2]"><i class="ri-user-settings-line text-xl"></i></div>

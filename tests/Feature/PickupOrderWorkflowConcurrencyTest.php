@@ -43,6 +43,7 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
         $connection = DB::connection();
         try {
             $connection->beginTransaction();
+            User::whereIn('id', [$buyer->id, $seller->id])->orderBy('id')->lockForUpdate()->get();
             Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             foreach ([['payment', $seller], ['receipt', $buyer]] as [$action, $actor]) {
                 $input = new InputStream();
@@ -85,7 +86,7 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
                 $process->stop(0);
             }
             $this->assertSame(0, $connection->transactionLevel());
-            \Tests\Support\ConcurrencyLockProbe::assertReleased(['orders' => [$order->id]], $processes);
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['users' => [$buyer->id, $seller->id], 'orders' => [$order->id]], $processes);
         }
     }
 
@@ -111,6 +112,7 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
         $process = null;
         try {
             $connection->beginTransaction();
+            User::whereIn('id', [$buyer->id, $seller->id])->orderBy('id')->lockForUpdate()->get();
             Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $input->write(json_encode(config('database'), JSON_THROW_ON_ERROR)."\n");
             $process = new Process([
@@ -146,7 +148,65 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             $input->close();
             $process?->stop(0);
             $this->assertSame(0, $connection->transactionLevel());
-            \Tests\Support\ConcurrencyLockProbe::assertReleased(['orders' => [$order->id]], $process ? [$process] : []);
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['users' => [$buyer->id, $seller->id], 'orders' => [$order->id]], $process ? [$process] : []);
+        }
+    }
+
+    public function test_deletion_waits_for_participant_lock_and_rejects_active_order(): void
+    {
+        $this->deletionWaitsForWorkflow(false);
+    }
+
+    public function test_deletion_waits_for_completion_and_preserves_completed_order(): void
+    {
+        $this->deletionWaitsForWorkflow(true);
+    }
+
+    private function deletionWaitsForWorkflow(bool $complete): void
+    {
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $seller = User::factory()->create(['role' => 'seller']);
+        $order = new Order([
+            'user_id' => $buyer->id, 'seller_id' => $seller->id,
+            'number' => Order::generateNumber(), 'status' => Order::STATUS_READY_FOR_PICKUP,
+            'payment_method' => 'cash', 'delivery_method' => 'pickup',
+            'total_price' => 100, 'currency' => 'PRB',
+        ]);
+        $order->forceFill(['workflow_version' => Order::WORKFLOW_PICKUP,
+            'payment_status' => Order::PAYMENT_UNPAID, 'ready_for_pickup_at' => now()])->save();
+        $connection = DB::connection();
+        $input = new InputStream();
+        $process = null;
+        try {
+            $connection->beginTransaction();
+            User::whereIn('id', [$buyer->id, $seller->id])->orderBy('id')->lockForUpdate()->get();
+            Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $input->write(json_encode(config('database'), JSON_THROW_ON_ERROR)."\n");
+            $process = new Process([PHP_BINARY, base_path('tests/Support/pickup-order-worker.php'),
+                (string) $order->id, (string) $buyer->id, 'delete'], base_path(), timeout: 20);
+            $process->setInput($input);
+            $process->start();
+            $this->awaitOutput($process, 'LOCK_CONFLICT');
+            if ($complete) {
+                $workflow = app(\App\Services\OrderPickupWorkflow::class);
+                $workflow->buyerConfirmReceipt($order, $buyer);
+                $workflow->sellerConfirmPayment($order, $seller);
+            }
+            $connection->commit();
+            $input->write("continue\n");
+            $this->assertSame($complete ? 0 : 2, $process->wait(), $this->safeWorkerOutput($process->getErrorOutput()));
+            $this->assertSame($complete, User::withTrashed()->findOrFail($buyer->id)->trashed());
+            $this->assertSame($complete ? Order::STATUS_COMPLETED : Order::STATUS_READY_FOR_PICKUP, $order->fresh()->status);
+            $this->assertSame($buyer->id, $order->fresh()->user_id);
+            $this->assertSame('100.00', $order->fresh()->total_price);
+        } finally {
+            if ($connection->transactionLevel() > 0) {
+                $connection->rollBack();
+            }
+            $input->close();
+            $process?->stop(0);
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(
+                ['users' => [$buyer->id, $seller->id], 'orders' => [$order->id]], $process ? [$process] : []);
         }
     }
 

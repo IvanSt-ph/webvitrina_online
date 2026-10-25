@@ -237,9 +237,9 @@ x-data="{
         </div>
 
         <div class="pc-price-row">
-            <span class="pc-price">{{ number_format($price, 0, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
+            <span class="pc-price">{{ number_format($price, 2, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
             @if($hasDiscount)
-                <span class="pc-old-price">{{ number_format($oldPrice, 0, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
+                <span class="pc-old-price">{{ number_format($oldPrice, 2, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
             @endif
         </div>
 
@@ -474,9 +474,9 @@ x-data="{
                             </div>
 
                             <div class="pm-price-block">
-                                <span class="pm-price">{{ number_format($price, 0, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
+                                <span class="pm-price">{{ number_format($price, 2, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
                                 @if($hasDiscount)
-                                    <span class="pm-old-price">{{ number_format($oldPrice, 0, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
+                                    <span class="pm-old-price">{{ number_format($oldPrice, 2, ',', ' ') }}&nbsp;{{ $currencySymbol }}</span>
                                     <span class="pm-save-badge">−{{ $discountPercent }}%</span>
                                 @endif
                             </div>

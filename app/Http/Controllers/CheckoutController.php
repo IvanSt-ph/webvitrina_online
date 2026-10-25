@@ -384,6 +384,13 @@ return redirect()
 
         $createdOrders = app(CheckoutIdempotencyService::class)->execute($expectedToken, $userId,
             function () use ($groups, $addressId, $paymentMethod, $deliveryMethod, $deliveryCost, $userId, $checkoutCurrency) {
+                // Serialize checkout with account deletion, before locking orders/products.
+                $participantIds = $groups->keys()->push($userId)->unique()->sort()->values();
+                $participants = \App\Models\User::query()->whereIn('id', $participantIds)
+                    ->orderBy('id')->lockForUpdate()->get(['id']);
+                if ($participants->count() !== $participantIds->count()) {
+                    throw ValidationException::withMessages(['cart' => 'Участник заказа больше недоступен. Обновите корзину.']);
+                }
                 $createdOrders = [];
                 foreach ($groups as $sellerId => $items) {
                     $totalCents = $items->sum(fn ($item) => $this->lineTotalCents($item));

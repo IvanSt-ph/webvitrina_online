@@ -13,6 +13,21 @@ class PickupReceiptReminderTest extends TestCase
 {
     use RefreshDatabase;
 
+    private int $initialNotificationCount;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->initialNotificationCount = UserNotification::count();
+    }
+
+    private function assertBuyerNotifications(User $buyer, int $expected): void
+    {
+        $this->assertSame($expected, UserNotification::where('user_id', $buyer->id)->count());
+        // Also detect accidental notifications to another recipient.
+        $this->assertSame($this->initialNotificationCount + $expected, UserNotification::count());
+    }
+
     public function test_seller_reminder_records_one_event_and_notification_without_changing_confirmations(): void
     {
         [$order, $buyer, $seller] = $this->order();
@@ -39,7 +54,8 @@ class PickupReceiptReminderTest extends TestCase
         $this->assertSame($seller->id, $event->actor_id);
         $this->assertSame('seller', $event->actor_role);
         $this->assertStringStartsWith('pickup-confirmation-', $event->event_key);
-        $notification = UserNotification::sole();
+        $this->assertBuyerNotifications($buyer, 1);
+        $notification = UserNotification::where('user_id', $buyer->id)->sole();
         $this->assertSame($buyer->id, $notification->user_id);
         $this->assertSame('pickup_confirmation_requested', $notification->type);
         $this->assertSame($order->id, $notification->data['order_id']);
@@ -51,26 +67,29 @@ class PickupReceiptReminderTest extends TestCase
 
     public function test_repeated_post_during_24_hour_cooldown_has_no_new_event_or_notification(): void
     {
-        [$order, , $seller] = $this->order();
+        [$order, $buyer, $seller] = $this->order();
         $this->actingAs($seller)->post(route('seller.orders.requestReceiptConfirmation', $order))->assertSessionHasNoErrors();
         $firstAt = $order->fresh()->confirmation_requested_at;
         $firstKey = $order->events()->sole()->event_key;
+        $firstNotifications = UserNotification::where('user_id', $buyer->id)->orderBy('id')->get()->toArray();
 
         $this->post(route('seller.orders.requestReceiptConfirmation', $order))
             ->assertSessionHas('success', 'Повторное напоминание пока недоступно; новое уведомление не создавалось.');
         $this->assertTrue($firstAt->equalTo($order->fresh()->confirmation_requested_at));
         $this->assertSame($firstKey, $order->events()->sole()->event_key);
-        $this->assertSame(1, UserNotification::count());
+        $this->assertBuyerNotifications($buyer, 1);
+        $this->assertSame($firstNotifications, UserNotification::where('user_id', $buyer->id)->orderBy('id')->get()->toArray());
 
         DB::table('orders')->where('id', $order->id)->update(['confirmation_requested_at' => now()->subDay()->addSecond()]);
         $this->post(route('seller.orders.requestReceiptConfirmation', $order))->assertSessionHasNoErrors();
         $this->assertSame(1, $order->events()->count());
-        $this->assertSame(1, UserNotification::count());
+        $this->assertBuyerNotifications($buyer, 1);
+        $this->assertSame($firstNotifications, UserNotification::where('user_id', $buyer->id)->orderBy('id')->get()->toArray());
 
         DB::table('orders')->where('id', $order->id)->update(['confirmation_requested_at' => now()->subDay()->subSecond()]);
         $this->post(route('seller.orders.requestReceiptConfirmation', $order))->assertSessionHasNoErrors();
         $this->assertSame(2, $order->events()->count());
-        $this->assertSame(2, UserNotification::count());
+        $this->assertBuyerNotifications($buyer, 2);
     }
 
     public function test_other_seller_and_buyer_cannot_send_reminder(): void
@@ -82,7 +101,7 @@ class PickupReceiptReminderTest extends TestCase
         }
         $this->assertNull($order->fresh()->confirmation_requested_at);
         $this->assertSame(0, $order->events()->count());
-        $this->assertSame(0, UserNotification::count());
+        $this->assertBuyerNotifications($buyer, 0);
     }
 
     public function test_legacy_non_pickup_and_other_statuses_are_rejected(): void
@@ -133,12 +152,12 @@ class PickupReceiptReminderTest extends TestCase
         $this->postJson(route('seller.orders.requestReceiptConfirmation', $order))
             ->assertUnprocessable()->assertJsonValidationErrors('status');
         $this->assertSame(1, $order->events()->count());
-        $this->assertSame(1, UserNotification::where('user_id', $buyer->id)->count());
+        $this->assertBuyerNotifications($buyer, 1);
     }
 
     public function test_failed_event_insert_rolls_back_timestamp_and_notification(): void
     {
-        [$order, , $seller] = $this->order();
+        [$order, $buyer, $seller] = $this->order();
         $injected = false;
         DB::listen(function ($query) use (&$injected): void {
             if (! $injected && str_starts_with(strtolower($query->sql), 'insert into `order_events`')) {
@@ -157,19 +176,31 @@ class PickupReceiptReminderTest extends TestCase
             $this->assertNull($order->fresh()->confirmation_requested_at);
             $this->assertSame(Order::STATUS_READY_FOR_PICKUP, $order->fresh()->status);
             $this->assertSame(0, $order->events()->count());
-            $this->assertSame(0, UserNotification::count());
+            $this->assertBuyerNotifications($buyer, 0);
         }
     }
 
-    public function test_deleted_buyer_does_not_mark_reminder_as_sent(): void
+    public function test_active_order_prevents_buyer_deletion_and_reminder_remains_available(): void
     {
         [$order, $buyer, $seller] = $this->order();
-        $buyer->delete();
-        $this->actingAs($seller)->postJson(route('seller.orders.requestReceiptConfirmation', $order))
-            ->assertUnprocessable()->assertJsonValidationErrors('status');
+        $before = $order->getRawOriginal();
+        $this->actingAs($buyer)->deleteJson(route('profile.destroy'), ['password' => 'password'])
+            ->assertUnprocessable()->assertJsonValidationErrors('user');
+        $this->assertFalse(User::withTrashed()->findOrFail($buyer->id)->trashed());
+        $this->assertSame($buyer->email, $buyer->fresh()->email);
+        $this->assertSame($before, $order->fresh()->getRawOriginal());
         $this->assertNull($order->fresh()->confirmation_requested_at);
         $this->assertSame(0, $order->events()->count());
-        $this->assertSame(0, UserNotification::count());
+        $this->assertBuyerNotifications($buyer, 0);
+
+        $this->actingAs($seller)->post(route('seller.orders.requestReceiptConfirmation', $order))
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertNotNull($order->fresh()->confirmation_requested_at);
+        $this->assertSame('pickup_confirmation_requested', $order->events()->sole()->event_type);
+        $this->assertBuyerNotifications($buyer, 1);
+        $notification = UserNotification::where('user_id', $buyer->id)->sole();
+        $this->assertSame('pickup_confirmation_requested', $notification->type);
+        $this->assertSame($order->id, $notification->data['order_id']);
     }
 
     private function order(): array

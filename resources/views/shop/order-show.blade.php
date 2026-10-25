@@ -684,10 +684,11 @@
         </div>
         <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @forelse(($continueProducts ?? collect()) as $product)
+                @php($currentPrice = $product->price_for_current_currency)
                 <a href="{{ route('product.show', $product->slug) }}" class="group rounded-xl border border-neutral-100 bg-neutral-50 p-3 transition hover:border-brand-200 hover:bg-brand-50">
                     <img data-image-candidates="{{ json_encode($product->image_thumb_candidates) }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}" src="{{ $product->image_thumb_url }}" alt="{{ $product->title }}" class="h-28 w-full rounded-lg object-cover">
                     <div class="mt-2 line-clamp-2 text-sm font-semibold text-neutral-900 group-hover:text-brand-700">{{ $product->title }}</div>
-                    <div class="mt-1 text-sm font-bold text-brand-700">{{ number_format($product->price, 0, ',', ' ') }} ₽</div>
+                    <div class="mt-1 text-sm font-bold text-brand-700">{{ number_format($currentPrice['amount'], 2, ',', ' ') }} {{ $currentPrice['symbol'] }}</div>
                 </a>
             @empty
                 <div class="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 sm:col-span-2 lg:col-span-4">

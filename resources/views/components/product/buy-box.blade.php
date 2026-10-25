@@ -14,12 +14,12 @@
         <div class="space-y-1">
             <div class="flex items-baseline gap-2">
                 <div class="text-3xl font-semibold text-gray-900 leading-none">
-                    {{ number_format($price, 0, ',', ' ') }} {{ $currencySymbol }}
+                    {{ number_format($price, 2, ',', ' ') }} {{ $currencySymbol }}
                 </div>
 
                 @if ($oldPrice && $oldPrice > $price)
                     <div class="text-sm text-gray-400 line-through">
-                        {{ number_format($oldPrice, 0, ',', ' ') }} {{ $currencySymbol }}
+                        {{ number_format($oldPrice, 2, ',', ' ') }} {{ $currencySymbol }}
                     </div>
                 @endif
             </div>
@@ -33,7 +33,7 @@
 
         {{-- Доставка --}}
         <div class="mt-3 space-y-1 text-xs text-gray-600">
-            <div class="flex items-center gap-2">🚚 Доставка: по договорённости с продавцом</div>
+            <div class="flex items-center gap-2">Самовывоз: получение и оплата у продавца</div>
             <div class="flex items-center gap-2">↩️ Возврат: по правилам площадки и условиям заказа</div>
         </div>
 

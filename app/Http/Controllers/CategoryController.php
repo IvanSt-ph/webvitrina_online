@@ -144,11 +144,11 @@ class CategoryController extends Controller
                         if (is_array($value) && (isset($value['from']) || isset($value['to']))) {
 
                             if (isset($value['from'])) {
-                                $q->where('value', '>=', $value['from']);
+                                $q->whereRaw('CAST(value AS DECIMAL(65, 30)) >= CAST(? AS DECIMAL(65, 30))', [$value['from']]);
                             }
 
                             if (isset($value['to'])) {
-                                $q->where('value', '<=', $value['to']);
+                                $q->whereRaw('CAST(value AS DECIMAL(65, 30)) <= CAST(? AS DECIMAL(65, 30))', [$value['to']]);
                             }
                         } else {
 

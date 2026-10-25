@@ -75,11 +75,11 @@
                         {{-- Цена --}}
                         <div class="mt-1.5 flex items-baseline gap-1.5 flex-wrap">
                             <span class="text-sm sm:text-base font-bold text-indigo-600">
-                                {{ number_format($price, 0, ',', ' ') }} {{ $currencySymbol }}
+                                {{ number_format($price, 2, ',', ' ') }} {{ $currencySymbol }}
                             </span>
                             @if($oldPrice && $oldPrice > $price)
                                 <span class="text-[10px] text-gray-400 line-through">
-                                    {{ number_format($oldPrice, 0, ',', ' ') }} {{ $currencySymbol }}
+                                    {{ number_format($oldPrice, 2, ',', ' ') }} {{ $currencySymbol }}
                                 </span>
                             @endif
                         </div>
