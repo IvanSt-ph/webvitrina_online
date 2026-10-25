@@ -15,7 +15,7 @@
             </div>
 
             <button
-                @click="navigator.clipboard.writeText('{{ $product->sku }}'); copied = true; setTimeout(() => copied = false, 1500)"
+                @click="navigator.clipboard.writeText(@js($product->sku)); copied = true; setTimeout(() => copied = false, 1500)"
                 class="text-gray-400 hover:text-indigo-600 transition"
                 title="Скопировать артикул"
             >

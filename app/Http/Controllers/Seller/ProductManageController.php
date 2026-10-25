@@ -322,7 +322,7 @@ class ProductManageController extends Controller
 
         $image   = $request->file('image');
         $gallery = $request->file('gallery', []);
-        $attrs   = $request->input('attributes', []);
+        $attrs   = $this->attributes->validateValues($request->input('attributes', []), (int) $data['category_id']);
 
         $this->products->create($data, $image, $gallery, $attrs);
 
@@ -359,7 +359,7 @@ class ProductManageController extends Controller
         $image           = $request->file('image');
         $galleryNew      = $request->file('gallery', []);
         $galleryToDelete = $request->input('delete_gallery', []);
-        $attrs           = $request->input('attributes', []);
+        $attrs           = $this->attributes->validateValues($request->input('attributes', []), (int) $data['category_id']);
 
         $this->products->update(
             $product,

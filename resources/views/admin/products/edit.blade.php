@@ -313,8 +313,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const productLat = {{ $product->latitude ?? 'null' }};
     const productLng = {{ $product->longitude ?? 'null' }};
-    let lat = {{ old('latitude', 'null') }} ?? productLat ?? 47.0105;
-    let lng = {{ old('longitude', 'null') }} ?? productLng ?? 28.8638;
+    let lat = Number.parseFloat(@js(old('latitude')) ?? productLat ?? 47.0105);
+    let lng = Number.parseFloat(@js(old('longitude')) ?? productLng ?? 28.8638);
+    if (!Number.isFinite(lat)) lat = productLat ?? 47.0105;
+    if (!Number.isFinite(lng)) lng = productLng ?? 28.8638;
     if (!lat || isNaN(lat)) lat = productLat ?? 47.0105;
     if (!lng || isNaN(lng)) lng = productLng ?? 28.8638;
 

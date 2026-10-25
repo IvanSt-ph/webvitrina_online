@@ -83,6 +83,7 @@ class ProductService
 
             /* ---------- 4. Обновление товара ---------- */
             $product = $this->repo->update($product, $payload);
+            $categoryChanged = $product->wasChanged('category_id');
 
             /* ---------- 5. Удаление файлов галереи ---------- */
             if ($galleryToDelete) {
@@ -97,7 +98,14 @@ class ProductService
             }
 
             /* ---------- 7. Атрибуты ---------- */
-            if ($attrs) {
+            if ($categoryChanged && ! $attrs) {
+                // Partial edits keep shared characteristics, but never carry
+                // another category's characteristics into the destination.
+                $attrs = $product->attributeValues()
+                    ->whereHas('attribute.categories', fn ($query) => $query->whereKey($product->category_id))
+                    ->pluck('value', 'attribute_id')->all();
+            }
+            if ($attrs || $categoryChanged) {
                 $this->attributes->sync($product, $attrs);
             }
 

@@ -94,7 +94,7 @@ class ProductController extends Controller
             data: $data,
             image: $request->file('image'),
             gallery: $request->file('gallery', []),
-            attrs: $request->input('attributes', [])
+            attrs: $this->attributes->validateValues($request->input('attributes', []), (int) $data['category_id'])
         );
 
         return redirect()
@@ -165,7 +165,7 @@ class ProductController extends Controller
             image: $request->file('image'),
             galleryNew: $request->file('gallery', []),
             galleryToDelete: $galleryToDelete,
-            attrs: $request->input('attributes', [])
+            attrs: $this->attributes->validateValues($request->input('attributes', []), (int) ($data['category_id'] ?? $product->category_id))
         );
 
         $product->refresh();

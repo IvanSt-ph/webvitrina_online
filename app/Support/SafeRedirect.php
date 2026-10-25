@@ -6,6 +6,9 @@ class SafeRedirect
 {
     public static function internalPath(?string $url): ?string
     {
+        if (preg_match('/[\x00-\x1f\x7f\\\\]/', (string) $url)) {
+            return null;
+        }
         $url = trim((string) $url);
 
         if ($url === '') {
@@ -13,13 +16,17 @@ class SafeRedirect
         }
 
         if (str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
-            return $url;
+            return self::safePath($url) ? $url : null;
         }
 
         $target = parse_url($url);
         $app = parse_url((string) config('app.url'));
 
         if (! is_array($target) || ! is_array($app)) {
+            return null;
+        }
+
+        if (isset($target['user']) || isset($target['pass'])) {
             return null;
         }
 
@@ -42,7 +49,18 @@ class SafeRedirect
         $query = isset($target['query']) ? '?' . $target['query'] : '';
         $fragment = isset($target['fragment']) ? '#' . $target['fragment'] : '';
 
-        return $path . $query . $fragment;
+        $relative = $path . $query . $fragment;
+
+        return self::safePath($relative) ? $relative : null;
+    }
+
+    private static function safePath(string $url): bool
+    {
+        $path = rawurldecode(explode('?', explode('#', $url, 2)[0], 2)[0]);
+
+        return str_starts_with($path, '/')
+            && ! str_starts_with($path, '//')
+            && ! preg_match('/[\x00-\x1f\x7f\\\\]/', $path);
     }
 
     public static function isInternal(?string $url): bool

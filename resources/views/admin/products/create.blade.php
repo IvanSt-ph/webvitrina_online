@@ -64,7 +64,7 @@
 
             {{-- Артикул (SKU) с кнопкой генерации --}}
 <div x-data="{
-      sku: '{{ old('sku') }}',
+      sku: @js(old('sku', '')),
       generate() {
         const num = Math.floor(Math.random() * 90000) + 10000;
         this.sku = 'PRD-' + num;
@@ -151,7 +151,7 @@
             {{-- Страна и город --}}
             <div 
                 x-data="cityPicker()" 
-                x-init="init('{{ old('country_id') }}','{{ old('city_id') }}')"
+                x-init="init(@js(old('country_id', '')), @js(old('city_id', '')))"
             >
                 <label class="mb-1 block text-sm font-medium text-slate-700">Страна</label>
                 <select name="country_id" x-model="country" @change="loadCities()"
@@ -208,8 +208,10 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    let lat = {{ old('latitude', 47.0105) }};
-    let lng = {{ old('longitude', 28.8638) }};
+    let lat = Number.parseFloat(@js(old('latitude', 47.0105)));
+    let lng = Number.parseFloat(@js(old('longitude', 28.8638)));
+    if (!Number.isFinite(lat)) lat = 47.0105;
+    if (!Number.isFinite(lng)) lng = 28.8638;
     let zoom = {{ old('latitude') ? 14 : 7 }};
 
     if (L.DomUtil.get('map') !== null) {
