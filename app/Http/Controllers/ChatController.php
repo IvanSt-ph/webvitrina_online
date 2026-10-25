@@ -107,7 +107,7 @@ class ChatController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->isBuyer() && $order->user_id === $user->id, 403);
+        abort_unless(($user->isBuyer() || $user->isSeller()) && $order->user_id === $user->id, 403);
         abort_unless($order->seller_id === $product->user_id, 404);
         abort_unless($order->items()->where('product_id', $product->id)->exists(), 404);
 
@@ -219,7 +219,7 @@ class ChatController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user->isBuyer() && $order->user_id === $user->id, 403);
+        abort_unless(($user->isBuyer() || $user->isSeller()) && $order->user_id === $user->id, 403);
 
         $order->load(['seller.shop', 'items.product']);
         $conversation = $this->ensureSupportConversation($user);

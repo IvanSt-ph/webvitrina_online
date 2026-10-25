@@ -105,7 +105,7 @@ class OrderDisputeController extends Controller
                 'order_dispute_resolved',
                 $title,
                 "Заказ {$dispute->order?->number}: {$resolution}",
-                $participant->isSeller()
+                $participant->id === $dispute->order?->seller_id
                     ? route('seller.orders.show', $dispute->order, false)
                     : route('orders.show', $dispute->order, false),
                 ['order_id' => $dispute->order_id, 'dispute_id' => $dispute->id]
