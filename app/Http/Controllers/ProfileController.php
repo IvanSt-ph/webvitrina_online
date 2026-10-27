@@ -138,7 +138,7 @@ class ProfileController extends Controller
             ]);
 
             if ($data['email'] !== $user->email) {
-                $this->requireCurrentPassword($request);
+                $this->requireCurrentPassword($request, $user);
 
                 $user->email = $data['email'];
                 $user->email_verified_at = null;
@@ -181,7 +181,7 @@ class ProfileController extends Controller
             $changed = false;
 
             if ($data['email'] !== $user->email) {
-                $this->requireCurrentPassword($request);
+                $this->requireCurrentPassword($request, $user);
 
                 $user->email = $data['email'];
                 $user->email_verified_at = null;
@@ -243,7 +243,7 @@ class ProfileController extends Controller
         }
 
         if ($data['email'] !== $user->email) {
-            $this->requireCurrentPassword($request);
+            $this->requireCurrentPassword($request, $user);
 
             $user->email = $data['email'];
             $user->email_verified_at = null;
@@ -465,16 +465,16 @@ public function updateShop(Request $request): RedirectResponse
     ];
 }
 
-private function requireCurrentPassword(Request $request): void
+private function requireCurrentPassword(Request $request, User $user): void
 {
-    if (! $request->user()->hasLocalPassword()) {
+    if (! $user->hasLocalPassword()) {
         throw \Illuminate\Validation\ValidationException::withMessages([
             'current_password' => 'Сначала установите пароль в разделе безопасности, чтобы менять контактные данные.',
         ]);
     }
 
     $request->validate([
-        'current_password' => ['bail', 'required', 'string', new \App\Rules\ThrottledCurrentPassword()],
+        'current_password' => ['bail', 'required', 'string', new \App\Rules\ThrottledCurrentPassword($user)],
     ], [
         'current_password.required' => 'Для изменения контактов подтвердите текущий пароль.',
         'current_password.current_password' => 'Текущий пароль введён неверно.',
@@ -697,15 +697,21 @@ public function redirectToRoleProfile()
 
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validate([
-            'password' => ['bail', 'required', 'string', new \App\Rules\ThrottledCurrentPassword()],
-        ]);
+        // Match User::delete(): membership -> backup barrier -> User -> dependents.
+        app(\App\Services\AdminMembershipService::class)->transaction(fn () =>
+            app(BackupWriteBarrier::class)->transaction(function () use ($request): void {
+                $user = User::query()->whereKey($request->user()->getKey())->lockForUpdate()->firstOrFail();
+                $request->validate([
+                    'password' => ['bail', 'required', 'string', new \App\Rules\ThrottledCurrentPassword($user)],
+                ]);
+                $user->delete();
+            })
+        );
 
-        $user = $request->user();
-
-        $user->delete();
-
-        Auth::logout();
+        // Deletion already revoked all sessions and devices and cleared the token.
+        // The guard still holds the pre-deletion model: logout() would persist
+        // a newly rotated remember token from that stale instance.
+        Auth::guard('web')->logoutCurrentDevice();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

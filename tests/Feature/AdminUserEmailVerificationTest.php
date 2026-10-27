@@ -61,6 +61,10 @@ class AdminUserEmailVerificationTest extends TestCase
         Notification::assertSentTo($user, VerifyEmail::class);
         $this->get($this->verificationLink($user))->assertRedirect();
         $this->assertNotNull($user->fresh()->email_verified_at);
+        // Verification updates a separate locked model. actingAs retains this
+        // instance between test requests; reload it as a new HTTP request would,
+        // without rebinding the session's credential fingerprint via actingAs.
+        $user->refresh();
         // Verified middleware now admits the request to address validation.
         $this->postJson('/addresses', [])->assertStatus(422);
     }

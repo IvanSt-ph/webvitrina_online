@@ -37,49 +37,52 @@ class AdminProfileController extends Controller
 
     public function update(Request $request)
     {
-        $user = auth()->user();
-        $sensitiveChange = $request->input('email') !== $user->email || $request->filled('password');
+        $passwordUser = DB::transaction(function () use ($request): ?User {
+            $user = User::query()->whereKey($request->user()->getKey())->lockForUpdate()->firstOrFail();
+            $sensitiveChange = $request->input('email') !== $user->email || $request->filled('password');
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'password' => ['nullable', 'confirmed', Password::defaults()],
-            'current_password' => $user->hasLocalPassword() && $sensitiveChange
-                ? ['bail', 'required', 'string', new ThrottledCurrentPassword()]
-                : ['nullable'],
-        ]);
-
-        $before = $user->only(['name', 'email']);
-        $passwordChanged = $request->filled('password');
-        $emailChanged = $validated['email'] !== $user->email;
-
-        $user->name = $validated['name'];
-        $user->email = $validated['email'];
-        $profileChanged = $user->isDirty(['name', 'email']) || $passwordChanged;
-
-        if ($emailChanged) {
-            $user->email_verified_at = null;
-        }
-
-        if ($passwordChanged) {
-            $this->passwordSecurity->rotate($user, $validated['password']);
-            $request->session()->regenerate();
-            $this->passwordSecurity->bindSession($request->session(), $user);
-        } else {
-            DB::transaction(function () use ($user): void {
-                $current = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
-                $current->fill($user->only(['name', 'email']))->save();
-                $user->setRawAttributes($current->getAttributes(), true);
-            });
-        }
-
-        if ($profileChanged) {
-            $this->activity->log('profile.updated', $user, 'Администратор обновил собственный профиль.', [
-                'before' => $before,
-                'after' => $user->only(['name', 'email']),
-                'email_changed' => $emailChanged,
-                'password_changed' => $passwordChanged,
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+                'password' => ['nullable', 'confirmed', Password::defaults()],
+                'current_password' => $user->hasLocalPassword() && $sensitiveChange
+                    ? ['bail', 'required', 'string', new ThrottledCurrentPassword($user)]
+                    : ['nullable'],
             ]);
+
+            $before = $user->only(['name', 'email']);
+            $passwordChanged = $request->filled('password');
+            $emailChanged = $validated['email'] !== $user->email;
+            $user->fill(['name' => $validated['name'], 'email' => $validated['email']]);
+            $profileChanged = $user->isDirty(['name', 'email']) || $passwordChanged;
+
+            if ($passwordChanged) {
+                // Preserve rotation's rejection of a revoked authenticated snapshot.
+                if (! hash_equals((string) $request->user()->getRawOriginal('password'), (string) $user->getAuthPassword())) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'login' => 'Учётные данные изменились. Войдите в аккаунт ещё раз.',
+                    ]);
+                }
+                $this->passwordSecurity->rotate($user, $validated['password']);
+            } else {
+                $user->save();
+            }
+
+            if ($profileChanged) {
+                $this->activity->log('profile.updated', $user, 'Администратор обновил собственный профиль.', [
+                    'before' => $before,
+                    'after' => $user->only(['name', 'email']),
+                    'email_changed' => $emailChanged,
+                    'password_changed' => $passwordChanged,
+                ]);
+            }
+
+            return $passwordChanged ? $user : null;
+        });
+
+        if ($passwordUser !== null) {
+            $request->session()->regenerate();
+            $this->passwordSecurity->bindSession($request->session(), $passwordUser);
         }
 
         return redirect()

@@ -26,7 +26,7 @@ class AccountDeletionTest extends TestCase
     {
         Storage::fake('public');
         Storage::fake('local');
-        $buyer = User::factory()->create(['avatar' => 'avatars/deleted.webp', 'phone' => '+37369111111', 'provider' => 'google', 'provider_id' => 'old-google']);
+        $buyer = User::factory()->create(['avatar' => 'avatars/deleted.webp', 'phone' => '+37369111111', 'provider' => 'google', 'provider_id' => 'old-google', 'remember_token' => 'old-remember-token']);
         $seller = User::factory()->create(['role' => 'seller']);
         $buyer->addresses()->create(['city' => 'Private city']);
         $conversation = Conversation::create(['buyer_id' => $buyer->id, 'seller_id' => $seller->id]);
@@ -34,6 +34,8 @@ class AccountDeletionTest extends TestCase
         Storage::disk('public')->put($buyer->avatar, 'avatar');
         Storage::disk('local')->put('chat-images/deleted.webp', 'image');
         DB::table('password_reset_tokens')->insert(['email' => $buyer->email, 'token' => 'old-token', 'created_at' => now()]);
+        UserRememberedDevice::create(['user_id' => $buyer->id, 'selector' => 'deleted-selector', 'token_hash' => hash('sha256', 'old-device-token'), 'expires_at' => now()->addDay()]);
+        DB::table('sessions')->insert(['id' => 'deleted-session', 'user_id' => $buyer->id, 'payload' => base64_encode('old'), 'last_activity' => time()]);
 
         $this->actingAs($buyer)->delete('/profile', ['password' => 'password'])->assertRedirect('/')->assertSessionHasNoErrors();
         $this->assertGuest();
@@ -46,6 +48,8 @@ class AccountDeletionTest extends TestCase
         $this->assertDatabaseMissing('user_addresses', ['user_id' => $buyer->id]);
         $this->assertDatabaseMissing('conversations', ['id' => $conversation->id]);
         $this->assertDatabaseCount('password_reset_tokens', 0);
+        $this->assertDatabaseMissing('user_remembered_devices', ['user_id' => $buyer->id]);
+        $this->assertDatabaseMissing('sessions', ['user_id' => $buyer->id]);
         Storage::disk('public')->assertMissing('avatars/deleted.webp');
         Storage::disk('local')->assertMissing('chat-images/deleted.webp');
     }
