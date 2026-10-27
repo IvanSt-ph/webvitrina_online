@@ -1492,6 +1492,12 @@ class SecurityRegressionTest extends TestCase
 
     public function test_user_can_open_support_dispute_from_marketplace_chat(): void
     {
+        // Support is assigned to the first active admin, not necessarily the
+        // admin most recently created by this test. Existing fixtures may remain.
+        $supportAdmin = User::query()->where('role', 'admin')->orderBy('id')->first()
+            ?? User::factory()->create(['role' => 'admin']);
+        // Reviewing support requires verified email and valid credentials.
+        // Do not assume the existing routing recipient satisfies those preconditions.
         $admin = User::factory()->create(['role' => 'admin']);
         $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Dispute Buyer']);
         $seller = User::factory()->create(['role' => 'seller', 'name' => 'Dispute Seller']);
@@ -1520,7 +1526,7 @@ class SecurityRegressionTest extends TestCase
             ->where('buyer_id', $buyer->id)
             ->firstOrFail();
 
-        $this->assertSame($admin->id, $supportConversation->seller_id);
+        $this->assertSame($supportAdmin->id, $supportConversation->seller_id);
         $this->assertDatabaseHas('messages', [
             'conversation_id' => $supportConversation->id,
             'sender_id' => $buyer->id,

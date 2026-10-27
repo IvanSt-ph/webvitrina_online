@@ -125,7 +125,7 @@ class AppServiceProvider extends ServiceProvider
             'layouts.navigation',
         ], function ($view) {
             $unreadChatsCount = auth()->check()
-                ? once(fn () => Message::whereHas('conversation', fn ($query) => $query
+                ? once(fn () => Message::visibleToParticipants()->whereHas('conversation', fn ($query) => $query
                     ->where('buyer_id', auth()->id())
                     ->orWhere('seller_id', auth()->id()))
                     ->where('sender_id', '!=', auth()->id())

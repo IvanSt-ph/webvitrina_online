@@ -36,6 +36,13 @@ class Message extends Model
     public const TYPE_SYSTEM = 'system';
     public const TYPE_INTERNAL_NOTE = 'internal_note';
 
+    public function scopeVisibleToParticipants(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $query->where(fn ($visible) => $visible
+            ->where('type', '!=', self::TYPE_INTERNAL_NOTE)
+            ->orWhereNull('type'));
+    }
+
     protected $fillable = [
         'conversation_id',
         'related_conversation_id',

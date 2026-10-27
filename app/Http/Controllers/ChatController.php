@@ -31,7 +31,7 @@ class ChatController extends Controller
         $selectedConversationId = $request->integer('chat');
 
         $conversations = (clone $query)
-            ->paginate(20);
+            ->paginate(20)->withQueryString();
 
         $selectedConversation = $selectedConversationId
             ? (clone $query)->whereKey($selectedConversationId)->first()
@@ -42,6 +42,7 @@ class ChatController extends Controller
         if ($selectedConversation) {
             $selectedConversation->load(['buyer', 'seller', 'product', 'order']);
             $selectedConversation->messages()
+                ->visibleToParticipants()
                 ->where('sender_id', '!=', $request->user()->id)
                 ->whereNull('read_at')
                 ->update(['read_at' => now()]);
@@ -144,6 +145,7 @@ class ChatController extends Controller
         $conversation->load(['buyer', 'seller', 'product', 'order']);
         $supportConversation = $this->supportConversationFor($request->user());
         $conversation->messages()
+            ->visibleToParticipants()
             ->where('sender_id', '!=', $request->user()->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
@@ -321,6 +323,7 @@ class ChatController extends Controller
         $latestMessageId = $messages->last()?->id ?? (int) $data['after'];
 
         $conversation->messages()
+            ->visibleToParticipants()
             ->where('sender_id', '!=', $request->user()->id)
             ->whereNull('read_at')
             ->where('id', '<=', $latestMessageId)
@@ -417,7 +420,7 @@ class ChatController extends Controller
     {
         $this->authorizeParticipant($request, $conversation);
 
-        $column = $this->pinnedColumnFor($request->user());
+        $column = $conversation->pinnedColumnFor($request->user());
         abort_unless($column, 403);
 
         $conversation->forceFill([
@@ -456,7 +459,8 @@ class ChatController extends Controller
         $user = $request->user();
         $search = trim((string) $request->query('q', ''));
         $filter = $this->activeFilter($request);
-        $pinColumn = $this->pinnedColumnFor($user);
+        // The same user may be the buyer in one chat and the seller in another.
+        $pinExpression = 'CASE WHEN buyer_id = ? THEN buyer_pinned_at ELSE seller_pinned_at END';
 
         return Conversation::query()
             ->where(fn ($query) => $query
@@ -474,13 +478,15 @@ class ChatController extends Controller
             ->with(['buyer', 'seller', 'product', 'order', 'lastMessage'])
             ->withCount([
                 'messages as unread_count' => fn ($query) => $query
+                    ->visibleToParticipants()
                     ->where('sender_id', '!=', $user->id)
                     ->whereNull('read_at'),
             ])
             ->when($filter === 'unread', fn ($query) => $query->whereHas('messages', fn ($messages) => $messages
+                ->visibleToParticipants()
                 ->where('sender_id', '!=', $user->id)
                 ->whereNull('read_at')))
-            ->when($filter === 'pinned' && $pinColumn, fn ($query) => $query->whereNotNull($pinColumn))
+            ->when($filter === 'pinned', fn ($query) => $query->whereRaw("({$pinExpression}) IS NOT NULL", [$user->id]))
             ->when($filter === 'products', fn ($query) => $query->whereNotNull('product_id'))
             ->when($filter === 'orders', fn ($query) => $query->whereNotNull('order_id'))
             ->when($filter === 'support', fn ($query) => $query->where('conversation_type', Conversation::TYPE_SUPPORT))
@@ -503,9 +509,10 @@ class ChatController extends Controller
                     }))
                     ->orWhere(fn ($identity) => $identity->matchingProductIdentity($search))
                     ->orWhereHas('order', fn ($orderQuery) => $orderQuery->where('number', 'like', "%{$search}%"))
-                    ->orWhereHas('messages', fn ($messageQuery) => $messageQuery->where('body', 'like', "%{$search}%"));
+                    ->orWhereHas('messages', fn ($messageQuery) => $messageQuery
+                        ->visibleToParticipants()->where('body', 'like', "%{$search}%"));
             }))
-            ->when($pinColumn, fn ($query) => $query->orderByRaw("CASE WHEN {$pinColumn} IS NULL THEN 1 ELSE 0 END"))
+            ->orderByRaw("CASE WHEN ({$pinExpression}) IS NULL THEN 1 ELSE 0 END", [$user->id])
             ->orderByDesc('unread_count')
             ->orderByDesc('last_message_at')
             ->orderByDesc('updated_at');
@@ -528,15 +535,6 @@ class ChatController extends Controller
             'support' => ['label' => 'Поддержка', 'icon' => 'ri-customer-service-2-line'],
             'general' => ['label' => 'Общие', 'icon' => 'ri-chat-1-line'],
         ];
-    }
-
-    private function pinnedColumnFor(User $user): ?string
-    {
-        return match (true) {
-            $user->id === auth()->id() && $user->role === 'buyer' => 'buyer_pinned_at',
-            $user->id === auth()->id() && $user->role === 'seller' => 'seller_pinned_at',
-            default => null,
-        };
     }
 
     private function supportConversationFor(User $user): ?Conversation

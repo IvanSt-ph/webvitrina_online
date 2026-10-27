@@ -388,6 +388,7 @@ if (auth()->check()) {
             abort_unless($chatConversation->product_id === $product->id, 404);
 
             $chatConversation->messages()
+                ->visibleToParticipants()
                 ->where('sender_id', '!=', auth()->id())
                 ->whereNull('read_at')
                 ->update(['read_at' => now()]);

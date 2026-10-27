@@ -581,7 +581,7 @@ public function redirectToRoleProfile()
             ->limit(3)
             ->get();
 
-        $unreadMessagesCount = Message::whereHas('conversation', fn ($query) => $query
+        $unreadMessagesCount = Message::visibleToParticipants()->whereHas('conversation', fn ($query) => $query
                 ->where('buyer_id', $user->id)
                 ->orWhere('seller_id', $user->id))
             ->where('sender_id', '!=', $user->id)
@@ -604,7 +604,7 @@ public function redirectToRoleProfile()
             ))
             ->count();
 
-        $supportUnreadCount = Message::whereHas('conversation', fn ($query) => $query
+        $supportUnreadCount = Message::visibleToParticipants()->whereHas('conversation', fn ($query) => $query
                 ->where('conversation_type', Conversation::TYPE_SUPPORT)
                 ->where('buyer_id', $user->id))
             ->where('sender_id', '!=', $user->id)

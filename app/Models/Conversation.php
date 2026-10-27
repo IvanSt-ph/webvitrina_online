@@ -187,11 +187,7 @@ class Conversation extends Model
     public function lastMessage()
     {
         return $this->hasOne(Message::class)
-            ->ofMany(['id' => 'max'], fn ($query) => $query->where(function ($query) {
-                $query
-                    ->where('type', '!=', Message::TYPE_INTERNAL_NOTE)
-                    ->orWhereNull('type');
-            }));
+            ->ofMany(['id' => 'max'], fn ($query) => $query->visibleToParticipants());
     }
 
     public function includes(User $user): bool
@@ -236,6 +232,15 @@ class Conversation extends Model
         return null;
     }
 
+    public function pinnedColumnFor(User $user): ?string
+    {
+        return match ($user->id) {
+            $this->buyer_id => 'buyer_pinned_at',
+            $this->seller_id => 'seller_pinned_at',
+            default => null,
+        };
+    }
+
     public function isDeletedFor(User $user): bool
     {
         $column = $this->deletedColumnFor($user);
@@ -247,11 +252,7 @@ class Conversation extends Model
     {
         return $this->messages()
             ->with(['sender', 'relatedConversation', 'order.items.product', 'order.seller.shop'])
-            ->when(! $includeInternalNotes, fn ($query) => $query->where(function ($query) {
-                $query
-                    ->where('type', '!=', Message::TYPE_INTERNAL_NOTE)
-                    ->orWhereNull('type');
-            }))
+            ->when(! $includeInternalNotes, fn ($query) => $query->visibleToParticipants())
             ->latest('id')
             ->limit($limit)
             ->get()
@@ -264,11 +265,7 @@ class Conversation extends Model
         return $this->messages()
             ->with(['sender', 'relatedConversation', 'order.items.product', 'order.seller.shop'])
             ->where('id', '<', $beforeId)
-            ->when(! $includeInternalNotes, fn ($query) => $query->where(function ($query) {
-                $query
-                    ->where('type', '!=', Message::TYPE_INTERNAL_NOTE)
-                    ->orWhereNull('type');
-            }))
+            ->when(! $includeInternalNotes, fn ($query) => $query->visibleToParticipants())
             ->latest('id')
             ->limit($limit)
             ->get()
@@ -281,11 +278,7 @@ class Conversation extends Model
         return $this->messages()
             ->with(['sender', 'relatedConversation', 'order.items.product', 'order.seller.shop'])
             ->where('id', '>', $afterId)
-            ->when(! $includeInternalNotes, fn ($query) => $query->where(function ($query) {
-                $query
-                    ->where('type', '!=', Message::TYPE_INTERNAL_NOTE)
-                    ->orWhereNull('type');
-            }))
+            ->when(! $includeInternalNotes, fn ($query) => $query->visibleToParticipants())
             ->oldest('id')
             ->limit($limit)
             ->get();
@@ -294,6 +287,7 @@ class Conversation extends Model
     public function latestReadOutgoingMessageIdFor(User $user): int
     {
         return (int) $this->messages()
+            ->visibleToParticipants()
             ->where('sender_id', $user->id)
             ->whereNotNull('read_at')
             ->max('id');
@@ -302,6 +296,7 @@ class Conversation extends Model
     public function hasMoreThanRecentMessages(int $limit = 50): bool
     {
         return $this->messages()
+            ->visibleToParticipants()
             ->skip($limit)
             ->take(1)
             ->exists();
@@ -310,6 +305,7 @@ class Conversation extends Model
     public function hasMessagesBefore(int $beforeId): bool
     {
         return $this->messages()
+            ->visibleToParticipants()
             ->where('id', '<', $beforeId)
             ->exists();
     }

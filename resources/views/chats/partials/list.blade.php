@@ -3,7 +3,6 @@
     $inlineDesktop = $inlineDesktop ?? false;
     $listQuery = array_filter(request()->only(['q', 'filter']));
     $isSeller = auth()->user()->isSeller();
-    $pinColumn = $isSeller ? 'seller_pinned_at' : 'buyer_pinned_at';
 @endphp
 
 <div class="min-w-0 space-y-1.5">
@@ -23,7 +22,8 @@
             $otherProfileUrl = $other->isSeller() && $other->shop?->slug
                 ? route('seller.show', $other->shop->slug)
                 : route('users.public.show', $other);
-            $isPinned = (bool) $item->{$pinColumn};
+            $pinColumn = $item->pinnedColumnFor(auth()->user());
+            $isPinned = $pinColumn && (bool) $item->{$pinColumn};
             $contextLabel = $item->order
                 ? 'Заказ ' . $item->order->number
                 : ($item->product
