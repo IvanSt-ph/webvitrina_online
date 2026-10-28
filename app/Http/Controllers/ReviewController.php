@@ -88,7 +88,7 @@ private function persistReview(Request $request, Product $product)
     // Reputation recalculation is registered by the observer for afterCommit,
     // so it always starts with a fresh REPEATABLE READ snapshot.
     $review = DB::transaction(function () use ($request, $product, $data) {
-        $review = Review::withTrashed()->updateOrCreate(
+        $review = Review::withTrashed()->lockForUpdate()->updateOrCreate(
             ['user_id' => auth()->id(), 'product_id' => $product->id],
             [
                 'rating'      => $data['rating'],

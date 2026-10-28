@@ -169,7 +169,7 @@ class CategoryController extends Controller
             match ($sort) {
                 'price_asc'  => $query->orderBy('price', 'asc'),
                 'price_desc' => $query->orderBy('price', 'desc'),
-                'rating'     => $query->withAvg('reviews', 'rating')->orderByDesc('reviews_avg_rating'),
+                'rating'     => $query->orderByDesc('reviews_avg_rating'),
                 'new'        => $query->orderByDesc('created_at'),
                 default      => $query->orderByDesc('created_at'),
             };
@@ -188,8 +188,8 @@ class CategoryController extends Controller
                 'product' => fn ($query) => $query
                     ->active()
                     ->with(['seller.shop', 'city.country', 'category'])
-                    ->withAvg('reviews as reviews_avg_rating', 'rating')
-                    ->withCount('reviews'),
+                    ->withAvg(['reviews as reviews_avg_rating' => fn ($query) => $query->where('status', 'approved')], 'rating')
+                    ->withCount(['reviews as reviews_count' => fn ($query) => $query->where('status', 'approved')]),
                 'shop:id,user_id,name,slug,banner,description',
                 'shop.user:id,name,avatar',
             ])

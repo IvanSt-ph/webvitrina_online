@@ -18,6 +18,7 @@
 
     $rating = $rating ?? 'all';
     $q = $q ?? '';
+    $fingerprints = $reviews->getCollection()->pluck('content_fingerprint', 'id');
 @endphp
 
 <div x-data="reviewPanel()" class="space-y-5">
@@ -319,13 +320,13 @@
                     <button type="button" class="inline-flex h-10 items-center justify-center rounded-lg border border-gray-200 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50" @click="modal.open = false">Закрыть</button>
 
                     <template x-if="modal.data.status !== 'approved'">
-                        <button type="button" class="inline-flex h-10 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700" @click="changeStatus(modal.data.id, 'approve')">
+                        <button type="button" class="inline-flex h-10 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700" @click="changeStatus(modal.data.id, 'approve', modal.data.content_fingerprint)">
                             <i class="ri-check-line"></i> Одобрить
                         </button>
                     </template>
 
                     <template x-if="modal.data.status !== 'rejected'">
-                        <button type="button" class="inline-flex h-10 items-center justify-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-700 hover:bg-amber-100" @click="changeStatus(modal.data.id, 'reject')">
+                        <button type="button" class="inline-flex h-10 items-center justify-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-700 hover:bg-amber-100" @click="changeStatus(modal.data.id, 'reject', modal.data.content_fingerprint)">
                             <i class="ri-close-line"></i> Отклонить
                         </button>
                     </template>
@@ -369,6 +370,7 @@ function reviewPanel() {
     return {
         filters: { status: @json($status), sort: @json($sort), rating: @json($rating), q: @json($q) },
         selected: [],
+        fingerprints: @json($fingerprints),
         modal: { open: false, data: {} },
         reasonModal: { open: false, id: null, bulk: false, reason: '' },
         lightbox: { open: false, url: '' },
@@ -387,16 +389,16 @@ function reviewPanel() {
             window.showSiteToast(message, type);
         },
 
-        changeStatus(id, action) {
+        changeStatus(id, action, fingerprint = this.fingerprints[id]) {
             if (action === 'reject') {
-                this.reasonModal = { open: true, id, bulk: false, reason: '' };
+                this.reasonModal = { open: true, id, bulk: false, reason: '', fingerprint };
                 return;
             }
 
-            this.sendStatus(id, action);
+            this.sendStatus(id, action, '', fingerprint);
         },
 
-        async sendStatus(id, action, reason = '') {
+        async sendStatus(id, action, reason = '', fingerprint = this.fingerprints[id]) {
             try {
                 const res = await fetch(`/admin/reviews/${id}/${action}`, {
                     method: 'POST',
@@ -405,9 +407,13 @@ function reviewPanel() {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ reason })
+                    body: JSON.stringify({ reason, content_fingerprint: fingerprint })
                 });
 
+                if (res.status === 409) {
+                    this.showToast('Отзыв изменился. Обновите страницу и проверьте его заново.', 'error');
+                    return;
+                }
                 if (!res.ok) throw new Error();
 
                 this.showToast('Статус обновлён');
@@ -441,9 +447,14 @@ function reviewPanel() {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ ids: this.selected, action, reason })
+                    body: JSON.stringify({ ids: this.selected, action, reason,
+                        fingerprints: Object.fromEntries(this.selected.map(id => [id, this.fingerprints[id]])) })
                 });
 
+                if (res.status === 409) {
+                    this.showToast('Отзывы изменились. Обновите страницу и проверьте их заново.', 'error');
+                    return;
+                }
                 if (!res.ok) throw new Error();
 
                 this.showToast('Действие выполнено');
@@ -463,7 +474,7 @@ function reviewPanel() {
             if (this.reasonModal.bulk) {
                 this.sendBulk('reject', reason);
             } else {
-                this.sendStatus(this.reasonModal.id, 'reject', reason);
+                this.sendStatus(this.reasonModal.id, 'reject', reason, this.reasonModal.fingerprint);
             }
 
             this.reasonModal.open = false;

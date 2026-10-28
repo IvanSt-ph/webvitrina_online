@@ -27,6 +27,19 @@ class ReleaseExperienceTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function adSlot(string $key): AdSlot
+    {
+        // Targeted runs may reuse the schema without the rows inserted by migrations.
+        return AdSlot::updateOrCreate(['key' => $key], [
+            'name' => AdSlot::labels()[$key],
+            'placement' => match ($key) {
+                AdSlot::HOME_FEATURED_PRODUCTS, AdSlot::HOME_WEEKLY_SHOPS => 'home',
+                AdSlot::CATEGORY_FEATURED_PRODUCTS => 'category',
+            },
+            'is_active' => true,
+        ]);
+    }
+
     public function test_user_can_save_language_currency_and_notification_preferences(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
@@ -1123,7 +1136,7 @@ class ReleaseExperienceTest extends TestCase
             'stock' => 5,
             'status' => Product::STATUS_ACTIVE,
         ]);
-        $slot = AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail();
+        $slot = $this->adSlot(AdSlot::HOME_FEATURED_PRODUCTS);
 
         $this->actingAs($admin)
             ->get(route('admin.ads.index'))
@@ -1176,7 +1189,7 @@ class ReleaseExperienceTest extends TestCase
         ]);
 
         AdCampaign::create([
-            'ad_slot_id' => AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail()->id,
+            'ad_slot_id' => $this->adSlot(AdSlot::HOME_FEATURED_PRODUCTS)->id,
             'product_id' => $product->id,
             'target_type' => AdCampaign::TYPE_PRODUCT,
             'title' => 'Visible campaign',
@@ -1197,7 +1210,7 @@ class ReleaseExperienceTest extends TestCase
     {
         $seller = User::factory()->create(['role' => 'seller']);
         Shop::create(['user_id' => $seller->id, 'name' => 'Priority Promo Shop']);
-        $slot = AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail();
+        $slot = $this->adSlot(AdSlot::HOME_FEATURED_PRODUCTS);
 
         $lowPriorityProduct = Product::create([
             'user_id' => $seller->id,
@@ -1252,7 +1265,7 @@ class ReleaseExperienceTest extends TestCase
     {
         $seller = User::factory()->create(['role' => 'seller']);
         Shop::create(['user_id' => $seller->id, 'name' => 'Many Recommendations Shop']);
-        $slot = AdSlot::where('key', AdSlot::HOME_FEATURED_PRODUCTS)->firstOrFail();
+        $slot = $this->adSlot(AdSlot::HOME_FEATURED_PRODUCTS);
 
         foreach (range(1, 7) as $number) {
             $product = Product::create([
@@ -1436,7 +1449,7 @@ class ReleaseExperienceTest extends TestCase
         ]);
 
         AdCampaign::create([
-            'ad_slot_id' => AdSlot::where('key', AdSlot::HOME_WEEKLY_SHOPS)->firstOrFail()->id,
+            'ad_slot_id' => $this->adSlot(AdSlot::HOME_WEEKLY_SHOPS)->id,
             'shop_id' => $shop->id,
             'target_type' => AdCampaign::TYPE_SHOP,
             'title' => 'Weekly shop campaign',
@@ -1474,7 +1487,7 @@ class ReleaseExperienceTest extends TestCase
             ]);
 
             AdCampaign::create([
-                'ad_slot_id' => AdSlot::where('key', AdSlot::HOME_WEEKLY_SHOPS)->firstOrFail()->id,
+                'ad_slot_id' => $this->adSlot(AdSlot::HOME_WEEKLY_SHOPS)->id,
                 'shop_id' => $shop->id,
                 'target_type' => AdCampaign::TYPE_SHOP,
                 'title' => 'Weekly shop carousel campaign ' . $number,
@@ -1540,7 +1553,7 @@ class ReleaseExperienceTest extends TestCase
         ]);
 
         AdCampaign::create([
-            'ad_slot_id' => AdSlot::where('key', AdSlot::CATEGORY_FEATURED_PRODUCTS)->firstOrFail()->id,
+            'ad_slot_id' => $this->adSlot(AdSlot::CATEGORY_FEATURED_PRODUCTS)->id,
             'product_id' => $product->id,
             'target_type' => AdCampaign::TYPE_PRODUCT,
             'title' => 'Category visible campaign',
@@ -1565,7 +1578,7 @@ class ReleaseExperienceTest extends TestCase
             'name' => 'Category Priority',
             'slug' => 'category-priority',
         ]);
-        $slot = AdSlot::where('key', AdSlot::CATEGORY_FEATURED_PRODUCTS)->firstOrFail();
+        $slot = $this->adSlot(AdSlot::CATEGORY_FEATURED_PRODUCTS);
 
         $lowPriorityProduct = Product::create([
             'user_id' => $seller->id,
@@ -1642,7 +1655,7 @@ class ReleaseExperienceTest extends TestCase
         ]);
 
         AdCampaign::create([
-            'ad_slot_id' => AdSlot::where('key', AdSlot::CATEGORY_FEATURED_PRODUCTS)->firstOrFail()->id,
+            'ad_slot_id' => $this->adSlot(AdSlot::CATEGORY_FEATURED_PRODUCTS)->id,
             'category_id' => $visibleCategory->id,
             'product_id' => $product->id,
             'target_type' => AdCampaign::TYPE_PRODUCT,

@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Services\ReviewRatingCache;
 use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -307,7 +308,7 @@ class ProductRepository
 
         $cacheKey = "product_page:{$key}";
 
-        return Cache::remember($cacheKey, 600, function () use ($key) {
+        return ReviewRatingCache::remember($cacheKey, 600, function () use ($key) {
 
             $product = Product::with([
                 'city.country',
@@ -348,7 +349,7 @@ class ProductRepository
      ============================================================ */
     public function getRelatedProducts(Product $product)
     {
-        return Cache::remember("related:{$product->id}", 600, function () use ($product) {
+        return ReviewRatingCache::remember("related:{$product->id}", 600, function () use ($product) {
 
             return Product::query()
                 ->active()

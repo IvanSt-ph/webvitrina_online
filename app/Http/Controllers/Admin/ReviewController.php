@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Services\AdminActivityLogger;
 use App\Services\UserNotificationService;
+use App\Services\ReviewModerationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReviewController extends Controller
 {
@@ -51,19 +53,20 @@ class ReviewController extends Controller
             ->orderBy('created_at', $sort === 'asc' ? 'asc' : 'desc')
             ->paginate(18)
             ->withQueryString();
+        foreach ($reviews as $review) {
+            $review->setAttribute('content_fingerprint', $review->moderationFingerprint());
+        }
 
         return view('admin.reviews.index', compact('reviews', 'status', 'sort', 'rating', 'q', 'counters'));
     }
 
     /** ✅ Одобрить отзыв */
-    public function approve(Review $review)
+    public function approve(Request $request, Review $review)
     {
-        $review->update([
-            'status' => Review::STATUS_APPROVED,
-            'rejection_reason' => null,
-            'moderated_by' => auth()->id(),
-            'moderated_at' => now(),
-        ]);
+        $data = $request->validate(['content_fingerprint' => ['required', 'string', 'size:64']]);
+        $review = app(ReviewModerationService::class)->moderate(
+            [$review->id], [$review->id => $data['content_fingerprint']], Review::STATUS_APPROVED, auth()->id()
+        )->first();
         $this->activity->log('review.approved', $review, 'Отзыв одобрен администратором.');
         app(UserNotificationService::class)->create(
             $review->user,
@@ -82,14 +85,12 @@ class ReviewController extends Controller
     {
         $data = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
+            'content_fingerprint' => ['required', 'string', 'size:64'],
         ]);
 
-        $review->update([
-            'status' => Review::STATUS_REJECTED,
-            'rejection_reason' => $data['reason'] ?? null,
-            'moderated_by' => auth()->id(),
-            'moderated_at' => now(),
-        ]);
+        $review = app(ReviewModerationService::class)->moderate(
+            [$review->id], [$review->id => $data['content_fingerprint']], Review::STATUS_REJECTED, auth()->id(), $data['reason']
+        )->first();
         $this->activity->log('review.rejected', $review, 'Отзыв отклонён администратором.', [
             'reason' => $data['reason'],
         ]);
@@ -112,12 +113,13 @@ class ReviewController extends Controller
             'ids.*' => ['integer', 'exists:reviews,id'],
             'action' => ['required', 'in:approve,reject,delete'],
             'reason' => ['nullable', 'required_if:action,reject', 'string', 'max:1000'],
+            'fingerprints' => ['required_unless:action,delete', 'array'],
+            'fingerprints.*' => ['required', 'string', 'size:64'],
         ]);
 
-        $reviews = Review::whereIn('id', $data['ids'])->get();
-
         if ($data['action'] === 'delete') {
-            $deleted = $reviews->each->delete()->count();
+            $deleted = DB::transaction(fn () => Review::whereIn('id', $data['ids'])
+                ->orderBy('id')->lockForUpdate()->get()->each->delete()->count());
             $this->activity->log('review.bulk_deleted', null, 'Администратор удалил выбранные отзывы.', [
                 'count' => $deleted,
             ]);
@@ -129,12 +131,9 @@ class ReviewController extends Controller
             ? Review::STATUS_APPROVED
             : Review::STATUS_REJECTED;
 
-        $reviews->each->update([
-            'status' => $status,
-            'rejection_reason' => $status === Review::STATUS_REJECTED ? ($data['reason'] ?? null) : null,
-            'moderated_by' => auth()->id(),
-            'moderated_at' => now(),
-        ]);
+        $reviews = app(ReviewModerationService::class)->moderate(
+            $data['ids'], $data['fingerprints'], $status, auth()->id(), $data['reason'] ?? null
+        );
         $updated = $reviews->count();
         $this->activity->log('review.bulk_' . $data['action'], null, 'Выполнена массовая модерация отзывов.', [
             'count' => $updated,
@@ -148,16 +147,16 @@ class ReviewController extends Controller
     public function destroy(Review $review)
     {
         $reviewId = $review->id;
-        $review->delete();
+        DB::transaction(fn () => Review::whereKey($reviewId)->lockForUpdate()->firstOrFail()->delete());
         $this->activity->log('review.deleted', null, 'Отзыв удалён администратором.', ['review_id' => $reviewId]);
         return response()->json(['deleted' => true]);
     }
 
     public function show(Review $review)
     {
-        return response()->json(
-            $review->load(['user', 'product', 'images', 'moderator'])
-        );
+        $review->load(['user', 'product', 'images', 'moderator']);
+        $review->setAttribute('content_fingerprint', $review->moderationFingerprint());
+        return response()->json($review);
     }
 
 }

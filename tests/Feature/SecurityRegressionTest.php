@@ -3710,6 +3710,7 @@ class SecurityRegressionTest extends TestCase
         $this->actingAs($admin)
             ->postJson(route('admin.reviews.reject', $review), [
                 'reason' => 'Отзыв содержит неподходящий текст.',
+                'content_fingerprint' => $review->moderationFingerprint(),
             ])
             ->assertOk()
             ->assertJson(['status' => Review::STATUS_REJECTED]);

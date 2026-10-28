@@ -23,6 +23,8 @@ class ReviewObserver
         $productId = (int) $review->product_id;
 
         DB::afterCommit(function () use ($productId): void {
+            // Also covers account deletion, which invokes this observer after a bulk delete.
+            \App\Services\ReviewRatingCache::invalidate();
             $userId = null;
 
             try {

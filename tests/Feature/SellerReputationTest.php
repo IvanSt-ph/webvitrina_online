@@ -157,14 +157,16 @@ class SellerReputationTest extends TestCase
         $this->review($this->product($otherSeller, 'unaffected-product'), 5, Review::STATUS_APPROVED);
 
         $this->actingAs($admin)
-            ->postJson(route('admin.reviews.approve', $review))
+            ->postJson(route('admin.reviews.approve', $review), ['content_fingerprint' => $review->moderationFingerprint()])
             ->assertOk();
 
         $this->assertShopRating($shop, 2.00, 1);
         $this->assertShopRating($otherShop, 5.00, 1);
 
         $this->actingAs($admin)
-            ->postJson(route('admin.reviews.reject', $review), ['reason' => 'Rejected after review'])
+            ->postJson(route('admin.reviews.reject', $review), [
+                'reason' => 'Rejected after review', 'content_fingerprint' => $review->moderationFingerprint(),
+            ])
             ->assertOk();
 
         $this->assertShopRating($shop, 0.00, 0);
@@ -237,6 +239,7 @@ class SellerReputationTest extends TestCase
             ->postJson(route('admin.reviews.bulk'), [
                 'ids' => [$first->id, $second->id],
                 'action' => 'approve',
+                'fingerprints' => [$first->id => $first->moderationFingerprint(), $second->id => $second->moderationFingerprint()],
             ])->assertOk()->assertJson(['updated' => 2]);
 
         $this->assertShopRating($firstShop, 5.00, 1);

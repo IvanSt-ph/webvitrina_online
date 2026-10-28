@@ -49,6 +49,18 @@ class Review extends Model
         return $this->hasMany(ReviewImage::class);
     }
 
+    /** Fingerprint the exact snapshot displayed to the moderator, including its image set. */
+    public function moderationFingerprint(): string
+    {
+        $this->loadMissing('images');
+
+        return hash('sha256', json_encode([
+            (int) $this->id, (int) $this->user_id, (int) $this->product_id,
+            (int) $this->rating, $this->body,
+            $this->images->sortBy('id')->map(fn ($image) => [(int) $image->id, $image->path])->values()->all(),
+        ], JSON_THROW_ON_ERROR));
+    }
+
     public function moderator()
     {
         return $this->belongsTo(User::class, 'moderated_by');
@@ -68,14 +80,20 @@ class Review extends Model
 
     protected static function booted()
 {
-    static::saved(function ($review) {
-        if ($review->product) {
-            \App\Repositories\ProductRepository::clearProductCache($review->product);
-        }
+    $invalidate = function ($review) {
+        // Clear after commit: readers must not refill caches from pre-commit data.
+        DB::afterCommit(function () use ($review) {
+            if ($review->product) {
+                \App\Repositories\ProductRepository::clearProductCache($review->product);
+            }
 
-        cache()->forget('products.home.high_rating_recommendations');
-        cache()->forget('products.home.catalog_recommendations');
-    });
+            cache()->forget('products.home.high_rating_recommendations');
+            cache()->forget('products.home.catalog_recommendations');
+            cache()->forget('ads.home');
+        });
+    };
+    static::saved($invalidate);
+    static::deleted($invalidate);
 
     static::deleting(function ($review) {
         if ($review->isForceDeleting()) {
@@ -100,14 +118,6 @@ class Review extends Model
         }
     });
 
-    static::deleted(function ($review) {
-        if ($review->product) {
-            \App\Repositories\ProductRepository::clearProductCache($review->product);
-        }
-
-        cache()->forget('products.home.high_rating_recommendations');
-        cache()->forget('products.home.catalog_recommendations');
-    });
 }
 
 }

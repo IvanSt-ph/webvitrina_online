@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Repositories\ProductRepository;
+use App\Services\ReviewRatingCache;
 use App\Models\Banner;
 use App\Models\Category;
 use App\Models\ProductStat;
@@ -43,7 +44,7 @@ class ProductController extends Controller
         $homeAdCampaigns = collect();
 
         if ($showHomeRecommendations) {
-            $homeAdCampaigns = Cache::remember('ads.home', 300, function () {
+            $homeAdCampaigns = ReviewRatingCache::remember('ads.home', 300, function () {
                 return AdCampaign::query()
                     ->live()
                     ->whereHas('slot', fn ($query) => $query->whereIn('key', [
@@ -55,8 +56,8 @@ class ProductController extends Controller
                         'product' => fn ($query) => $query
                             ->active()
                             ->with(['seller.shop', 'city.country', 'category'])
-                            ->withAvg('reviews as reviews_avg_rating', 'rating')
-                            ->withCount('reviews'),
+                            ->withAvg(['reviews as reviews_avg_rating' => fn ($query) => $query->where('status', 'approved')], 'rating')
+                            ->withCount(['reviews as reviews_count' => fn ($query) => $query->where('status', 'approved')]),
                         'shop:id,user_id,name,slug,banner,description,seller_reputation,rating,sales_count',
                         'shop.user:id,name,avatar',
                     ])
@@ -85,7 +86,7 @@ class ProductController extends Controller
             : 0;
 
         if ($fallbackLimit > 0) {
-            $recommendedFallbackProducts = Cache::remember('products.home.high_rating_recommendations', 300, function () {
+            $recommendedFallbackProducts = ReviewRatingCache::remember('products.home.high_rating_recommendations', 300, function () {
                 return Product::query()
                     ->active()
                     ->with(['seller.shop', 'city.country', 'category'])
@@ -110,7 +111,7 @@ class ProductController extends Controller
             $catalogLimit = max(0, $fallbackLimit - $recommendedFallbackProducts->count());
 
             if ($catalogLimit > 0) {
-                $recommendedCatalogProducts = Cache::remember('products.home.catalog_recommendations', 300, function () {
+                $recommendedCatalogProducts = ReviewRatingCache::remember('products.home.catalog_recommendations', 300, function () {
                     return Product::query()
                         ->active()
                         ->with(['seller.shop', 'city.country', 'category'])
@@ -147,8 +148,8 @@ class ProductController extends Controller
                 'product' => fn ($query) => $query
                     ->active()
                     ->with(['seller.shop', 'city.country', 'category'])
-                    ->withAvg('reviews as reviews_avg_rating', 'rating')
-                    ->withCount('reviews'),
+                    ->withAvg(['reviews as reviews_avg_rating' => fn ($query) => $query->where('status', 'approved')], 'rating')
+                    ->withCount(['reviews as reviews_count' => fn ($query) => $query->where('status', 'approved')]),
             ])
             ->orderByDesc('sort_order')
             ->latest()
