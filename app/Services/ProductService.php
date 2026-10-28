@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\ProductSlug;
+use App\Models\User;
 use App\Rules\ImageUploadConstraints;
 use App\Repositories\ProductCrudRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -60,10 +62,15 @@ class ProductService
     /* ============================================================
      |  ОБНОВЛЕНИЕ ТОВАРА
      ============================================================ */
-    public function update(Product $product, array $data, ?UploadedFile $image = null, array $galleryNew = [], array $galleryToDelete = [], array $attrs = []): Product
+    public function update(Product $product, array $data, ?UploadedFile $image = null, array $galleryNew = [], array $galleryToDelete = [], array $attrs = [], ?User $actor = null): Product
     {
-        return app(BackupWriteBarrier::class)->transaction(function () use ($product, $data, $image, $galleryNew, $galleryToDelete, $attrs) {
+        return app(BackupWriteBarrier::class)->transaction(function () use ($product, $data, $image, $galleryNew, $galleryToDelete, $attrs, $actor) {
             $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeMutation($actor, 'update', $product);
+            // Sellers may correct a blocked card, but only admins may republish it.
+            if ($actor !== null && $actor->role !== 'admin' && $product->isBlocked()) {
+                $data['status'] = Product::STATUS_BLOCKED;
+            }
             $files = new ProductImageOperation($this->images, DB::connection());
 
             /* ---------- 1. Подготовка данных ---------- */
@@ -116,10 +123,11 @@ class ProductService
     /* ============================================================
      |  УДАЛЕНИЕ ТОВАРА
      ============================================================ */
-    public function delete(Product $product): void
+    public function delete(Product $product, ?User $actor = null): void
     {
-        app(BackupWriteBarrier::class)->transaction(function () use ($product) {
+        app(BackupWriteBarrier::class)->transaction(function () use ($product, $actor) {
             $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeMutation($actor, 'delete', $product);
             $files = new ProductImageOperation($this->images, DB::connection());
 
             // Планируем очистку файлов после окончательного commit.
@@ -277,12 +285,22 @@ class ProductService
         return ltrim(str_replace(['storage/', '/storage/'], '', $path), '/');
     }
 
-    public function deleteFromGallery(Product $product, string $path): void
+    public function deleteFromGallery(Product $product, string $path, ?User $actor = null): void
     {
-        app(BackupWriteBarrier::class)->transaction(function () use ($product, $path) {
+        app(BackupWriteBarrier::class)->transaction(function () use ($product, $path, $actor) {
             $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeMutation($actor, 'update', $product);
             $files = new ProductImageOperation($this->images, DB::connection());
             $this->removeGalleryImage($product, $path, $files);
         });
+    }
+
+    private function authorizeMutation(?User $actor, string $ability, Product $product): void
+    {
+        // Seller endpoints must pass their actor. Null retains the trusted
+        // administrative/internal service API. Check before any file or DB mutation.
+        if ($actor !== null) {
+            Gate::forUser($actor)->authorize($ability, $product);
+        }
     }
 }

@@ -338,9 +338,6 @@ class ProductManageController extends Controller
 
         $data = $request->validated();
         $data['status'] = $data['status'] ?? 'draft';
-        if ($product->isBlocked()) {
-            $data['status'] = Product::STATUS_BLOCKED;
-        }
 
         $data['price']     = $request->price;
         $data['old_price'] = $request->filled('old_price') ? $request->old_price : null;
@@ -367,7 +364,8 @@ class ProductManageController extends Controller
             $image,
             $galleryNew,
             $galleryToDelete,
-            $attrs
+            $attrs,
+            actor: $request->user(),
         );
 
         return redirect()
@@ -379,7 +377,7 @@ class ProductManageController extends Controller
     public function destroy(Product $product)
     {
         $this->authorize('delete', $product);
-        $this->products->delete($product);
+        $this->products->delete($product, actor: Auth::user());
 
         return back()->with('success', '🗑️ Товар удалён');
     }
@@ -389,7 +387,7 @@ class ProductManageController extends Controller
     {
         $this->authorize('update', $product);
 
-        $this->products->deleteFromGallery($product, $request->path);
+        $this->products->deleteFromGallery($product, $request->path, actor: $request->user());
 
         return response()->json(['success' => true]);
     }
