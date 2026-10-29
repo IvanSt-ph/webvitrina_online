@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SellerPlanRequest;
+use App\Models\User;
+use App\Services\BackupWriteBarrier;
 use App\Services\AdminActivityLogger;
 use App\Services\SellerPlanService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class SellerPlanRequestController extends Controller
 {
@@ -69,22 +70,23 @@ class SellerPlanRequestController extends Controller
             'admin_note' => ['nullable', 'string', 'max:700'],
         ]);
 
-        $user = $planRequest->user;
-        $oldPlan = $user->seller_plan;
-
-        if (! $this->sellerPlans->canAssignPlan($user, $planRequest->requested_plan)) {
-            throw ValidationException::withMessages([
-                'requested_plan' => $this->sellerPlans->assignmentLimitMessage($user, $planRequest->requested_plan),
+        [$user, $planRequest, $oldPlan] = app(BackupWriteBarrier::class)->transaction(function () use ($request, $planRequest, $data): array {
+            // Same seller mutex as product creation/transfers, before any Product lock.
+            $user = User::whereKey($planRequest->user_id)->lockForUpdate()->firstOrFail();
+            $current = SellerPlanRequest::whereKey($planRequest->id)->lockForUpdate()->firstOrFail();
+            abort_unless($current->user_id === $user->id && $current->isPending(), 422, 'Эта заявка уже обработана.');
+            $this->sellerPlans->assertCanAssignPlan($user, $current->requested_plan, 'requested_plan');
+            $oldPlan = $user->seller_plan;
+            $user->forceFill(['seller_plan' => $current->requested_plan])->save();
+            $current->update([
+                'status' => SellerPlanRequest::STATUS_APPROVED,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
             ]);
-        }
 
-        $user->forceFill(['seller_plan' => $planRequest->requested_plan])->save();
-        $planRequest->update([
-            'status' => SellerPlanRequest::STATUS_APPROVED,
-            'reviewed_by' => $request->user()->id,
-            'reviewed_at' => now(),
-            'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
-        ]);
+            return [$user, $current, $oldPlan];
+        });
 
         $this->activity->log('seller_plan_request.approved', $planRequest, 'Одобрено изменение уровня магазина.', [
             'user_id' => $user->id,
@@ -103,12 +105,20 @@ class SellerPlanRequestController extends Controller
             'admin_note' => ['nullable', 'string', 'max:700'],
         ]);
 
-        $planRequest->update([
-            'status' => SellerPlanRequest::STATUS_REJECTED,
-            'reviewed_by' => $request->user()->id,
-            'reviewed_at' => now(),
-            'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
-        ]);
+        $planRequest = app(BackupWriteBarrier::class)->transaction(function () use ($request, $planRequest, $data): SellerPlanRequest {
+            // Match approval/account deletion: never acquire User after the request.
+            $user = User::withTrashed()->whereKey($planRequest->user_id)->lockForUpdate()->firstOrFail();
+            $current = SellerPlanRequest::whereKey($planRequest->id)->lockForUpdate()->firstOrFail();
+            abort_unless($current->user_id === $user->id && $current->isPending(), 422, 'Эта заявка уже обработана.');
+            $current->update([
+                'status' => SellerPlanRequest::STATUS_REJECTED,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+                'admin_note' => trim((string) ($data['admin_note'] ?? '')) ?: null,
+            ]);
+
+            return $current;
+        });
 
         $this->activity->log('seller_plan_request.rejected', $planRequest, 'Отклонена заявка на изменение уровня магазина.', [
             'user_id' => $planRequest->user_id,

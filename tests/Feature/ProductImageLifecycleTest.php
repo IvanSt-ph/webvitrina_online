@@ -99,9 +99,10 @@ class ProductImageLifecycleTest extends TestCase
 
     public function test_create_failure_cleans_uploaded_main_image(): void
     {
+        $seller = User::factory()->seller()->create();
         $this->mock(ProductCrudRepository::class)->shouldReceive('create')->once()
             ->andThrow(new \RuntimeException('injected create failure'));
-        $this->fails(fn () => app(ProductService::class)->create(['title' => 'Failed'], $this->upload()));
+        $this->fails(fn () => app(ProductService::class)->create(['title' => 'Failed', 'user_id' => $seller->id], $this->upload()));
         $this->assertSame([], Storage::disk('public')->allFiles());
         $this->assertDatabaseMissing('products', ['title' => 'Failed']);
     }

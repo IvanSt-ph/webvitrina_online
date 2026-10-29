@@ -324,7 +324,15 @@ class ProductManageController extends Controller
         $gallery = $request->file('gallery', []);
         $attrs   = $this->attributes->validateValues($request->input('attributes', []), (int) $data['category_id']);
 
-        $this->products->create($data, $image, $gallery, $attrs);
+        try {
+            $this->products->create($data, $image, $gallery, $attrs, quotaErrorField: 'product_limit');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            if (! array_key_exists('product_limit', $exception->errors())) {
+                throw $exception;
+            }
+            // Preserve the existing redirect, old input and error bag for a late refusal.
+            return back()->withInput()->withErrors($exception->errors());
+        }
 
         return redirect()
             ->route('seller.products.index')

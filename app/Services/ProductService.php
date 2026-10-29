@@ -25,9 +25,13 @@ class ProductService
     /* ============================================================
      |  СОЗДАНИЕ ТОВАРА
      ============================================================ */
-    public function create(array $data, ?UploadedFile $image = null, array $gallery = [], array $attrs = []): Product
+    public function create(array $data, ?UploadedFile $image = null, array $gallery = [], array $attrs = [], string $quotaErrorField = 'user_id'): Product
     {
-        return app(BackupWriteBarrier::class)->transaction(function () use ($data, $image, $gallery, $attrs) {
+        return app(BackupWriteBarrier::class)->transaction(function () use ($data, $image, $gallery, $attrs, $quotaErrorField) {
+            // Match account deletion/checkout order: User before Product rows.
+            // Every creation path (including admin) shares the seller's mutex.
+            $seller = User::whereKey($data['user_id'] ?? null)->lockForUpdate()->firstOrFail();
+            app(SellerPlanService::class)->assertCanCreateProduct($seller, $quotaErrorField);
             $files = new ProductImageOperation($this->images, DB::connection());
 
             /* ---------- 1. Подготовка данных ---------- */
@@ -65,16 +69,33 @@ class ProductService
     public function update(Product $product, array $data, ?UploadedFile $image = null, array $galleryNew = [], array $galleryToDelete = [], array $attrs = [], ?User $actor = null): Product
     {
         return app(BackupWriteBarrier::class)->transaction(function () use ($product, $data, $image, $galleryNew, $galleryToDelete, $attrs, $actor) {
+            $payload = $this->prepareData($data, updating: true);
+            $owners = null;
+            if (isset($payload['user_id'])) {
+                // Discover persisted ownership, not the possibly stale route model.
+                $sourceId = Product::whereKey($product->id)->value('user_id');
+                $ownerIds = array_unique([(int) $sourceId, (int) $payload['user_id']]);
+                // Both sides participate: opposing transfers must never lock Products
+                // and only then wait for each other's seller/catalog locks.
+                $owners = User::withTrashed()->whereIn('id', $ownerIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            }
             $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
             $this->authorizeMutation($actor, 'update', $product);
+            if ($owners !== null) {
+                // Do not acquire a newly discovered User lock after locking Product.
+                abort_unless($owners->has((int) $product->user_id), 409,
+                    'Владелец товара изменился. Обновите страницу и повторите действие.');
+                if ((int) $payload['user_id'] !== (int) $product->user_id) {
+                    $recipient = $owners->get((int) $payload['user_id']);
+                    abort_unless($recipient && ! $recipient->trashed(), 404);
+                    app(SellerPlanService::class)->assertCanCreateProduct($recipient);
+                }
+            }
             // Sellers may correct a blocked card, but only admins may republish it.
             if ($actor !== null && $actor->role !== 'admin' && $product->isBlocked()) {
-                $data['status'] = Product::STATUS_BLOCKED;
+                $payload['status'] = Product::STATUS_BLOCKED;
             }
             $files = new ProductImageOperation($this->images, DB::connection());
-
-            /* ---------- 1. Подготовка данных ---------- */
-            $payload = $this->prepareData($data, updating: true);
 
             /* ---------- 2. Сохранение старого slug ---------- */
             $this->handleSlugHistory($product, $payload);

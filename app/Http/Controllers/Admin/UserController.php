@@ -234,12 +234,6 @@ class UserController extends Controller
             ? ($validated['seller_plan'] ?? SellerPlanService::STARTER)
             : SellerPlanService::STARTER;
 
-        if ($request->role === 'seller' && ! $this->sellerPlans->canAssignPlan($user, $sellerPlan)) {
-            throw ValidationException::withMessages([
-                'seller_plan' => $this->sellerPlans->assignmentLimitMessage($user, $sellerPlan),
-            ]);
-        }
-
         $userData = [
             'name'  => $request->name,
             'email' => $request->email,
@@ -258,6 +252,9 @@ class UserController extends Controller
                     app(AdminMembershipService::class)->transaction(function () use ($request, $user, $phone, $userData, &$files): void {
                         // Preserve phone -> membership -> User, including stale role forms.
                         $current = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+                        if ($userData['role'] === 'seller') {
+                            $this->sellerPlans->assertCanAssignPlan($current, $userData['seller_plan']);
+                        }
                         $files = new ProfileAvatarOperation($this->images, DB::connection());
                         if ($request->hasFile('avatar')) {
                             $userData['avatar'] = $files->upload($request->file('avatar'));

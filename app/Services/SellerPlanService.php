@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class SellerPlanService
 {
@@ -85,14 +86,17 @@ class SellerPlanService
         return array_keys($this->plans());
     }
 
-    public function profileFor(User $seller): array
+    public function profileFor(User $seller, bool $currentRead = false): array
     {
         $planKey = in_array($seller->seller_plan, $this->allowedKeys(), true)
             ? $seller->seller_plan
             : self::STARTER;
 
         $plan = $this->plans()[$planKey];
-        $used = Product::where('user_id', $seller->id)->count();
+        $products = Product::where('user_id', $seller->id);
+        $used = $currentRead
+            ? $products->orderBy('id')->lockForUpdate()->get(['id'])->count()
+            : $products->count();
         $limit = $plan['limit'];
         $remaining = $limit === null ? null : max(0, $limit - $used);
         $percent = $limit === null ? 100 : min(100, (int) round(($used / max(1, $limit)) * 100));
@@ -117,6 +121,16 @@ class SellerPlanService
         return $this->profileFor($seller)['can_create'];
     }
 
+    /** Caller holds the current seller row lock until the product insert commits. */
+    public function assertCanCreateProduct(User $seller, string $errorField = 'user_id'): void
+    {
+        // A locking read includes committed inserts even in an older outer snapshot.
+        $profile = $this->profileFor($seller, currentRead: true);
+        if (! $profile['can_create']) {
+            throw ValidationException::withMessages([$errorField => $this->formatLimitMessage($profile)]);
+        }
+    }
+
     public function canAssignPlan(User $seller, string $planKey): bool
     {
         $plan = $this->plans()[$planKey] ?? $this->plans()[self::STARTER];
@@ -125,10 +139,22 @@ class SellerPlanService
             || Product::where('user_id', $seller->id)->count() <= $plan['limit'];
     }
 
-    public function assignmentLimitMessage(User $seller, string $planKey): string
+    /** Caller holds the current User row until the plan assignment commits. */
+    public function assertCanAssignPlan(User $seller, string $planKey, string $errorField = 'seller_plan'): void
     {
         $plan = $this->plans()[$planKey] ?? $this->plans()[self::STARTER];
-        $used = Product::where('user_id', $seller->id)->count();
+        $used = Product::where('user_id', $seller->id)->orderBy('id')->lockForUpdate()->get(['id'])->count();
+        if ($plan['limit'] !== null && $used > $plan['limit']) {
+            throw ValidationException::withMessages([
+                $errorField => $this->assignmentLimitMessage($seller, $planKey, $used),
+            ]);
+        }
+    }
+
+    public function assignmentLimitMessage(User $seller, string $planKey, ?int $used = null): string
+    {
+        $plan = $this->plans()[$planKey] ?? $this->plans()[self::STARTER];
+        $used ??= Product::where('user_id', $seller->id)->count();
         $limit = $plan['limit'] === null ? 'unlimited' : (string) $plan['limit'];
 
         return "Нельзя назначить уровень магазина {$plan['label']}: у продавца {$used} товаров при лимите {$limit}. Сначала сократите каталог или выберите более высокий уровень магазина.";
@@ -136,8 +162,11 @@ class SellerPlanService
 
     public function limitMessage(User $seller): string
     {
-        $profile = $this->profileFor($seller);
+        return $this->formatLimitMessage($this->profileFor($seller));
+    }
 
+    private function formatLimitMessage(array $profile): string
+    {
         return "Лимит уровня магазина {$profile['label']} исчерпан: {$profile['used']} из {$profile['limit_label']} товаров. Обратитесь в поддержку или к администратору для повышения уровня магазина.";
     }
 

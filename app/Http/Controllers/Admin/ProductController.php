@@ -142,17 +142,7 @@ class ProductController extends Controller
             }
         }
 
-        $sellerId = (int) ($data['user_id'] ?? $product->user_id);
-        if ($sellerId !== (int) $product->user_id) {
-            $seller = User::findOrFail($sellerId);
-
-            if (! $this->sellerPlans->canCreateProduct($seller)) {
-                throw ValidationException::withMessages([
-                    'user_id' => $this->sellerPlans->limitMessage($seller),
-                ]);
-            }
-        }
-        
+        // Ownership changes are quota-checked on locked current rows in ProductService.
         $galleryToDelete = $request->input('gallery_to_delete', []);
         
         if (is_string($galleryToDelete)) {
