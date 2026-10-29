@@ -20,11 +20,11 @@
             <!-- ========== Левая часть: Логотип + Категории ========== -->
             <div class="flex items-center gap-3 flex-shrink-0">
                 <!-- Логотип -->
-                <a href="{{ route('home') }}" class="group flex items-center gap-2 rounded-2xl px-1.5 py-1 transition hover:bg-slate-50">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/20 transition group-hover:-translate-y-0.5 group-hover:shadow-indigo-500/30">
-                        <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-8 w-8" />
+                <a href="{{ route('home') }}" class="group flex items-center gap-2.5 rounded-2xl px-1.5 py-1 transition hover:bg-slate-50">
+                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 shadow-sm shadow-slate-900/5 ring-1 ring-slate-200 transition group-hover:-translate-y-0.5 group-hover:bg-slate-100">
+                        <img src="{{ asset('images/icon.png') }}" alt="WebVitrina" class="h-12 w-12 object-contain" />
                     </span>
-                    <span class="text-[15px] font-bold tracking-tight text-slate-800">WebVitrina</span>
+                    <span class="text-lg font-bold tracking-tight text-slate-800">WebVitrina</span>
                 </a>
 
                 <!-- Кнопка категорий -->
