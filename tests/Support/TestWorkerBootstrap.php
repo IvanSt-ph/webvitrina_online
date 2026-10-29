@@ -19,6 +19,9 @@ final class TestWorkerBootstrap
             TestDatabaseSafety::assertConfiguration($app->environment(), $database);
             $database['connections'] = ['mysql' => $database['connections']['mysql']];
             $app['config']->set('database', $database);
+            if (ExistingSchemaMode::enabled()) {
+                ExistingSchemaMode::install($app);
+            }
             $app['config']->set([
                 'cache.default' => 'array', 'session.driver' => 'array',
                 'queue.default' => 'sync', 'mail.default' => 'array',

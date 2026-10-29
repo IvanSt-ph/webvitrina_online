@@ -6,6 +6,37 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function tearDown(): void
+    {
+        $database = Support\ExistingSchemaMode::enabled() && $this->app && $this->app->resolved('db')
+            ? $this->app['db'] : null;
+        try {
+            parent::tearDown();
+        } finally {
+            // Run AFTER every application-destroyed callback, including worker and
+            // transaction cleanup. Do not open/reconnect a PDO during teardown.
+            foreach ($database?->getConnections() ?? [] as $connection) {
+                $connection->disconnect();
+            }
+        }
+    }
+
+    public function createApplication()
+    {
+        if (! Support\ExistingSchemaMode::enabled()) {
+            return parent::createApplication();
+        }
+        Support\ExistingSchemaMode::assertTestAllowed(static::class);
+        Support\ExistingSchemaMode::lockRun();
+        $app = require dirname(__DIR__).'/bootstrap/app.php';
+        $this->traitsUsedByTest = array_flip(class_uses_recursive(static::class));
+        $app->afterBootstrapping(\Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
+            static fn ($app) => Support\ExistingSchemaMode::install($app));
+        $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+        return $app;
+    }
+
     protected function rollBackTestTransactionsBeforeApplicationDestroyed(): void
     {
         $connection = $this->app['db']->connection();
@@ -36,6 +67,10 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUpTraits()
     {
+        if (Support\ExistingSchemaMode::enabled()) {
+            Support\ExistingSchemaMode::assertTestAllowed(static::class);
+            Support\ExistingSchemaMode::prepare($this->app);
+        }
         self::assertSafeTestDatabaseConfiguration(
             $this->app->environment(),
             $this->app['config']->get('database'),
