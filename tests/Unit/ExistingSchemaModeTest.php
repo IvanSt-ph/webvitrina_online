@@ -240,13 +240,49 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function ninthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\CheckoutNotificationTest::class],
+            [\Tests\Feature\NotificationPreferencesTest::class],
+        ];
+    }
+
+    #[DataProvider('ninthExpansionTargets')]
+    public function test_ninth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function ninthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::ninthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('ninthExpansionLookalikes')]
+    public function test_ninth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\CredentialLifecycleTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
             [\Tests\Feature\ChatImageConcurrencyTest::class],
+            // Factory probes are not configured by DatabaseManager's SQL guard event.
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
+            [\Tests\Support\CheckoutTestCase::class],
             [\Tests\Feature\CheckoutIdempotencyConcurrencyTest::class],
             [\Tests\Feature\OrderStockConcurrencyTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],

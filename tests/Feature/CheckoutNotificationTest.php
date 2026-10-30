@@ -17,11 +17,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CheckoutNotificationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // fake() cleans its root; validate it before isolating checkout image snapshots.
+        $fakeRoot = storage_path('framework/testing/disks/public');
+        if ($token = \Illuminate\Support\Facades\ParallelTesting::token()) {
+            $fakeRoot .= '_test_'.$token;
+        }
+        \Tests\Support\TestFileSafety::assertDirectory($fakeRoot, mustExist: false);
+        Storage::fake('public');
+    }
 
     public function beginDatabaseTransaction(): void
     {

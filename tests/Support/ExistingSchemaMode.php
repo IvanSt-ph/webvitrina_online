@@ -56,6 +56,11 @@ final class ExistingSchemaMode
         \Tests\Feature\OrderStockTest::class,
         \Tests\Feature\CheckoutCurrencyTest::class,
         \Tests\Feature\CheckoutDeliverySemanticsTest::class,
+        // Ninth expansion: real commits and notification preferences, isolated public storage.
+        \Tests\Feature\CheckoutNotificationTest::class,
+        \Tests\Feature\NotificationPreferencesTest::class,
+        // CheckoutNotificationAtomicityTest stays excluded: its factory probe bypasses
+        // ConnectionEstablished SQL guards and opens PDO before its disconnect finally.
     ];
 
     public static function enabled(): bool

@@ -11,10 +11,24 @@ use App\Services\SupportReplyNotificationService;
 use App\Services\UserNotificationService;
 use App\Support\NotificationPreferences;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\CheckoutTestCase;
 
 class NotificationPreferencesTest extends CheckoutTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // fake() cleans its root; validate it before isolating checkout image snapshots.
+        $fakeRoot = storage_path('framework/testing/disks/public');
+        if ($token = \Illuminate\Support\Facades\ParallelTesting::token()) {
+            $fakeRoot .= '_test_'.$token;
+        }
+        \Tests\Support\TestFileSafety::assertDirectory($fakeRoot, mustExist: false);
+        Storage::fake('public');
+    }
+
     public function test_every_event_obeys_independent_channel_preferences(): void
     {
         foreach (NotificationPreferences::EVENTS as $event => $category) {
