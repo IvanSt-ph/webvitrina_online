@@ -135,6 +135,41 @@ class ExistingSchemaModeTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public static function sixthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\ProductMutationAuthorizationTest::class],
+            [\Tests\Feature\AdminProductValidationTest::class],
+            [\Tests\Feature\ProductAttributeValidationTest::class],
+        ];
+    }
+
+    #[DataProvider('sixthExpansionTargets')]
+    public function test_sixth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function sixthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::sixthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('sixthExpansionLookalikes')]
+    public function test_sixth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
@@ -144,6 +179,8 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],
             [\Tests\Feature\ProductImageLifecycleTest::class],
+            [\Tests\Feature\ProductCountryCityValidationTest::class],
+            [\Tests\Feature\ProductTransferQuotaConcurrencyTest::class],
             [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
             [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
             [\Tests\Feature\RoleAccessTest::class.'Subclass'],

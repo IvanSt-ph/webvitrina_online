@@ -42,6 +42,11 @@ final class ExistingSchemaMode
         \Tests\Feature\ChatAccessRegressionTest::class,
         \Tests\Feature\OrderSellerChatSnapshotTest::class,
         \Tests\Feature\OrderParticipantAccessRegressionTest::class,
+        // Sixth expansion: product authorization/validation and guarded attribute rollback.
+        \Tests\Feature\ProductMutationAuthorizationTest::class,
+        \Tests\Feature\AdminProductValidationTest::class,
+        // No RefreshDatabase: cleanup precedes setUp's transaction; teardown rolls back all levels.
+        \Tests\Feature\ProductAttributeValidationTest::class,
     ];
 
     public static function enabled(): bool
