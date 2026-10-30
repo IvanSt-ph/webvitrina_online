@@ -25,6 +25,10 @@ final class ExistingSchemaMode
         \Tests\Feature\OwnershipAccessTest::class,
         \Tests\Feature\Auth\AuthenticationTest::class,
         \Tests\Feature\Auth\EmailVerificationTest::class,
+        // Second expansion: password changes, resets and local throttle fixtures.
+        \Tests\Feature\Auth\PasswordUpdateTest::class,
+        \Tests\Feature\Auth\PasswordResetTest::class,
+        \Tests\Feature\Auth\CurrentPasswordThrottleTest::class,
     ];
 
     public static function enabled(): bool

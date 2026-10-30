@@ -70,16 +70,33 @@ class ExistingSchemaModeTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public static function excludedExpansionTargets(): array
+    public static function secondExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\PasswordUpdateTest::class],
+            [\Tests\Feature\Auth\PasswordResetTest::class],
+            [\Tests\Feature\Auth\CurrentPasswordThrottleTest::class],
+        ];
+    }
+
+    #[DataProvider('secondExpansionTargets')]
+    public function test_second_transactional_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function excludedExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\Auth\PasswordSessionRevocationTest::class],
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],
             [\Tests\Feature\ProductImageLifecycleTest::class],
             [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
             [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
             [\Tests\Feature\RoleAccessTest::class.'Subclass'],
+            [\Tests\Feature\Auth\PasswordResetTest::class.'Subclass'],
         ];
     }
 
