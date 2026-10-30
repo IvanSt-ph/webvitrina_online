@@ -73,6 +73,9 @@ final class ExistingSchemaMode
         // Twelfth expansion: password confirmation and provider identity with isolated write locks.
         \Tests\Feature\Auth\PasswordConfirmationTest::class,
         \Tests\Feature\Auth\GoogleAuthenticationTest::class,
+        // Thirteenth expansion: profile phone ownership and in-process stale verification.
+        \Tests\Feature\BuyerPhoneProfileTest::class,
+        \Tests\Feature\PhoneVerificationRaceTest::class,
     ];
 
     public static function enabled(): bool

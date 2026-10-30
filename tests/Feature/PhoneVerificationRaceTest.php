@@ -15,6 +15,29 @@ class PhoneVerificationRaceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Exercise the real write barrier without opening the shared application lock.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync', 'mail.default' => 'array',
+            'logging.default' => 'null',
+            // A failed fake verification must not write or rotate real Twilio logs.
+            'logging.channels.twilio' => [
+                'driver' => 'monolog', 'handler' => \Monolog\Handler\NullHandler::class,
+            ],
+        ]);
+    }
+
     public function test_old_user_verification_cannot_verify_a_new_phone(): void
     {
         $user = User::factory()->create([

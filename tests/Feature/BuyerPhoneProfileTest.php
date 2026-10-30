@@ -10,6 +10,25 @@ class BuyerPhoneProfileTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Keep middleware, nested transactions and queue locks on a test-owned inode.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync', 'mail.default' => 'array',
+            'logging.default' => 'null',
+        ]);
+    }
+
     public function test_buyer_can_add_account_phone_without_current_password(): void
     {
         $buyer = User::factory()->create(['phone' => null]);

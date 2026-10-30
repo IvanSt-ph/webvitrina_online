@@ -378,6 +378,40 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function thirteenthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\BuyerPhoneProfileTest::class],
+            [\Tests\Feature\PhoneVerificationRaceTest::class],
+        ];
+    }
+
+    #[DataProvider('thirteenthExpansionTargets')]
+    public function test_thirteenth_transactional_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function thirteenthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::thirteenthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('thirteenthExpansionLookalikes')]
+    public function test_thirteenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
@@ -385,6 +419,8 @@ class ExistingSchemaModeTest extends TestCase
             // The local-CSP case changes APP_ENV away from the SQL guard's required testing value.
             [\Tests\Feature\Auth\RegistrationTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
+            // Avatar rollback cleanup and shared lock paths need separate filesystem isolation.
+            [\Tests\Feature\ProfileDeletionRaceTest::class],
             [\Tests\Feature\ChatImageConcurrencyTest::class],
             // Factory probes are not configured by DatabaseManager's SQL guard event.
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
