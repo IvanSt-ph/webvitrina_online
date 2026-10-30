@@ -53,6 +53,43 @@ class ExistingSchemaModeTest extends TestCase
         $this->addToAssertionCount(13);
     }
 
+    public static function firstExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\RoleAccessTest::class],
+            [\Tests\Feature\OwnershipAccessTest::class],
+            [\Tests\Feature\Auth\AuthenticationTest::class],
+            [\Tests\Feature\Auth\EmailVerificationTest::class],
+        ];
+    }
+
+    #[DataProvider('firstExpansionTargets')]
+    public function test_first_transactional_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function excludedExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\Auth\PasswordUpdateTest::class],
+            [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
+            [\Tests\Feature\ProductQuotaConcurrencyTest::class],
+            [\Tests\Feature\ProductImageLifecycleTest::class],
+            [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
+            [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
+            [\Tests\Feature\RoleAccessTest::class.'Subclass'],
+        ];
+    }
+
+    #[DataProvider('excludedExpansionTargets')]
+    public function test_expansion_does_not_admit_other_classes_or_name_prefixes(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public function test_migration_test_is_rejected_before_application_creation(): void
     {
         $this->expectException(RuntimeException::class);

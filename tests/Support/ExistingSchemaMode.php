@@ -20,6 +20,11 @@ final class ExistingSchemaMode
         \Tests\Feature\ReviewModerationConcurrencyTest::class,
         \Tests\Feature\PublicReviewRatingTest::class,
         \Tests\Feature\CheckoutIdempotencyTest::class,
+        // First expansion: self-contained fixtures, standard RefreshDatabase transactions.
+        \Tests\Feature\RoleAccessTest::class,
+        \Tests\Feature\OwnershipAccessTest::class,
+        \Tests\Feature\Auth\AuthenticationTest::class,
+        \Tests\Feature\Auth\EmailVerificationTest::class,
     ];
 
     public static function enabled(): bool
