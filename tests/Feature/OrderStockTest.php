@@ -115,16 +115,30 @@ class OrderStockTest extends TestCase
         $this->assertSame([10, 10], $products->map(fn ($p) => $p->fresh()->stock)->all());
     }
 
-    public function test_account_deletion_does_not_restore_stock_and_later_cancel_handles_withdrawn_product(): void
+    public function test_rejected_account_deletion_preserves_stock_and_later_cancel_handles_withdrawn_product(): void
     {
         [$buyer, $seller, $products] = $this->cart();
         $order = $this->checkout($buyer);
-        $buyer->delete();
-        $seller->delete();
+        foreach ([$buyer, $seller] as $participant) {
+            $attributes = $participant->fresh()->getRawOriginal();
+            try {
+                $participant->delete();
+                $this->fail('A participant with a pending order must not be deleted');
+            } catch (ValidationException $exception) {
+                $this->assertSame([
+                    'user' => ['Нельзя удалить аккаунт, пока у вас есть незавершённые заказы как у покупателя или продавца. Сначала завершите или отмените их.'],
+                ], $exception->errors());
+            }
+            $this->assertSame($attributes, User::withTrashed()->findOrFail($participant->id)->getRawOriginal());
+            $this->assertSame([8, 7], $products->map(fn ($p) => $p->fresh()->stock)->all());
+            $this->assertSame(Order::STATUS_PENDING, $order->fresh()->status);
+        }
         $this->assertSame([8, 7], $products->map(fn ($p) => $p->fresh()->stock)->all());
         $this->assertSame(Order::STATUS_PENDING, $order->fresh()->status);
         $products[0]->delete();
+        $this->assertSoftDeleted($products[0]);
         $order->setStatus(Order::STATUS_CANCELED);
+        $this->assertSame(Order::STATUS_CANCELED, $order->fresh()->status);
         $this->assertSame(10, Product::withTrashed()->findOrFail($products[0]->id)->stock);
         $this->assertSame(10, $products[1]->fresh()->stock);
     }

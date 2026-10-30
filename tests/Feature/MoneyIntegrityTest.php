@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\UserAddress;
 use App\Support\MoneyLimits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -20,6 +21,19 @@ use Tests\TestCase;
 class MoneyIntegrityTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // fake() cleans its root; validate it before isolating checkout image snapshots.
+        $fakeRoot = storage_path('framework/testing/disks/public');
+        if ($token = \Illuminate\Support\Facades\ParallelTesting::token()) {
+            $fakeRoot .= '_test_'.$token;
+        }
+        \Tests\Support\TestFileSafety::assertDirectory($fakeRoot, mustExist: false);
+        Storage::fake('public');
+    }
 
     public function test_seller_and_admin_product_validation_enforce_existing_price_limit(): void
     {

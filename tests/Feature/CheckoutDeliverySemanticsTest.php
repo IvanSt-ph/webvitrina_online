@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CheckoutDeliverySemanticsTest extends TestCase
@@ -16,6 +17,14 @@ class CheckoutDeliverySemanticsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // fake() cleans its root; validate it before isolating checkout image snapshots.
+        $fakeRoot = storage_path('framework/testing/disks/public');
+        if ($token = \Illuminate\Support\Facades\ParallelTesting::token()) {
+            $fakeRoot .= '_test_'.$token;
+        }
+        \Tests\Support\TestFileSafety::assertDirectory($fakeRoot, mustExist: false);
+        Storage::fake('public');
 
         config([
             'currency.prb_per_mdl' => 1.0,

@@ -7,11 +7,25 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CheckoutCurrencyTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // fake() cleans its root; validate it before isolating checkout image snapshots.
+        $fakeRoot = storage_path('framework/testing/disks/public');
+        if ($token = \Illuminate\Support\Facades\ParallelTesting::token()) {
+            $fakeRoot .= '_test_'.$token;
+        }
+        \Tests\Support\TestFileSafety::assertDirectory($fakeRoot, mustExist: false);
+        Storage::fake('public');
+    }
 
     public function test_mixed_currency_cart_is_saved_in_one_checkout_currency_with_source_snapshot(): void
     {

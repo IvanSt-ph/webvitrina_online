@@ -204,6 +204,42 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function eighthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\MoneyIntegrityTest::class],
+            [\Tests\Feature\OrderStockTest::class],
+            [\Tests\Feature\CheckoutCurrencyTest::class],
+            [\Tests\Feature\CheckoutDeliverySemanticsTest::class],
+        ];
+    }
+
+    #[DataProvider('eighthExpansionTargets')]
+    public function test_eighth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function eighthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::eighthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('eighthExpansionLookalikes')]
+    public function test_eighth_group_lookalikes_remain_excluded(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
@@ -211,6 +247,8 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
             [\Tests\Feature\ChatImageConcurrencyTest::class],
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
+            [\Tests\Feature\CheckoutIdempotencyConcurrencyTest::class],
+            [\Tests\Feature\OrderStockConcurrencyTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],
             [\Tests\Feature\ProductImageLifecycleTest::class],
             [\Tests\Feature\ProductCountryCityValidationTest::class],

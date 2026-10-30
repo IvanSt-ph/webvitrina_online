@@ -51,6 +51,11 @@ final class ExistingSchemaMode
         \Tests\Feature\ReviewModerationIntegrityTest::class,
         \Tests\Feature\ReviewImagePrivacyTest::class,
         // SellerReputationTest remains excluded: its trait repeats truncation outside prepare().
+        // Eighth expansion: isolated checkout storage and rejected account deletion.
+        \Tests\Feature\MoneyIntegrityTest::class,
+        \Tests\Feature\OrderStockTest::class,
+        \Tests\Feature\CheckoutCurrencyTest::class,
+        \Tests\Feature\CheckoutDeliverySemanticsTest::class,
     ];
 
     public static function enabled(): bool
