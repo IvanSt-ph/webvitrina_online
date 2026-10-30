@@ -38,6 +38,10 @@ final class ExistingSchemaMode
         \Tests\Feature\AccountDeletionTest::class,
         \Tests\Feature\AdminUserEmailVerificationTest::class,
         \Tests\Feature\Auth\EmailVerificationPolicyTest::class,
+        // Fifth expansion: chat access, snapshots and explicitly rolled-back order fixtures.
+        \Tests\Feature\ChatAccessRegressionTest::class,
+        \Tests\Feature\OrderSellerChatSnapshotTest::class,
+        \Tests\Feature\OrderParticipantAccessRegressionTest::class,
     ];
 
     public static function enabled(): bool

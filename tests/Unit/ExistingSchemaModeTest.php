@@ -119,11 +119,28 @@ class ExistingSchemaModeTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public static function fifthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\ChatAccessRegressionTest::class],
+            [\Tests\Feature\OrderSellerChatSnapshotTest::class],
+            [\Tests\Feature\OrderParticipantAccessRegressionTest::class],
+        ];
+    }
+
+    #[DataProvider('fifthExpansionTargets')]
+    public function test_fifth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\CredentialLifecycleTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
+            [\Tests\Feature\ChatImageConcurrencyTest::class],
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],
             [\Tests\Feature\ProductImageLifecycleTest::class],
@@ -136,6 +153,9 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\AccountDeletionTest::class.'Subclass'],
             [\Tests\Feature\AdminUserEmailVerificationTest::class.'Subclass'],
             [\Tests\Feature\Auth\EmailVerificationPolicyTest::class.'Subclass'],
+            [\Tests\Feature\ChatAccessRegressionTest::class.'Subclass'],
+            [\Tests\Feature\OrderSellerChatSnapshotTest::class.'Subclass'],
+            [\Tests\Feature\OrderParticipantAccessRegressionTest::class.'Subclass'],
         ];
     }
 
