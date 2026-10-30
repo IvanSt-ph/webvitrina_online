@@ -309,6 +309,41 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function eleventhExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\PickupOrderEventTimelineTest::class],
+            [\Tests\Feature\OrderAddressSnapshotTest::class],
+            [\Tests\Feature\UserAddressIntegrityTest::class],
+        ];
+    }
+
+    #[DataProvider('eleventhExpansionTargets')]
+    public function test_eleventh_transactional_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function eleventhExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::eleventhExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('eleventhExpansionLookalikes')]
+    public function test_eleventh_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
@@ -329,6 +364,9 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\SellerSalesAfterCommitTest::class],
             // Separate worker sessions and a factory-created PDO lock probe need their own audit.
             [\Tests\Feature\PickupOrderWorkflowConcurrencyTest::class],
+            [\Tests\Feature\UserAddressConcurrencyTest::class],
+            // Rejected account deletion still opens the non-isolated backup barrier lock file.
+            [\Tests\Feature\PickupReceiptReminderTest::class],
             [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
             [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
             [\Tests\Feature\RoleAccessTest::class.'Subclass'],

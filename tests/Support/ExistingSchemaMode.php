@@ -66,6 +66,10 @@ final class ExistingSchemaMode
         \Tests\Feature\PickupSellerOrderActionsTest::class,
         \Tests\Feature\PickupBuyerOrderActionsTest::class,
         // Real-commit, worker/probe and DDL coverage remains outside this group.
+        // Eleventh expansion: escaped order history, immutable snapshots and address ownership.
+        \Tests\Feature\PickupOrderEventTimelineTest::class,
+        \Tests\Feature\OrderAddressSnapshotTest::class,
+        \Tests\Feature\UserAddressIntegrityTest::class,
     ];
 
     public static function enabled(): bool
