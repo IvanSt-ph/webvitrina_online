@@ -13,6 +13,16 @@ class CurrencyProxySecurityTest extends TestCase
     {
         parent::setUp();
 
+        // Named limiters are resolved during application boot; require PHPUnit's array store.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+        ]);
+        Http::preventStrayRequests();
+        $this->freezeTime();
+
         Cache::flush();
     }
 

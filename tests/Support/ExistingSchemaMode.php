@@ -76,6 +76,15 @@ final class ExistingSchemaMode
         // Thirteenth expansion: profile phone ownership and in-process stale verification.
         \Tests\Feature\BuyerPhoneProfileTest::class,
         \Tests\Feature\PhoneVerificationRaceTest::class,
+        // Fourteenth expansion: cart integrity, phone ownership, statistics and isolated HTTP cache.
+        \Tests\Feature\FavoriteCartIntegrityTest::class,
+        \Tests\Feature\ShopPhoneProfileTest::class,
+        \Tests\Feature\PhoneUniquenessTest::class,
+        \Tests\Feature\ProductStatTest::class,
+        \Tests\Feature\CurrencyProxySecurityTest::class,
+        \Tests\Feature\PickupOrderActionTabsTest::class,
+        \Tests\Feature\PickupOrderInterfaceCompatibilityTest::class,
+        \Tests\Feature\PickupOrderStatisticsTest::class,
     ];
 
     public static function enabled(): bool

@@ -12,6 +12,17 @@ class PickupOrderStatisticsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync', 'mail.default' => 'array',
+            'logging.default' => 'null',
+        ]);
+    }
+
     public function test_seller_finance_separates_pickup_and_legacy_states_without_counting_other_sellers(): void
     {
         [$buyer, $seller] = $this->orders();

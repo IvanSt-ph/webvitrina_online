@@ -13,6 +13,32 @@ class ProductStatTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Route limiters were resolved at boot, before the per-test configuration below.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+
+        // Keep real middleware/queue locks on a test-owned inode until rollback finishes.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync', 'mail.default' => 'array',
+            'logging.default' => 'null',
+        ]);
+
+        // All daily counters in a scenario must use the same calendar date.
+        $this->travelTo(now()->startOfDay()->addHours(12));
+    }
+
     public function test_daily_counters_start_at_the_event_value_and_increment_existing_row(): void
     {
         $this->travelTo(now()->startOfDay()->addHours(12));

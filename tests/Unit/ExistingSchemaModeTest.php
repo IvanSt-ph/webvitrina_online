@@ -412,10 +412,53 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function fourteenthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\FavoriteCartIntegrityTest::class],
+            [\Tests\Feature\ShopPhoneProfileTest::class],
+            [\Tests\Feature\PhoneUniquenessTest::class],
+            [\Tests\Feature\ProductStatTest::class],
+            [\Tests\Feature\CurrencyProxySecurityTest::class],
+            [\Tests\Feature\PickupOrderActionTabsTest::class],
+            [\Tests\Feature\PickupOrderInterfaceCompatibilityTest::class],
+            [\Tests\Feature\PickupOrderStatisticsTest::class],
+        ];
+    }
+
+    #[DataProvider('fourteenthExpansionTargets')]
+    public function test_fourteenth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function fourteenthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::fourteenthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('fourteenthExpansionLookalikes')]
+    public function test_fourteenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\CredentialLifecycleTest::class],
+            // Reviewed but deferred from the fourteenth group; no namespace-wide admission.
+            [\Tests\Feature\ProductSlugTest::class],
+            [\Tests\Feature\PublicLegalPagesTest::class],
             // The local-CSP case changes APP_ENV away from the SQL guard's required testing value.
             [\Tests\Feature\Auth\RegistrationTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],

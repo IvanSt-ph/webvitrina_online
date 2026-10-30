@@ -12,6 +12,25 @@ class PickupOrderInterfaceCompatibilityTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Keep real middleware/queue locks on a test-owned inode until rollback finishes.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync', 'mail.default' => 'array',
+            'logging.default' => 'null',
+        ]);
+    }
+
     public function test_ready_pickup_is_visible_in_buyer_seller_and_admin_lists_and_details(): void
     {
         [$order, $buyer, $seller, $admin] = $this->order();

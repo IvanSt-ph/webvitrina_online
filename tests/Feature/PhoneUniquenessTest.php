@@ -15,6 +15,32 @@ class PhoneUniquenessTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Route limiters were resolved at boot, before the per-test configuration below.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+
+        // Keep real middleware/queue locks on a test-owned inode until rollback finishes.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync', 'mail.default' => 'array',
+            'logging.default' => 'null',
+            'logging.channels.registration' => [
+                'driver' => 'monolog', 'handler' => \Monolog\Handler\NullHandler::class,
+            ],
+        ]);
+    }
+
     public function test_database_has_separate_unique_phone_indexes(): void
     {
         $schema = DB::connection()->getDatabaseName();

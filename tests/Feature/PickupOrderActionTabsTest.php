@@ -12,6 +12,17 @@ class PickupOrderActionTabsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync', 'mail.default' => 'array',
+            'logging.default' => 'null',
+        ]);
+    }
+
     public function test_buyer_action_tab_and_counter_include_only_confirmable_pickup_and_legacy_shipped(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
