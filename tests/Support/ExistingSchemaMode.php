@@ -47,6 +47,10 @@ final class ExistingSchemaMode
         \Tests\Feature\AdminProductValidationTest::class,
         // No RefreshDatabase: cleanup precedes setUp's transaction; teardown rolls back all levels.
         \Tests\Feature\ProductAttributeValidationTest::class,
+        // Seventh expansion: transactional review moderation and isolated image storage.
+        \Tests\Feature\ReviewModerationIntegrityTest::class,
+        \Tests\Feature\ReviewImagePrivacyTest::class,
+        // SellerReputationTest remains excluded: its trait repeats truncation outside prepare().
     ];
 
     public static function enabled(): bool

@@ -170,6 +170,40 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function seventhExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\ReviewModerationIntegrityTest::class],
+            [\Tests\Feature\ReviewImagePrivacyTest::class],
+        ];
+    }
+
+    #[DataProvider('seventhExpansionTargets')]
+    public function test_seventh_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function seventhExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::seventhExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('seventhExpansionLookalikes')]
+    public function test_seventh_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
@@ -181,6 +215,8 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\ProductImageLifecycleTest::class],
             [\Tests\Feature\ProductCountryCityValidationTest::class],
             [\Tests\Feature\ProductTransferQuotaConcurrencyTest::class],
+            // DatabaseTruncation would run again after prepare() closes the cleanup scope.
+            [\Tests\Feature\SellerReputationTest::class],
             [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
             [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
             [\Tests\Feature\RoleAccessTest::class.'Subclass'],
