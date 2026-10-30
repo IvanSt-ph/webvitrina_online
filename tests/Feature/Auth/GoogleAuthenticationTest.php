@@ -18,6 +18,26 @@ class GoogleAuthenticationTest extends TestCase
 
     private const GOOGLE_LOGIN_ERROR = 'Не удалось войти через Google. Попробуйте снова или используйте другой способ входа.';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Keep POST middleware and flock active without touching the shared application lock.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            // Registration is exercised below; do not write or rotate application log files.
+            'logging.channels.registration' => [
+                'driver' => 'monolog', 'handler' => \Monolog\Handler\NullHandler::class,
+            ],
+        ]);
+    }
+
     public function test_google_callback_does_not_link_an_attacker_registered_local_account_by_email(): void
     {
         Notification::fake();

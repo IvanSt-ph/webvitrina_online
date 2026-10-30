@@ -70,6 +70,9 @@ final class ExistingSchemaMode
         \Tests\Feature\PickupOrderEventTimelineTest::class,
         \Tests\Feature\OrderAddressSnapshotTest::class,
         \Tests\Feature\UserAddressIntegrityTest::class,
+        // Twelfth expansion: password confirmation and provider identity with isolated write locks.
+        \Tests\Feature\Auth\PasswordConfirmationTest::class,
+        \Tests\Feature\Auth\GoogleAuthenticationTest::class,
     ];
 
     public static function enabled(): bool

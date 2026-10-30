@@ -344,10 +344,46 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function twelfthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\Auth\PasswordConfirmationTest::class],
+            [\Tests\Feature\Auth\GoogleAuthenticationTest::class],
+        ];
+    }
+
+    #[DataProvider('twelfthExpansionTargets')]
+    public function test_twelfth_transactional_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function twelfthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::twelfthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('twelfthExpansionLookalikes')]
+    public function test_twelfth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\CredentialLifecycleTest::class],
+            // The local-CSP case changes APP_ENV away from the SQL guard's required testing value.
+            [\Tests\Feature\Auth\RegistrationTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
             [\Tests\Feature\ChatImageConcurrencyTest::class],
             // Factory probes are not configured by DatabaseManager's SQL guard event.
