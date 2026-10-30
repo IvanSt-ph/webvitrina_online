@@ -33,6 +33,11 @@ final class ExistingSchemaMode
         \Tests\Feature\Auth\PasswordSessionRevocationTest::class,
         \Tests\Feature\Auth\PasswordSecurityRotationTest::class,
         \Tests\Feature\Auth\CredentialMutationRaceTest::class,
+        // Fourth expansion: profile, account deletion and email verification policy.
+        \Tests\Feature\ProfileTest::class,
+        \Tests\Feature\AccountDeletionTest::class,
+        \Tests\Feature\AdminUserEmailVerificationTest::class,
+        \Tests\Feature\Auth\EmailVerificationPolicyTest::class,
     ];
 
     public static function enabled(): bool

@@ -102,10 +102,28 @@ class ExistingSchemaModeTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public static function fourthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\ProfileTest::class],
+            [\Tests\Feature\AccountDeletionTest::class],
+            [\Tests\Feature\AdminUserEmailVerificationTest::class],
+            [\Tests\Feature\Auth\EmailVerificationPolicyTest::class],
+        ];
+    }
+
+    #[DataProvider('fourthExpansionTargets')]
+    public function test_fourth_transactional_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\CredentialLifecycleTest::class],
+            [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],
             [\Tests\Feature\ProductImageLifecycleTest::class],
@@ -114,6 +132,10 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\RoleAccessTest::class.'Subclass'],
             [\Tests\Feature\Auth\PasswordResetTest::class.'Subclass'],
             [\Tests\Feature\Auth\CredentialMutationRaceTest::class.'Subclass'],
+            [\Tests\Feature\ProfileTest::class.'Subclass'],
+            [\Tests\Feature\AccountDeletionTest::class.'Subclass'],
+            [\Tests\Feature\AdminUserEmailVerificationTest::class.'Subclass'],
+            [\Tests\Feature\Auth\EmailVerificationPolicyTest::class.'Subclass'],
         ];
     }
 
