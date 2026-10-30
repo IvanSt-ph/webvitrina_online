@@ -29,6 +29,10 @@ final class ExistingSchemaMode
         \Tests\Feature\Auth\PasswordUpdateTest::class,
         \Tests\Feature\Auth\PasswordResetTest::class,
         \Tests\Feature\Auth\CurrentPasswordThrottleTest::class,
+        // Third expansion: session revocation, rotation and in-process stale snapshots.
+        \Tests\Feature\Auth\PasswordSessionRevocationTest::class,
+        \Tests\Feature\Auth\PasswordSecurityRotationTest::class,
+        \Tests\Feature\Auth\CredentialMutationRaceTest::class,
     ];
 
     public static function enabled(): bool
