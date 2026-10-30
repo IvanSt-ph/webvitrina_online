@@ -274,6 +274,41 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function tenthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\PickupOrderWorkflowTest::class],
+            [\Tests\Feature\PickupSellerOrderActionsTest::class],
+            [\Tests\Feature\PickupBuyerOrderActionsTest::class],
+        ];
+    }
+
+    #[DataProvider('tenthExpansionTargets')]
+    public function test_tenth_transactional_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function tenthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::tenthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('tenthExpansionLookalikes')]
+    public function test_tenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
@@ -291,6 +326,9 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\ProductTransferQuotaConcurrencyTest::class],
             // DatabaseTruncation would run again after prepare() closes the cleanup scope.
             [\Tests\Feature\SellerReputationTest::class],
+            [\Tests\Feature\SellerSalesAfterCommitTest::class],
+            // Separate worker sessions and a factory-created PDO lock probe need their own audit.
+            [\Tests\Feature\PickupOrderWorkflowConcurrencyTest::class],
             [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
             [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
             [\Tests\Feature\RoleAccessTest::class.'Subclass'],

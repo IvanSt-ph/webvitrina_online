@@ -61,6 +61,11 @@ final class ExistingSchemaMode
         \Tests\Feature\NotificationPreferencesTest::class,
         // CheckoutNotificationAtomicityTest stays excluded: its factory probe bypasses
         // ConnectionEstablished SQL guards and opens PDO before its disconnect finally.
+        // Tenth expansion: pickup lifecycle and participant actions in RefreshDatabase transactions.
+        \Tests\Feature\PickupOrderWorkflowTest::class,
+        \Tests\Feature\PickupSellerOrderActionsTest::class,
+        \Tests\Feature\PickupBuyerOrderActionsTest::class,
+        // Real-commit, worker/probe and DDL coverage remains outside this group.
     ];
 
     public static function enabled(): bool

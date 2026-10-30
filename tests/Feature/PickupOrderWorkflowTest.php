@@ -319,7 +319,7 @@ class PickupOrderWorkflowTest extends TestCase
             'total_price' => 200, 'currency' => 'PRB',
         ]);
         if ($v2) {
-            // Stage 2 does not opt checkout into v2; fixtures explicitly model a future v2 order.
+            // Model the current pickup workflow directly; checkout is outside this test's scope.
             DB::table('orders')->where('id', $order->id)->update([
                 'workflow_version' => Order::WORKFLOW_PICKUP,
                 'payment_status' => Order::PAYMENT_UNPAID,
