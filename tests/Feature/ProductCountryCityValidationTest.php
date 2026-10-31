@@ -14,6 +14,25 @@ class ProductCountryCityValidationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Keep the real write barrier on a test-owned inode until transaction cleanup finishes.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+            'queue.default' => 'sync', 'mail.default' => 'array',
+        ]);
+    }
+
     public function test_admin_product_create_rejects_city_from_another_country(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

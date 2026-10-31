@@ -15,6 +15,25 @@ class ProductTransferQuotaTest extends TestCase
 {
     use RefreshDatabase, ProductQuotaFixtures;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Keep the real write barrier on a test-owned inode until transaction cleanup finishes.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+            'queue.default' => 'sync', 'mail.default' => 'array',
+        ]);
+    }
+
     public function test_admin_transfer_to_a_full_seller_preserves_the_product_and_error_contract(): void
     {
         [$source] = $this->quotaFixture(1);

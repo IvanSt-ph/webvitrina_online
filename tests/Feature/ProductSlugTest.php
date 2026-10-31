@@ -12,6 +12,62 @@ class ProductSlugTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+        ]);
+    }
+
+    public function test_missing_slug_is_generated_and_persisted_from_title(): void
+    {
+        $seller = User::factory()->seller()->create();
+        $category = Category::factory()->create();
+
+        foreach ([
+            ['  WebVitrina Product 123!  ', 'webvitrina-product-123'],
+            ['Товар 123', 'tovar-123'],
+        ] as [$title, $expectedSlug]) {
+            $product = Product::create([
+                'title' => $title,
+                'category_id' => $category->id,
+                'user_id' => $seller->id,
+                'price' => 1000,
+            ]);
+
+            $this->assertSame($expectedSlug, $product->slug);
+            $this->assertSame($expectedSlug, $product->fresh()->slug);
+            $this->assertSame($title, $product->fresh()->title);
+        }
+    }
+
+    public function test_generated_slug_collisions_preserve_existing_products(): void
+    {
+        $seller = User::factory()->seller()->create();
+        $category = Category::factory()->create();
+        $ids = [];
+
+        foreach (['repeat-product', 'repeat-product-1', 'repeat-product-2'] as $expectedSlug) {
+            $product = Product::create([
+                'title' => 'Repeat Product',
+                'category_id' => $category->id,
+                'user_id' => $seller->id,
+                'price' => 1000,
+            ]);
+            $ids[] = $product->id;
+
+            $this->assertSame($expectedSlug, $product->fresh()->slug);
+        }
+
+        $this->assertSame(
+            ['repeat-product', 'repeat-product-1', 'repeat-product-2'],
+            Product::whereIn('id', $ids)->orderBy('id')->pluck('slug')->all(),
+        );
+    }
+
     /**
      * Тест: правильная генерация slug из названия товара
      */

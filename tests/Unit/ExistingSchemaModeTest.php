@@ -452,13 +452,55 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function fifteenthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\ProductSlugTest::class],
+            [\Tests\Feature\PublicLegalPagesTest::class],
+            [\Tests\Feature\CategoryAjaxResultsTest::class],
+            [\Tests\Feature\PublicCatalogValidationTest::class],
+            [\Tests\Feature\StructuredDataTest::class],
+            [\Tests\Feature\ExampleTest::class],
+            [\Tests\Feature\ProductTransferQuotaTest::class],
+            [\Tests\Feature\ProductCountryCityValidationTest::class],
+        ];
+    }
+
+    #[DataProvider('fifteenthExpansionTargets')]
+    public function test_fifteenth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function fifteenthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::fifteenthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('fifteenthExpansionLookalikes')]
+    public function test_fifteenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\CredentialLifecycleTest::class],
-            // Reviewed but deferred from the fourteenth group; no namespace-wide admission.
-            [\Tests\Feature\ProductSlugTest::class],
-            [\Tests\Feature\PublicLegalPagesTest::class],
+            // Fifteenth-group exclusions: stale large-catalog fixture, shared fake-storage
+            // cleanup, and Node/inline-Blade infrastructure respectively.
+            [\Tests\Feature\ProductSearchTest::class],
+            [\Tests\Feature\ProductQuotaTest::class],
+            [\Tests\Feature\InputRenderingSecurityTest::class],
             // The local-CSP case changes APP_ENV away from the SQL guard's required testing value.
             [\Tests\Feature\Auth\RegistrationTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
@@ -472,7 +514,6 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\OrderStockConcurrencyTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],
             [\Tests\Feature\ProductImageLifecycleTest::class],
-            [\Tests\Feature\ProductCountryCityValidationTest::class],
             [\Tests\Feature\ProductTransferQuotaConcurrencyTest::class],
             // DatabaseTruncation would run again after prepare() closes the cleanup scope.
             [\Tests\Feature\SellerReputationTest::class],

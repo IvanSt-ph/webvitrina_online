@@ -16,6 +16,16 @@ class PublicCatalogValidationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+        ]);
+    }
+
     public static function malformedInputs(): array
     {
         return [

@@ -12,6 +12,16 @@ class StructuredDataTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+        ]);
+    }
+
     public function test_product_schema_preserves_text_without_breaking_out_of_script(): void
     {
         $title = 'Товар </script><script>alert("schema")</script> & special';

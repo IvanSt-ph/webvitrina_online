@@ -85,6 +85,15 @@ final class ExistingSchemaMode
         \Tests\Feature\PickupOrderActionTabsTest::class,
         \Tests\Feature\PickupOrderInterfaceCompatibilityTest::class,
         \Tests\Feature\PickupOrderStatisticsTest::class,
+        // Fifteenth expansion: public catalog/URLs, generated slugs and isolated product mutations.
+        \Tests\Feature\ProductSlugTest::class,
+        \Tests\Feature\PublicLegalPagesTest::class,
+        \Tests\Feature\CategoryAjaxResultsTest::class,
+        \Tests\Feature\PublicCatalogValidationTest::class,
+        \Tests\Feature\StructuredDataTest::class,
+        \Tests\Feature\ExampleTest::class,
+        \Tests\Feature\ProductTransferQuotaTest::class,
+        \Tests\Feature\ProductCountryCityValidationTest::class,
     ];
 
     public static function enabled(): bool

@@ -14,6 +14,16 @@ class CategoryAjaxResultsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+        ]);
+    }
+
     public function test_ajax_nonzero_zero_nonzero_and_plain_pages_keep_results_contract(): void
     {
         $category = Category::factory()->create();

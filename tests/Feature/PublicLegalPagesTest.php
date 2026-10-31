@@ -7,6 +7,16 @@ use Tests\TestCase;
 
 class PublicLegalPagesTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'logging.default' => 'null',
+        ]);
+    }
+
     public static function legalRoutes(): array
     {
         return [
