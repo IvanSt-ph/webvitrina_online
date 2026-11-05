@@ -8,7 +8,9 @@ use App\Models\ReviewImage;
 use App\Models\User;
 use App\Services\ImageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\TestFileSafety;
 use Tests\TestCase;
 
 class ReviewImageMigrationTest extends TestCase
@@ -19,8 +21,27 @@ class ReviewImageMigrationTest extends TestCase
     {
         parent::setUp();
 
-        Storage::fake('public');
-        Storage::fake('review_images');
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        config([
+            'backup.lock_path' => stream_get_meta_data($lock)['uri'],
+            'session.driver' => 'array', 'queue.default' => 'sync',
+            'mail.default' => 'array', 'logging.default' => 'null',
+        ]);
+
+        $this->assertFalse(ParallelTesting::token(), 'Run existing-schema targets sequentially.');
+        foreach (['public', 'review_images'] as $alias) {
+            $disk = 'group18-review-migration-'.$alias.'-'.bin2hex(random_bytes(16));
+            $root = storage_path('framework/testing/disks/'.$disk);
+            // Validate the actual cleanup target, not a root override ignored by fake().
+            TestFileSafety::assertDirectory($root, mustExist: false);
+            $this->assertFalse(file_exists($root) || is_link($root));
+            Storage::set($alias, Storage::fake($disk));
+            // Retain unique fixture directories instead of recursive filesystem cleanup.
+        }
     }
 
     public function test_dry_run_does_not_copy_or_delete_legacy_files(): void

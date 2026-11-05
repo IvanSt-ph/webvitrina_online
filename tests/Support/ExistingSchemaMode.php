@@ -105,6 +105,10 @@ final class ExistingSchemaMode
         \Tests\Feature\UnsupportedOrderWorkflowTest::class,
         \Tests\Feature\PickupReceiptReminderTest::class,
         \Tests\Feature\Auth\CredentialLifecycleTest::class,
+        // Eighteenth expansion: in-process stale profiles and isolated review-file migration.
+        // Standard RefreshDatabase wrapper; no real root commits or worker processes.
+        \Tests\Feature\ProfileDeletionRaceTest::class,
+        \Tests\Feature\ReviewImageMigrationTest::class,
     ];
 
     public static function enabled(): bool

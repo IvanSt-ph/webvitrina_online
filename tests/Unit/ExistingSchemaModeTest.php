@@ -565,9 +565,57 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function eighteenthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\ProfileDeletionRaceTest::class],
+            [\Tests\Feature\ReviewImageMigrationTest::class],
+        ];
+    }
+
+    #[DataProvider('eighteenthExpansionTargets')]
+    public function test_eighteenth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function eighteenthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::eighteenthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('eighteenthExpansionLookalikes')]
+    public function test_eighteenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
+            // Group eighteen inventory: all remaining Feature classes stay excluded.
+            [\Tests\Feature\AdminAvatarConcurrencyTest::class],
+            [\Tests\Feature\BackupAtomicityTest::class],
+            [\Tests\Feature\BackupRetentionTest::class],
+            [\Tests\Feature\BackupSnapshotTest::class],
+            [\Tests\Feature\BackupWriteBarrierTest::class],
+            [\Tests\Feature\PrivateBackupTest::class],
+            [\Tests\Feature\ReleaseExperienceTest::class],
+            [\Tests\Feature\SafeRestoreTest::class],
+            [\Tests\Feature\SecurityRegressionTest::class],
+            [\Tests\Feature\SellerMetricsConcurrencyTest::class],
+            [\Tests\Feature\SellerPlanQuotaConcurrencyTest::class],
+            [\Tests\Feature\SellerPlanRequestStateConcurrencyTest::class],
+            [\Tests\Feature\Auth\CredentialConcurrencyTest::class],
             // Group seventeen: real commits/probes, workers or shared filesystem cleanup.
             [\Tests\Feature\OrderIdentitySnapshotTest::class],
             [\Tests\Feature\TransactionCallbackContractTest::class],
@@ -586,8 +634,7 @@ class ExistingSchemaModeTest extends TestCase
             // The local-CSP case changes APP_ENV away from the SQL guard's required testing value.
             [\Tests\Feature\Auth\RegistrationTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
-            // Avatar rollback cleanup and shared lock paths need separate filesystem isolation.
-            [\Tests\Feature\ProfileDeletionRaceTest::class],
+            // Real image workers remain outside the isolated in-process profile group.
             [\Tests\Feature\ChatImageConcurrencyTest::class],
             // Factory probes are not configured by DatabaseManager's SQL guard event.
             [\Tests\Feature\CheckoutNotificationAtomicityTest::class],

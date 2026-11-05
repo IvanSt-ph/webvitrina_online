@@ -13,13 +13,44 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\TestFileSafety;
 use Tests\TestCase;
 
 class ProfileDeletionRaceTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        // Registered after RefreshDatabase: keep the inode alive through rollback.
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        config([
+            'backup.lock_path' => stream_get_meta_data($lock)['uri'],
+            'session.driver' => 'array', 'queue.default' => 'sync',
+            'mail.default' => 'array', 'logging.default' => 'null',
+        ]);
+    }
+
+    private function fakePublicStorage(): void
+    {
+        $this->assertFalse(ParallelTesting::token(), 'Run existing-schema targets sequentially.');
+        $disk = 'group18-profile-'.bin2hex(random_bytes(16));
+        $root = storage_path('framework/testing/disks/'.$disk);
+        // fake() cleans its derived root BEFORE applying disk configuration.
+        TestFileSafety::assertDirectory($root, mustExist: false);
+        $this->assertFalse(file_exists($root) || is_link($root));
+        Storage::set('public', Storage::fake($disk));
+        // Retain this unique fixture directory; never recursively clean shared paths.
+    }
 
     public static function sections(): array
     {
@@ -63,10 +94,11 @@ class ProfileDeletionRaceTest extends TestCase
 
     public function test_uploaded_avatar_is_cleaned_on_outer_rollback_and_old_avatar_survives(): void
     {
-        Storage::fake('public');
+        $this->fakePublicStorage();
         Storage::disk('public')->put('avatars/old.webp', 'old');
         $user = User::factory()->create(['avatar' => 'avatars/old.webp']);
         $this->actingAs($user);
+        $this->assertSame(1, DB::transactionLevel());
         DB::beginTransaction();
         try {
             app(ProfileController::class)->update($this->request($user, 'ajax'));
@@ -77,6 +109,7 @@ class ProfileDeletionRaceTest extends TestCase
         } finally {
             DB::rollBack();
         }
+        $this->assertSame(1, DB::transactionLevel());
         $this->assertSame('avatars/old.webp', $user->fresh()->avatar);
         $this->assertSame(['avatars/old.webp'], Storage::disk('public')->allFiles('avatars'));
     }
@@ -100,7 +133,7 @@ class ProfileDeletionRaceTest extends TestCase
 
     public function test_admin_avatar_update_rejects_deleted_route_bound_user_before_upload(): void
     {
-        Storage::fake('public');
+        $this->fakePublicStorage();
         $admin = User::factory()->create(['role' => 'admin']);
         $user = User::factory()->create(['role' => 'buyer', 'avatar' => null]);
         $this->actingAs($admin);
@@ -122,7 +155,7 @@ class ProfileDeletionRaceTest extends TestCase
 
     public function test_upload_is_cleaned_when_user_save_fails(): void
     {
-        Storage::fake('public');
+        $this->fakePublicStorage();
         $user = User::factory()->create();
         $this->actingAs($user);
         $events = User::getEventDispatcher();
