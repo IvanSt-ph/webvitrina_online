@@ -599,6 +599,36 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function nineteenthExpansionTargets(): array
+    {
+        return [[\Tests\Feature\MarketplaceFunctionalRegressionTest::class]];
+    }
+
+    #[DataProvider('nineteenthExpansionTargets')]
+    public function test_nineteenth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function nineteenthExpansionLookalikes(): array
+    {
+        $class = \Tests\Feature\MarketplaceFunctionalRegressionTest::class;
+
+        return [
+            [$class.'Subclass'],
+            [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)],
+            [strtolower($class)],
+        ];
+    }
+
+    #[DataProvider('nineteenthExpansionLookalikes')]
+    public function test_nineteenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
@@ -623,7 +653,6 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\AdminAvatarLifecycleTest::class],
             [\Tests\Feature\PurgeOrderHistoryTest::class],
             [\Tests\Feature\ChatImageLifecycleTest::class],
-            [\Tests\Feature\MarketplaceFunctionalRegressionTest::class],
             // Node and inline Blade paths still need separate isolation.
             [\Tests\Feature\InputRenderingSecurityTest::class],
             // Real commits/workers, repeated truncation and DDL remain excluded.

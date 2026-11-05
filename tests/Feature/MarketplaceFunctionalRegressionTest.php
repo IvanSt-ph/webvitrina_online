@@ -4,9 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\{Attribute, AttributeValue, Category, Order, Product, User};
 use App\Services\OrderPickupWorkflow;
-use Illuminate\Support\Facades\{Blade, DB, Notification};
+use Illuminate\Support\Facades\{Blade, Cache, DB, Http, Mail, Notification, ParallelTesting, Queue, Storage};
+use Illuminate\View\Component;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Tests\Support\TestDatabaseSafety;
+use Tests\Support\{TestDatabaseSafety, TestFileSafety};
 use Tests\TestCase;
 
 class MarketplaceFunctionalRegressionTest extends TestCase
@@ -14,13 +15,77 @@ class MarketplaceFunctionalRegressionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->assertFalse(ParallelTesting::token(), 'Run existing-schema targets sequentially.');
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+        $this->assertInstanceOf(\Illuminate\Cache\ArrayStore::class, Cache::getStore());
+        $this->assertSame('array', config('session.driver'));
+        $this->assertInstanceOf(\Illuminate\Session\ArraySessionHandler::class, session()->driver()->getHandler());
+
+        $this->isolateFilesAndViews();
+        config(['queue.default' => 'sync', 'mail.default' => 'array', 'logging.default' => 'null']);
+        Notification::fake();
+        Mail::fake();
+        Queue::fake();
+        Http::preventStrayRequests();
+
         $connection = DB::connection();
         TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $connection);
         $connection->getPdo();
         TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $connection);
+        $this->assertSame(0, $connection->transactionLevel());
+        $this->assertInstanceOf(\App\Database\SafeDatabaseTransactionsManager::class, app('db.transactions'));
         DB::beginTransaction();
         $this->rollBackTestTransactionsBeforeApplicationDestroyed();
-        Notification::fake();
+
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        // Keep the test-owned inode alive until all rollback callbacks release it.
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        config(['backup.lock_path' => stream_get_meta_data($lock)['uri']]);
+    }
+
+    private function isolateFilesAndViews(): void
+    {
+        // A resolved compiler retains its constructor's cache path. Do not silently
+        // redirect config while an existing engine could still write shared files.
+        $this->assertFalse($this->app->resolved('blade.compiler'), 'Blade must be isolated before compiler resolution.');
+        $root = storage_path('framework/testing/group19-marketplace-'.bin2hex(random_bytes(16)));
+        TestFileSafety::assertDirectory($root, mustExist: false);
+        $this->assertFalse(file_exists($root) || is_link($root));
+        $this->assertTrue(mkdir($root, 0700, true));
+        TestFileSafety::assertDirectory($root);
+
+        foreach (['views', 'public', 'private', 'review_images'] as $directory) {
+            $path = $root.'/'.$directory;
+            TestFileSafety::assertDirectory($path, mustExist: false);
+            $this->assertTrue(mkdir($path, 0700));
+            TestFileSafety::assertDirectory($path);
+        }
+
+        // Both inline component source files and compiled PHP use this directory.
+        config(['view.compiled' => $root.'/views']);
+        Component::flushCache();
+        Component::forgetFactory();
+        $this->beforeApplicationDestroyed(static function (): void {
+            Component::flushCache();
+            Component::forgetFactory();
+        });
+        $compiler = app('blade.compiler');
+        $this->assertSame($root.'/views', dirname($compiler->getCompiledPath(resource_path('views/components/product-card.blade.php'))));
+        $this->assertSame($compiler, app('view.engine.resolver')->resolve('blade')->getCompiler());
+
+        foreach (['public' => 'public', 'local' => 'private', 'review_images' => 'review_images'] as $disk => $directory) {
+            config(['filesystems.disks.'.$disk => [
+                'driver' => 'local', 'root' => $root.'/'.$directory, 'throw' => true,
+                'visibility' => $disk === 'public' ? 'public' : 'private',
+            ]]);
+            Storage::forgetDisk($disk);
+            $this->assertSame($root.'/'.$directory, rtrim(Storage::disk($disk)->path(''), '/\\'));
+        }
+        config(['filesystems.default' => 'local']);
+        // Keep unique artifacts for inspection. No shared directory, symlink or
+        // junction is created or recursively cleaned, including after failures.
     }
 
     public static function deletionStates(): array

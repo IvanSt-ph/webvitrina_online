@@ -109,6 +109,8 @@ final class ExistingSchemaMode
         // Standard RefreshDatabase wrapper; no real root commits or worker processes.
         \Tests\Feature\ProfileDeletionRaceTest::class,
         \Tests\Feature\ReviewImageMigrationTest::class,
+        // Nineteenth expansion: real Blade with isolated storage, one rolled-back transaction.
+        \Tests\Feature\MarketplaceFunctionalRegressionTest::class,
     ];
 
     public static function enabled(): bool
