@@ -27,8 +27,26 @@ class CredentialLifecycleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Providers may already have resolved route limiters; reject shared cache.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+
+        // Keep the actual write barrier on a test-owned inode through rollback.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'database', 'session.connection' => 'mysql', 'session.table' => 'sessions', 'queue.default' => 'sync',
+            'mail.default' => 'array', 'logging.default' => 'null',
+        ]);
+
         Notification::fake();
-        config(['session.driver' => 'database']);
         Route::middleware(['web', 'auth'])->get('/credential-probe', fn () => response('authenticated'));
     }
 
@@ -268,6 +286,9 @@ class CredentialLifecycleTest extends TestCase
         $this->app['session']->forgetDrivers();
         $this->app->forgetInstance('session.store');
         $this->app['redirect']->setSession($this->app['session']->driver());
+        $this->assertInstanceOf(\Illuminate\Session\DatabaseSessionHandler::class,
+            $this->app['session']->driver()->getHandler());
+        $this->assertSame(1, DB::transactionLevel(), 'Browser requests must remain inside the test transaction.');
         $this->defaultCookies = $session ? [config('session.cookie') => $session] : [];
 
         return $this->call($method, $uri, $data, $this->prepareCookiesForRequest());

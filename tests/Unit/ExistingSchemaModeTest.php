@@ -530,10 +530,52 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function seventeenthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\UnsupportedOrderWorkflowTest::class],
+            [\Tests\Feature\PickupReceiptReminderTest::class],
+            [\Tests\Feature\Auth\CredentialLifecycleTest::class],
+        ];
+    }
+
+    #[DataProvider('seventeenthExpansionTargets')]
+    public function test_seventeenth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function seventeenthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::seventeenthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('seventeenthExpansionLookalikes')]
+    public function test_seventeenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
-            [\Tests\Feature\Auth\CredentialLifecycleTest::class],
+            // Group seventeen: real commits/probes, workers or shared filesystem cleanup.
+            [\Tests\Feature\OrderIdentitySnapshotTest::class],
+            [\Tests\Feature\TransactionCallbackContractTest::class],
+            [\Tests\Feature\OperationalHealthTest::class],
+            [\Tests\Feature\AdminAvatarLifecycleTest::class],
+            [\Tests\Feature\PurgeOrderHistoryTest::class],
+            [\Tests\Feature\ChatImageLifecycleTest::class],
+            [\Tests\Feature\MarketplaceFunctionalRegressionTest::class],
             // Node and inline Blade paths still need separate isolation.
             [\Tests\Feature\InputRenderingSecurityTest::class],
             // Real commits/workers, repeated truncation and DDL remain excluded.
@@ -561,8 +603,6 @@ class ExistingSchemaModeTest extends TestCase
             // Separate worker sessions and a factory-created PDO lock probe need their own audit.
             [\Tests\Feature\PickupOrderWorkflowConcurrencyTest::class],
             [\Tests\Feature\UserAddressConcurrencyTest::class],
-            // Rejected account deletion still opens the non-isolated backup barrier lock file.
-            [\Tests\Feature\PickupReceiptReminderTest::class],
             [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
             [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
             [\Tests\Feature\RoleAccessTest::class.'Subclass'],

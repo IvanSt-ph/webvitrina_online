@@ -18,6 +18,27 @@ class PickupReceiptReminderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Providers may already have resolved route limiters; reject shared cache.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+
+        // Keep the actual write barrier on a test-owned inode through rollback.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync',
+            'mail.default' => 'array', 'logging.default' => 'null',
+        ]);
+
+        // The cooldown cases distinguish one second before and after 24 hours.
+        $this->travelTo(now()->startOfSecond());
         $this->initialNotificationCount = UserNotification::count();
     }
 

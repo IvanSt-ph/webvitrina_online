@@ -101,6 +101,10 @@ final class ExistingSchemaMode
         \Tests\Feature\SellerPlanRequestStateTest::class,
         \Tests\Feature\AdminMembershipTest::class,
         \Tests\Feature\CheckoutPickupWorkflowTest::class,
+        // Seventeenth expansion: guarded workflow rejection, reminder rollback and database sessions.
+        \Tests\Feature\UnsupportedOrderWorkflowTest::class,
+        \Tests\Feature\PickupReceiptReminderTest::class,
+        \Tests\Feature\Auth\CredentialLifecycleTest::class,
     ];
 
     public static function enabled(): bool
