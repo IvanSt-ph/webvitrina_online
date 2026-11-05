@@ -20,6 +20,25 @@ class CheckoutPickupWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Limiters may already be resolved by providers; fail closed on shared cache.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+
+        // Retain the real write barrier on a test-owned inode through rollback.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync',
+            'mail.default' => 'array', 'logging.default' => 'null',
+        ]);
+
         foreach (['orders', 'order_items', 'order_events', 'user_notifications'] as $table) {
             $this->baselineCounts[$table] = DB::table($table)->count();
         }
@@ -174,6 +193,8 @@ class CheckoutPickupWorkflowTest extends TestCase
                 ->orderBy('id')->pluck('stock')->all());
             $this->assertSame($token, session('checkout_token'));
             $this->assertFalse(Cache::has($cacheKey), 'Failed checkout must release its replay reservation.');
+            // F11 persists replay ownership in SQL, not in the historical cache key.
+            $this->assertDatabaseMissing('checkout_attempts', ['token_hash' => hash('sha256', $token)]);
 
             // The listener fails only once; retrying the same token must create both orders, not a partial duplicate.
             $this->withExceptionHandling();
@@ -184,6 +205,12 @@ class CheckoutPickupWorkflowTest extends TestCase
             $this->assertAddedRows('orders', 2);
             $this->assertAddedRows('order_items', 2);
             $this->assertAddedRows('order_events', 2);
+            $attempt = DB::table('checkout_attempts')->where('token_hash', hash('sha256', $token))->sole();
+            $this->assertSame($buyer->id, (int) $attempt->buyer_id);
+            $this->assertSame(
+                Order::where('user_id', $buyer->id)->orderBy('id')->pluck('id')->all(),
+                json_decode($attempt->order_ids, true, flags: JSON_THROW_ON_ERROR),
+            );
             $this->assertSame([2, 2], Product::whereIn('id', [$firstProduct->id, $secondProduct->id])
                 ->orderBy('id')->pluck('stock')->all());
             $this->assertSame(['75.00', '100.00'], Order::where('user_id', $buyer->id)->orderBy('total_price')->pluck('total_price')->all());
@@ -216,6 +243,8 @@ class CheckoutPickupWorkflowTest extends TestCase
             'slug' => 'pickup-'.$suffix, 'sku' => 'PICKUP-'.strtoupper($suffix),
             'price' => $price, 'currency_base' => $currency, 'stock' => 3,
             'status' => Product::STATUS_ACTIVE,
+            // No image is part of this scenario; do not snapshot a shared default file.
+            'image' => '',
         ]);
     }
 

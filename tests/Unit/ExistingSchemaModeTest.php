@@ -492,15 +492,55 @@ class ExistingSchemaModeTest extends TestCase
         ExistingSchemaMode::assertTestAllowed($class);
     }
 
+    public static function sixteenthExpansionTargets(): array
+    {
+        return [
+            [\Tests\Feature\ProductSearchTest::class],
+            [\Tests\Feature\ProductQuotaTest::class],
+            [\Tests\Feature\SellerPlanQuotaTest::class],
+            [\Tests\Feature\SellerPlanRequestStateTest::class],
+            [\Tests\Feature\AdminMembershipTest::class],
+            [\Tests\Feature\CheckoutPickupWorkflowTest::class],
+        ];
+    }
+
+    #[DataProvider('sixteenthExpansionTargets')]
+    public function test_sixteenth_group_is_allowed(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function sixteenthExpansionLookalikes(): array
+    {
+        $cases = [];
+        foreach (self::sixteenthExpansionTargets() as [$class]) {
+            $cases[] = [$class.'Subclass'];
+            $cases[] = [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)];
+            $cases[] = [strtolower($class)];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('sixteenthExpansionLookalikes')]
+    public function test_sixteenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
     public static function excludedExpansionTargets(): array
     {
         return [
             [\Tests\Feature\Auth\CredentialLifecycleTest::class],
-            // Fifteenth-group exclusions: stale large-catalog fixture, shared fake-storage
-            // cleanup, and Node/inline-Blade infrastructure respectively.
-            [\Tests\Feature\ProductSearchTest::class],
-            [\Tests\Feature\ProductQuotaTest::class],
+            // Node and inline Blade paths still need separate isolation.
             [\Tests\Feature\InputRenderingSecurityTest::class],
+            // Real commits/workers, repeated truncation and DDL remain excluded.
+            [\Tests\Feature\PhoneUniquenessConcurrencyTest::class],
+            [\Tests\Feature\AdminMembershipConcurrencyTest::class],
+            [\Tests\Feature\ShopBannerLifecycleTest::class],
+            [\Tests\Feature\AccountDeletionMigrationTest::class],
             // The local-CSP case changes APP_ENV away from the SQL guard's required testing value.
             [\Tests\Feature\Auth\RegistrationTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],

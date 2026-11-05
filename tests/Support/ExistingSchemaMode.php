@@ -94,6 +94,13 @@ final class ExistingSchemaMode
         \Tests\Feature\ExampleTest::class,
         \Tests\Feature\ProductTransferQuotaTest::class,
         \Tests\Feature\ProductCountryCityValidationTest::class,
+        // Sixteenth expansion: real search threshold, isolated quota storage and transactional decisions.
+        \Tests\Feature\ProductSearchTest::class,
+        \Tests\Feature\ProductQuotaTest::class,
+        \Tests\Feature\SellerPlanQuotaTest::class,
+        \Tests\Feature\SellerPlanRequestStateTest::class,
+        \Tests\Feature\AdminMembershipTest::class,
+        \Tests\Feature\CheckoutPickupWorkflowTest::class,
     ];
 
     public static function enabled(): bool

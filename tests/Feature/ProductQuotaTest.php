@@ -7,15 +7,40 @@ use App\Repositories\ProductCrudRepository;
 use App\Services\{ImageService, ProductService, SellerPlanService};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\ProductQuotaFixtures;
+use Tests\Support\TestFileSafety;
 use Tests\TestCase;
 
 class ProductQuotaTest extends TestCase
 {
     use RefreshDatabase, ProductQuotaFixtures;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Limiters may already be resolved by providers; fail closed on shared cache.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+
+        // Retain the real write barrier on a test-owned inode through rollback.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync',
+            'mail.default' => 'array', 'logging.default' => 'null',
+        ]);
+    }
 
     public static function plans(): array
     {
@@ -58,7 +83,7 @@ class ProductQuotaTest extends TestCase
 
     public function test_authoritative_refusal_has_no_file_or_database_side_effects(): void
     {
-        Storage::fake('public');
+        $this->fakePublicStorage();
         [$seller, $data] = $this->quotaFixture(10);
         $before = Product::where('user_id', $seller->id)->pluck('id')->all();
         $images = $this->mock(ImageService::class);
@@ -82,7 +107,7 @@ class ProductQuotaTest extends TestCase
 
     public function test_soft_delete_frees_one_slot_for_recreation(): void
     {
-        Storage::fake('public');
+        $this->fakePublicStorage();
         [$seller, $data] = $this->quotaFixture(10);
         $product = Product::where('user_id', $seller->id)->firstOrFail();
         app(ProductService::class)->delete($product, actor: $seller);
@@ -99,5 +124,26 @@ class ProductQuotaTest extends TestCase
         User::whereKey($seller->id)->update(['seller_plan' => 'starter']);
         $this->expectException(ValidationException::class);
         app(ProductService::class)->create($data);
+    }
+
+    private function fakePublicStorage(): void
+    {
+        // fake() cleans its derived root before applying configuration overrides.
+        // Use a fresh disk name, validate that exact root, then alias its adapter.
+        $this->assertFalse(ParallelTesting::token(), 'Run existing-schema targets sequentially without a parallel token.');
+        $disk = 'group16-quota-'.bin2hex(random_bytes(16));
+        $root = storage_path('framework/testing/disks/'.$disk);
+        TestFileSafety::assertDirectory($root, mustExist: false);
+        $this->assertFalse(file_exists($root) || is_link($root));
+
+        Storage::set('public', Storage::fake($disk));
+        TestFileSafety::assertDirectory($root);
+        $this->beforeApplicationDestroyed(function () use ($root): void {
+            // Neither scenario uploads files. Retain unexpected contents on failure;
+            // never recursively clean a shared, redirected or non-empty directory.
+            TestFileSafety::assertDirectory($root);
+            $this->assertSame(['.', '..'], scandir($root));
+            $this->assertTrue(rmdir($root));
+        });
     }
 }

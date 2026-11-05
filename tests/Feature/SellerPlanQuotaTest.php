@@ -13,6 +13,29 @@ class SellerPlanQuotaTest extends TestCase
 {
     use RefreshDatabase, ProductQuotaFixtures;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Limiters may already be resolved by providers; fail closed on shared cache.
+        $this->assertSame('array', config('cache.default'));
+        $this->assertSame('array', config('cache.limiter') ?? config('cache.default'));
+
+        // Retain the real write barrier on a test-owned inode through rollback.
+        $lock = tmpfile();
+        $this->assertIsResource($lock);
+        $this->beforeApplicationDestroyed(static fn () => fclose($lock));
+        $path = stream_get_meta_data($lock)['uri'];
+        $this->assertFileExists($path);
+        $this->assertFalse(is_link($path));
+        config([
+            'backup.lock_path' => $path,
+            'cache.default' => 'array', 'cache.limiter' => 'array',
+            'session.driver' => 'array', 'queue.default' => 'sync',
+            'mail.default' => 'array', 'logging.default' => 'null',
+        ]);
+    }
+
     public static function assignments(): array
     {
         $cases = [];
