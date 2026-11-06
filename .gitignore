@@ -31,3 +31,5 @@ npm-debug.log
 yarn-error.log
 
 test-logs/
+
+.env.testing
