@@ -37,7 +37,8 @@ class TestCleanupSafetyTest extends TestCase
 
     public static function cleanupClasses(): array
     {
-        return array_map(static fn ($class) => [$class], [
+        $cases = [];
+        foreach ([
             PurgeOrderHistoryTest::class,
             \Tests\Feature\BackupAtomicityTest::class,
             \Tests\Feature\BackupSnapshotTest::class,
@@ -46,11 +47,16 @@ class TestCleanupSafetyTest extends TestCase
             \Tests\Feature\PrivateBackupTest::class,
             \Tests\Feature\OperationalHealthTest::class,
             ProductionHealthTest::class,
-        ]);
+        ] as $class) {
+            $cases[$class.' / database guard'] = [$class, false];
+            $cases[$class.' / existing-schema class guard'] = [$class, true];
+        }
+
+        return $cases;
     }
 
     #[DataProvider('cleanupClasses')]
-    public function test_failed_parent_setup_never_connects_or_cleans_files(string $class): void
+    public function test_failed_parent_setup_never_connects_or_cleans_files(string $class, bool $existingSchema): void
     {
         $previous = Container::getInstance();
         $previousFacadeApp = Facade::getFacadeApplication();
@@ -59,6 +65,7 @@ class TestCleanupSafetyTest extends TestCase
         $app->instance('config', new Repository(['database' => $this->database('webv3')]));
         $db = $this->createMock(DatabaseManager::class);
         $db->expects($this->never())->method('connection');
+        $db->method('getConnections')->willReturn([]);
         $app->instance('db', $db);
         $disks = $this->createMock(FilesystemManager::class);
         $disks->expects($this->never())->method('disk');
@@ -66,6 +73,8 @@ class TestCleanupSafetyTest extends TestCase
         $app->instance('filesystem', $disks);
         $files = $this->createMock(Filesystem::class);
         $files->expects($this->never())->method('deleteDirectory');
+        $files->expects($this->never())->method('cleanDirectory');
+        $files->expects($this->never())->method('makeDirectory');
         $app->instance('files', $files);
         $app->instance(ParallelTesting::class, $this->createStub(ParallelTesting::class));
 
@@ -77,17 +86,32 @@ class TestCleanupSafetyTest extends TestCase
 
             return $app;
         });
+        // Exercise both guards independently of the outer runner's mode. The mock's
+        // generated class name must NOT inherit its parent's existing-schema admission.
+        $previousMode = getenv('WV_EXISTING_SCHEMA');
         try {
+            $this->assertTrue($existingSchema ? putenv('WV_EXISTING_SCHEMA=1') : putenv('WV_EXISTING_SCHEMA'));
+            $this->assertInstanceOf($class, $subject);
+            $this->assertNotSame($class, $subject::class);
             try {
                 (new ReflectionMethod($class, 'setUp'))->invoke($subject);
-                $this->fail('The original database guard must reject webv3.');
+                $this->fail('Parent setup must reject the unapproved class or database.');
             } catch (RuntimeException $exception) {
-                $this->assertStringContainsString('explicitly approved', $exception->getMessage());
+                if ($existingSchema) {
+                    $this->assertSame(
+                        'Existing-schema pilot does not allow '.$subject::class.'. Migration/schema tests and unreviewed classes are excluded.',
+                        $exception->getMessage(),
+                    );
+                } else {
+                    $this->assertStringContainsString('explicitly approved', $exception->getMessage());
+                }
             }
+            $this->assertNull((new ReflectionProperty(\Tests\TestCase::class, 'fileIsolation'))->getValue($subject));
             // Reproduce PHPUnit 11's lifecycle, not the destructive SQL itself.
             (new ReflectionMethod($class, 'tearDown'))->invoke($subject);
             $this->assertNull((new ReflectionProperty(\Tests\TestCase::class, 'app'))->getValue($subject));
         } finally {
+            $previousMode === false ? putenv('WV_EXISTING_SCHEMA') : putenv('WV_EXISTING_SCHEMA='.$previousMode);
             Facade::clearResolvedInstances();
             Facade::setFacadeApplication($previousFacadeApp);
             Container::setInstance($previous);

@@ -6,6 +6,8 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    private ?Support\ExistingSchemaFileIsolation $fileIsolation = null;
+
     protected function tearDown(): void
     {
         $database = Support\ExistingSchemaMode::enabled() && $this->app && $this->app->resolved('db')
@@ -15,8 +17,13 @@ abstract class TestCase extends BaseTestCase
         } finally {
             // Run AFTER every application-destroyed callback, including worker and
             // transaction cleanup. Do not open/reconnect a PDO during teardown.
-            foreach ($database?->getConnections() ?? [] as $connection) {
-                $connection->disconnect();
+            try {
+                foreach ($database?->getConnections() ?? [] as $connection) {
+                    $connection->disconnect();
+                }
+            } finally {
+                $this->fileIsolation?->close();
+                $this->fileIsolation = null;
             }
         }
     }
@@ -28,13 +35,35 @@ abstract class TestCase extends BaseTestCase
         }
         Support\ExistingSchemaMode::assertTestAllowed(static::class);
         Support\ExistingSchemaMode::lockRun();
-        $app = require dirname(__DIR__).'/bootstrap/app.php';
-        $this->traitsUsedByTest = array_flip(class_uses_recursive(static::class));
-        $app->afterBootstrapping(\Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
-            static fn ($app) => Support\ExistingSchemaMode::install($app));
-        $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+        // One scope per test instance/data set; application refreshes retain its files.
+        $isolation = $this->fileIsolation ??= Support\ExistingSchemaFileIsolation::create();
+        $app = null;
+        try {
+            $app = require dirname(__DIR__).'/bootstrap/app.php';
+            $isolation->attach($app);
+            $this->traitsUsedByTest = array_flip(class_uses_recursive(static::class));
+            $app->afterBootstrapping(\Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
+                static function ($app) use ($isolation): void {
+                    Support\ExistingSchemaMode::install($app);
+                    $isolation->configure($app);
+                });
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-        return $app;
+            return $app;
+        } catch (\Throwable $exception) {
+            try {
+                // Failed bootstrap never returns an application to normal teardown.
+                if ($app && $app->resolved('db')) {
+                    foreach ($app['db']->getConnections() as $connection) {
+                        $connection->disconnect();
+                    }
+                }
+            } finally {
+                $isolation->close();
+                $this->fileIsolation = null;
+            }
+            throw $exception;
+        }
     }
 
     protected function rollBackTestTransactionsBeforeApplicationDestroyed(): void
