@@ -394,6 +394,9 @@
           </div>
           <p class="seller-section-hint">Если товар один, поставь 1. При заказе остаток спишется.</p>
         </div>
+        @if($product->exists)
+          <input type="hidden" name="original_stock" value="{{ old('original_stock', $product->stock) }}">
+        @endif
         <input name="stock" type="number" min="0" value="{{ old('stock',$product->stock) }}"
                class="seller-input max-w-xs text-lg font-semibold">
         <p class="mt-1 text-sm text-neutral-500">Количество товара в наличии.</p>

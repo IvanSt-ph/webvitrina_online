@@ -18,6 +18,7 @@ final class SellerProductMutation
         Auth::guard('web')->setUser($seller);
         $data = [
             'title' => 'Seller correction', 'price' => 125, 'stock' => 4,
+            'original_stock' => $product->stock,
             'status' => Product::STATUS_ACTIVE, 'category_id' => $product->category_id,
             'country_id' => $product->city->country_id, 'city_id' => $product->city_id,
             'currency_base' => 'MDL', 'path' => $product->gallery[0] ?? '',

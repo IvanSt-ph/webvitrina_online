@@ -16,6 +16,11 @@ class ProductUpdateRequest extends FormRequest
         return $product && $this->user()?->can('update', $product);
     }
 
+    public function messages(): array
+    {
+        return ['original_stock.*' => 'Обновите страницу товара: исходный остаток отсутствует или указан неверно.'];
+    }
+
     public function rules(): array
     {
         return [
@@ -23,6 +28,7 @@ class ProductUpdateRequest extends FormRequest
             'price'       => 'required|numeric|min:0|max:' . MoneyLimits::PRODUCT_PRICE_MAX,
             'old_price'   => 'nullable|numeric|min:0|max:' . MoneyLimits::PRODUCT_PRICE_MAX . '|gt:price',
             'stock'       => 'required|integer|min:0',
+            'original_stock' => 'required|integer|min:0',
             'description' => 'nullable|string|max:3000',
             'status'      => ['nullable', Rule::in(\App\Models\Product::sellerEditableStatuses())],
             'currency_base' => 'nullable|in:PRB,MDL,UAH',

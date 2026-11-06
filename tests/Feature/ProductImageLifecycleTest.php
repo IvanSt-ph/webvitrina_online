@@ -506,6 +506,7 @@ class ProductImageLifecycleTest extends TestCase
             $old = $product->image;
             $this->assertPairExists($old);
             $payload['image'] = $this->upload();
+            $payload['original_stock'] = $product->stock;
             unset($payload['gallery']);
             $this->patch(route($role . '.products.update', $product), $payload)->assertSessionHasNoErrors()->assertRedirect();
             $this->assertPairMissing($old);

@@ -81,6 +81,22 @@ class ProductService
             }
             $product = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
             $this->authorizeMutation($actor, 'update', $product);
+            if (array_key_exists('stock', $payload)) {
+                $originalStock = filter_var($data['original_stock'] ?? null, FILTER_VALIDATE_INT);
+                if ($originalStock === false || $originalStock < 0) {
+                    throw ValidationException::withMessages([
+                        'stock' => 'Обновите страницу товара перед изменением остатка.',
+                    ]);
+                }
+                if ((int) $payload['stock'] === $originalStock) {
+                    // An untouched form field must not undo checkout/restocking.
+                    unset($payload['stock']);
+                } elseif ((int) $product->stock !== $originalStock) {
+                    throw ValidationException::withMessages([
+                        'stock' => 'Остаток товара изменился после открытия формы. Обновите страницу и повторите изменение остатка.',
+                    ]);
+                }
+            }
             if ($owners !== null) {
                 // Do not acquire a newly discovered User lock after locking Product.
                 abort_unless($owners->has((int) $product->user_id), 409,

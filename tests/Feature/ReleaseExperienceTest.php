@@ -267,6 +267,7 @@ class ReleaseExperienceTest extends TestCase
         ]);
 
         $sellerPayload = [
+            'original_stock' => $product->stock,
             'title' => 'Blocked product fixed',
             'price' => 120,
             'stock' => 4,
@@ -289,6 +290,7 @@ class ReleaseExperienceTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('admin.products.update', $product), [
+                'original_stock' => $product->fresh()->stock,
                 'title' => $product->title,
                 'slug' => $product->slug,
                 'sku' => $product->sku,

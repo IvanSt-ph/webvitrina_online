@@ -2591,6 +2591,7 @@ class SecurityRegressionTest extends TestCase
             ->put(route('admin.products.update', $product), [
                 '_token' => $token,
                 'title' => 'Admin attribute product updated',
+                'original_stock' => $product->stock,
                 'slug' => $product->slug,
                 'sku' => $product->sku,
                 'price' => 150,

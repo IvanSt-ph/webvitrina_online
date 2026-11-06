@@ -109,6 +109,7 @@
                     </label>
                     <label class="block">
                         <span class="mb-1 block text-sm font-medium text-slate-700">Количество</span>
+                        <input type="hidden" name="original_stock" value="{{ old('original_stock', $product->stock) }}">
                         <input type="number" name="stock" value="{{ old('stock', $product->stock) }}" required class="wv-field">
                     </label>
                 </div>

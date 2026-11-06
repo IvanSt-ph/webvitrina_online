@@ -15,6 +15,11 @@ class ProductUpdateRequest extends FormRequest
         return true;
     }
 
+    public function messages(): array
+    {
+        return ['original_stock.*' => 'Обновите страницу товара: исходный остаток отсутствует или указан неверно.'];
+    }
+
     public function rules(): array
     {
         $productId = $this->product->id ?? null;
@@ -26,6 +31,7 @@ class ProductUpdateRequest extends FormRequest
             'price'       => ['sometimes', 'required', 'numeric', 'min:0', 'max:' . MoneyLimits::PRODUCT_PRICE_MAX],
             'old_price'   => ['nullable', 'numeric', 'min:0', 'max:' . MoneyLimits::PRODUCT_PRICE_MAX, 'gt:price'],
             'stock'       => ['sometimes', 'required', 'integer', 'min:0'],
+            'original_stock' => ['required_with:stock', 'integer', 'min:0'],
             'user_id'     => ['sometimes', Rule::exists('users', 'id')->where('role', 'seller')],
             'category_id' => ['sometimes', 'exists:categories,id'],
             'country_id'  => ['bail', 'sometimes', 'integer', 'min:1', 'exists:countries,id'],
