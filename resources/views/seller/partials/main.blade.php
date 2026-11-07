@@ -30,6 +30,8 @@
     </form>
 
     {{-- 📱 Телефон магазина --}}
+    @include('profile.partials.telegram-phone-verification')
+
     @if (Auth::user()->shop)
         @include('seller.partials.shop-phone')
     @endif

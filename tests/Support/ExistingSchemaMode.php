@@ -111,6 +111,9 @@ final class ExistingSchemaMode
         \Tests\Feature\ReviewImageMigrationTest::class,
         // Nineteenth expansion: real Blade with isolated storage, one rolled-back transaction.
         \Tests\Feature\MarketplaceFunctionalRegressionTest::class,
+        // Twentieth expansion: Telegram fixtures use the standard rollback wrapper,
+        // fake HTTP and isolated files; dynamic cleanup includes the new request table.
+        \Tests\Feature\TelegramPhoneVerificationTest::class,
     ];
 
     public static function enabled(): bool

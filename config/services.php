@@ -44,9 +44,17 @@ return [
 
 
     'twilio' => [
+        'enabled' => env('TWILIO_VERIFY_ENABLED', false),
         'sid' => env('TWILIO_SID'),
         'token' => env('TWILIO_AUTH_TOKEN'),
         'verify_sid' => env('TWILIO_VERIFY_SERVICE_SID', env('TWILIO_VERIFY_SID')),
+    ],
+
+    'telegram' => [
+        'enabled' => env('TELEGRAM_PHONE_VERIFICATION_ENABLED', false),
+        'username' => env('TELEGRAM_BOT_USERNAME'),
+        'token' => env('TELEGRAM_BOT_TOKEN'),
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
     ],
 
 ];

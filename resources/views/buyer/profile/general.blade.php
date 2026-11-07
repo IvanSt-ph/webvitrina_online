@@ -138,30 +138,8 @@
                     </form>
                 @else<span class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-[#137333]"><i class="ri-checkbox-circle-fill"></i> Подтверждён</span>@endif
             </div>
-            <div class="px-5 py-5 sm:px-7">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-                    <div class="flex min-w-0 flex-1 items-center gap-4"><div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f0fe] text-xl text-[#1967d2]"><i class="ri-phone-line"></i></div><div><p class="text-sm font-medium text-[#202124]">Телефон</p><p class="mt-0.5 text-sm text-[#5f6368]">{{ Auth::user()->hasVerifiedPhone() ? 'Номер телефона подтверждён' : 'Подтвердите телефон для безопасности аккаунта' }}</p></div></div>
-                    @if(!Auth::user()->hasVerifiedPhone())
-                        <form method="POST" action="{{ route('phone.send') }}">
-                            @csrf
-                            <x-secondary-action type="submit" size="sm">
-                                <i class="ri-message-2-line" aria-hidden="true"></i>
-                                Отправить SMS
-                            </x-secondary-action>
-                        </form>
-                    @else<span class="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-[#137333]"><i class="ri-checkbox-circle-fill"></i> Подтверждён</span>@endif
-                </div>
-                @if(!Auth::user()->hasVerifiedPhone() && session('phone_sent'))
-                    <form method="POST" action="{{ route('phone.verify') }}" class="mt-5 flex max-w-xl flex-col gap-3 rounded-xl bg-[#f8fafd] p-4 sm:flex-row">
-                        @csrf
-                        <input type="text" name="code" placeholder="6-значный код" maxlength="6" autocomplete="one-time-code" class="h-11 flex-1 rounded-lg border-[#dadce0] bg-white px-4 shadow-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]">
-                        <x-action-button type="submit">
-                            <i class="ri-check-line" aria-hidden="true"></i>
-                            Подтвердить код
-                        </x-action-button>
-                    </form>
-                @endif
-            </div>
+            @include('profile.partials.telegram-phone-verification')
+
         </div>
     </section>
 </div>

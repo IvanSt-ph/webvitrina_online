@@ -30,7 +30,7 @@
     @if(Auth::user()->shop?->phone)
         <p class="flex items-start gap-2 text-xs text-neutral-500">
             <i class="ri-information-line mt-0.5 text-sm text-brand-500"></i>
-            После изменения номера потребуется повторная SMS-верификация.
+            После изменения номера подтверждение сбрасывается.
         </p>
     @endif
 </form>

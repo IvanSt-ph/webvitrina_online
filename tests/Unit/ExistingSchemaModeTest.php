@@ -27,6 +27,7 @@ class ExistingSchemaModeTest extends TestCase
     {
         return [['CREATE TABLE example (id INT)'], ['DROP TABLE users'], ['ALTER TABLE users ADD x INT'],
             ['RENAME TABLE users TO old_users'], ['TRUNCATE TABLE `webv3_testing`.`users`'],
+            ['TRUNCATE TABLE `webv3_testing`.`telegram_phone_verifications`'],
             ['USE webv3'], ['/* comment */ DROP TABLE users'], ['-- comment'."\n".'ALTER TABLE users ADD x INT'],
             ['/*!50000 DROP TABLE users */'], ['SELECT 1; DROP TABLE users'], ['SET GLOBAL sql_mode = 0']];
     }
@@ -624,6 +625,30 @@ class ExistingSchemaModeTest extends TestCase
 
     #[DataProvider('nineteenthExpansionLookalikes')]
     public function test_nineteenth_group_requires_exact_class_names(string $class): void
+    {
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class);
+    }
+
+    public function test_telegram_transactional_test_is_allowed(): void
+    {
+        ExistingSchemaMode::assertTestAllowed(\Tests\Feature\TelegramPhoneVerificationTest::class);
+        $this->addToAssertionCount(1);
+    }
+
+    public static function telegramLookalikes(): array
+    {
+        $class = \Tests\Feature\TelegramPhoneVerificationTest::class;
+
+        return [
+            [$class.'Subclass'],
+            [str_replace('Tests\\Feature\\', 'Tests\\Unit\\', $class)],
+            [strtolower($class)],
+        ];
+    }
+
+    #[DataProvider('telegramLookalikes')]
+    public function test_telegram_allowlist_requires_exact_class_name(string $class): void
     {
         $this->expectException(RuntimeException::class);
         ExistingSchemaMode::assertTestAllowed($class);

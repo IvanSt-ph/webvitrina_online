@@ -56,6 +56,7 @@ class PhoneAssignmentService
             }
 
             $this->assertAvailableForUser($normalizedPhone, $current->id, $current->id);
+            TelegramPhoneVerificationService::invalidate($current->id);
             $current->fill($attributes)->forceFill([
                 'phone' => $normalizedPhone,
                 'phone_verified_at' => null,

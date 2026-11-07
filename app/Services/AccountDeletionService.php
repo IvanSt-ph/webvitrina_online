@@ -35,6 +35,7 @@ class AccountDeletionService
         }
 
         $publicFiles = array_filter([$user->avatar, $user->shop?->banner]);
+        \App\Models\TelegramPhoneVerification::where('user_id', $user->id)->delete();
         $reviewFiles = [];
         $conversations = Conversation::where('buyer_id', $user->id)->orWhere('seller_id', $user->id);
         // User is already locked. Freeze owned conversations before taking a

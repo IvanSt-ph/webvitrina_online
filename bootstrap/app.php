@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
+            require __DIR__.'/../routes/telegram.php';
             \Illuminate\Support\Facades\Route::get('/up', \App\Http\Controllers\LivenessController::class);
         },
     )
