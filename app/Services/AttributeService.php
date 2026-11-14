@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Attribute;
-use App\Models\Product;
+use App\Models\Category;
 use App\Models\Color;
+use App\Models\Product;
+use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -28,12 +30,14 @@ class AttributeService
         foreach ($values as $id => $value) {
             if (! preg_match('/^[1-9][0-9]*$/D', (string) $id) || ! $allowed->has($id)) {
                 $errors['attributes'][] = 'Характеристика не принадлежит выбранной категории.';
+
                 continue;
             }
             $attribute = $allowed->get($id);
             // Empty optional controls are retained so an edit can clear values.
             if ($value === null || $value === '') {
                 $validated[$id] = $value;
+
                 continue;
             }
             $valid = is_scalar($value) && mb_strlen((string) $value) <= self::MAX_VALUE_LENGTH;
@@ -46,7 +50,8 @@ class AttributeService
                 default => false,
             };
             if (! $valid) {
-                $errors['attributes.' . $id] = 'Недопустимое значение характеристики (максимум 255 символов).';
+                $errors['attributes.'.$id] = 'Недопустимое значение характеристики (максимум 255 символов).';
+
                 continue;
             }
             $validated[$id] = is_bool($value) ? (string) (int) $value : (string) $value;
@@ -61,102 +66,89 @@ class AttributeService
     /**
      * 📥 Получить атрибуты категории (с options + colors)
      */
-public function getByCategory(?int $categoryId)
-{
-    // Если категории нет — возвращаем пустые атрибуты
-    if (!$categoryId) {
-        return collect();
-    }
+    public function getByCategory(?int $categoryId)
+    {
+        // Если категории нет — возвращаем пустые атрибуты
+        if (! $categoryId) {
+            return collect();
+        }
 
-    return Attribute::query()
-        ->select('id', 'name', 'type', 'options')
-        ->whereIn('id', function ($q) use ($categoryId) {
-            $q->select('attribute_id')
-                ->from('attribute_category')
-                ->where('category_id', $categoryId);
-        })
-        ->with('colors:id,name,hex')
-        ->orderBy('name')
-        ->get()
-        ->map(function ($attr) {
+        return Attribute::query()
+            ->select('attributes.id', 'name', 'type', 'options', 'unit', 'is_filterable')
+            ->join('attribute_category', 'attribute_category.attribute_id', '=', 'attributes.id')
+            ->where('attribute_category.category_id', $categoryId)
+            ->with('colors:id,name,hex')
+            ->orderBy('attribute_category.sort_order')
+            ->orderBy('attributes.id')
+            ->get()
+            ->map(function ($attr) {
 
-            // Приведение обычных options (для select)
-            if ($attr->type !== 'color') {
-                if (is_array($attr->options)) {
-                    // ок
-                } elseif (is_string($attr->options) && $attr->options !== '') {
-                    $attr->options = json_decode($attr->options, true) ?? [];
+                // Приведение обычных options (для select)
+                if ($attr->type !== 'color') {
+                    if (is_array($attr->options)) {
+                        // ок
+                    } elseif (is_string($attr->options) && $attr->options !== '') {
+                        $attr->options = json_decode($attr->options, true) ?? [];
+                    } else {
+                        $attr->options = [];
+                    }
                 } else {
+                    // color — options пустые
                     $attr->options = [];
                 }
-            } else {
-                // color — options пустые
-                $attr->options = [];
-            }
 
-            return $attr;
-        });
-}
-
+                return $attr;
+            });
+    }
 
     /**
      * 📥 Атрибуты + значения товара
      */
-public function getForProduct(Product $product)
-{
-    if (!$product->category_id) {
-        return collect();
+    public function getForProduct(Product $product)
+    {
+        if (! $product->category_id) {
+            return collect();
+        }
+
+        $attrs = $this->getByCategory($product->category_id);
+
+        $activeValues = $product->attributeValues()->whereNull('archived_at')->get();
+
+        return $attrs->map(function ($attr) use ($activeValues) {
+            $attr->value = optional(
+                $activeValues->firstWhere('attribute_id', $attr->id)
+            )->value;
+
+            return $attr;
+        });
     }
-
-    $attrs = $this->getByCategory($product->category_id);
-
-    $product->loadMissing('attributeValues');
-
-    return $attrs->map(function ($attr) use ($product) {
-        $attr->value = optional(
-            $product->attributeValues->firstWhere('attribute_id', $attr->id)
-        )->value;
-
-        return $attr;
-    });
-}
-
 
     /**
      * 🔄 Синхронизировать значения атрибутов товара
      */
     public function sync(Product $product, array $values): void
     {
-        // Guard direct callers as well, before deleting any existing values.
-        $values = $this->validateValues($values, $product->category_id);
-        DB::table('attribute_values')
-            ->where('product_id', $product->id)
-            ->delete();
-
-        if (empty($values)) {
-            return;
-        }
-
-        $rows = [];
-
-        foreach ($values as $attrId => $value) {
-
-            // color id приходит строкой ("3"), делаем int
-            if ($value === null || $value === '') {
-                continue;
+        DB::transaction(function () use ($product, $values): void {
+            $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            Category::whereKey($locked->category_id)->lockForUpdate()->first();
+            $values = $this->validateValues($values, $locked->category_id);
+            AttributeHistory::archiveIncompatible($locked->id, $locked->category_id);
+            // Missing controls mean no change; an explicit empty value means clear.
+            foreach ($values as $attrId => $value) {
+                $query = DB::table('attribute_values')->where('product_id', $locked->id)
+                    ->where('attribute_id', $attrId)->whereNull('archived_at');
+                $existing = (clone $query)->get();
+                if ($existing->count() === 1 && (string) $existing->first()->value === (string) $value && $value !== null && $value !== '') {
+                    continue;
+                }
+                $query->update(['archived_at' => now(), 'archive_reason' => ($value === null || $value === '') ? 'explicit_clear' : 'value_replaced']);
+                if ($value !== null && $value !== '') {
+                    DB::table('attribute_values')->insert(['product_id' => $locked->id, 'attribute_id' => $attrId,
+                        'value' => (string) $value, 'created_at' => now(), 'updated_at' => now()]);
+                }
             }
-
-            $rows[] = [
-                'product_id'   => $product->id,
-                'attribute_id' => (int)$attrId,
-                'value'        => (string)$value,
-                'created_at'   => now(),
-                'updated_at'   => now(),
-            ];
-        }
-
-        if (!empty($rows)) {
-            DB::table('attribute_values')->insert($rows);
-        }
+            DB::afterCommit(fn () => ProductRepository::clearProductCache($locked));
+        });
+        $product->unsetRelation('attributeValues')->unsetRelation('attributes');
     }
 }

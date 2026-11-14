@@ -21,6 +21,7 @@
         </p>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row">
+        <a href="{{ route('admin.attribute-import.index') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-indigo-600 border border-indigo-200 rounded-xl">Импорт характеристик</a>
         <a href="{{ route('admin.categories.create') }}"
            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl shadow hover:bg-indigo-700 hover:shadow-md transition-all duration-200">
           <i class="ri-add-line text-base"></i>

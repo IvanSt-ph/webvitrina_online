@@ -21,7 +21,7 @@
                 @endphp
 
                 <label class="block">
-                    <span class="mb-2 block text-sm font-bold text-slate-800">{{ $attr->name }}</span>
+                    <span class="mb-2 block text-sm font-bold text-slate-800">{{ $attr->name }}{{ $attr->unit ? ' ('.$attr->unit.')' : '' }}</span>
 
                     @if($attr->type === 'select')
                         <select name="attributes[{{ $attr->id }}]" class="{{ $fieldClass }}">
@@ -31,7 +31,7 @@
                             @endforeach
                         </select>
                     @elseif($attr->type === 'number')
-                        <input type="number" name="attributes[{{ $attr->id }}]" value="{{ $val }}" class="{{ $fieldClass }}">
+                        <input type="number" step="any" name="attributes[{{ $attr->id }}]" value="{{ $val }}" class="{{ $fieldClass }}">
                     @elseif($attr->type === 'boolean')
                         <input type="hidden" name="attributes[{{ $attr->id }}]" value="0">
                         <span class="inline-flex h-11 items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
@@ -70,6 +70,7 @@
                     @else
                         <input type="text" name="attributes[{{ $attr->id }}]" value="{{ $val }}" class="{{ $fieldClass }}">
                     @endif
+                    @error('attributes.'.$attr->id)<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
                 </label>
             @endforeach
         </div>

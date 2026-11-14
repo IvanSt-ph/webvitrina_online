@@ -167,7 +167,7 @@
                                 @click="open = !open"
                                 class="w-full flex items-center justify-between py-2">
 
-                            <span class="text-sm font-medium text-gray-800">{{ $attr->name }}</span>
+                            <span class="text-sm font-medium text-gray-800">{{ $attr->name }}{{ $attr->unit ? ' ('.$attr->unit.')' : '' }}</span>
 
                             <svg class="w-4 h-4 text-gray-500 transition-transform duration-200"
                                  :class="{ 'rotate-180': open }"
@@ -202,7 +202,7 @@
                                                    name="{{ $input }}[]"
                                                    value="{{ $opt }}"
                                                    @checked(in_array($opt, (array)$selected))
-                                                   class="hidden peer">
+                                    class="sr-only peer">
 
                                             <div class="w-5 h-5 rounded border border-gray-300 
                                                         peer-checked:border-indigo-600 
@@ -229,7 +229,7 @@
                                                    name="{{ $input }}[]" 
                                                    value="{{ $color->id }}"
                                                    @checked(in_array($color->id, (array)$selectedColors))
-                                                   class="hidden peer">
+                                                   class="sr-only peer">
 
                                             <div class="w-7 h-7 rounded-full border-2 transition
                                                         peer-checked:border-indigo-600 peer-checked:scale-110"
@@ -245,12 +245,12 @@
                             {{-- ЧИСЛА --}}
                             @if($attr->type === 'number')
                                 <div class="flex gap-3">
-                                    <input type="number" name="{{ $input }}[from]"
+                                    <input type="number" step="any" name="{{ $input }}[from]"
                                            value="{{ request("filters.$attr->id.from") }}"
                                            placeholder="От"
                                            class="w-1/2 p-2 border rounded-lg focus:border-indigo-500">
 
-                                    <input type="number" name="{{ $input }}[to]"
+                                    <input type="number" step="any" name="{{ $input }}[to]"
                                            value="{{ request("filters.$attr->id.to") }}"
                                            placeholder="До"
                                            class="w-1/2 p-2 border rounded-lg focus:border-indigo-500">

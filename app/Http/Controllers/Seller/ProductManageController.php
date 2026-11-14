@@ -92,7 +92,7 @@ class ProductManageController extends Controller
          ========================= */
         $productsQuery = Product::where('user_id', Auth::id())
             ->with(['category', 'city.country'])
-            ->withCount('attributeValues')
+            ->withCount(['attributes as attribute_values_count'])
             ->withSum(['stats as views_sum' => function ($q) use ($from, $to) {
                 $q->whereBetween('date', [$from, $to]);
             }], 'views');
@@ -243,16 +243,19 @@ class ProductManageController extends Controller
             }
         }
 
-        $attributes = $product->exists
+        $formCategoryId = (int) old('category_id', $product->category_id);
+        $attributes = $product->exists && $formCategoryId === (int) $product->category_id
             ? $this->attributes->getForProduct($product)
-            : collect();
+            : $this->attributes->getByCategory($formCategoryId ?: null);
         $sellerPlanProfile = $this->sellerPlans->profileFor(Auth::user());
-
-        $categoryMissing = !$product->category_id;
 
         $categoriesTree = Cache::remember('all_categories_tree', 3600, fn () =>
             Category::select('id', 'name', 'parent_id')->orderBy('name')->get()
         );
+
+        $categoryMissing = !$formCategoryId
+            || !$categoriesTree->contains('id', $formCategoryId)
+            || $categoriesTree->contains('parent_id', $formCategoryId);
 
         return view('seller.products.form', compact(
             'product',
@@ -278,7 +281,8 @@ class ProductManageController extends Controller
     public function getCategoryAttributesView(Category $category)
     {
         $product = new Product(['category_id' => $category->id]);
-        return view('seller.products.partials.attributes', compact('product'));
+        $attributes = $this->attributes->getByCategory($category->id);
+        return view('seller.products.partials.attributes', compact('product', 'attributes'));
     }
 
     /** 💾 Создание товара */

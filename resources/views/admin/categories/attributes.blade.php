@@ -2,6 +2,11 @@
 @section('title', 'Характеристики — '.$category->name)
 
 @section('content')
+@if($errors->any())
+  <div class="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700" role="alert">
+    @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
+  </div>
+@endif
 @php
   $typeLabels = [
     'select' => 'Выбор из списка',
@@ -138,7 +143,8 @@
 
       <form action="{{ route('admin.categories.attributes.store', $category->id) }}" method="POST"
             class="grid grid-cols-1 gap-4 md:grid-cols-2"
-            x-data="{ type: 'select', filterable: true, name: '', options: '', unit: '' }">
+            x-data="{ type: 'select', filterable: true, name: '', options: '', unit: '' }"
+            x-effect="if (name === 'Цвет') type = 'color'">
         @csrf
 
         <div>
@@ -153,7 +159,7 @@
           <select name="type" x-model="type"
                   class="w-full rounded-xl border border-gray-300 p-2.5 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500">
             @foreach($typeLabels as $value => $label)
-              <option value="{{ $value }}">{{ $label }}</option>
+              <option value="{{ $value }}" :disabled="name === 'Цвет' && '{{ $value }}' !== 'color'">{{ $label }}</option>
             @endforeach
           </select>
           <p class="mt-1 text-xs text-gray-400" x-text="{
@@ -354,7 +360,7 @@
                 <td class="p-3">
                   <div class="flex justify-end gap-2">
                     <button type="button"
-                            @click='openEditor(@js([
+                            @click="openEditor(@js([
                               "id" => $attr->id,
                               "name" => $attr->name,
                               "type" => $attr->type,
@@ -362,7 +368,7 @@
                               "is_filterable" => (bool) $attr->is_filterable,
                               "options" => implode("\n", $attr->options ?? []),
                               "colors" => $attr->colors->pluck("id")->values(),
-                            ]))'
+                            ]))"
                             class="inline-flex items-center justify-center rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700 transition hover:bg-indigo-100"
                             title="Редактировать">
                       <i class="ri-edit-line"></i>
@@ -421,10 +427,10 @@
 
         <div>
           <label class="mb-1.5 block text-sm font-semibold text-gray-700">Тип</label>
-          <select name="type" x-model="editType"
+          <select name="type" x-model="editType" x-effect="if (editName === 'Цвет') editType = 'color'"
                   class="w-full rounded-xl border border-gray-300 p-2.5 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500">
             @foreach($typeLabels as $value => $label)
-              <option value="{{ $value }}">{{ $label }}</option>
+              <option value="{{ $value }}" :disabled="editName === 'Цвет' && '{{ $value }}' !== 'color'">{{ $label }}</option>
             @endforeach
           </select>
         </div>

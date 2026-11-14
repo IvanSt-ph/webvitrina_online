@@ -544,6 +544,10 @@ Route::prefix('admin')
     ->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/attribute-import', [\App\Http\Controllers\Admin\CategoryAttributeImportController::class, 'index'])->name('attribute-import.index');
+    Route::get('/attribute-import/template', [\App\Http\Controllers\Admin\CategoryAttributeImportController::class, 'template'])->name('attribute-import.template');
+    Route::post('/attribute-import/preview', [\App\Http\Controllers\Admin\CategoryAttributeImportController::class, 'preview'])->middleware('throttle:10,1')->name('attribute-import.preview');
+    Route::post('/attribute-import/apply', [\App\Http\Controllers\Admin\CategoryAttributeImportController::class, 'apply'])->middleware('throttle:5,1')->name('attribute-import.apply');
     Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
     Route::post('/backup/run', [BackupController::class, 'run'])->name('backup.run');
 

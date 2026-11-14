@@ -5,10 +5,34 @@ namespace App\Support;
 use App\Http\Middleware\NormalizeCatalogInput;
 use App\Models\Category;
 use App\Services\CategoryFilterCacheService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class CatalogAttributeFilters
 {
+    public static function apply(Builder $query, array $filters): void
+    {
+        foreach ($filters as $attributeId => $value) {
+            $query->whereHas('attributeValues', function ($values) use ($attributeId, $value) {
+                $values->where('attribute_id', $attributeId)->whereNull('archived_at')
+                    ->whereExists(function ($links) {
+                        $links->selectRaw('1')->from('attribute_category')
+                            ->whereColumn('attribute_category.category_id', 'products.category_id')
+                            ->whereColumn('attribute_category.attribute_id', 'attribute_values.attribute_id');
+                    });
+                if (is_array($value) && (isset($value['from']) || isset($value['to']))) {
+                    foreach (['from' => '>=', 'to' => '<='] as $bound => $operator) {
+                        if (isset($value[$bound])) {
+                            $values->whereRaw("CAST(value AS DECIMAL(65, 30)) {$operator} CAST(? AS DECIMAL(65, 30))", [$value[$bound]]);
+                        }
+                    }
+                } else {
+                    $values->whereIn('value', (array) $value);
+                }
+            });
+        }
+    }
+
     public static function normalize(Request $request, Category $category): void
     {
         $allowed = CategoryFilterCacheService::getFilters($category)->keyBy('id');
@@ -39,6 +63,7 @@ class CatalogAttributeFilters
                 if ($range) {
                     $clean[$id] = $range;
                 }
+
                 continue;
             }
             $values = is_array($value) ? $value : [$value];

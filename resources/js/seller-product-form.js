@@ -1,3 +1,4 @@
+import { renderAttributeFields, snapshotAttributeFields, updateColorSummary, captureAttributeDrafts, restoreAttributeDrafts, resetAttributeColor } from './seller-attribute-fields.js';
 import { getCurrencyRates } from './currency-rates.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,23 +10,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===============================================================
   const categoryChildrenCache = new Map();  // кеш подкатегорий
   const attributesCache = new Map();        // кеш характеристик
-  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-  }[char]));
-  const safeCssColor = value => /^#[0-9a-fA-F]{3,8}$/.test(String(value ?? ''))
-    ? String(value)
-    : '#e2e8f0';
-
   // ===============================================================
   // === 🏷️ КАТЕГОРИИ: каскадная подгрузка + hidden category_id ====
   // ===============================================================
   const catWrapper = document.getElementById('categories-wrapper');
   const catHidden = document.getElementById('category_id');
   const rootSelect = catWrapper ? catWrapper.querySelector('#category-root') : null;
+  const categoryWarning = document.getElementById('category-missing-warning');
+
+  function syncCategoryWarning() {
+    if (!categoryWarning) return;
+    const selectedId = catHidden?.value;
+    const categories = Array.isArray(window.allCategories) ? window.allCategories : [];
+    const isLeaf = Boolean(selectedId)
+      && categories.some(category => String(category.id) === String(selectedId))
+      && !categories.some(category => String(category.parent_id) === String(selectedId));
+    categoryWarning.style.display = isLeaf ? 'none' : '';
+  }
+
+  catWrapper?.addEventListener('change', e => {
+    if (e.target.matches('.category-select')) syncCategoryWarning();
+  });
 
   function removeNextSelects(currentSelect) {
     let next = currentSelect.nextElementSibling;
@@ -118,7 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
     catHidden.value = chain[chain.length - 1].id;
   }
 
-  restoreCategoryChain();
+  // Use the restored ID before the cascade temporarily walks through its parents.
+  syncCategoryWarning();
+  restoreCategoryChain().then(syncCategoryWarning);
 
   // ===============================================================
   // === 🌍 ЛОКАЦИЯ: загрузка городов по стране ====================
@@ -342,134 +349,49 @@ document.addEventListener('DOMContentLoaded', () => {
   // === ⚙️ ДИНАМИЧЕСКИЕ АТРИБУТЫ (по категории) ==================
   // ===============================================================
   const attrWrapper = document.getElementById('attributes-wrapper');
+  let activeAttributeCategory = String(catHidden?.value || '');
+  let attributeRequest = 0;
+  const attributeDrafts = new Map();
+  attrWrapper?.addEventListener('change', e => updateColorSummary(e.target));
+  attrWrapper?.addEventListener('click', e => {
+    const reset = e.target.closest('[data-color-reset]');
+    if (reset) resetAttributeColor(reset);
+  });
 
   async function loadAttributes(categoryId) {
-    if (!categoryId) {
+    if (!attrWrapper) return;
+    const key = String(categoryId || '');
+    const request = ++attributeRequest;
+    if (activeAttributeCategory) {
+      captureAttributeDrafts(attrWrapper, attributeDrafts);
+      attributesCache.set(activeAttributeCategory, snapshotAttributeFields(attrWrapper));
+    }
+    activeAttributeCategory = '';
+    if (!key) {
       attrWrapper.innerHTML = '';
       return;
     }
-
-    // 🔥 кеш есть → выдаём мгновенно
-    if (attributesCache.has(categoryId)) {
-      attrWrapper.innerHTML = attributesCache.get(categoryId);
+    if (attributesCache.has(key)) {
+      attrWrapper.innerHTML = attributesCache.get(key);
+      restoreAttributeDrafts(attrWrapper, attributeDrafts);
+      activeAttributeCategory = key;
       return;
     }
-
-    attrWrapper.innerHTML = `<div class="seller-empty-state text-sm text-gray-500 animate-pulse">
-      Загружаем характеристики...
-    </div>`;
-
+    attrWrapper.innerHTML = '<div class="seller-empty-state text-sm text-neutral-500 animate-pulse" role="status">Загружаем характеристики...</div>';
     try {
-      const res = await fetch(`/seller/categories/${categoryId}/attributes`);
+      const res = await fetch('/seller/categories/' + encodeURIComponent(key) + '/attributes');
+      if (!res.ok) throw new Error('Attributes request failed');
       const data = await res.json();
-
-      if (!Array.isArray(data) || !data.length) {
-        const empty = `<div class="seller-empty-state">
-            <p class="font-semibold text-gray-800">Для этой категории нет дополнительных характеристик</p>
-            <p class="mt-1 text-sm text-gray-500">Можно продолжать заполнять товар.</p>
-          </div>`;
-        attributesCache.set(categoryId, empty);
-        attrWrapper.innerHTML = empty;
-        return;
-      }
-
-      let html = `<section class='seller-form-card'>
-        <div class='seller-section-head'>
-          <div>
-            <p class='seller-section-kicker'>03</p>
-            <h2 class='seller-section-title'>Характеристики</h2>
-          </div>
-          <p class='seller-section-hint'>Поля меняются под выбранную категорию.</p>
-        </div>
-        <div class='grid grid-cols-1 gap-4 sm:grid-cols-2'>`;
-
-      data.forEach(attr => {
-        const name = `attributes[${escapeHtml(attr.id)}]`;
-        const rawValue = attr.value ?? '';
-        const value = escapeHtml(rawValue);
-
-        html += `<div>
-          <label class='block text-sm font-medium text-gray-700 mb-2'>${escapeHtml(attr.name)}</label>`;
-
-        if (attr.type === 'select' && attr.options?.length) {
-          html += `<select name="${name}"
-                           class="seller-input">
-                     <option value="">— не выбрано —</option>
-                     ${attr.options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}
-                   </select>`;
-        }
-
-        else if (attr.type === 'number') {
-          html += `<input type="number" name="${name}" value="${value}"
-                          class="seller-input"
-                          placeholder="Введите число">`;
-        }
-
-        else if (attr.type === 'boolean') {
-          html += `<label class="inline-flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
-                     <input type="checkbox" name="${name}" value="1"
-                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${value ? 'checked' : ''}>
-                     <span>Да / Нет</span>
-                   </label>`;
-        }
-
-        else if (attr.type === 'color') {
-
-          if (!attr.colors || !attr.colors.length) {
-            html += `<p class="text-gray-400 text-sm">Цвета не настроены администратором.</p>`;
-          } else {
-
-            html += `<div class="flex flex-wrap gap-3">`;
-
-            attr.colors.forEach(color => {
-              const checked = String(rawValue) === String(color.id);
-
-              html += `
-    <label class="cursor-pointer color-option flex flex-col items-center">
-
-      <div class="w-8 h-8 rounded-full border-2 transition transform color-circle ${checked ? 'border-indigo-600 scale-110' : 'border-gray-300'}"
-          style="background:${safeCssColor(color.hex)}">
-          ${checked ? '<div class="w-3 h-3 bg-white rounded-full shadow"></div>' : ''}
-      </div>
-
-      <input type="radio"
-            name="${name}"
-            value="${escapeHtml(color.id)}"
-            class="hidden"
-            ${checked ? 'checked' : ''}>
-
-    </label>`;
-            });
-
-            html += `</div>`;
-
-            const selected = attr.colors.find(c => String(c.id) === String(rawValue));
-            if (selected) {
-              html += `<p class="text-xs mt-1 text-gray-500">Выбран: ${escapeHtml(selected.name)}</p>`;
-            }
-          }
-        }
-
-        else {
-          html += `<input type="text" name="${name}" value="${value}"
-                          class="seller-input"
-                          placeholder="Введите значение...">`;
-        }
-
-        html += `</div>`;
-      });
-
-      html += `</div></section>`;
-
-      // 🔥 сохраняем HTML в кеш
-      attributesCache.set(categoryId, html);
-
+      if (request !== attributeRequest) return;
+      if (!Array.isArray(data)) throw new Error('Invalid attributes response');
+      const html = data.length ? renderAttributeFields(data) : '<div class="seller-empty-state"><p class="font-semibold text-neutral-800">Для этой категории нет дополнительных характеристик</p><p class="mt-1 text-sm text-neutral-500">Можно продолжать заполнять товар.</p></div>';
+      attributesCache.set(key, html);
       attrWrapper.innerHTML = html;
-
+      restoreAttributeDrafts(attrWrapper, attributeDrafts);
+      activeAttributeCategory = key;
     } catch (e) {
-      attrWrapper.innerHTML = `<div class="seller-empty-state text-danger-500 text-sm">
-        Ошибка при загрузке характеристик
-      </div>`;
+      if (request !== attributeRequest) return;
+      attrWrapper.innerHTML = '<div class="seller-empty-state text-danger-500 text-sm" role="alert">Ошибка при загрузке характеристик. Выберите категорию повторно.</div>';
     }
   }
 
@@ -484,9 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (selectedId) {
-      loadAttributes(selectedId);
-    }
+    loadAttributes(selectedId);
   });
 
   // ===============================================================
@@ -894,39 +814,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderPreviewForInput(input);
     });
   });
-
-  // ===============================================================
-  // === 🎨 АКТИВАЦИЯ ВЫБОРА ЦВЕТА у админа ================================
-  // ===============================================================
-  document.addEventListener('click', e => {
-    const label = e.target.closest('.color-option');
-    if (!label) return;
-
-    const input = label.querySelector('input[type="radio"]');
-    if (!input) return;
-
-    input.checked = true;
-
-    const groupName = input.name;
-    document.querySelectorAll(`input[name="${groupName}"]`).forEach(r => {
-      const parent = r.closest('.color-option');
-      if (!parent) return;
-
-      const circle = parent.querySelector('.color-circle');
-      if (!circle) return;
-
-      circle.classList.remove('border-indigo-600', 'scale-110');
-      circle.classList.add('border-gray-300');
-      parent.classList.remove('selected');
-    });
-
-    const circle = label.querySelector('.color-circle');
-    circle.classList.remove('border-gray-300');
-    circle.classList.add('border-indigo-600', 'scale-110');
-    label.classList.add('selected');
-  });
-
-
 
 // Выбор цвета в фильтре
 document.addEventListener('click', e => {

@@ -45,6 +45,7 @@ class CategoryController extends Controller
             ]);
     }
 
+    \App\Support\CatalogAttributeFilters::apply($productsQuery, $request->query('filters', []));
     $products = $productsQuery->paginate(20)->withQueryString();
 
     return view('partials.products-grid', compact('products'))->render();
@@ -133,35 +134,7 @@ class CategoryController extends Controller
             }
 
             // 🔥 Фильтры по атрибутам
-            if ($filters = request('filters')) {
-                foreach ($filters as $attributeId => $value) {
-
-                    $query->whereHas('attributeValues', function ($q) use ($attributeId, $value) {
-
-                        $q->where('attribute_id', $attributeId);
-
-                        // Числовой диапазон
-                        if (is_array($value) && (isset($value['from']) || isset($value['to']))) {
-
-                            if (isset($value['from'])) {
-                                $q->whereRaw('CAST(value AS DECIMAL(65, 30)) >= CAST(? AS DECIMAL(65, 30))', [$value['from']]);
-                            }
-
-                            if (isset($value['to'])) {
-                                $q->whereRaw('CAST(value AS DECIMAL(65, 30)) <= CAST(? AS DECIMAL(65, 30))', [$value['to']]);
-                            }
-                        } else {
-
-                            // Мультивыбор (checkbox/select)
-                            $values = array_filter((array)$value, fn($v) => $v !== null && $v !== '');
-
-                            if (!empty($values)) {
-                                $q->whereIn('value', $values);
-                            }
-                        }
-                    });
-                }
-            }
+            \App\Support\CatalogAttributeFilters::apply($query, request('filters', []));
 
             // 🔽 Сортировка
             $sort = request('sort', 'popular');

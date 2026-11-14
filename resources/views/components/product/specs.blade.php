@@ -78,7 +78,7 @@
 
                     {{-- ================= Обычное значение ================= --}}
                     @else
-                        <span class="font-medium">{{ $value ?? '-' }}</span>
+                        <span class="font-medium">{{ $value ?? '-' }}{{ $attr->unit ? ' '.$attr->unit : '' }}</span>
                     @endif
                 </div>
 

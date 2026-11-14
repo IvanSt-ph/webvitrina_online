@@ -153,8 +153,9 @@
     <p class="seller-section-hint">От категории зависят характеристики и фильтры.</p>
   </div>
 
-  @if($categoryMissing)
-    <div class="mb-4 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 flex gap-3 items-start">
+    <div id="category-missing-warning"
+         style="{{ $categoryMissing ? '' : 'display: none;' }}"
+         class="mb-4 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 flex gap-3 items-start">
         <svg class="w-6 h-6 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" 
                   d="M12 9v3m0 4h.01M10.29 3.86L1.82 18a1 1 0 0 0 .86 1.5h18.64a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0z"/>
@@ -167,7 +168,6 @@
             </span>
         </div>
     </div>
-@endif
 
   <div id="categories-wrapper" class="space-y-2">
     <label class="block text-sm font-medium text-neutral-600">Выберите категорию</label>
@@ -655,6 +655,44 @@
       line-height: 1.45;
       text-align: right;
     }
+    .seller-color-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+    .seller-color-option { position: relative; min-width: 0; cursor: pointer; }
+    .seller-color-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 100%;
+      min-height: 48px;
+      padding: 10px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 600;
+      transition: border-color .15s, background-color .15s;
+    }
+    .seller-color-option:hover .seller-color-card { border-color: #a5b4fc; background: #eef2ff; }
+    .seller-color-swatch {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      border: 1px solid #94a3b8;
+      border-radius: 5px;
+    }
+    .seller-color-check { margin-left: auto; flex-shrink: 0; visibility: hidden; color: #4f46e5; }
+    .seller-color-option input:checked + .seller-color-card { border-color: #4f46e5; background: #eef2ff; color: #312e81; }
+    .seller-color-option input:checked + .seller-color-card .seller-color-check { visibility: visible; }
+    .seller-color-option input:focus-visible + .seller-color-card { outline: 3px solid #4f46e5; outline-offset: 3px; }
+    .seller-attribute-field[aria-invalid="true"] { border-left: 3px solid #dc2626; padding-left: 12px; }
+    .seller-attribute-field .seller-input[aria-invalid="true"] { border-color: #dc2626; }
+    @media (min-width: 360px) { .seller-color-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 768px) { .seller-color-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (min-width: 1280px) { .seller-color-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
     .seller-input {
       width: 100%;
       border-radius: 12px;

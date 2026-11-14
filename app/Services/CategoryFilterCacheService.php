@@ -26,6 +26,7 @@ class CategoryFilterCacheService
                 ->select('attributes.id', 'name', 'type', 'unit', 'options', 'is_filterable')
                 ->join('attribute_category', 'attributes.id', '=', 'attribute_category.attribute_id')
                 ->where('attributes.is_filterable', 1)
+                ->with('colors:id,name,hex')
                 ->whereIn('attribute_category.category_id', $allIds)
                 ->groupBy('attributes.id', 'name', 'type', 'unit', 'options', 'is_filterable')
                 ->orderBy('name')

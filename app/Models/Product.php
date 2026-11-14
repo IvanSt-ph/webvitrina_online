@@ -128,6 +128,13 @@ class Product extends Model
     public function attributes()
     {
         return $this->belongsToMany(Attribute::class, 'attribute_values')
+            ->wherePivotNull('archived_at')
+            ->whereExists(function ($query) {
+                $query->selectRaw('1')->from('attribute_category')
+                    ->join('products as attribute_product', 'attribute_product.category_id', '=', 'attribute_category.category_id')
+                    ->whereColumn('attribute_product.id', 'attribute_values.product_id')
+                    ->whereColumn('attribute_category.attribute_id', 'attribute_values.attribute_id');
+            })
             ->withPivot('value')
             ->withTimestamps();
     }

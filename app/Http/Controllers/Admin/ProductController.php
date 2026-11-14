@@ -117,7 +117,10 @@ class ProductController extends Controller
         $sellerPlanProfiles = $sellers->mapWithKeys(fn (User $seller) => [
             $seller->id => $this->sellerPlans->profileFor($seller),
         ]);
-        $attributes = $this->attributes->getForProduct($product);
+        $formCategoryId = (int) old('category_id', $product->category_id);
+        $attributes = $formCategoryId === (int) $product->category_id
+            ? $this->attributes->getForProduct($product)
+            : $this->attributes->getByCategory($formCategoryId);
 
         return view('admin.products.edit', compact(
             'product', 'categories', 'sellers', 'countries', 'cities', 'sellerPlanProfiles', 'attributes'

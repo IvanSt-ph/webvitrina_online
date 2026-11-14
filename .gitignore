@@ -33,3 +33,34 @@ yarn-error.log
 test-logs/
 
 .env.testing
+
+# Local secrets and database backups
+.env.*
+!.env.example
+*.sql
+*.sql.gz
+*.sql.zip
+*.sql.bz2
+*.sql.xz
+*.dump
+*.bak
+/backups/
+/storage/app/private/backups/
+/credentials/
+*.credentials.json
+*.pem
+*.key
+
+# Local database exports and diagnostic reports (keep project documentation)
+/categories_export.json
+/docs/attribute-duplicates-experimental.txt
+/docs/attribute-history-audit.md
+/docs/attribute-import-conflicts-report.md
+/docs/attribute-import-final-changes.md
+/docs/attribute-import-preapply-audit.md
+/docs/attribute-import-resolution-plan.md
+
+# Local isolated server artifacts
+/server-8001/
+/server-8002/
+*.snapshot.json

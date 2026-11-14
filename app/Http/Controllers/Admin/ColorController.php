@@ -46,6 +46,9 @@ class ColorController extends Controller
             'hex'  => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/', 'unique:colors,hex,' . $color->id],
         ]);
 
+        if ($color->attributes()->whereHas('values')->exists()) {
+            return back()->with('error', 'Цвет используется в сохранённых характеристиках. Создайте новый цвет, чтобы сохранить историю.');
+        }
         $color->update($data);
 
         return back()->with('success', 'Цвет обновлён');
@@ -57,7 +60,7 @@ class ColorController extends Controller
     public function destroy(Color $color)
     {
         // Защита: если используется — не удаляем
-        if ($color->attributes_count > 0) {
+        if ($color->attributes()->exists()) {
             return back()->with('error', 'Нельзя удалить цвет — он используется в атрибутах');
         }
 
