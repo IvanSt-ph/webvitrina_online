@@ -69,10 +69,11 @@ class CheckoutNotificationAtomicityTest extends CheckoutTestCase
         config(['queue.default' => 'database']);
         [$buyer, $sellers] = $this->prepareCart(2, true);
         $snapshot = session()->only(['checkout_cart', 'checkout_token', 'checkout_version']);
-        $probe = app('db.factory')->make(config('database.connections.mysql'), 'mysql');
-        TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $probe);
-        $probe->getPdo();
+        TestDatabaseSafety::assertConfiguration(app()->environment(), config('database'));
+        $probe = app('db')->connectUsing('notification_atomicity_probe', config('database.connections.mysql'));
         try {
+            TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $probe);
+            $probe->getPdo();
             TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $probe);
             DB::beginTransaction();
             $this->submit()->assertSessionHasNoErrors();

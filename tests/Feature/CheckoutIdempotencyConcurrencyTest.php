@@ -112,20 +112,24 @@ class CheckoutIdempotencyConcurrencyTest extends CheckoutTestCase
             throw new \RuntimeException('Checkout worker timeout; phase='.$phase.'; outcome='.$outcome
                 .'; states='.json_encode($states, JSON_THROW_ON_ERROR), 0, $exception);
         } finally {
-            foreach ($inputs as $input) { $input->close(); }
-            foreach ($processes as $process) { $process->stop(0); }
-            $probe = app('db.factory')->make(config('database.connections.mysql'), 'mysql');
-            TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $probe);
-            $probe->getPdo();
+            \Tests\Support\WorkerProcessCleanup::stop($processes, $inputs);
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['products' => [$product->id]], $processes);
+            TestDatabaseSafety::assertConfiguration(app()->environment(), config('database'));
+            $probe = app('db')->connectUsing('checkout_cleanup_probe', config('database.connections.mysql'));
             try {
+                TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $probe);
+                $probe->getPdo();
                 TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $probe);
                 $probe->beginTransaction();
                 $probe->select('SELECT id FROM products WHERE id = ? FOR UPDATE NOWAIT', [$product->id]);
                 $probe->select('SELECT token_hash FROM checkout_attempts FOR UPDATE NOWAIT');
                 $probe->select('SELECT id FROM orders FOR UPDATE NOWAIT');
             } finally {
-                if ($probe->transactionLevel() > 0) { $probe->rollBack(); }
-                $probe->disconnect();
+                try {
+                    if ($probe->transactionLevel() > 0) { $probe->rollBack(); }
+                } finally {
+                    app('db')->purge('checkout_cleanup_probe');
+                }
             }
         }
     }

@@ -22,6 +22,7 @@ final class ConcurrencyLockProbe
             if ($connection->transactionLevel() < 1 || ! $pdo->inTransaction()) {
                 throw new RuntimeException('Lock probe requires the real operation transaction.');
             }
+            if (ExistingSchemaMode::enabled()) { ExistingSchemaMode::assertSqlAllowed($sql.' NOWAIT'); }
             $statement = $pdo->prepare($sql.' NOWAIT');
             try {
                 $statement->execute($connection->prepareBindings($bindings));
@@ -53,10 +54,11 @@ final class ConcurrencyLockProbe
         $database = config('database');
         $environment = app()->environment();
         TestDatabaseSafety::assertConfiguration($environment, $database);
-        $probe = app('db.factory')->make($database['connections']['mysql'], 'mysql');
-        TestDatabaseSafety::assertMetadata($environment, $database, $probe);
-        $probe->getPdo();
+        $name = 'concurrency_probe_'.bin2hex(random_bytes(8));
+        $probe = app('db')->connectUsing($name, $database['connections']['mysql']);
         try {
+            TestDatabaseSafety::assertMetadata($environment, $database, $probe);
+            $probe->getPdo();
             $pdo = TestDatabaseSafety::assertConnected($environment, $database, $probe);
             $ids = [];
             foreach ($processes as $process) {
@@ -78,7 +80,9 @@ final class ConcurrencyLockProbe
                             throw new RuntimeException('Unexpected lock probe table.');
                         }
                         foreach ($rowIds as $id) {
-                            $statement = $pdo->prepare('SELECT id FROM `'.$table.'` WHERE id = ? FOR UPDATE NOWAIT');
+                            $sql = 'SELECT id FROM `'.$table.'` WHERE id = ? FOR UPDATE NOWAIT';
+                            if (ExistingSchemaMode::enabled()) { ExistingSchemaMode::assertSqlAllowed($sql); }
+                            $statement = $pdo->prepare($sql);
                             try {
                                 $statement->execute([$id]);
                                 if ($statement->fetchColumn() === false) {
@@ -101,6 +105,7 @@ final class ConcurrencyLockProbe
                 }
                 // Without PROCESS MySQL exposes this account's own sessions,
                 // which includes every guarded test worker. Preserve the session check.
+                if (ExistingSchemaMode::enabled()) { ExistingSchemaMode::assertSqlAllowed('SHOW PROCESSLIST'); }
                 $statement = $pdo->query('SHOW PROCESSLIST');
                 try {
                     $alive = array_intersect($ids, array_column($statement->fetchAll(\PDO::FETCH_ASSOC), 'Id'));
@@ -114,7 +119,7 @@ final class ConcurrencyLockProbe
             } while (microtime(true) < $deadline);
             throw new RuntimeException('Worker session or fixture row lock survived cleanup.');
         } finally {
-            $probe->disconnect();
+            app('db')->purge($name);
         }
     }
 }

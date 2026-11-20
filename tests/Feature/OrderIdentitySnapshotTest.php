@@ -137,14 +137,39 @@ class OrderIdentitySnapshotTest extends TestCase
         $shop = $product->seller->shop()->create(['name' => 'Original shop']);
         $this->submit()->assertSessionHasNoErrors();
         $order = Order::sole();
+        $seller = $order->seller;
+        $sellerSnapshot = $order->seller_snapshot;
+        $itemSnapshot = $order->items->sole()->only(OrderItem::IDENTITY_FIELDS);
+        // Complete the real pickup workflow; lifecycle fields cannot be assigned on Order.
+        $this->assertSame(Order::WORKFLOW_PICKUP, $order->workflow_version);
+        $this->assertSame(Order::STATUS_PENDING, $order->status);
+        $workflow = app(\App\Services\OrderPickupWorkflow::class);
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_PROCESSING));
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_READY_FOR_PICKUP));
+        $this->assertTrue($workflow->sellerConfirmPayment($order, $seller));
+        $this->assertSame(Order::STATUS_READY_FOR_PICKUP, $order->fresh()->status);
+        $this->assertTrue($workflow->buyerConfirmReceipt($order, $buyer));
+        $order->refresh();
+        $this->assertSame(Order::STATUS_COMPLETED, $order->status);
+        $this->assertSame(Order::PAYMENT_SELLER_CONFIRMED, $order->payment_status);
+        foreach (['accepted_at', 'ready_for_pickup_at', 'paid_at', 'buyer_confirmed_at', 'delivered_at', 'completed_at'] as $field) {
+            $this->assertNotNull($order->$field, $field);
+        }
         $shop->update(['name' => 'Replacement shop']);
-        $order->seller->delete();
+        $seller->delete();
+        $this->assertSoftDeleted($seller);
+        $anonymized = User::withTrashed()->findOrFail($seller->id);
+        $this->assertSame('Удалённый аккаунт', $anonymized->name);
+        $this->assertNull($anonymized->email);
         $order = $order->fresh();
+        $this->assertSame($sellerSnapshot, $order->seller_snapshot);
+        $this->assertSame($itemSnapshot, $order->items->sole()->only(OrderItem::IDENTITY_FIELDS));
         $this->assertSame('Original shop', $order->historical_seller_name);
         $this->assertSame('Original seller 0', $order->seller_snapshot['name']);
         $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk()
             ->assertSee('Original shop')->assertSee('Original identity A0')->assertDontSee('Replacement shop');
         Storage::disk('public')->assertExists($order->items->sole()->product_image_path);
+        $this->assertSame('original-image-0', Storage::disk('public')->get($order->items->sole()->product_image_path));
     }
 
     public function test_multi_seller_snapshots_are_independent_and_ignore_client_values(): void
@@ -250,12 +275,13 @@ class OrderIdentitySnapshotTest extends TestCase
             $this->fail('Expected image copy failure');
         } catch (\RuntimeException $e) {
             $this->assertSame('Unable to preserve order image.', $e->getMessage());
+        } finally {
+            Storage::set('public', $disk);
         }
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('order_items', 0);
         $this->assertSame([], $disk->files('order-snapshots'));
         $this->assertSame(5, Product::sole()->stock);
-        Storage::set('public', $disk);
     }
 
     public function test_real_outer_rollback_removes_copies_from_committed_child_checkout(): void

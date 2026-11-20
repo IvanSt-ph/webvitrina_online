@@ -141,7 +141,6 @@ class ExistingSchemaModeTest extends TestCase
         return [
             [\Tests\Feature\ProductMutationAuthorizationTest::class],
             [\Tests\Feature\AdminProductValidationTest::class],
-            [\Tests\Feature\ProductAttributeValidationTest::class],
         ];
     }
 
@@ -666,35 +665,20 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\PrivateBackupTest::class],
             [\Tests\Feature\ReleaseExperienceTest::class],
             [\Tests\Feature\SafeRestoreTest::class],
-            [\Tests\Feature\SecurityRegressionTest::class],
             [\Tests\Feature\SellerMetricsConcurrencyTest::class],
             [\Tests\Feature\SellerPlanQuotaConcurrencyTest::class],
             [\Tests\Feature\SellerPlanRequestStateConcurrencyTest::class],
-            [\Tests\Feature\Auth\CredentialConcurrencyTest::class],
             // Group seventeen: real commits/probes, workers or shared filesystem cleanup.
-            [\Tests\Feature\OrderIdentitySnapshotTest::class],
-            [\Tests\Feature\TransactionCallbackContractTest::class],
             [\Tests\Feature\OperationalHealthTest::class],
-            [\Tests\Feature\AdminAvatarLifecycleTest::class],
             [\Tests\Feature\PurgeOrderHistoryTest::class],
-            [\Tests\Feature\ChatImageLifecycleTest::class],
-            // Node and inline Blade paths still need separate isolation.
-            [\Tests\Feature\InputRenderingSecurityTest::class],
             // Real commits/workers, repeated truncation and DDL remain excluded.
-            [\Tests\Feature\PhoneUniquenessConcurrencyTest::class],
             [\Tests\Feature\AdminMembershipConcurrencyTest::class],
             [\Tests\Feature\ShopBannerLifecycleTest::class],
             [\Tests\Feature\AccountDeletionMigrationTest::class],
-            // The local-CSP case changes APP_ENV away from the SQL guard's required testing value.
-            [\Tests\Feature\Auth\RegistrationTest::class],
             [\Tests\Feature\ProfileDeletionConcurrencyTest::class],
             // Real image workers remain outside the isolated in-process profile group.
             [\Tests\Feature\ChatImageConcurrencyTest::class],
-            // Factory probes are not configured by DatabaseManager's SQL guard event.
-            [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
             [\Tests\Support\CheckoutTestCase::class],
-            [\Tests\Feature\CheckoutIdempotencyConcurrencyTest::class],
-            [\Tests\Feature\OrderStockConcurrencyTest::class],
             [\Tests\Feature\ProductQuotaConcurrencyTest::class],
             [\Tests\Feature\ProductImageLifecycleTest::class],
             [\Tests\Feature\ProductTransferQuotaConcurrencyTest::class],
@@ -702,7 +686,6 @@ class ExistingSchemaModeTest extends TestCase
             [\Tests\Feature\SellerReputationTest::class],
             [\Tests\Feature\SellerSalesAfterCommitTest::class],
             // Separate worker sessions and a factory-created PDO lock probe need their own audit.
-            [\Tests\Feature\PickupOrderWorkflowConcurrencyTest::class],
             [\Tests\Feature\UserAddressConcurrencyTest::class],
             [\Tests\Feature\OrderAddressSnapshotMigrationTest::class],
             [\Tests\Feature\PickupOrderSchemaCompatibilityTest::class],
@@ -735,7 +718,35 @@ class ExistingSchemaModeTest extends TestCase
     public function test_unreviewed_test_is_not_silently_enabled(): void
     {
         $this->expectException(RuntimeException::class);
-        ExistingSchemaMode::assertTestAllowed(\Tests\Feature\SecurityRegressionTest::class);
+        ExistingSchemaMode::assertTestAllowed(\Tests\Feature\ReleaseExperienceTest::class);
+    }
+
+    public static function priorityTargets(): array
+    {
+        return [
+            [\Tests\Feature\CheckoutIdempotencyConcurrencyTest::class],
+            [\Tests\Feature\OrderStockConcurrencyTest::class],
+            [\Tests\Feature\PickupOrderWorkflowConcurrencyTest::class],
+            [\Tests\Feature\PhoneUniquenessConcurrencyTest::class],
+            [\Tests\Feature\Auth\CredentialConcurrencyTest::class],
+            [\Tests\Feature\TransactionCallbackContractTest::class],
+            [\Tests\Feature\AdminAvatarLifecycleTest::class],
+            [\Tests\Feature\ChatImageLifecycleTest::class],
+            [\Tests\Feature\OrderIdentitySnapshotTest::class],
+            [\Tests\Feature\InputRenderingSecurityTest::class],
+            [\Tests\Feature\Auth\RegistrationTest::class],
+            [\Tests\Feature\CheckoutNotificationAtomicityTest::class],
+            [\Tests\Feature\SecurityRegressionTest::class],
+        ];
+    }
+
+    #[DataProvider('priorityTargets')]
+    public function test_reviewed_priority_class_is_allowed_but_subclasses_are_not(string $class): void
+    {
+        ExistingSchemaMode::assertTestAllowed($class);
+        $this->addToAssertionCount(1);
+        $this->expectException(RuntimeException::class);
+        ExistingSchemaMode::assertTestAllowed($class.'Subclass');
     }
 
     public function test_production_database_configuration_is_rejected_without_connecting(): void

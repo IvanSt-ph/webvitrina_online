@@ -88,13 +88,14 @@ class SecurityRegressionTest extends TestCase
 
     public function test_production_security_headers_upgrade_insecure_requests(): void
     {
-        app()->detectEnvironment(fn () => 'production');
-
         Route::middleware('web')->get('/_security/headers', fn () => response('ok'));
 
         $response = $this->get('/_security/headers');
 
         $response->assertOk();
+        \Tests\Support\IsolatedSecurityHeaders::apply('production', $response->baseResponse);
+        $this->assertSame('testing', $this->app->environment());
+        $this->assertSame($this->app, app());
         $this->assertStringContainsString(
             'upgrade-insecure-requests',
             (string) $response->headers->get('Content-Security-Policy')
@@ -2573,7 +2574,7 @@ class SecurityRegressionTest extends TestCase
             'category_id' => $category->id,
             'city_id' => $city->id,
         ]);
-        $product->attributeValues()->create([
+        $originalValue = $product->attributeValues()->create([
             'attribute_id' => $attribute->id,
             'value' => 'Старая марка',
         ]);
@@ -2612,12 +2613,32 @@ class SecurityRegressionTest extends TestCase
             'product_id' => $product->id,
             'attribute_id' => $attribute->id,
             'value' => 'Новая марка',
+            'archived_at' => null,
         ]);
         $this->assertDatabaseMissing('attribute_values', [
             'product_id' => $product->id,
             'attribute_id' => $attribute->id,
             'value' => 'Старая марка',
+            'archived_at' => null,
         ]);
+        $history = $product->attributeValues()->where('attribute_id', $attribute->id)->get();
+        $this->assertCount(2, $history);
+        $this->assertCount(1, $history->whereNull('archived_at'));
+        $archived = $history->firstWhere('id', $originalValue->id);
+        $this->assertNotNull($archived);
+        $this->assertSame('Старая марка', $archived->value);
+        $this->assertNotNull($archived->archived_at);
+        $this->assertSame('value_replaced', $archived->archive_reason);
+        $this->assertEquals($originalValue->created_at, $archived->created_at);
+        $this->assertEquals($originalValue->updated_at, $archived->updated_at);
+        $this->assertSame(['Новая марка'], $product->attributes()->get()->pluck('pivot.value')->all());
+        $this->assertSame('Новая марка', app(\App\Services\AttributeService::class)
+            ->getForProduct($product->fresh())->firstWhere('id', $attribute->id)->value);
+        foreach (['Старая марка' => false, 'Новая марка' => true] as $value => $expected) {
+            $query = Product::query()->whereKey($product->id);
+            \App\Support\CatalogAttributeFilters::apply($query, [$attribute->id => [$value]]);
+            $this->assertSame($expected, $query->exists());
+        }
     }
 
     public function test_admin_product_live_search_escapes_highlighted_product_text(): void
@@ -2933,12 +2954,75 @@ class SecurityRegressionTest extends TestCase
     {
         $formScript = file_get_contents(resource_path('js/seller-product-form.js'));
 
-        $this->assertStringContainsString('const escapeHtml = value =>', $formScript);
-        $this->assertStringContainsString('${escapeHtml(attr.name)}', $formScript);
-        $this->assertStringContainsString('${escapeHtml(o)}</option>', $formScript);
-        $this->assertStringContainsString('${escapeHtml(selected.name)}</p>', $formScript);
-        $this->assertStringContainsString('safeCssColor(color.hex)', $formScript);
-        $this->assertStringNotContainsString('>${attr.name}</label>', $formScript);
+        // Verify integration, then execute the real module rather than matching its helper names.
+        $this->assertStringContainsString("from './seller-attribute-fields.js'", $formScript);
+        $this->assertStringContainsString('renderAttributeFields(data)', $formScript);
+        $payload = '\"><img src=x onerror=alert(1)><script>alert(2)</script>&\'';
+        $attributes = [];
+        foreach (['text', 'number', 'select', 'color', 'boolean'] as $type) {
+            $attributes[] = ['id' => $type.$payload, 'type' => $type, 'name' => $payload,
+                'unit' => $payload, 'value' => $payload, 'options' => [$payload],
+                'colors' => [['id' => $payload, 'name' => $payload,
+                    'hex' => 'red; background-image:url(https://outside.invalid/x)']]];
+        }
+        $script = <<<'JS'
+            import { pathToFileURL } from 'node:url';
+            let data = '';
+            for await (const chunk of process.stdin) data += chunk;
+            const input = JSON.parse(data);
+            const fields = await import(pathToFileURL(input.module).href);
+            const summary = {textContent: ''};
+            Object.defineProperty(summary, 'innerHTML', {set() {throw new Error('Unsafe summary sink');}});
+            const reset = {hidden: true};
+            const radio = {type: 'radio', checked: true, dataset: {colorName: input.payload}};
+            const field = {querySelector: selector => selector === '[data-color-summary]' ? summary
+                : selector === '[data-color-reset]' ? reset : radio};
+            radio.closest = () => field;
+            fields.updateColorSummary(radio);
+            console.log(JSON.stringify({html: fields.renderAttributeFields(input.attributes), summary: summary.textContent}));
+            JS;
+        $process = new Process(['node', '--input-type=module', '-e', $script], storage_path('framework/testing'), timeout: 15);
+        $process->setInput(json_encode(['module' => resource_path('js/seller-attribute-fields.js'),
+            'attributes' => $attributes, 'payload' => $payload], JSON_THROW_ON_ERROR));
+        try {
+            $process->mustRun();
+            $result = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+        } finally {
+            $process->stop(0);
+        }
+        $this->assertSame('Выбран: '.$payload, $result['summary']);
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        try {
+            $document->loadHTML('<?xml encoding="UTF-8">'.$result['html']);
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(0, $xpath->query('//script|//img|//svg|//iframe')->length);
+        foreach ($xpath->query('//@*') as $attribute) {
+            $this->assertFalse(str_starts_with(strtolower($attribute->nodeName), 'on'));
+        }
+        $this->assertSame(5, $xpath->query('//fieldset')->length);
+        foreach ($xpath->query('//fieldset') as $index => $field) {
+            $definition = json_decode($field->getAttribute('data-attribute-definition'), true, flags: JSON_THROW_ON_ERROR);
+            $this->assertSame($attributes[$index]['id'], $definition['id']);
+            $this->assertSame($payload.' ('.$payload.')', $xpath->query('./legend', $field)->item(0)->textContent);
+        }
+        foreach ($xpath->query('//input[@type="text" or @type="number"]') as $input) {
+            $this->assertSame($payload, $input->getAttribute('value'));
+        }
+        $option = $xpath->query('//option[@selected]')->item(0);
+        $this->assertNotNull($option);
+        $this->assertSame($payload, $option->getAttribute('value'));
+        $this->assertSame($payload, $option->textContent);
+        $radio = $xpath->query('//input[@type="radio" and @checked]')->item(0);
+        $this->assertNotNull($radio);
+        $this->assertSame($payload, $radio->getAttribute('value'));
+        $this->assertSame($payload, $radio->getAttribute('data-color-name'));
+        $this->assertSame('Выбран: '.$payload, $xpath->query('//*[@data-color-summary]')->item(0)->textContent);
+        $this->assertSame('background-color:#e2e8f0', $xpath->query('//*[@style]')->item(0)->getAttribute('style'));
     }
 
     public function test_cart_quantities_endpoint_keeps_product_cards_in_sync(): void
@@ -3244,7 +3328,9 @@ class SecurityRegressionTest extends TestCase
             $inputs[0]->write("release\n");
             foreach ($processes as $process) {
                 $this->assertSame(0, $process->wait(), 'Checkout worker failed');
+                $this->assertStringContainsString('BOOTED', $process->getOutput());
                 $this->assertStringContainsString('DONE', $process->getOutput());
+                $this->assertStringContainsString('CLOSED', $process->getOutput());
             }
             $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
             $this->assertSame(2, $product->fresh()->stock);
@@ -3259,7 +3345,8 @@ class SecurityRegressionTest extends TestCase
         } finally {
             foreach ($inputs as $input) { $input->close(); }
             foreach ($processes as $process) { $process->stop(0); }
-            $probe = app('db.factory')->make(config('database.connections.mysql'), 'mysql');
+            TestDatabaseSafety::assertConfiguration(app()->environment(), config('database'));
+            $probe = app('db')->connectUsing('security_regression_probe', config('database.connections.mysql'));
             try {
                 TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $probe);
                 $probe->getPdo();

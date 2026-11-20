@@ -54,6 +54,29 @@ final class ExistingSchemaFileIsolation
         return $this->root.'/storage';
     }
 
+    /** Adopt the parent's validated scope; never create, clean or replace it. */
+    public static function inherit(): self
+    {
+        $storage = getenv('LARAVEL_STORAGE_PATH');
+        $prefix = dirname(__DIR__, 2).'/storage/framework/testing/existing-schema-';
+        if (! is_string($storage) || ! preg_match('~\A'.preg_quote($prefix, '~').'[a-f0-9]{32}/storage\z~D', $storage)) {
+            throw new RuntimeException('Worker requires an explicit parent isolation directory.');
+        }
+        $scope = new self(dirname($storage));
+        $scope->assertPaths();
+        $expected = ['LARAVEL_STORAGE_PATH' => $storage, 'VIEW_COMPILED_PATH' => $storage.'/framework/views'];
+        foreach (self::CACHE_FILES as $key => $file) {
+            $expected[$key] = $scope->root.'/bootstrap-cache/'.$file;
+        }
+        foreach ($expected as $key => $path) {
+            if (getenv($key) !== $path || Env::get($key) !== $path) {
+                throw new RuntimeException('Inherited worker path mismatch: '.$key);
+            }
+        }
+
+        return $scope;
+    }
+
     /** Must run before the kernel bootstraps configuration or providers. */
     public function attach(Application $app): void
     {

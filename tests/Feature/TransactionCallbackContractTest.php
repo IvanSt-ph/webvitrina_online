@@ -68,7 +68,7 @@ class TransactionCallbackContractTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->assertSame('12.69.2', Application::VERSION, 'Re-audit these contracts on framework upgrades.');
+        $this->assertSame('12.71.0', Application::VERSION, 'Re-audit these contracts on framework upgrades.');
         $this->assertSame(SafeDatabaseTransactionsManager::class, app('db.transactions')::class);
         $this->protectConnectionCleanup(DB::connection());
         $this->assertProductionManager(DB::connection());
@@ -402,11 +402,16 @@ class TransactionCallbackContractTest extends TestCase
         TestDatabaseSafety::assertConfiguration(app()->environment(), $database);
         // Independent PDO with the SAME approved config; no config overrides or alternate DB.
         $connection = app('db')->connectUsing('f10_probe_'.count($this->ownedConnections), $database['connections']['mysql']);
-        TestDatabaseSafety::assertMetadata(app()->environment(), $database, $connection);
-        $connection->getPdo();
-        $this->protectConnectionCleanup($connection);
-        $this->assertProductionManager($connection);
-        return $connection;
+        try {
+            TestDatabaseSafety::assertMetadata(app()->environment(), $database, $connection);
+            $connection->getPdo();
+            $this->protectConnectionCleanup($connection);
+            $this->assertProductionManager($connection);
+            return $connection;
+        } catch (\Throwable $exception) {
+            $connection->disconnect();
+            throw $exception;
+        }
     }
 
     private function protectConnectionCleanup(Connection $connection): void

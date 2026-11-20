@@ -20,6 +20,13 @@ class AdminAvatarLifecycleTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->assertSame(\App\Database\SafeDatabaseTransactionsManager::class, app('db.transactions')::class);
+        $this->assertSame(0, DB::transactionLevel());
+    }
+
     public function beginDatabaseTransaction(): void
     {
         // Real root commits and production callbacks, not the testing transaction manager.
@@ -178,9 +185,12 @@ class AdminAvatarLifecycleTest extends TestCase
             User::setEventDispatcher($dispatcher);
             // The injected callback can skip deferred RELEASE_LOCK callbacks.
             // Close only the original approved test session, without rollback.
-            \Tests\Support\TestDatabaseSafety::assertConnected($environment, $database, $connection, $pdo);
-            $connection->disconnect();
-            unset($pdo); // Do not keep the underlying MySQL session alive locally.
+            try {
+                \Tests\Support\TestDatabaseSafety::assertConnected($environment, $database, $connection, $pdo);
+            } finally {
+                $connection->disconnect();
+                unset($pdo); // Do not keep the underlying MySQL session alive locally.
+            }
         }
     }
 
@@ -188,6 +198,7 @@ class AdminAvatarLifecycleTest extends TestCase
     {
         [$actor, $target] = $this->fixture();
         $connection = DB::connection();
+        $pdo = \Tests\Support\TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $connection);
         $dispatcher = $connection->getEventDispatcher();
         $isolated = clone $dispatcher;
         $connection->setEventDispatcher($isolated);
@@ -204,8 +215,9 @@ class AdminAvatarLifecycleTest extends TestCase
                 \Mockery::on(fn ($context) => count($context['paths']) === 1))->once();
         } finally {
             $connection->setEventDispatcher($dispatcher);
-            if ($connection->getPdo()->inTransaction()) {
-                $connection->getPdo()->rollBack();
+            \Tests\Support\TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $connection, $pdo);
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
             }
             app('db.transactions')->rollback($connection->getName(), 0);
         }
@@ -230,12 +242,12 @@ class AdminAvatarLifecycleTest extends TestCase
         $handle = fopen(config('backup.lock_path'), 'c+b');
         $this->assertNotFalse($handle);
         $images = new ImageService();
-        $this->partialMock(ImageService::class)->shouldReceive('delete')->once()
-            ->andReturnUsing(function ($path, $throwOnFailure = false) use ($handle, $images): void {
-                $this->assertFalse(flock($handle, LOCK_EX | LOCK_NB), 'Cleanup must still hold the shared barrier.');
-                $images->delete($path, $throwOnFailure);
-            });
         try {
+            $this->partialMock(ImageService::class)->shouldReceive('delete')->once()
+                ->andReturnUsing(function ($path, $throwOnFailure = false) use ($handle, $images): void {
+                    $this->assertFalse(flock($handle, LOCK_EX | LOCK_NB), 'Cleanup must still hold the shared barrier.');
+                    $images->delete($path, $throwOnFailure);
+                });
             DB::beginTransaction();
             $this->perform('update', $actor, $target);
             $this->assertFalse(flock($handle, LOCK_EX | LOCK_NB));
@@ -287,6 +299,8 @@ class AdminAvatarLifecycleTest extends TestCase
             $this->fail('Expected partial write failure.');
         } catch (\RuntimeException $exception) {
             $this->assertSame('Не удалось сохранить обработанное изображение.', $exception->getMessage());
+        } finally {
+            Storage::set('public', $disk);
         }
         $this->assertSame($old, $target->fresh()->avatar);
         $this->assertFilesMatchUsers();

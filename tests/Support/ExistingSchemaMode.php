@@ -15,6 +15,24 @@ final class ExistingSchemaMode
     private static bool $cleaning = false;
 
     private const TESTS = [
+        // Guarded independent workers, real locks and verified process cleanup.
+        \Tests\Feature\CheckoutIdempotencyConcurrencyTest::class,
+        \Tests\Feature\OrderStockConcurrencyTest::class,
+        \Tests\Feature\PickupOrderWorkflowConcurrencyTest::class,
+        \Tests\Feature\PhoneUniquenessConcurrencyTest::class,
+        \Tests\Feature\Auth\CredentialConcurrencyTest::class,
+        // Lifecycle fixtures use isolated disks; preserve real commit/rollback callbacks.
+        \Tests\Feature\AdminAvatarLifecycleTest::class,
+        \Tests\Feature\ChatImageLifecycleTest::class,
+        \Tests\Feature\OrderIdentitySnapshotTest::class,
+        // ReleaseExperienceTest remains excluded: health probes escape the isolated storage.
+        // Reviewed priority group: isolated CSP environment and guarded independent probes.
+        \Tests\Feature\InputRenderingSecurityTest::class,
+        \Tests\Feature\Auth\RegistrationTest::class,
+        \Tests\Feature\CheckoutNotificationAtomicityTest::class,
+        \Tests\Feature\SecurityRegressionTest::class,
+        // Audited real commits, guarded probe PDO, isolated files and queue fixtures.
+        \Tests\Feature\TransactionCallbackContractTest::class,
         \Tests\Feature\Auth\CredentialMutationConcurrencyTest::class,
         \Tests\Feature\ProductMutationConcurrencyTest::class,
         \Tests\Feature\ReviewModerationConcurrencyTest::class,
@@ -45,8 +63,7 @@ final class ExistingSchemaMode
         // Sixth expansion: product authorization/validation and guarded attribute rollback.
         \Tests\Feature\ProductMutationAuthorizationTest::class,
         \Tests\Feature\AdminProductValidationTest::class,
-        // No RefreshDatabase: cleanup precedes setUp's transaction; teardown rolls back all levels.
-        \Tests\Feature\ProductAttributeValidationTest::class,
+        // AttributeFeatureTestCase suites run separately without global fixture cleanup.
         // Seventh expansion: transactional review moderation and isolated image storage.
         \Tests\Feature\ReviewModerationIntegrityTest::class,
         \Tests\Feature\ReviewImagePrivacyTest::class,
@@ -59,8 +76,6 @@ final class ExistingSchemaMode
         // Ninth expansion: real commits and notification preferences, isolated public storage.
         \Tests\Feature\CheckoutNotificationTest::class,
         \Tests\Feature\NotificationPreferencesTest::class,
-        // CheckoutNotificationAtomicityTest stays excluded: its factory probe bypasses
-        // ConnectionEstablished SQL guards and opens PDO before its disconnect finally.
         // Tenth expansion: pickup lifecycle and participant actions in RefreshDatabase transactions.
         \Tests\Feature\PickupOrderWorkflowTest::class,
         \Tests\Feature\PickupSellerOrderActionsTest::class,

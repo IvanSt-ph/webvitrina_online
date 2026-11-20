@@ -47,7 +47,7 @@ class PhoneUniquenessConcurrencyTest extends TestCase
                 $inputs[] = $input;
                 $processes[] = $process;
                 $process->start();
-                $this->awaitOutput($process, $mode === 'first' ? 'LOCKED' : 'ATTEMPT');
+                $this->awaitOutput($process, $mode === 'first' ? 'LOCKED' : 'LOCK_CONFLICT');
             }
 
             preg_match('/CONNECTION:(\d+)/', $processes[0]->getOutput(), $matches);
@@ -60,6 +60,8 @@ class PhoneUniquenessConcurrencyTest extends TestCase
             );
             $this->assertStringNotContainsString('RESULT:', $processes[1]->getOutput());
 
+            $inputs[1]->write("continue\n");
+            $this->awaitOutput($processes[1], 'LOCK_RESUMING');
             $inputs[0]->write("release\n");
 
             foreach ($processes as $process) {
@@ -70,12 +72,9 @@ class PhoneUniquenessConcurrencyTest extends TestCase
             $this->assertStringContainsString('RESULT:conflict', $processes[1]->getOutput());
             $this->assertSame(1, User::where('phone', $phone)->count());
         } finally {
-            foreach ($inputs as $input) {
-                $input->close();
-            }
-            foreach ($processes as $process) {
-                $process->stop(0);
-            }
+            \Tests\Support\WorkerProcessCleanup::stop($processes, $inputs);
+            \Tests\Support\ConcurrencyLockProbe::assertReleased(['users' => array_map(fn ($user) => $user->id, $users)], $processes);
+            $this->assertNull(DB::selectOne('SELECT IS_USED_LOCK(?) AS owner', [app(PhoneAssignmentService::class)->lockName($phone)])->owner);
         }
     }
 

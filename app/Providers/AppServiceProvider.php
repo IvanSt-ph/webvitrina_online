@@ -94,7 +94,10 @@ class AppServiceProvider extends ServiceProvider
                 ? sha1($email.'|'.$request->ip())
                 : $request->ip();
 
-            return Limit::perMinute(5)->by($key);
+            return [
+                Limit::perMinute(20)->by('password-reset:ip:'.$request->ip()),
+                Limit::perMinute(5)->by('password-reset:email-ip:'.$key),
+            ];
         });
 
         RateLimiter::for('currency-rates', function (Request $request) {

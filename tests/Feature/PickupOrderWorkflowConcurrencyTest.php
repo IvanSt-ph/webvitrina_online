@@ -25,18 +25,19 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
-        $order = Order::create([
+        $order = new Order([
             'user_id' => $buyer->id, 'seller_id' => $seller->id,
             'number' => Order::generateNumber(), 'status' => Order::STATUS_PENDING,
             'payment_method' => 'cash', 'delivery_method' => 'pickup',
             'total_price' => 100, 'currency' => 'PRB',
         ]);
-        DB::table('orders')->where('id', $order->id)->update([
-            'status' => Order::STATUS_READY_FOR_PICKUP,
+        $order->forceFill([
             'workflow_version' => Order::WORKFLOW_PICKUP,
             'payment_status' => Order::PAYMENT_UNPAID,
-            'ready_for_pickup_at' => now(),
-        ]);
+        ])->save();
+        $workflow = app(\App\Services\OrderPickupWorkflow::class);
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_PROCESSING));
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_READY_FOR_PICKUP));
 
         $processes = [];
         $inputs = [];
@@ -74,16 +75,12 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             }
             $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
             $this->assertSame(1, $order->events()->where('event_type', 'order_completed')->count());
-            $this->assertSame(3, $order->events()->count());
+            $this->assertSame(5, $order->events()->count()); // Two preparation events plus three concurrent events.
         } finally {
-            if ($connection->transactionLevel() > 0) {
-                $connection->rollBack();
-            }
-            foreach ($inputs as $input) {
-                $input->close();
-            }
-            foreach ($processes as $process) {
-                $process->stop(0);
+            try {
+                if ($connection->transactionLevel() > 0) { $connection->rollBack(); }
+            } finally {
+                \Tests\Support\WorkerProcessCleanup::stop($processes, $inputs);
             }
             $this->assertSame(0, $connection->transactionLevel());
             \Tests\Support\ConcurrencyLockProbe::assertReleased(['users' => [$buyer->id, $seller->id], 'orders' => [$order->id]], $processes);
@@ -94,18 +91,19 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
         $seller = User::factory()->create(['role' => 'seller']);
-        $order = Order::create([
+        $order = new Order([
             'user_id' => $buyer->id, 'seller_id' => $seller->id,
             'number' => Order::generateNumber(), 'status' => Order::STATUS_PENDING,
             'payment_method' => 'cash', 'delivery_method' => 'pickup',
             'total_price' => 100, 'currency' => 'PRB',
         ]);
-        DB::table('orders')->where('id', $order->id)->update([
-            'status' => Order::STATUS_READY_FOR_PICKUP,
+        $order->forceFill([
             'workflow_version' => Order::WORKFLOW_PICKUP,
             'payment_status' => Order::PAYMENT_UNPAID,
-            'ready_for_pickup_at' => now(),
-        ]);
+        ])->save();
+        $workflow = app(\App\Services\OrderPickupWorkflow::class);
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_PROCESSING));
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_READY_FOR_PICKUP));
 
         $connection = DB::connection();
         $input = new InputStream();
@@ -136,17 +134,18 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             $this->assertNull($order->fresh()->confirmation_requested_at, $workerOutput);
             $this->assertNotNull($order->fresh()->buyer_confirmed_at);
             $this->assertSame(0, $order->events()->where('event_type', 'pickup_confirmation_requested')->count());
-            $this->assertSame(0, \App\Models\UserNotification::where('user_id', $buyer->id)->count());
+            $this->assertSame(2, \App\Models\UserNotification::where('user_id', $buyer->id)->count()); // Only preparation notices.
+            $this->assertSame(0, \App\Models\UserNotification::where('user_id', $buyer->id)->where('type', 'pickup_confirmation_requested')->count());
             $this->assertSame(2, $exitCode, 'The stale reminder must be rejected. '.$workerOutput);
             $this->assertStringContainsString('REJECTED: '.\Illuminate\Validation\ValidationException::class,
                 $process->getErrorOutput());
             $this->assertStringNotContainsString('DONE', $process->getOutput());
         } finally {
-            if ($connection->transactionLevel() > 0) {
-                $connection->rollBack();
+            try {
+                if ($connection->transactionLevel() > 0) { $connection->rollBack(); }
+            } finally {
+                \Tests\Support\WorkerProcessCleanup::stop($process ? [$process] : [], [$input]);
             }
-            $input->close();
-            $process?->stop(0);
             $this->assertSame(0, $connection->transactionLevel());
             \Tests\Support\ConcurrencyLockProbe::assertReleased(['users' => [$buyer->id, $seller->id], 'orders' => [$order->id]], $process ? [$process] : []);
         }
@@ -168,12 +167,15 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
         $seller = User::factory()->create(['role' => 'seller']);
         $order = new Order([
             'user_id' => $buyer->id, 'seller_id' => $seller->id,
-            'number' => Order::generateNumber(), 'status' => Order::STATUS_READY_FOR_PICKUP,
+            'number' => Order::generateNumber(), 'status' => Order::STATUS_PENDING,
             'payment_method' => 'cash', 'delivery_method' => 'pickup',
             'total_price' => 100, 'currency' => 'PRB',
         ]);
         $order->forceFill(['workflow_version' => Order::WORKFLOW_PICKUP,
-            'payment_status' => Order::PAYMENT_UNPAID, 'ready_for_pickup_at' => now()])->save();
+            'payment_status' => Order::PAYMENT_UNPAID])->save();
+        $workflow = app(\App\Services\OrderPickupWorkflow::class);
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_PROCESSING));
+        $this->assertTrue($workflow->sellerUpdate($order, $seller, Order::STATUS_READY_FOR_PICKUP));
         $connection = DB::connection();
         $input = new InputStream();
         $process = null;
@@ -200,11 +202,11 @@ class PickupOrderWorkflowConcurrencyTest extends TestCase
             $this->assertSame($buyer->id, $order->fresh()->user_id);
             $this->assertSame('100.00', $order->fresh()->total_price);
         } finally {
-            if ($connection->transactionLevel() > 0) {
-                $connection->rollBack();
+            try {
+                if ($connection->transactionLevel() > 0) { $connection->rollBack(); }
+            } finally {
+                \Tests\Support\WorkerProcessCleanup::stop($process ? [$process] : [], [$input]);
             }
-            $input->close();
-            $process?->stop(0);
             \Tests\Support\ConcurrencyLockProbe::assertReleased(
                 ['users' => [$buyer->id, $seller->id], 'orders' => [$order->id]], $process ? [$process] : []);
         }

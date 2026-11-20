@@ -63,7 +63,7 @@ if ($mode === 'first') {
         }
     });
 } else {
-    $table = $input['different'] ? 'products' : 'checkout_attempts';
+    $table = $input['different'] ? 'users' : 'checkout_attempts';
     $connection->beforeExecuting(function ($sql, $bindings, $connection) use (&$armed, $table, $pdo) {
         if (! $armed || ! str_contains($sql, 'from `'.$table.'`') || ! str_contains(strtolower($sql), 'for update')) {
             return;

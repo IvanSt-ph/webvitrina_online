@@ -26,6 +26,13 @@ class ChatImageLifecycleTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->assertSame(\App\Database\SafeDatabaseTransactionsManager::class, app('db.transactions')::class);
+        $this->assertSame(0, DB::transactionLevel());
+    }
+
     public function beginDatabaseTransaction(): void
     {
         // Exercise real final commits, not testing-manager simulated afterCommit.
@@ -260,6 +267,7 @@ class ChatImageLifecycleTest extends TestCase
     {
         $fixture = $this->fixture(true);
         $connection = DB::connection();
+        $pdo = \Tests\Support\TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $connection);
         $dispatcher = $connection->getEventDispatcher();
         $isolated = clone $dispatcher;
         $connection->setEventDispatcher($isolated);
@@ -281,8 +289,9 @@ class ChatImageLifecycleTest extends TestCase
             $connection->setEventDispatcher($dispatcher);
             // Laravel's failed-commit handler already decremented its counter.
             // Resolve the injected failure explicitly, then notify its callbacks.
-            if ($connection->getPdo()->inTransaction()) {
-                $connection->getPdo()->rollBack();
+            \Tests\Support\TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $connection, $pdo);
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
             }
             app('db.transactions')->rollback($connection->getName(), 0);
         }

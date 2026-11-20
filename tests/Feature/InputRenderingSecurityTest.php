@@ -149,8 +149,14 @@ class InputRenderingSecurityTest extends TestCase
     {
         $process = new Process(['node', '-e', 'const vm=require("node:vm");let data="";process.stdin.on("data",c=>data+=c);process.stdin.on("end",()=>{const input=JSON.parse(data);' . $test . '});']);
         $process->setInput(json_encode($input, JSON_THROW_ON_ERROR));
-        $process->mustRun();
+        $process->setWorkingDirectory(storage_path('framework/testing'));
+        $process->setTimeout(15);
+        try {
+            $process->mustRun();
 
-        return json_decode($process->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+            return json_decode($process->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+        } finally {
+            $process->stop(0);
+        }
     }
 }

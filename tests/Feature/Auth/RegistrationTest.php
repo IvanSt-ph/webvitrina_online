@@ -91,9 +91,11 @@ public function test_new_users_can_register(): void
 
     public function test_local_csp_allows_vite_phone_flag_images(): void
     {
-        $this->app->detectEnvironment(fn () => 'local');
-
-        $policy = (string) $this->get('/register')->headers->get('Content-Security-Policy');
+        $response = $this->get('/register')->assertOk();
+        $headers = \Tests\Support\IsolatedSecurityHeaders::apply('local', $response->baseResponse);
+        $this->assertSame('testing', $this->app->environment());
+        $this->assertSame($this->app, app());
+        $policy = (string) $headers->headers->get('Content-Security-Policy');
 
         $this->assertStringContainsString(
             "img-src 'self' data: blob: https://ui-avatars.com https://*.tile.openstreetmap.org http://127.0.0.1:5173 http://localhost:5173",

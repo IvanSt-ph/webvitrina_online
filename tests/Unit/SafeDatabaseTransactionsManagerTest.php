@@ -205,7 +205,7 @@ class SafeDatabaseTransactionsManagerTest extends TestCase
 
     public function test_overridden_method_signatures_match_installed_laravel(): void
     {
-        $this->assertSame('12.69.2', Application::VERSION);
+        $this->assertSame('12.71.0', Application::VERSION);
         foreach ([
             [SafeDatabaseTransactionsManager::class, DatabaseTransactionsManager::class, ['begin', 'commit', 'rollback']],
             [SafeDatabaseTransactionRecord::class, DatabaseTransactionRecord::class, ['executeCallbacks', 'executeCallbacksForRollback']],
@@ -226,10 +226,57 @@ class SafeDatabaseTransactionsManagerTest extends TestCase
         }
     }
 
+    public function test_completed_record_cannot_replay_callbacks(): void
+    {
+        $calls = 0;
+        $manager = new SafeDatabaseTransactionsManager(static fn () => null);
+        $manager->begin('mysql', 1);
+        $record = $manager->getPendingTransactions()->last();
+        $record->addCallback(function () use (&$calls): void { $calls++; });
+        $record->addCallbackForRollback(fn () => $this->fail('Wrong outcome'));
+        $manager->commit('mysql', 1, 0);
+        $this->assertSame([], $record->getCallbacks());
+        $this->assertSame([], $record->getCallbacksForRollback());
+        $manager->commit('mysql', 0, 0);
+        $this->assertSame(1, $calls);
+        $this->assertEmptyManager($manager);
+    }
+
+    public function test_connection_api_documents_last_pending_connection_limitation_without_pdo(): void
+    {
+        $manager = new SafeDatabaseTransactionsManager(static fn () => null);
+        $a = new \Illuminate\Database\Connection(static fn () => throw new RuntimeException('PDO forbidden'));
+        $a->setTransactionManager($manager);
+        $trace = [];
+        $manager->begin('a', 1);
+        $manager->begin('b', 1);
+        // Laravel registers against the latest pending record, not the calling connection.
+        $a->afterCommit(function () use (&$trace): void { $trace[] = 'registered via a'; });
+        $manager->commit('a', 1, 0);
+        $this->assertSame([], $trace);
+        $this->assertCount(1, $manager->getPendingTransactions());
+        $manager->commit('b', 1, 0);
+        $this->assertSame(['registered via a'], $trace);
+        $this->assertEmptyManager($manager);
+    }
+
+    public function test_unreviewed_framework_version_is_rejected_in_isolated_process(): void
+    {
+        $script = 'namespace Illuminate\\Foundation { class Application { const VERSION = "12.71.1"; } } '
+            .'namespace { require $argv[1]; try { new \\App\\Database\\SafeDatabaseTransactionsManager(); exit(2); } '
+            .'catch (\\LogicException $e) { echo $e->getMessage(); } }';
+        $process = new \Symfony\Component\Process\Process([PHP_BINARY, '-r', $script, dirname(__DIR__, 2).'/vendor/autoload.php']);
+        $process->mustRun();
+        $this->assertSame('Re-audit transaction callback compatibility before upgrading Laravel.', $process->getOutput());
+    }
+
     private function assertEmptyManager(SafeDatabaseTransactionsManager $manager): void
     {
         $this->assertCount(0, $manager->getPendingTransactions());
         $this->assertCount(0, $manager->getCommittedTransactions());
+        $current = (new \ReflectionProperty(DatabaseTransactionsManager::class, 'currentTransaction'))->getValue($manager);
+        $this->assertSame([], array_filter($current, static fn ($record) => $record !== null));
+        $this->assertSame([], (new \ReflectionProperty(SafeDatabaseTransactionsManager::class, 'contexts'))->getValue($manager));
     }
 
     private function assertThrowsSame(Throwable $expected, callable $callback): void

@@ -10,7 +10,7 @@ abstract class TestCase extends BaseTestCase
 
     protected function tearDown(): void
     {
-        $database = Support\ExistingSchemaMode::enabled() && $this->app && $this->app->resolved('db')
+        $database = $this->fileIsolation && $this->app && $this->app->resolved('db')
             ? $this->app['db'] : null;
         try {
             parent::tearDown();
@@ -30,10 +30,16 @@ abstract class TestCase extends BaseTestCase
 
     public function createApplication()
     {
-        if (! Support\ExistingSchemaMode::enabled()) {
+        $rollbackMode = getenv('WV_TEST_RUN_MODE') === 'attribute-rollback';
+        if (! Support\ExistingSchemaMode::enabled() && ! $rollbackMode) {
             return parent::createApplication();
         }
-        Support\ExistingSchemaMode::assertTestAllowed(static::class);
+        if ($rollbackMode) {
+            Support\SafeTestTarget::assertTarget('attribute-rollback', static::class);
+            Support\AttributeFeatureTestCase::assertNonCleaningMode(getenv('WV_EXISTING_SCHEMA'));
+        } else {
+            Support\ExistingSchemaMode::assertTestAllowed(static::class);
+        }
         Support\ExistingSchemaMode::lockRun();
         // One scope per test instance/data set; application refreshes retain its files.
         $isolation = $this->fileIsolation ??= Support\ExistingSchemaFileIsolation::create();

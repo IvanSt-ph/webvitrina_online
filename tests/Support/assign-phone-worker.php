@@ -17,6 +17,19 @@ echo 'CONNECTION:'.$connection->selectOne('SELECT CONNECTION_ID() AS id')->id.PH
 flush();
 
 try {
+    if ($mode === 'second') {
+        $acquired = $connection->selectOne('SELECT GET_LOCK(?, 0) AS acquired', [$lockName])->acquired;
+        if ((int) $acquired === 1) {
+            $connection->selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
+            throw new RuntimeException('Expected a real phone lock conflict.');
+        }
+        if ($acquired === null) { throw new RuntimeException('Phone lock probe failed.'); }
+        echo "LOCK_CONFLICT\n";
+        flush();
+        if (trim(fgets(STDIN)) !== 'continue') { throw new RuntimeException('Expected continue signal.'); }
+        echo "LOCK_RESUMING\n";
+        flush();
+    }
     if ($mode === 'first') {
         $outerLock = (int) $connection->selectOne('SELECT GET_LOCK(?, 2) AS acquired', [$lockName])->acquired === 1;
         if (! $outerLock) {
@@ -41,7 +54,11 @@ try {
         echo "RESULT:conflict\n";
     }
 } finally {
-    if ($outerLock) {
-        $connection->selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
+    try {
+        if ($outerLock) {
+            $connection->selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
+        }
+    } finally {
+        $connection->disconnect();
     }
 }

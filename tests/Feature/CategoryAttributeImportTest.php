@@ -426,14 +426,25 @@ final class CategoryAttributeImportTest extends AttributeFeatureTestCase
     public function test_csrf_is_required_when_test_bypass_is_disabled(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'admin']));
-        // Only disable Laravel's testing shortcut; retain the verified test connection.
-        $this->app->instance('env', 'production');
-        try {
-            $this->post(route('admin.attribute-import.preview'))->assertStatus(419);
-            $this->post(route('admin.attribute-import.apply'))->assertStatus(419);
-        } finally {
-            $this->app->instance('env', 'testing');
+        // Exercise Laravel's real token comparison, disabling only its test bypass.
+        $this->app->bind(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            fn ($app) => new class($app, $app['encrypter']) extends \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken {
+                protected function runningUnitTests()
+                {
+                    return false;
+                }
+            });
+        $token = str_repeat('a', 40);
+        $this->withSession(['_token' => $token]);
+        foreach (['admin.attribute-import.preview', 'admin.attribute-import.apply'] as $route) {
+            $this->post(route($route))->assertStatus(419);
+            $this->post(route($route), ['_token' => 'invalid-token'])->assertStatus(419);
         }
+        // A matching token reaches the real preview handler; no import is applied.
+        $this->post(route('admin.attribute-import.preview'), [
+            '_token' => $token, 'file' => $this->upload($this->row()),
+        ])->assertOk()->assertViewHas('token');
+        self::assertSame('testing', $this->app->environment());
         self::assertSame(0, $this->category->attributes()->count());
     }
 }

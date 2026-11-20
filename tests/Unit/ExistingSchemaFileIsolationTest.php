@@ -46,6 +46,62 @@ class ExistingSchemaFileIsolationTest extends TestCase
         return new Application(dirname(__DIR__, 2));
     }
 
+    public function test_worker_inherits_exact_paths_before_configuration(): void
+    {
+        $parent = $this->scope();
+        $worker = ExistingSchemaFileIsolation::inherit();
+        $app = $this->application();
+        $worker->attach($app);
+        self::assertSame($parent->storagePath(), $app->storagePath());
+        self::assertSame(dirname($parent->storagePath()).'/bootstrap-cache/packages.php', $app->getCachedPackagesPath());
+        $config = $this->configuration($app);
+        $worker->configure($app);
+        self::assertSame($parent->storagePath().'/framework/backup-writes.lock', $config->get('backup.lock_path'));
+        self::assertSame($parent->storagePath().'/app/public', $config->get('filesystems.disks.public.root'));
+        $worker->close();
+        self::assertSame($parent->storagePath(), getenv('LARAVEL_STORAGE_PATH'));
+    }
+
+    public function test_real_php_child_inherits_windows_cache_paths_without_booting_laravel(): void
+    {
+        $scope = $this->scope();
+        $code = 'require "vendor/autoload.php"; $s=Tests\\Support\\ExistingSchemaFileIsolation::inherit();'
+            .'$a=new Illuminate\\Foundation\\Application(getcwd()); $s->attach($a);'
+            .'echo json_encode([$a->storagePath(),$a->getCachedConfigPath(),$a->getCachedPackagesPath()]);';
+        $process = new \Symfony\Component\Process\Process([PHP_BINARY, '-r', $code], dirname(__DIR__, 2));
+        $process->mustRun();
+        self::assertSame([$scope->storagePath(), dirname($scope->storagePath()).'/bootstrap-cache/config.php',
+            dirname($scope->storagePath()).'/bootstrap-cache/packages.php'], json_decode($process->getOutput(), true, 512, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_worker_rejects_paths_from_different_parent_scopes(): void
+    {
+        $first = $this->scope();
+        $this->scope();
+        $old = getenv('APP_PACKAGES_CACHE');
+        try {
+            $path = dirname($first->storagePath()).'/bootstrap-cache/packages.php';
+            putenv('APP_PACKAGES_CACHE='.$path); $_ENV['APP_PACKAGES_CACHE'] = $_SERVER['APP_PACKAGES_CACHE'] = $path;
+            $this->expectException(RuntimeException::class);
+            ExistingSchemaFileIsolation::inherit();
+        } finally {
+            putenv('APP_PACKAGES_CACHE='.$old); $_ENV['APP_PACKAGES_CACHE'] = $_SERVER['APP_PACKAGES_CACHE'] = $old;
+        }
+    }
+
+    public function test_worker_rejects_missing_inheritance_without_creating_scope(): void
+    {
+        $this->scope();
+        $old = getenv('LARAVEL_STORAGE_PATH');
+        try {
+            putenv('LARAVEL_STORAGE_PATH'); unset($_ENV['LARAVEL_STORAGE_PATH'], $_SERVER['LARAVEL_STORAGE_PATH']);
+            $this->expectException(RuntimeException::class);
+            ExistingSchemaFileIsolation::inherit();
+        } finally {
+            putenv('LARAVEL_STORAGE_PATH='.$old); $_ENV['LARAVEL_STORAGE_PATH'] = $_SERVER['LARAVEL_STORAGE_PATH'] = $old;
+        }
+    }
+
     private function configuration(Application $app): Repository
     {
         $config = new Repository([

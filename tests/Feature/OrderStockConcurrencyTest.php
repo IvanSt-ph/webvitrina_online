@@ -78,12 +78,7 @@ class OrderStockConcurrencyTest extends TestCase
             $this->assertSame(Order::STATUS_CANCELED, $order->fresh()->status);
             $this->assertNotNull($order->fresh()->canceled_at);
         } finally {
-            foreach ($inputs as $input) {
-                $input->close();
-            }
-            foreach ($processes as $process) {
-                $process->stop(0);
-            }
+            \Tests\Support\WorkerProcessCleanup::stop($processes, $inputs);
             $this->assertWorkersReleased($processes, $inputs, $order->id, $product->id);
             $this->assertSame($configuration, config()->getMany(['database', 'filesystems', 'backup']));
             $this->assertSame($environment, [getenv('APP_ENV'), $_ENV['APP_ENV'] ?? null, $_SERVER['APP_ENV'] ?? null, getcwd()]);

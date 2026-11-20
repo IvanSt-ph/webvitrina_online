@@ -94,11 +94,8 @@ class CredentialConcurrencyTest extends TestCase
                 $results[] = json_decode($result[1], true, flags: JSON_THROW_ON_ERROR);
             }
         } finally {
-            foreach ($inputs as $input) {
-                $input->close();
-            }
+            \Tests\Support\WorkerProcessCleanup::stop($processes, $inputs);
             foreach ($processes as $process) {
-                $process->stop(0);
                 $this->assertFalse($process->isRunning());
             }
             \Tests\Support\ConcurrencyLockProbe::assertReleased(['users' => [$user->id]], $processes);

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use LogicException;
 use Throwable;
 
-/** Laravel 12.69.2 adapter: finish manager state transitions before invoking user code. */
+/** Laravel 12.71.0 audited adapter: finish state transitions before invoking user code. */
 class SafeDatabaseTransactionsManager extends DatabaseTransactionsManager
 {
     /** @var array<int, array<int, callable>> */
@@ -19,7 +19,7 @@ class SafeDatabaseTransactionsManager extends DatabaseTransactionsManager
 
     public function __construct(?Closure $reportFailure = null)
     {
-        if (Application::VERSION !== '12.69.2') {
+        if (Application::VERSION !== '12.71.0') {
             throw new LogicException('Re-audit transaction callback compatibility before upgrading Laravel.');
         }
         parent::__construct();
