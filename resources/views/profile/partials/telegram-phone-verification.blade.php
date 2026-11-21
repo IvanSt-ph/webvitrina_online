@@ -24,7 +24,7 @@
     @if($account->role === 'seller' && !$account->hasVerifiedPhone())
         <p class="text-sm text-neutral-600">Сохраните номер, отправьте свой контакт в Telegram и вернитесь в этот же браузер. Затем нажмите «Завершить подтверждение». Нужен подтверждённый email. Вся заявка действует 10 минут; выход из аккаунта отменяет её.</p>
         @if($telegramAvailable && $account->phone)
-            <form method="POST" action="{{ route('phone.telegram.store') }}" target="_blank" rel="noopener noreferrer">
+            <form method="POST" action="{{ route('phone.telegram.store') }}">
                 @csrf
                 <x-action-button type="submit">Подтвердить через Telegram</x-action-button>
             </form>

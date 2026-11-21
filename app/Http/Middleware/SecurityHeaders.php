@@ -90,7 +90,7 @@ class SecurityHeaders
             "base-uri 'self'",
             "object-src 'none'",
             "frame-ancestors 'self'",
-            "form-action 'self'",
+            "form-action 'self' https://t.me",
             'img-src ' . implode(' ', $imageSources),
             'font-src ' . implode(' ', $fontSources),
             'style-src ' . implode(' ', $styleSources),
