@@ -105,7 +105,7 @@ class ProductMutationAuthorizationTest extends TestCase
         Storage::fake('public');
         \Illuminate\Support\Facades\Notification::fake();
         \Illuminate\Support\Facades\Http::preventStrayRequests();
-        $seller = User::factory()->seller()->create();
+        $seller = User::factory()->verifiedSeller()->create();
         $actor = $role === 'seller' ? $seller : User::factory()->admin()->create();
         $product = $this->product($seller);
         return [$actor, $product, [
@@ -125,8 +125,8 @@ class ProductMutationAuthorizationTest extends TestCase
     public function test_old_owner_cannot_mutate_a_reassigned_product_or_its_files(string $action): void
     {
         Storage::fake('public');
-        $seller = User::factory()->seller()->create();
-        $newOwner = User::factory()->seller()->create();
+        $seller = User::factory()->verifiedSeller()->create();
+        $newOwner = User::factory()->verifiedSeller()->create();
         $admin = User::factory()->admin()->create();
         $product = $this->product($seller);
         $this->actingAs($seller);
@@ -189,7 +189,7 @@ class ProductMutationAuthorizationTest extends TestCase
     public function test_stale_blocked_model_does_not_reblock_an_admin_restored_product(): void
     {
         Storage::fake('public');
-        $seller = User::factory()->seller()->create();
+        $seller = User::factory()->verifiedSeller()->create();
         $admin = User::factory()->admin()->create();
         $product = $this->product($seller);
         $product->update(['status' => Product::STATUS_BLOCKED]);
@@ -201,8 +201,8 @@ class ProductMutationAuthorizationTest extends TestCase
     public function test_new_owner_can_edit_after_reassignment_and_admin_can_restore(): void
     {
         Storage::fake('public');
-        $oldOwner = User::factory()->seller()->create();
-        $newOwner = User::factory()->seller()->create();
+        $oldOwner = User::factory()->verifiedSeller()->create();
+        $newOwner = User::factory()->verifiedSeller()->create();
         $admin = User::factory()->admin()->create();
         $product = $this->product($oldOwner);
         app(ProductService::class)->update($product, ['user_id' => $newOwner->id, 'status' => Product::STATUS_BLOCKED], actor: $admin);

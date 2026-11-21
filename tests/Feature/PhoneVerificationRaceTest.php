@@ -227,6 +227,8 @@ class PhoneVerificationRaceTest extends TestCase
 
     private function configureTwilio(): void
     {
+        // Exercise the retained legacy provider only in this compatibility test.
+        config()->set('services.twilio.enabled', true);
         config()->set('services.twilio.sid', 'test-sid');
         config()->set('services.twilio.token', 'test-token');
         config()->set('services.twilio.verify_sid', 'test-verify-sid');

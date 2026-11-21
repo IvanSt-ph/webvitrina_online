@@ -23,6 +23,7 @@ class LoginRequest extends FormRequest
         return [
             'login'    => ['required', 'string'],
             'password' => ['required', 'string'],
+            'phone_country' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(\App\Services\PhoneNormalizer::LOGIN_COUNTRIES))],
         ];
     }
 
@@ -38,20 +39,10 @@ class LoginRequest extends FormRequest
         } else {
             $field = 'phone';
 
-            // Нормализуем телефон: оставляем только цифры и плюс в начале
-            $login = preg_replace('/[^0-9+]/', '', $login);
-
-            // Если нет плюса в начале, добавляем
-            if (!str_starts_with($login, '+')) {
-                $login = '+'.$login;
-            }
-
-            // Проверка длины номера (без плюса)
-            $digits = preg_replace('/\D/', '', $login);
-            if (strlen($digits) < 7 || strlen($digits) > 15) {
-                throw ValidationException::withMessages([
-                    'login' => 'Телефон указан неверно.',
-                ]);
+            try {
+                $login = app(\App\Services\PhoneNormalizer::class)->normalize($login, $this->input('phone_country') ?: null);
+            } catch (ValidationException) {
+                throw ValidationException::withMessages(['login' => 'Введите полный международный номер или выберите страну для местного номера.']);
             }
         }
 

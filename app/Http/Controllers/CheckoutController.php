@@ -387,12 +387,17 @@ return redirect()
                 // Serialize checkout with account deletion, before locking orders/products.
                 $participantIds = $groups->keys()->push($userId)->unique()->sort()->values();
                 $participants = \App\Models\User::query()->whereIn('id', $participantIds)
-                    ->orderBy('id')->lockForUpdate()->get(['id']);
+                    ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
                 if ($participants->count() !== $participantIds->count()) {
                     throw ValidationException::withMessages(['cart' => 'Участник заказа больше недоступен. Обновите корзину.']);
                 }
                 $createdOrders = [];
                 foreach ($groups as $sellerId => $items) {
+                    if (! $participants->get((int) $sellerId)?->canSell()) {
+                        throw ValidationException::withMessages([
+                            'cart' => 'Продавец временно не принимает новые заказы. Попробуйте позже.',
+                        ]);
+                    }
                     $totalCents = $items->sum(fn ($item) => $this->lineTotalCents($item));
 
                     // Самовывоз бесплатный; сохраняем прежний расчёт в валюте оформления.

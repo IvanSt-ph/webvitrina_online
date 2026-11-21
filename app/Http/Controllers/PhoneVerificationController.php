@@ -38,6 +38,7 @@ class PhoneVerificationController extends Controller
 
     public function send(Request $request)
     {
+        abort_unless(config('services.twilio.enabled'), 410, 'SMS-подтверждение временно отключено.');
         if ($response = $this->ensureTwilioConfigured()) {
             return $response;
         }
@@ -90,6 +91,7 @@ class PhoneVerificationController extends Controller
 
     public function verify(Request $request)
     {
+        abort_unless(config('services.twilio.enabled'), 410, 'SMS-подтверждение временно отключено.');
         $request->validate([
             'code' => 'required|string|digits:6'
         ]);

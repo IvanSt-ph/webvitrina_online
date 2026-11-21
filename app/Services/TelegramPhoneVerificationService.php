@@ -22,11 +22,54 @@ class TelegramPhoneVerificationService
             ->update(['invalidated_at' => now(), 'active_telegram_user_id' => null]);
     }
 
-    public function create(User $actor): string
+    public static function sessionHash(string $sessionId): string
     {
-        return DB::transaction(function () use ($actor) {
+        if ($sessionId === '' || ! config('app.key')) {
+            throw new \LogicException('Session binding is unavailable.');
+        }
+
+        return hash_hmac('sha256', 'telegram-phone:'.$sessionId, (string) config('app.key'));
+    }
+
+    public function revokeSession(User $actor, string $sessionId): void
+    {
+        $hash = self::sessionHash($sessionId);
+        DB::transaction(function () use ($actor, $hash): void {
+            User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
+            Verification::where('user_id', $actor->id)->where('session_hash', $hash)
+                ->whereNull('consumed_at')->whereNull('invalidated_at')
+                ->update(['invalidated_at' => now(), 'active_telegram_user_id' => null]);
+        }, 3);
+    }
+
+    public function finalize(User $actor, string $sessionId, int $verificationId): void
+    {
+        $hash = self::sessionHash($sessionId);
+        DB::transaction(function () use ($actor, $hash, $verificationId): void {
             $user = User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
-            abort_unless(in_array($user->role, ['buyer', 'seller'], true), 403);
+            abort_unless(self::enabled() && $user->role === 'seller', 403);
+            $request = Verification::where('user_id', $user->id)->whereKey($verificationId)
+                ->lockForUpdate()->firstOrFail();
+            abort_unless($request->session_hash && hash_equals($request->session_hash, $hash), 403);
+            if (! $user->hasVerifiedEmail() || ! $request->pending() || ! $request->contact_verified_at
+                || ! $user->phone || $user->phone !== $request->phone) {
+                throw ValidationException::withMessages([
+                    'phone' => 'Подтвердите email и проверьте актуальность заявки. При необходимости создайте новую.',
+                ]);
+            }
+            if (! $user->phone_verified_at) {
+                $user->forceFill(['phone_verified_at' => now(), 'phone_verification_code' => null])->save();
+            }
+            $request->forceFill(['consumed_at' => now(), 'active_telegram_user_id' => null])->save();
+        }, 3);
+    }
+
+    public function create(User $actor, string $sessionId): string
+    {
+        $hash = self::sessionHash($sessionId);
+        return DB::transaction(function () use ($actor, $hash) {
+            $user = User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
+            abort_unless(self::enabled() && $user->role === 'seller', 403);
             if (! $user->phone || $user->phone_verified_at) {
                 throw ValidationException::withMessages(['phone' => 'Сохраните неподтверждённый номер телефона.']);
             }
@@ -39,6 +82,7 @@ class TelegramPhoneVerificationService
             Verification::create([
                 'user_id' => $user->id, 'phone' => app(PhoneNormalizer::class)->normalize($user->phone),
                 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addMinutes(10),
+                'session_hash' => $hash,
             ]);
 
             return 'https://t.me/'.config('services.telegram.username').'?start='.$token;
@@ -48,6 +92,9 @@ class TelegramPhoneVerificationService
     /** Returns only a safe bot response; never includes input or credentials. */
     public function handle(array $update): ?array
     {
+        if (! self::enabled()) {
+            return null;
+        }
         $message = $update['message'] ?? null;
         if (! is_array($message) || ! is_int($update['update_id'] ?? null)
             || ! is_int($message['message_id'] ?? null) || ! is_int($message['date'] ?? null)
@@ -71,7 +118,7 @@ class TelegramPhoneVerificationService
             : Verification::where('active_telegram_user_id', $sender)->first();
         if (! $candidate && ! $start) {
             $completed = Verification::where('contact_update_id', $update['update_id'])
-                ->where('telegram_user_id', $sender)->whereNotNull('consumed_at')->exists();
+                ->where('telegram_user_id', $sender)->whereNotNull('contact_verified_at')->exists();
             if ($completed) {
                 return null; // Acknowledgement only; never replay writes or misleading bot messages.
             }
@@ -85,9 +132,12 @@ class TelegramPhoneVerificationService
             // Same ordering as assignment/deletion: User -> verification.
             $user = User::whereKey($candidate->user_id)->lockForUpdate()->first();
             $request = Verification::whereKey($candidate->id)->lockForUpdate()->first();
-            if (! $user || ! in_array($user->role, ['buyer', 'seller'], true) || ! $request
-                || ! $request->pending() || $user->phone !== $request->phone) {
+            if (! $user || $user->role !== 'seller' || ! $request
+                || ! $request->session_hash || ! $request->pending() || $user->phone !== $request->phone) {
                 return $response;
+            }
+            if ($request->contact_verified_at) {
+                return null; // Contact is already checked; only the originating browser can finish.
             }
             if ($start) {
                 if ($request->telegram_user_id && (int) $request->telegram_user_id !== $sender) {
@@ -125,13 +175,10 @@ class TelegramPhoneVerificationService
             if ($phone !== $request->phone) {
                 return $response;
             }
-            if (! $user->phone_verified_at) {
-                $user->forceFill(['phone_verified_at' => now(), 'phone_verification_code' => null])->save();
-            }
-            $request->forceFill(['consumed_at' => now(), 'contact_update_id' => $update['update_id'],
+            $request->forceFill(['contact_verified_at' => now(), 'contact_update_id' => $update['update_id'],
                 'active_telegram_user_id' => null])->save();
 
-            return ['chat_id' => $sender, 'text' => 'Личный телефон подтверждён. Вернитесь в профиль WebVitrina.',
+            return ['chat_id' => $sender, 'text' => 'Контакт проверен. Вернитесь в тот же браузер WebVitrina и нажмите «Завершить подтверждение».',
                 'reply_markup' => ['remove_keyboard' => true]];
         }, 3);
     }

@@ -34,7 +34,7 @@ abstract class CheckoutTestCase extends TestCase
         $buyer = User::factory()->create(['role' => 'buyer']);
         $sellers = [];
         for ($i = 0; $i < $sellerCount; $i++) {
-            $seller = User::factory()->create([
+            $seller = User::factory()->verifiedSeller()->create([
                 'role' => 'seller', 'notification_preferences' => ['email_orders' => $email, 'site_orders' => true],
             ]);
             $sellers[] = $seller;

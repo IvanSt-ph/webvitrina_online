@@ -189,7 +189,7 @@
                                            class="wv-input h-12 w-full pr-4 text-slate-900 placeholder:text-slate-400"
                                            aria-describedby="registration-phone-hint">
                                 </div>
-                                <p id="registration-phone-hint" class="mt-2 text-xs text-slate-500">Выберите страну и введите номер без кода страны — код добавится автоматически.</p>
+                                <p id="registration-phone-hint" class="mt-2 text-xs text-slate-500">Для покупателя телефон необязателен. Продавцу перед началом продаж нужно подтвердить email и личный телефон через Telegram. Выберите страну и введите номер без кода страны — код добавится автоматически.</p>
                                 <x-input-error :messages="$errors->get('phone')" class="mt-2 text-sm" />
                             </div>
 

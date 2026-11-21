@@ -253,7 +253,9 @@ class ProductReportController extends Controller
         $product = $report->product;
         $previousStatus = $product->status;
 
-        $products->update($product, ['status' => $data['status']]);
+        app(\App\Services\ProductService::class)->update(
+            $product, ['status' => $data['status']], actor: $request->user(),
+        );
 
         $report->update([
             'status' => ProductReport::STATUS_RESOLVED,

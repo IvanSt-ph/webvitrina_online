@@ -1,6 +1,5 @@
 {{-- resources/views/seller/partials/shop-phone.blade.php --}}
 @if (Auth::user()->shop)
-    @php($shopSmsAvailable = config('services.twilio.enabled') && config('services.twilio.sid') && config('services.twilio.token') && config('services.twilio.verify_sid'))
     <section class="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
         <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div class="flex min-w-0 items-center gap-3">
@@ -43,21 +42,15 @@
                     <div class="flex flex-col gap-1.5 border-t border-gray-100 pt-3 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
                         <span class="flex items-center gap-2 text-emerald-700">
                             <i class="ri-shield-check-line text-base"></i>
-                            SMS-подтверждение активно
+                            Ранее подтверждённый номер
                         </span>
                         @if(Auth::user()->shop->phone_verified_at)
                             <span>Проверен {{ Auth::user()->shop->phone_verified_at->diffForHumans() }}</span>
                         @endif
                     </div>
-                @elseif($shopSmsAvailable)
-                    @include('seller.partials.phone.verification-flow')
                 @endif
-            @elseif($shopSmsAvailable)
-                <p class="flex items-center gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500">
-                    <i class="ri-information-line text-base text-gray-400"></i>
-                    После сохранения номера станет доступно SMS-подтверждение.
-                </p>
             @endif
+            <p class="text-xs text-neutral-500">SMS-подтверждение временно отключено. Подтверждение личного телефона через Telegram не подтверждает телефон магазина.</p>
         </div>
     </section>
 @endif

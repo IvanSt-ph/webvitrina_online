@@ -8,7 +8,7 @@ trait ProductQuotaFixtures
 {
     private function quotaFixture(int $used = 9, string $plan = 'starter'): array
     {
-        $seller = User::factory()->seller()->create(['seller_plan' => $plan]);
+        $seller = User::factory()->verifiedSeller()->create(['seller_plan' => $plan]);
         $country = Country::create(['name' => 'Quota country', 'currency' => 'MDL']);
         $city = City::create(['name' => 'Quota city', 'country_id' => $country->id]);
         $data = [

@@ -88,6 +88,17 @@
                             </div>
 
                             <label class="mb-2 block text-sm font-medium text-neutral-800">Email или телефон</label>
+                            <div x-show="loginType === 'phone'" class="mb-3">
+                                <label for="login-phone-country" class="mb-2 block text-sm">Страна для местного номера</label>
+                                <select id="login-phone-country" name="phone_country" :disabled="loginType !== 'phone'" class="wv-input w-full">
+                                    <option value="">Международный номер с кодом страны</option>
+                                    @foreach(\App\Services\PhoneNormalizer::LOGIN_COUNTRIES as $code => $country)
+                                        <option value="{{ $code }}" @selected(old('phone_country') === $code)>{{ $country['label'] }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="mt-1 text-xs text-neutral-500">Для Молдовы выберите +373 и введите 77111222 или 077111222. Полный номер, например +380…, принимается независимо от выбранной страны.</p>
+                                <x-input-error :messages="$errors->get('phone_country')" class="mt-2 text-sm" />
+                            </div>
                             <div class="relative">
                                 <template x-if="loginType === 'email'">
                                     <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-lg text-neutral-400"></i>
@@ -100,13 +111,7 @@
                                        required
                                        x-model="loginValue"
                                        :placeholder="loginType === 'email' ? 'example@email.com' : '+373 ___ __ __'"
-                                       class="wv-input h-12 w-full pl-12 pr-4 text-neutral-900 placeholder:text-neutral-400"
-                                       @input="if(loginType === 'phone') {
-                                           let val = $event.target.value.replace(/\D/g,'');
-                                           if(val && !val.startsWith('373')) val = '373' + val;
-                                           $event.target.value = '+' + val;
-                                           loginValue = '+' + val;
-                                       }">
+                                       class="wv-input h-12 w-full pl-12 pr-4 text-neutral-900 placeholder:text-neutral-400">
                             </div>
 
                             <input type="hidden" name="login_type" x-model="loginType">
@@ -243,18 +248,6 @@
         if (!form) return;
 
         form.addEventListener('submit', function() {
-            const loginInput = form.querySelector('input[name="login"]');
-            const loginTypeInput = form.querySelector('input[name="login_type"]');
-            const loginType = loginTypeInput ? loginTypeInput.value : 'email';
-
-            if (loginType === 'phone' && loginInput) {
-                let phone = loginInput.value.replace(/\D/g, '');
-                if (!phone.startsWith('373')) {
-                    phone = '373' + phone;
-                }
-                loginInput.value = '+' + phone;
-            }
-
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> Вход...';

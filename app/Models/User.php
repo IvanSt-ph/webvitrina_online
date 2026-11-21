@@ -318,6 +318,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return !is_null($this->phone_verified_at);
     }
 
+    public function canSell(): bool
+    {
+        return ! $this->trashed() && $this->role === 'seller'
+            && $this->hasVerifiedEmail()
+            && filled($this->phone)
+            && $this->hasVerifiedPhone();
+    }
+
     // Нужно ли подтверждать телефон
     public function phoneNeedsVerification(): bool
     {

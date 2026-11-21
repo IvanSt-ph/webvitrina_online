@@ -1,5 +1,11 @@
 {{-- resources/views/seller/products/form.blade.php --}}
 <x-seller-layout :title="$product->exists ? 'Редактирование товара' : 'Добавление товара'">
+@unless(auth()->user()->canSell())
+    <p class="m-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+        Пока можно сохранять черновики. Для публикации и новых продаж
+        <a href="{{ route('profile.edit') }}" class="underline">подтвердите email и личный телефон в профиле</a>.
+    </p>
+@endunless
 
 <div class="seller-product-page min-h-screen w-full bg-white px-3 py-4 pb-28 text-neutral-900 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8"
      data-country="{{ old('country_id', optional($product->city)->country_id) }}"
@@ -415,7 +421,7 @@
           </div>
         </div>
         @php
-          $statusValue = old('status', $product->status ?: 'draft');
+          $statusValue = auth()->user()->canSell() ? old('status', $product->status ?: 'draft') : 'draft';
         @endphp
         @if($product->isBlocked())
           <input type="hidden" name="status" value="draft">
@@ -441,7 +447,7 @@
             </span>
           </label>
           <label class="seller-status-option">
-            <input type="radio" name="status" value="active" class="sr-only peer" @checked($statusValue === 'active')>
+            <input type="radio" name="status" value="active" class="sr-only peer" @checked($statusValue === 'active') @disabled(!auth()->user()->canSell())>
             <span class="seller-status-dot bg-emerald-500"></span>
             <span>
               <span class="block font-semibold text-neutral-900">Опубликовать</span>

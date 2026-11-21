@@ -68,6 +68,45 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    #[\PHPUnit\Framework\Attributes\DataProvider('phoneLoginFormats')]
+    public function test_verified_phone_login_supports_explicit_country_and_international_format(
+        string $stored, string $input, ?string $country,
+    ): void {
+        $user = User::factory()->create(['phone' => $stored, 'phone_verified_at' => now()]);
+        $this->post('/login', ['login' => $input, 'phone_country' => $country, 'password' => 'password'])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame($stored, $user->fresh()->phone);
+    }
+
+    public static function phoneLoginFormats(): array
+    {
+        return [
+            ['+37377111222', '77111222', 'md'],
+            ['+37377111222', '077 111 222', 'md'],
+            ['+37377111222', '+373 77 111 222', null],
+            ['+380671234567', '+380 67 123 45 67', 'md'],
+            ['+380671234567', '067 123 45 67', 'ua'],
+            ['+40721234567', '+40 721 234 567', 'md'],
+        ];
+    }
+
+    public function test_national_phone_login_still_requires_verified_phone(): void
+    {
+        User::factory()->create(['phone' => '+37377111222', 'phone_verified_at' => null]);
+        $this->post('/login', ['login' => '077111222', 'phone_country' => 'md', 'password' => 'password'])
+            ->assertSessionHasErrors('login');
+        $this->assertGuest();
+    }
+
+    public function test_local_phone_is_not_assumed_to_be_moldovan_without_selected_country(): void
+    {
+        User::factory()->create(['phone' => '+37377111222', 'phone_verified_at' => now()]);
+        $this->post('/login', ['login' => '77111222', 'password' => 'password'])
+            ->assertSessionHasErrors('login');
+        $this->assertGuest();
+    }
+
     public function test_remember_me_creates_only_custom_persistent_credential(): void
     {
         $user = User::factory()->create();

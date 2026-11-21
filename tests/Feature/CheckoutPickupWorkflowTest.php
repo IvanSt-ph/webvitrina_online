@@ -52,6 +52,8 @@ class CheckoutPickupWorkflowTest extends TestCase
     public function test_new_pickup_order_starts_unpaid_and_ignores_forged_workflow_fields(): void
     {
         [$buyer, $seller, $product] = $this->fixture();
+        $this->assertNull($buyer->phone);
+        $this->assertTrue($seller->canSell());
         $this->prepare($buyer);
 
         $this->post(route('checkout.create'), [
@@ -130,7 +132,7 @@ class CheckoutPickupWorkflowTest extends TestCase
     {
         config(['currency.prb_per_mdl' => 2.0]);
         [$buyer, $firstSeller, $firstProduct] = $this->fixture(100, 'PRB');
-        $secondSeller = User::factory()->create(['role' => 'seller']);
+        $secondSeller = User::factory()->verifiedSeller()->create();
         $secondProduct = $this->product($secondSeller, 30, 'MDL');
         CartItem::create(['user_id' => $buyer->id, 'product_id' => $secondProduct->id, 'qty' => 1]);
         $this->prepare($buyer, 'MDL');
@@ -160,7 +162,7 @@ class CheckoutPickupWorkflowTest extends TestCase
     public function test_second_order_created_event_failure_rolls_back_all_sellers_and_allows_same_token_retry(): void
     {
         [$buyer, , $firstProduct] = $this->fixture();
-        $secondSeller = User::factory()->create(['role' => 'seller']);
+        $secondSeller = User::factory()->verifiedSeller()->create();
         $secondProduct = $this->product($secondSeller, 75, 'PRB');
         CartItem::create(['user_id' => $buyer->id, 'product_id' => $secondProduct->id, 'qty' => 1]);
         $this->prepare($buyer);
@@ -227,7 +229,7 @@ class CheckoutPickupWorkflowTest extends TestCase
     private function fixture(float $price = 100, string $currency = 'PRB'): array
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
-        $seller = User::factory()->create(['role' => 'seller']);
+        $seller = User::factory()->verifiedSeller()->create();
         $product = $this->product($seller, $price, $currency);
         CartItem::create(['user_id' => $buyer->id, 'product_id' => $product->id, 'qty' => 1]);
 

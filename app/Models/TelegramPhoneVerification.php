@@ -8,11 +8,11 @@ class TelegramPhoneVerification extends Model
 {
     protected $guarded = ['id'];
 
-    protected $hidden = ['phone', 'token_hash', 'telegram_user_id', 'active_telegram_user_id'];
+    protected $hidden = ['phone', 'token_hash', 'session_hash', 'telegram_user_id', 'active_telegram_user_id'];
 
     protected function casts(): array
     {
-        return array_fill_keys(['bound_at', 'expires_at', 'consumed_at', 'invalidated_at'], 'datetime');
+        return array_fill_keys(['bound_at', 'contact_verified_at', 'expires_at', 'consumed_at', 'invalidated_at'], 'datetime');
     }
 
     public function pending(): bool

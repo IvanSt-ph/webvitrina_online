@@ -282,83 +282,26 @@ class ProfileController extends Controller
 
     public function sendPhoneVerification(Request $request): RedirectResponse
     {
-        $user = $request->user();
-
-        if (!$user->phone) {
-            return back()->withErrors(['phone' => 'Укажите номер телефона']);
-        }
-
-        $code = random_int(100000, 999999);
-
-        $user->update([
-            'phone_verification_code' => $code
-        ]);
-
-        // Здесь должна быть реальная SMS-интеграция
-        // Http::get(...)
-
-        return back()->with('phone_sent', true);
+        abort(410, 'SMS-подтверждение временно отключено.');
     }
 
     public function verifyPhone(Request $request): RedirectResponse
     {
-        $request->validate([
-            'code' => 'required|digits:6',
-        ]);
-
-        $user = $request->user();
-
-        if ($request->code !== $user->phone_verification_code) {
-            return back()->withErrors(['code' => 'Неверный код']);
-        }
-
-        $user->update([
-            'phone_verified_at' => now(),
-            'phone_verification_code' => null,
-        ]);
-
-        return back()->with('status', 'phone-verified');
+        abort(410, 'SMS-подтверждение временно отключено.');
     }
 
     /* =========================
      * ПОДТВЕРЖДЕНИЕ ТЕЛЕФОНА МАГАЗИНА (НОВЫЕ МЕТОДЫ)
      * ========================= */
-public function sendShopPhoneVerification(Request $request): RedirectResponse
-{
-    $shop = $request->user()->shop;
-    
-    if (!$shop || !$shop->phone) {
-        return back()->withErrors(['phone' => 'Укажите номер телефона магазина']);
+    public function sendShopPhoneVerification(Request $request): RedirectResponse
+    {
+        abort(410, 'SMS-подтверждение временно отключено.');
     }
-    
-    // Используем метод модели для генерации кода
-    $code = $shop->generateVerificationCode();
-    
-    // Здесь отправка SMS
-    // log или отправка
-    
-    return back()->with('shop_phone_verification_sent', true);
-}
 
-public function verifyShopPhone(Request $request): RedirectResponse
-{
-    $request->validate([
-        'code' => 'required|digits:6',
-    ]);
-    
-    $shop = $request->user()->shop;
-    
-    if (!$shop) {
-        return back()->withErrors(['shop' => 'Магазин не найден']);
+    public function verifyShopPhone(Request $request): RedirectResponse
+    {
+        abort(410, 'SMS-подтверждение временно отключено.');
     }
-    
-    // Используем метод модели для верификации
-    if ($shop->verifyPhone($request->code)) {
-        return back()->with('status', 'shop-phone-verified');
-    }
-    
-    return back()->withErrors(['code' => 'Неверный или просроченный код']);
-}
 
     /* =========================
      * МАГАЗИН ПРОДАВЦА

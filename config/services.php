@@ -44,7 +44,8 @@ return [
 
 
     'twilio' => [
-        'enabled' => env('TWILIO_VERIFY_ENABLED', false),
+        // SMS is suspended server-side, including when old environment flags remain set.
+        'enabled' => false,
         'sid' => env('TWILIO_SID'),
         'token' => env('TWILIO_AUTH_TOKEN'),
         'verify_sid' => env('TWILIO_VERIFY_SERVICE_SID', env('TWILIO_VERIFY_SID')),

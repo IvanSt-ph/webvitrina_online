@@ -110,7 +110,9 @@ Route::post('/phone/send', [PhoneVerificationController::class, 'send'])
     ->middleware(['auth', 'throttle:3,10']);
 
 Route::post('/phone/telegram', [\App\Http\Controllers\TelegramPhoneVerificationController::class, 'store'])
-    ->middleware(['auth', 'throttle:3,10'])->name('phone.telegram.store');
+    ->middleware(['auth', 'throttle:3,10'])->block(10, 10)->name('phone.telegram.store');
+Route::post('/phone/telegram/finalize', [\App\Http\Controllers\TelegramPhoneVerificationController::class, 'finalize'])
+    ->middleware(['auth', 'verified', 'throttle:6,1'])->block(10, 10)->name('phone.telegram.finalize');
 Route::get('/phone/telegram/status', [\App\Http\Controllers\TelegramPhoneVerificationController::class, 'status'])
     ->middleware(['auth', 'throttle:30,1'])->name('phone.telegram.status');
 

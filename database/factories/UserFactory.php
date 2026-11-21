@@ -54,6 +54,15 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function verifiedSeller(): static
+    {
+        return $this->seller()->state(fn (array $attributes) => [
+            'email_verified_at' => now(),
+            'phone' => '+373'.fake()->unique()->numerify('########'),
+            'phone_verified_at' => now(),
+        ]);
+    }
+
     /**
      * Indicate that the user is an admin.
      */
