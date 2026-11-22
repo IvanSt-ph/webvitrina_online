@@ -1,390 +1,124 @@
 @php
     /** @var \App\Models\User $user */
-    $userName = $user->name ?? 'друг';
+    $userName = trim((string) ($user->name ?? ''));
+    $appUrl = rtrim((string) config('app.url'), '/');
 @endphp
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
     <title>Подтверждение email — WebVitrina</title>
+    <style>
+        table { border-collapse:separate;border-spacing:0; mso-table-lspace:0pt; mso-table-rspace:0pt; }
+        a { text-decoration:underline; }
+        @media only screen and (max-width:680px) {
+            .outer-pad { padding:12px 8px !important; }
+            .hero-pad { padding:24px 20px !important; }
+            .cta-icon { display:none !important; }
+            .cta-inner { padding:24px 20px !important; }
+            .link-icon { display:none !important; }
+            .content-pad { padding-left:20px !important; padding-right:20px !important; }
+            .stack { display:block !important; width:100% !important; box-sizing:border-box !important; }
+            .hero-title { font-size:27px !important; line-height:34px !important; }
+            .art { padding:24px 0 0 !important; }
+            .stack { border-left:0 !important; padding-left:0 !important; }
+            .cta-button { padding:20px 0 0 !important; text-align:left !important; }
+            .benefit { padding:0 0 12px !important; }
+            .header-tag { display:none !important; }
+            .footer-links { padding-top:16px !important; text-align:left !important; }
+        }
+    </style>
 </head>
-
-<body style="margin:0;padding:0;background:#f1f5f9;
-             font-family:'Manrope', -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
-
-<!-- Внешний фон -->
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f1f5f9;">
-<tr>
-<td align="center" style="padding:26px 6px;">
-
-<!-- ОСНОВНОЙ КОНТЕЙНЕР -->
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-       style="max-width:720px;background:#ffffff;border-radius:26px;overflow:hidden;
-              box-shadow:0 24px 60px rgba(15,23,42,0.14);border:1px solid #e2e8f0;">
-
-    <!-- ВЕРХНИЙ БАННЕР -->
-    <tr>
-        <td>
-            <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                   style="background:linear-gradient(135deg,#0f172a,#312e81 48%,#4f46e5);color:#ffffff;">
-
-                <!-- ЛОГО И ЗАГОЛОВОК -->
-                <tr>
-                    <td style="padding:20px 30px 18px;">
-                        <table width="100%" cellpadding="0" cellspacing="0">
-
-                            <tr>
-                                <!-- ЛОГО -->
-                                <td valign="middle">
-                                    <table cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <td valign="middle" style="padding-right:12px;">
-                                                @include('emails.partials.brand-mark')
-                                            </td>
-                                            <td valign="middle">
-                                                <div style="font-size:18px;font-weight:700;letter-spacing:0.4px;">
-                                                    WebVitrina
-                                                </div>
-                                                <div style="font-size:11px;opacity:0.9;">
-                                                    Маркетплейс, где товары находят своих людей
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-
-                                <!-- ТЭГ -->
-                                <td valign="middle" style="text-align:right;">
-                                    <span style="display:inline-block;padding:6px 12px;border-radius:999px;
-                                                 background:rgba(15,23,42,0.22);
-                                                 border:1px solid rgba(255,255,255,0.25);
-                                                 font-size:11px;font-weight:500;">
-                                        Подтверждение email
-                                    </span>
-                                </td>
-                            </tr>
-
-                        </table>
-                    </td>
-                </tr>
-
-                <!-- ТЕКСТ В БАННЕРЕ -->
-                <tr>
-                    <td style="padding:10px 40px 30px;">
-                        <table width="100%">
-                            <tr>
-                                <td valign="middle">
-                                    <div style="font-size:24px;font-weight:700;line-height:1.4;">
-                                        Ваш аккаунт почти готов
-                                    </div>
-                                    <div style="margin-top:6px;font-size:13px;opacity:0.9;max-width:420px;">
-                                        Осталось подтвердить почту — и вы сможете полноценно
-                                        пользоваться всеми возможностями WebVitrina.
-                                    </div>
-                                </td>
-
-                                <!-- Статус -->
-                                <td valign="middle" style="text-align:right;">
-                                    <table cellpadding="0" cellspacing="0" role="presentation"
-                                           style="display:inline-block;background:rgba(15,23,42,0.18);
-                                                  border-radius:16px;padding:10px 14px;
-                                                  border:1px solid rgba(255,255,255,0.2);">
-                                        <tr>
-                                            <td style="font-size:11px;opacity:0.85;">Статус аккаунта</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding-top:4px;">
-                                                <span style="display:inline-block;width:8px;height:8px;
-                                                             border-radius:50%;background:#facc15;
-                                                             box-shadow:0 0 0 3px rgba(250,204,21,0.4);
-                                                             margin-right:6px;"></span>
-                                                <span style="font-size:12px;font-weight:600;">
-                                                    Требуется подтверждение
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-
-            </table>
-        </td>
-    </tr>
-
-
-    <!-- БЛОК ПРИВЕТСТВИЯ -->
-    <tr>
-        <td style="padding:24px 34px 8px;">
-            <table width="100%">
-                <tr>
-                    <td style="color:#0f172a;font-size:16px;line-height:1.7;">
-                        <p style="margin:0 0 14px;">
-                            Привет, <strong>{{ $userName }}</strong>.
-                        </p>
-
-                        <p style="margin:0 0 14px;">
-                            Спасибо, что выбрали <strong>WebVitrina</strong>.
-                            Нам важно убедиться, что это действительно вы, поэтому
-                            нужно подтвердить адрес электронной почты.
-                        </p>
-
-                        <p style="margin:0;">
-                            Это займёт меньше минуты, зато ваш аккаунт будет защищён,
-                            а уведомления о заказах и сообщениях будут приходить на верный адрес.
-                        </p>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-
-
-    <!-- БЛОК 3 КАРТОЧКИ -->
-    <tr>
-        <td style="padding:10px 40px;">
-            <table width="100%" style="border-radius:22px;background:#f8fafc;border:1px solid #e2e8f0;">
-
-                <!-- Заголовок блока -->
-                <tr>
-                    <td style="padding:14px 18px 6px;">
-                        <div style="font-size:14px;font-weight:600;color:#4b5563;
-                                    letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">
-                            Зачем это нужно?
-                        </div>
-                        <div style="font-size:16px;font-weight:600;color:#111827;">
-                            Что изменится после подтверждения email:
-                        </div>
-                    </td>
-                </tr>
-
-                <!-- Карточки -->
-                <tr>
-                    <td style="padding:4px 10px 20px;">
-                        <table width="100%">
-                            <tr>
-
-                                <!-- 1 -->
-                                <td valign="top" width="33%" style="padding:10px;">
-                                    <table width="100%" style="border-radius:16px;background:#ffffff;
-                                                              border:1px solid #e5e7eb;">
-                                        <tr>
-                                            <td style="padding:10px 12px 6px;">
-                                                <div style="width:34px;height:34px;border-radius:12px;
-                                    background:rgba(79,70,229,0.10);
-                                                            text-align:center;line-height:34px;font-size:18px;">
-                                                    🛒
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding:0 12px 8px;">
-                                                <div style="font-size:14px;font-weight:600;margin-bottom:4px;">
-                                                    Заказы без ограничений
-                                                </div>
-                                                <div style="font-size:12px;color:#6b7280;line-height:1.5;">
-                                                    Оформляйте покупки, отслеживайте статусы заказов
-                                                    и историю в личном кабинете.
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-
-                                <!-- 2 -->
-                                <td valign="top" width="33%" style="padding:10px;">
-                                    <table width="100%" style="border-radius:16px;background:#ffffff;
-                                                              border:1px solid #e5e7eb;">
-                                        <tr>
-                                            <td style="padding:10px 12px 6px;">
-                                                <div style="width:34px;height:34px;border-radius:12px;
-                                    background:rgba(79,70,229,0.10);
-                                                            text-align:center;line-height:34px;font-size:18px;">
-                                                    ⭐
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding:0 12px 10px;">
-                                                <div style="font-size:14px;font-weight:600;margin-bottom:4px;">
-                                                    Отзывы и избранное
-                                                </div>
-                                                <div style="font-size:12px;color:#6b7280;line-height:1.5;">
-                                                    Добавляйте товары в избранное и оставляйте отзывы продавцам.
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-
-                                <!-- 3 -->
-                                <td valign="top" width="33%" style="padding:10px;">
-                                    <table width="100%" style="border-radius:16px;background:#ffffff;
-                                                              border:1px solid #e5e7eb;">
-                                        <tr>
-                                            <td style="padding:10px 12px 6px;">
-                                                <div style="width:34px;height:34px;border-radius:12px;
-                                    background:rgba(79,70,229,0.10);
-                                                            text-align:center;line-height:34px;font-size:18px;">
-                                                    📦
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding:0 12px 10px;">
-                                                <div style="font-size:14px;font-weight:600;margin-bottom:4px;">
-                                                    Кабинет продавца
-                                                </div>
-                                                <div style="font-size:12px;color:#6b7280;line-height:1.5;">
-                                                    Управляйте витриной, заказами и статистикой (если вы продавец).
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-
-            </table>
-        </td>
-    </tr>
-
-
-    <!-- CTA — КОНПКА -->
-    <tr>
-        <td style="padding:18px 40px 10px;">
-            <table width="100%" style="border-radius:22px;
-                                      background:linear-gradient(135deg,#3730a3,#4f46e5,#6366f1);
-                                      color:#ffffff;">
-                <tr>
-                    <td style="padding:20px 28px 16px;">
-                        <table width="100%">
-
-                            <tr>
-                                <td style="text-align:center;">
-                                    <div style="font-size:22px;font-weight:700;margin-bottom:10px;">
-                                        Остался один шаг — подтвердите свой email
-                                    </div>
-                                    <div style="font-size:15px;opacity:0.92;line-height:1.6;">
-                                        После подтверждения вы получите полный доступ —
-                                        от заказов и избранного до отзывов и кабинета продавца.
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td style="padding-top:10px;text-align:center;">
-                                    <a href="{{ $url }}"
-                                       style="display:block;max-width:380px;margin:0 auto;
-                                              padding:16px 0;border-radius:999px;
-                                              background:#ffffff;color:#4f46e5;
-                                              font-size:18px;font-weight:800;text-decoration:none;
-                                              letter-spacing:0.06em;text-transform:uppercase;
-                                              box-shadow:0 12px 30px rgba(15,23,42,0.35);">
-                                        Подтвердить email
-                                    </a>
-                                </td>
-                            </tr>
-
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-
-
-    <!-- ПОДСКАЗКА -->
-    <tr>
-        <td style="padding:14px 36px 8px;">
-            <table width="100%">
-                <tr>
-                    <td style="font-size:13px;color:#6b7280;line-height:1.6;">
-                        Если кнопка не работает, скопируйте ссылку ниже:
-                        <br><br>
-                        <span style="display:block;background:#f8fafc;border:1px solid #e2e8f0;
-                                     border-radius:10px;padding:10px 12px;font-size:12px;
-                                     color:#4b5563;word-break:break-all;">
-                            {{ $url }}
-                        </span>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-
-
-    <!-- БЕЗОПАСНОСТЬ -->
-    <tr>
-        <td style="padding:10px 36px 20px;">
-            <table width="100%" style="border-radius:18px;background:#fffbeb;border:1px solid #facc15;">
-                <tr>
-                    <td style="padding:14px 18px;">
-
-                        <table width="100%">
-                            <tr>
-                                <td valign="top" style="width:26px;">
-                                    <span style="display:inline-block;width:22px;height:22px;
-                                                 border-radius:999px;background:#fef3c7;
-                                                 text-align:center;line-height:22px;font-size:14px;">
-                                        !
-                                    </span>
-                                </td>
-                                <td valign="top" style="font-size:13px;color:#92400e;line-height:1.6;">
-                                    <strong>Если это были не вы.</strong><br>
-                                    Просто игнорируйте это письмо — email не будет привязан к аккаунту.
-                                </td>
-                            </tr>
-                        </table>
-
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-
-
-    <!-- ФУТЕР -->
-    <tr>
-        <td style="padding:16px 34px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-            <table width="100%">
-                <tr>
-
-                    <td style="font-size:11px;color:#9ca3af;line-height:1.6;">
-                        © {{ date('Y') }} WebVitrina. Все права защищены.
-                        <br>
-                        Вы получили это письмо, потому что указали этот email
-                        при регистрации или входе через Google.
-                    </td>
-
-                    <td style="text-align:right;font-size:11px;color:#9ca3af;">
-                        <a href="{{ config('app.url') }}"
-                           style="color:#818cf8;text-decoration:none;font-weight:500;">
-                            О WebVitrina
-                        </a>
-                        <span style="margin:0 8px;">|</span>
-                        <a href="{{ config('app.url') }}/support"
-                           style="color:#818cf8;text-decoration:none;font-weight:500;">
-                            Поддержка
-                        </a>
-                    </td>
-
-                </tr>
-            </table>
-        </td>
-    </tr>
-
+<body style="margin:0;padding:0;width:100%;background-color:#F0EFFE;color:#23213F;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Подтвердите адрес электронной почты, чтобы продолжить пользоваться WebVitrina.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#F0EFFE">
+<tr><td align="center" class="outer-pad" style="padding:20px 2.3%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" align="center" bgcolor="#FAFAFF" style="width:100%;table-layout:fixed;background-color:#FAFAFF;border-radius:22px;">
+    <tr><td class="content-pad" bgcolor="#312E81" style="padding:22px 4.7%;background-color:#312E81;background-image:radial-gradient(ellipse at 68% 140%,#7664F2 0%,transparent 43%),linear-gradient(115deg,#24224F,#4F46E5);border-radius:22px 22px 16px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td width="68" valign="middle" style="width:68px;">
+                <table role="presentation" width="44" cellpadding="0" cellspacing="0"><tr><td align="center" bgcolor="#FFFFFF" height="44" style="height:44px;border-radius:12px;color:#4F46E5;font-size:18px;font-weight:bold;">WV</td></tr></table>
+            </td>
+            <td valign="middle" style="color:#FFFFFF;"><p style="margin:0;font-size:25px;line-height:30px;font-weight:bold;">WebVitrina</p><p style="margin:4px 0 0;font-size:13px;line-height:19px;color:#E0E7FF;">Маркетплейс, где товары находят своих людей</p></td>
+            <td class="header-tag" width="190" align="right" style="color:#FFFFFF;font-size:13px;line-height:18px;"><span style="display:inline-block;border:1px solid #BCB5FF;border-radius:24px;padding:9px 16px;">&#9993;&nbsp; Подтверждение email</span></td>
+        </tr></table>
+    </td></tr>
+    <tr><td class="hero-pad" style="padding:24px 4.7% 24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;"><tr>
+            <td class="stack" width="62%" valign="middle" style="width:62%;">
+                <p style="margin:0 0 16px;font-size:17px;line-height:26px;overflow-wrap:anywhere;word-wrap:break-word;">Привет@if($userName !== ''), <strong>{{ $userName }}</strong>@endif!</p>
+                <h1 class="hero-title" style="margin:0 0 18px;font-size:34px;line-height:41px;letter-spacing:-0.7px;font-weight:bold;color:#23213F;">Подтвердите свой email, чтобы<br>открыть возможности WebVitrina</h1>
+                <p style="margin:0 0 12px;font-size:16px;line-height:25px;color:#514E6D;">Спасибо, что выбрали WebVitrina. Нам важно убедиться, что это действительно вы, поэтому нужно подтвердить адрес электронной почты.</p>
+                <p style="margin:0;font-size:16px;line-height:25px;color:#514E6D;">Это займёт меньше минуты. Подтвердите адрес, чтобы продолжить покупки, общение и работу с аккаунтом на WebVitrina.</p>
+            </td>
+            <td class="stack art" width="38%" align="center" valign="middle" style="width:38%;padding-left:16px;">
+               <img src="{{ asset('images/email/verify-email-hero.png') }}" width="440" alt="Витрина на ноутбуке и конверт с отметкой подтверждения" style="display:block;width:100%;max-width:440px;height:auto;border:0;color:#4F46E5;font-size:14px;line-height:22px;">
+            </td>
+        </tr></table>
+    </td></tr>
+    <tr><td class="content-pad" style="padding:0 2.8% 26px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#4F46E5" style="background-color:#4F46E5;background-image:linear-gradient(110deg,#4338CA,#6D5CE7);border-radius:22px;"><tr><td class="cta-inner" style="padding:26px 2.8%;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td class="cta-icon" width="110" style="width:110px;padding-right:28px;"><table role="presentation" width="78" cellpadding="0" cellspacing="0"><tr><td align="center" height="78" bgcolor="#8A7DE2" style="height:78px;border-radius:22px;font-size:48px;line-height:60px;color:#FFFFFF;">&#9993;</td></tr></table></td>
+                <td class="stack" width="62%" valign="middle" style="width:62%;color:#FFFFFF;border-left:1px solid #B9B0F6;padding-left:28px;">
+                    <h2 style="margin:0 0 8px;font-size:24px;line-height:31px;">Остался один шаг — подтвердите email</h2>
+                    <p style="margin:0;font-size:14px;line-height:22px;color:#EFEDFF;">Подтверждение поможет нам отправлять письма на верный адрес.</p>
+                </td>
+                <td class="stack cta-button" width="38%" align="right" valign="middle" style="width:38%;padding-left:28px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:340px;"><tr><td align="center" bgcolor="#FFFFFF" style="border-radius:30px;mso-padding-alt:17px 18px;">
+                        <a href="{{ $url }}" style="display:block;padding:17px 18px;border:1px solid #FFFFFF;border-radius:30px;font-size:18px;line-height:24px;font-weight:bold;color:#4F46E5;text-decoration:none;mso-padding-alt:0;">ПОДТВЕРДИТЬ EMAIL&nbsp; &#8594;</a>
+                    </td></tr></table>
+                </td>
+            </tr></table>
+        </td></tr></table>
+    </td></tr>
+    <tr><td class="content-pad" style="padding:0 4.2% 16px;">
+        <h2 style="margin:0 0 5px;font-size:23px;line-height:30px;">Зачем это нужно?</h2>
+        <p style="margin:0;font-size:15px;line-height:23px;color:#514E6D;">Один аккаунт для покупок, общения и управления профилем.</p>
+    </td></tr>
+    <tr><td class="content-pad" style="padding:0 2.2% 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;"><tr>
+                    <td class="stack benefit" width="33.33%" valign="top" style="width:33.33%;padding:0 6px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#FAFAFF" style="border:1px solid #E1DFF3;border-radius:16px;"><tr><td valign="top" width="76" style="width:76px;padding:16px 0 16px 20px;"><table role="presentation" width="58" cellpadding="0" cellspacing="0"><tr><td align="center" bgcolor="#EAE8FF" height="58" style="height:58px;border-radius:18px;font-size:30px;line-height:40px;">🏪</td></tr></table></td><td valign="top" style="padding:16px 16px 16px 12px;">
+                    <h3 style="margin:0 0 7px;font-size:16px;line-height:23px;color:#23213F;">Покупки и продажи</h3>
+                    <p style="margin:0;font-size:14px;line-height:22px;color:#514E6D;">Находите товары, ведите каталог и управляйте заказами на площадке.</p>
+                </td></tr></table>
+            </td>
+                    <td class="stack benefit" width="33.33%" valign="top" style="width:33.33%;padding:0 6px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#FAFAFF" style="border:1px solid #E1DFF3;border-radius:16px;"><tr><td valign="top" width="76" style="width:76px;padding:16px 0 16px 20px;"><table role="presentation" width="58" cellpadding="0" cellspacing="0"><tr><td align="center" bgcolor="#EAE8FF" height="58" style="height:58px;border-radius:18px;font-size:30px;line-height:40px;">⭐</td></tr></table></td><td valign="top" style="padding:16px 16px 16px 12px;">
+                    <h3 style="margin:0 0 7px;font-size:16px;line-height:23px;color:#23213F;">Отзывы и избранное</h3>
+                    <p style="margin:0;font-size:14px;line-height:22px;color:#514E6D;">Сохраняйте понравившиеся товары и делитесь впечатлениями о покупках.</p>
+                </td></tr></table>
+            </td>
+                    <td class="stack benefit" width="33.33%" valign="top" style="width:33.33%;padding:0 6px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#FAFAFF" style="border:1px solid #E1DFF3;border-radius:16px;"><tr><td valign="top" width="76" style="width:76px;padding:16px 0 16px 20px;"><table role="presentation" width="58" cellpadding="0" cellspacing="0"><tr><td align="center" bgcolor="#EAE8FF" height="58" style="height:58px;border-radius:18px;font-size:30px;line-height:40px;">📦</td></tr></table></td><td valign="top" style="padding:16px 16px 16px 12px;">
+                    <h3 style="margin:0 0 7px;font-size:16px;line-height:23px;color:#23213F;">Личный кабинет</h3>
+                    <p style="margin:0;font-size:14px;line-height:22px;color:#514E6D;">Заказы, настройки аккаунта и поддержка — всё важное в одном месте.</p>
+                </td></tr></table>
+            </td>
+                </tr></table>
+    </td></tr>
+        @if(($user->role ?? null) === 'seller')
+    <tr><td class="content-pad" style="padding:0 3.5% 16px;font-size:16px;line-height:25px;color:#514E6D;">Для публикации товаров и новых продаж также потребуется подтвердить личный телефон через Telegram в настройках аккаунта.</td></tr>
+    @endif
+    <tr><td class="content-pad" style="padding:0 2.8% 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#EEEDFF" style="table-layout:fixed;border-radius:14px;"><tr><td class="link-icon" width="76" align="center" style="width:76px;font-size:28px;color:#4F46E5;">&#128279;</td><td style="padding:14px 20px 14px 0;">
+            <p style="margin:0 0 8px;font-size:14px;line-height:22px;color:#37316F;">Если кнопка не работает, скопируйте ссылку и откройте её в браузере:</p>
+            <p style="margin:0;padding:5px 8px;background:#FFFFFF;border:1px solid #DDD9FF;border-radius:8px;font-size:12px;line-height:18px;word-break:break-all;overflow-wrap:anywhere;word-wrap:break-word;"><a href="{{ $url }}" style="color:#4F46E5;text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;word-wrap:break-word;">{{ $url }}</a></p>
+        </td></tr></table>
+    </td></tr>
+    <tr><td class="content-pad" style="padding:0 2.8% 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#FFFBEB" style="border:1px solid #FDE68A;border-radius:12px;"><tr><td style="padding:15px 18px;font-size:14px;line-height:22px;color:#92400E;"><span style="font-size:21px;color:#F5A500;">&#9432;</span>&nbsp;&nbsp; <strong>Если это были не вы,</strong> просто проигнорируйте письмо. Без перехода по ссылке адрес не будет подтверждён.</td></tr></table>
+    </td></tr>
+    <tr><td class="content-pad" style="padding:0 3.5% 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E1DFF3;"><tr>
+            <td class="stack" valign="top" style="padding-top:18px;font-size:12px;line-height:20px;color:#79758E;">© {{ date('Y') }} WebVitrina.<br>Вы получили это письмо, потому что для аккаунта был указан этот адрес электронной почты.</td>
+            <td class="stack footer-links" valign="top" align="right" style="padding-top:18px;font-size:12px;line-height:20px;"><a href="{{ $appUrl }}" style="color:#4F46E5;">WebVitrina</a>&nbsp; · &nbsp;<a href="{{ $appUrl }}/support" style="color:#4F46E5;">Поддержка</a></td>
+        </tr></table>
+    </td></tr>
 </table>
-
-</td>
-</tr>
-</table>
-
+</td></tr></table>
 </body>
 </html>
