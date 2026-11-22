@@ -17,6 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+
+        // Доверяем заголовкам прокси только от локального адреса.
+        $middleware->trustProxies(
+            at: ['127.0.0.1', '::1'],
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+        );
         $middleware->web(prepend: [
             \App\Http\Middleware\GuardAttributeImportDatabase::class,
         ], append: [
