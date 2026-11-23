@@ -223,7 +223,7 @@ $firstImage = $firstBanner?->imageUrl();
     @if($hasRecommendedProducts || $weeklyShopAds->isNotEmpty())
       <section class="mb-8 space-y-6">
         @if($hasRecommendedProducts)
-          <div class="space-y-3">
+          <div class="space-y-3" x-data="recommendedCarousel" role="region" aria-label="Рекомендуемые товары">
             <div class="flex items-center justify-between gap-3">
               <div>
                 <h2 class="text-lg font-bold text-slate-950 sm:text-xl">Рекомендуемые товары</h2>
@@ -241,17 +241,18 @@ $firstImage = $firstBanner?->imageUrl();
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
-              @php
-                $recommendedCardIndex = 0;
-              @endphp
+            <div class="recommended-carousel-controls flex justify-end gap-2" x-cloak>
+              <button type="button" @click="togglePause()" :aria-pressed="paused" x-show="!reduced" x-text="paused ? 'Возобновить' : 'Пауза'" aria-label="Пауза автоматической прокрутки">Пауза</button>
+            </div>
+            <div class="recommended-carousel-viewport">
+              <button type="button" class="recommended-carousel-arrow recommended-carousel-arrow--previous" @click="scroll(-1)" aria-label="Предыдущие товары" aria-controls="recommended-track" x-cloak>
+                <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="recommended-carousel-arrow recommended-carousel-arrow--next" @click="scroll(1)" aria-label="Следующие товары" aria-controls="recommended-track" x-cloak>
+                <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+              </button>
+            <div id="recommended-track" x-ref="track" class="recommended-carousel-track" tabindex="0" aria-label="Лента рекомендуемых товаров">
               @foreach($recommendedFeaturedProductAds as $campaign)
-                @php
-                  $recommendedCardIndex++;
-                @endphp
-                @if($recommendedCardIndex > $recommendedVisibleLimit)
-                  @continue
-                @endif
                 @if($campaign->product)
                   <div>
                     <x-product-card :p="$campaign->product" :promoted="true" :promotion-label="$campaign->label" />
@@ -270,27 +271,16 @@ $firstImage = $firstBanner?->imageUrl();
                 @endif
               @endforeach
               @foreach($recommendedFallbackProducts as $product)
-                @php
-                  $recommendedCardIndex++;
-                @endphp
-                @if($recommendedCardIndex > $recommendedVisibleLimit)
-                  @continue
-                @endif
                 <div>
                   <x-product-card :p="$product" :promoted="true" promotion-label="Высокий рейтинг" />
                 </div>
               @endforeach
               @foreach($recommendedCatalogProducts as $product)
-                @php
-                  $recommendedCardIndex++;
-                @endphp
-                @if($recommendedCardIndex > $recommendedVisibleLimit)
-                  @continue
-                @endif
                 <div>
                   <x-product-card :p="$product" />
                 </div>
               @endforeach
+            </div>
             </div>
 
             @if($recommendedProductsCount > $recommendedVisibleLimit)

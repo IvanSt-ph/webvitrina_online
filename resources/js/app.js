@@ -2,6 +2,8 @@ import './runtime-libraries';
 import './image-fallback';
 import Alpine from 'alpinejs'
 import orderCancellationReason from './order-cancellation-reason'
+import recommendedCarousel from './recommended-carousel'
+import '../css/recommended-carousel.css'
 
 window.Alpine = Alpine
 
@@ -65,6 +67,7 @@ Alpine.data('mobileHeader', () => ({
 }))
 
 Alpine.data('orderCancellationReason', orderCancellationReason)
+Alpine.data('recommendedCarousel', () => recommendedCarousel(Alpine))
 
 Alpine.start()
 
