@@ -123,7 +123,7 @@ class TelegramPhoneVerificationService
                 return null; // Acknowledgement only; never replay writes or misleading bot messages.
             }
         }
-        $response = ['chat_id' => $sender, 'text' => 'Заявка недействительна. Создайте новую в настройках WebVitrina.'];
+        $response = ['chat_id' => $sender, 'text' => 'Заявка истекла или недействительна. Начните подтверждение заново в WebVitrina.'];
         if (! $candidate) {
             return $response;
         }
@@ -154,8 +154,10 @@ class TelegramPhoneVerificationService
                     ])->save();
                 }
 
-                return ['chat_id' => $sender, 'text' => 'Подтвердите личный телефон аккаунта WebVitrina: отправьте свой контакт.',
-                    'reply_markup' => ['keyboard' => [[['text' => 'Отправить мой контакт', 'request_contact' => true]]],
+                return ['chat_id' => $sender, 'verification_banner' => true,
+                    'text' => "🔐 <b>Подтверждение телефона WebVitrina</b>\n\nДля защиты аккаунта подтвердите свой номер телефона.\n\n📱 Нажмите кнопку ниже, чтобы поделиться своим контактом через Telegram.\n\n🛡️ Мы никогда не запрашиваем пароли и коды входа.",
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => ['keyboard' => [[['text' => '📱 Поделиться моим номером', 'request_contact' => true]]],
                         'resize_keyboard' => true, 'one_time_keyboard' => true]];
             }
             $contact = $message['contact'];
@@ -165,20 +167,22 @@ class TelegramPhoneVerificationService
                 || $update['update_id'] <= $request->start_update_id
                 || $message['date'] < $request->bound_at->timestamp
                 || ! is_string($contact['phone_number'] ?? null)) {
-                return $response;
+                return ['chat_id' => $sender, 'text' => 'Не удалось проверить контакт. Нажмите «📱 Поделиться моим номером» и отправьте свой контакт, а не чужой.'];
             }
             try {
                 $phone = app(PhoneNormalizer::class)->normalize($contact['phone_number']);
             } catch (ValidationException) {
-                return $response;
+                return ['chat_id' => $sender, 'text' => 'Не удалось распознать номер. Отправьте свой контакт кнопкой «📱 Поделиться моим номером».'];
             }
             if ($phone !== $request->phone) {
-                return $response;
+                return ['chat_id' => $sender, 'text' => 'Номер Telegram не совпадает с номером аккаунта. Проверьте сохранённый номер в WebVitrina.'];
             }
             $request->forceFill(['contact_verified_at' => now(), 'contact_update_id' => $update['update_id'],
                 'active_telegram_user_id' => null])->save();
 
-            return ['chat_id' => $sender, 'text' => 'Контакт проверен. Вернитесь в тот же браузер WebVitrina и нажмите «Завершить подтверждение».',
+            return ['chat_id' => $sender,
+                'text' => "✅ <b>Телефон проверен!</b>\n\nВернитесь во вкладку WebVitrina и нажмите «Завершить подтверждение».",
+                'parse_mode' => 'HTML',
                 'reply_markup' => ['remove_keyboard' => true]];
         }, 3);
     }

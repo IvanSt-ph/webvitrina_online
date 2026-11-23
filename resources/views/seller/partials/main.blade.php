@@ -29,12 +29,14 @@
         @include('seller.partials.submit-button')
     </form>
 
-    {{-- 📱 Телефон магазина --}}
-    @include('profile.partials.telegram-phone-verification')
+    {{-- 📱 Независимые формы телефона аккаунта и публичности магазина --}}
+    <div class="grid w-full min-w-0 grid-cols-1 items-stretch gap-6 {{ Auth::user()->shop ? 'lg:grid-cols-2' : '' }}">
+        @include('profile.partials.telegram-phone-verification')
 
-    @if (Auth::user()->shop)
-        @include('seller.partials.shop-phone')
-    @endif
+        @if (Auth::user()->shop)
+            @include('seller.partials.shop-phone')
+        @endif
+    </div>
 
     {{-- 📧 Верификация email --}}
     @include('seller.partials.email-verification')

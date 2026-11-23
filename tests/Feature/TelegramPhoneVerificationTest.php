@@ -16,6 +16,7 @@ class TelegramPhoneVerificationTest extends TestCase
     use RefreshDatabase;
 
     private int $telegramApiStatus = 200;
+    private bool $rejectPhoto = false;
     private string $browserSessionId;
 
     protected function setUp(): void
@@ -34,8 +35,8 @@ class TelegramPhoneVerificationTest extends TestCase
         ]);
         Http::preventStrayRequests();
         // Keep one stub: this Laravel version uses the first matching fake.
-        Http::fake(['https://api.telegram.org/*' => fn () => Http::response(
-            ['ok' => $this->telegramApiStatus === 200], $this->telegramApiStatus,
+        Http::fake(['https://api.telegram.org/*' => fn ($request) => Http::response(
+            ['ok' => $this->telegramApiStatus === 200 && ! ($this->rejectPhoto && str_ends_with($request->url(), '/sendPhoto'))], $this->telegramApiStatus,
         )]);
         $this->browserSessionId = \Illuminate\Support\Str::random(40);
         $this->withCredentials();
@@ -316,6 +317,22 @@ class TelegramPhoneVerificationTest extends TestCase
         $this->assertNull($row->fresh()->contact_verified_at);
     }
 
+    public function test_status_becomes_inactive_at_expiry_without_a_webhook(): void
+    {
+        $user = $this->user();
+        $this->browserAs($user)->post(route('phone.telegram.store'))->assertRedirect();
+        $row = Verification::firstOrFail();
+        $this->getJson(route('phone.telegram.status'))->assertExactJson(['status' => 'pending']);
+        $this->travelTo($row->expires_at->copy()->subSecond());
+        $this->getJson(route('phone.telegram.status'))->assertExactJson(['status' => 'pending']);
+        $this->travelTo($row->expires_at);
+        $this->getJson(route('phone.telegram.status'))->assertExactJson(['status' => 'inactive']);
+        $this->post(route('phone.telegram.store'))->assertRedirect();
+        $this->assertSame(2, Verification::count());
+        $this->getJson(route('phone.telegram.status'))->assertExactJson(['status' => 'pending']);
+        Http::assertNothingSent();
+    }
+
     public function test_completion_rechecks_database_phone_and_deleted_account(): void
     {
         $user = $this->user();
@@ -350,6 +367,98 @@ class TelegramPhoneVerificationTest extends TestCase
         config(['services.twilio.enabled' => true, 'services.twilio.sid' => 'fake',
             'services.twilio.token' => 'fake', 'services.twilio.verify_sid' => 'fake']);
         $this->get(route('profile.edit'))->assertDontSee('Подтвердить через SMS');
+    }
+
+    public function test_start_form_preserves_post_csrf_and_opens_a_separate_tab(): void
+    {
+        $html = $this->browserAs($this->user())->get(route('profile.edit'))->assertOk()->getContent();
+        $document = new \DOMDocument();
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $xpath = new \DOMXPath($document);
+        $form = $xpath->query('//form[@data-phone-start]')->item(0);
+        $this->assertNotNull($form);
+        $this->assertSame('POST', $form->getAttribute('method'));
+        $this->assertSame(route('phone.telegram.store'), $form->getAttribute('action'));
+        $this->assertSame('_blank', $form->getAttribute('target'));
+        $this->assertSame('noopener noreferrer', $form->getAttribute('rel'));
+        $this->assertSame(session()->token(), $xpath->query('.//input[@name="_token"]', $form)->item(0)->getAttribute('value'));
+    }
+
+    public function test_verified_phone_has_no_start_or_finalize_form(): void
+    {
+        $user = $this->user();
+        $user->forceFill(['phone_verified_at' => now()])->save();
+        $this->browserAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertSee('Подтверждён')->assertDontSee('data-phone-start>', false)
+            ->assertDontSee('Подтвердить через Telegram')->assertDontSee('data-phone-finalize hidden', false);
+        $this->getJson(route('phone.telegram.status'))->assertExactJson(['status' => 'verified']);
+    }
+
+    public function test_bot_messages_and_contact_keyboard(): void
+    {
+        $user = $this->user();
+        $this->start($user);
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/sendPhoto')
+            && $request->hasFile('photo', file_get_contents(resource_path('telegram/phone-verification.png')), 'phone-verification.png')
+            && array_column($request->data(), 'contents', 'name')['caption'] ===
+                "🔐 <b>Подтверждение телефона WebVitrina</b>\n\nДля защиты аккаунта подтвердите свой номер телефона.\n\n📱 Нажмите кнопку ниже, чтобы поделиться своим контактом через Telegram.\n\n🛡️ Мы никогда не запрашиваем пароли и коды входа."
+            && array_column($request->data(), 'contents', 'name')['parse_mode'] === 'HTML'
+            && json_decode(array_column($request->data(), 'contents', 'name')['reply_markup'], true) === [
+                'keyboard' => [[['text' => '📱 Поделиться моим номером', 'request_contact' => true]]],
+                'resize_keyboard' => true, 'one_time_keyboard' => true,
+            ]);
+        $this->webhook($this->contact())->assertOk();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/sendMessage') && $request->data() === [
+            'chat_id' => 12345,
+            'text' => "✅ <b>Телефон проверен!</b>\n\nВернитесь во вкладку WebVitrina и нажмите «Завершить подтверждение».",
+            'parse_mode' => 'HTML', 'reply_markup' => ['remove_keyboard' => true],
+        ]);
+        $this->assertNull($user->fresh()->phone_verified_at);
+        Http::assertSentCount(2);
+    }
+
+    public function test_photo_failure_falls_back_without_rebinding_or_confirming_request(): void
+    {
+        $this->rejectPhoto = true;
+        $user = $this->user();
+        $row = $this->start($user);
+        Http::assertSentCount(2);
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/sendMessage')
+            && ($request['reply_markup']['keyboard'][0][0]['request_contact'] ?? false) === true
+            && ! isset($request['verification_banner']));
+        $this->assertSame(1, Verification::count());
+        $this->assertSame(100, (int) $row->start_update_id);
+        $this->assertNull($row->contact_verified_at);
+        $this->assertNull($row->consumed_at);
+        $this->assertNull($user->fresh()->phone_verified_at);
+        $this->webhook($this->contact())->assertOk();
+        $this->finalize($row)->assertRedirect();
+        $this->assertNotNull($user->fresh()->phone_verified_at);
+    }
+
+    public function test_invalid_and_expired_start_never_send_a_banner(): void
+    {
+        $this->webhook($this->event(100, ['text' => '/start '.str_repeat('a', 43)]))->assertOk();
+        $url = app(TelegramPhoneVerificationService::class)->create($this->user(), $this->browserSessionId);
+        parse_str(parse_url($url, PHP_URL_QUERY), $query);
+        $this->travelTo(Verification::firstOrFail()->expires_at);
+        $this->webhook($this->event(101, ['text' => '/start '.$query['start']]))->assertOk();
+        Http::assertSentCount(2);
+        Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/sendPhoto'));
+    }
+
+    public function test_bot_explains_foreign_contact_and_expired_request(): void
+    {
+        $row = $this->start($this->user());
+        $this->webhook($this->event(101, ['contact' => ['user_id' => 999, 'phone_number' => $row->phone]]))->assertOk();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/sendMessage')
+            && $request['text'] === 'Не удалось проверить контакт. Нажмите «📱 Поделиться моим номером» и отправьте свой контакт, а не чужой.');
+        $this->assertNull($row->fresh()->contact_verified_at);
+        $this->travelTo($row->expires_at);
+        $this->webhook($this->contact(102))->assertOk();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/sendMessage')
+            && $request['text'] === 'Заявка истекла или недействительна. Начните подтверждение заново в WebVitrina.');
+        $this->assertNull($row->fresh()->contact_verified_at);
     }
 
     public function test_buyer_cannot_start_or_check_telegram_verification(): void
