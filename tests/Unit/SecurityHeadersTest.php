@@ -18,6 +18,7 @@ class SecurityHeadersTest extends TestCase
             ['production'],
             ['local'],
             ['testing'],
+            ['staging'],
         ];
     }
 
@@ -33,11 +34,35 @@ class SecurityHeadersTest extends TestCase
 
         try {
             $response = (new SecurityHeaders)->handle(
-                Request::create('/'),
+                Request::create('http://127.0.0.1:8000/'),
                 fn () => new Response('ok')
             );
 
             $policy = $response->headers->get('Content-Security-Policy');
+            $directives = explode('; ', $policy);
+            $viteHttp = $environment === 'local'
+                ? ' http://127.0.0.1:5173 http://localhost:5173'
+                : '';
+            $viteWebSocket = $environment === 'local'
+                ? ' ws://127.0.0.1:5173 ws://localhost:5173'
+                : '';
+
+            self::assertContains("default-src 'self'", $directives);
+            self::assertContains("base-uri 'self'", $directives);
+            self::assertContains("object-src 'none'", $directives);
+            self::assertContains("frame-ancestors 'self'", $directives);
+            self::assertContains("form-action 'self' https://t.me", $directives);
+            self::assertContains("style-src 'self' 'unsafe-inline'{$viteHttp}", $directives);
+            self::assertContains("script-src 'self' 'unsafe-inline' 'unsafe-eval'{$viteHttp}", $directives);
+            self::assertContains("font-src 'self' data:{$viteHttp}", $directives);
+            self::assertContains(
+                "img-src 'self' data: blob: https://ui-avatars.com https://*.tile.openstreetmap.org{$viteHttp}",
+                $directives
+            );
+            self::assertContains(
+                "connect-src 'self' https://nominatim.openstreetmap.org{$viteHttp}{$viteWebSocket}",
+                $directives
+            );
 
             foreach ([
                 'cdn.jsdelivr.net',

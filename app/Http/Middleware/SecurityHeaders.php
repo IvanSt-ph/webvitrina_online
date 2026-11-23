@@ -52,6 +52,7 @@ class SecurityHeaders
             'https://www.youtube.com',
         ];
 
+        // Trust the server environment, never the request Host or debug flag.
         if (app()->environment('local')) {
             $styleSources[] = 'http://127.0.0.1:5173';
             $styleSources[] = 'http://localhost:5173';
@@ -59,6 +60,8 @@ class SecurityHeaders
             $scriptSources[] = 'http://127.0.0.1:5173';
             $scriptSources[] = 'http://localhost:5173';
 
+            $connectSources[] = 'http://127.0.0.1:5173';
+            $connectSources[] = 'http://localhost:5173';
             $connectSources[] = 'ws://127.0.0.1:5173';
             $connectSources[] = 'ws://localhost:5173';
 
