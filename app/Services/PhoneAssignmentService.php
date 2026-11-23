@@ -63,6 +63,11 @@ class PhoneAssignmentService
                 'phone_verification_code' => null,
             ])->save();
 
+            // Keep phone -> User -> verification -> Shop ordering; reset every shop.
+            Shop::where('user_id', $current->id)->orderBy('id')->lockForUpdate()->get(['id'])->each(function (Shop $shop): void {
+                Shop::whereKey($shop->id)->update(['phone_public' => false]);
+            });
+
             return true;
         });
     }

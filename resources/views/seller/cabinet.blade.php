@@ -283,24 +283,26 @@
               Телефон
             </p>
             @php
-              $rawPhone = preg_replace('/\D+/', '', $shop->phone ?? '');
+              $phoneContact = $shop->phoneContact();
+              $rawPhone = preg_replace('/\D+/', '', $phoneContact['phone'] ?? '');
               $formatted = null;
-              if (str_starts_with($shop->phone ?? '', '+373')) {
+              if (str_starts_with($phoneContact['phone'] ?? '', '+373')) {
                   $digits = substr($rawPhone, 3);
                   $formatted = '(+373) ' . substr($digits, 0, 2) . ' ' . substr($digits, 2, 3) . '-' . substr($digits, 5);
-              } elseif (str_starts_with($shop->phone ?? '', '+380')) {
+              } elseif (str_starts_with($phoneContact['phone'] ?? '', '+380')) {
                   $digits = substr($rawPhone, 3);
                   $formatted = '(+380) ' . substr($digits, 0, 2) . ' ' . substr($digits, 2, 3) . '-' . substr($digits, 5, 2) . '-' . substr($digits, 7);
-              } elseif (str_starts_with($shop->phone ?? '', '+7')) {
+              } elseif (str_starts_with($phoneContact['phone'] ?? '', '+7')) {
                   $digits = substr($rawPhone, 1);
-                  $formatted = '(+7) ' . substr($digits, 1, 3) . ' ' . substr($digits, 4, 3) . '-' . substr($digits, 7, 2) . '-' . substr($digits, 9);
+                  $formatted = '(+7) ' . substr($digits, 0, 3) . ' ' . substr($digits, 3, 3) . '-' . substr($digits, 6, 2) . '-' . substr($digits, 8);
               } else {
-                  $formatted = '(+373) 77 698-989';
+                  $formatted = $phoneContact['phone'] ?: 'Не указан';
               }
             @endphp
             <p class="mt-1 select-text break-words font-semibold text-neutral-900">
               {{ $formatted }}
             </p>
+            <p class="mt-1 text-xs text-neutral-500">{{ $phoneContact['verified'] ? 'Подтверждён' : 'Не подтверждён' }}</p>
           </div>
 
           <div class="min-w-0 rounded-xl bg-neutral-50 p-3">

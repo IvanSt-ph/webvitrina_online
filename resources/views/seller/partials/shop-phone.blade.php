@@ -1,56 +1,26 @@
-{{-- resources/views/seller/partials/shop-phone.blade.php --}}
-@if (Auth::user()->shop)
-    <section class="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-        <div class="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                    <i class="ri-phone-line text-xl"></i>
-                </div>
-                <div class="min-w-0">
-                    <h3 class="text-base font-semibold text-neutral-950">Телефон магазина</h3>
-                    <p class="mt-0.5 text-sm text-neutral-500">Контактный номер для покупателей</p>
-                </div>
-            </div>
-
-            @if(Auth::user()->shop->is_phone_verified)
-                <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                    Подтверждён
-                </span>
-            @elseif(Auth::user()->shop->phone)
-                <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                    <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                    Не подтверждён
-                </span>
-            @else
-                <span class="inline-flex w-fit items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
-                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span>
-                    Не указан
-                </span>
-            @endif
-        </div>
-
-        <div class="space-y-4 p-4 sm:p-5">
-            @if(Auth::user()->shop->is_phone_verified)
-                @include('seller.partials.phone.verified')
-            @else
-                @include('seller.partials.phone.unverified')
-            @endif
-
-            @if(Auth::user()->shop->phone)
-                @if(Auth::user()->shop->is_phone_verified)
-                    <div class="flex flex-col gap-1.5 border-t border-gray-100 pt-3 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
-                        <span class="flex items-center gap-2 text-emerald-700">
-                            <i class="ri-shield-check-line text-base"></i>
-                            Ранее подтверждённый номер
-                        </span>
-                        @if(Auth::user()->shop->phone_verified_at)
-                            <span>Проверен {{ Auth::user()->shop->phone_verified_at->diffForHumans() }}</span>
-                        @endif
-                    </div>
-                @endif
-            @endif
-            <p class="text-xs text-neutral-500">SMS-подтверждение временно отключено. Подтверждение личного телефона через Telegram не подтверждает телефон магазина.</p>
-        </div>
+@if ($shop = Auth::user()->shop)
+    @php($phoneContact = $shop->phoneContact())
+    <section class="mt-6 space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
+        <h3 class="text-base font-semibold text-neutral-950">Телефон магазина</h3>
+        <p class="text-sm text-neutral-600">Магазин использует личный номер вашего аккаунта.</p>
+        <p class="font-semibold">{{ $phoneContact['phone'] ?: 'Не указан' }}</p>
+        <p>{{ $phoneContact['verified'] ? 'Подтверждён' : 'Не подтверждён' }}</p>
+        <p class="text-sm text-neutral-500">Изменить и подтвердить номер можно в разделе «Личный телефон аккаунта».</p>
+        <form method="POST" action="{{ route('profile.shop.update') }}" class="space-y-3">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="phone_public" value="0">
+            <input type="hidden" name="phone_public_for" value="{{ $phoneContact['phone'] }}">
+            <label class="flex items-center gap-2">
+                <input type="checkbox" name="phone_public" value="1"
+                       @checked($phoneContact['public'] && $phoneContact['verified'])
+                       @disabled(!$phoneContact['verified'])>
+                Показывать телефон посетителям магазина
+            </label>
+            <p class="text-xs text-neutral-500">Публикация доступна после подтверждения номера. При его смене разрешение сбрасывается.</p>
+            <x-input-error :messages="$errors->get('phone_public')" />
+            <x-input-error :messages="$errors->get('phone')" />
+            <x-secondary-action type="submit">Сохранить публичность</x-secondary-action>
+        </form>
     </section>
 @endif

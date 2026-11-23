@@ -140,10 +140,20 @@ class User extends Authenticatable implements MustVerifyEmail
     |--------------------------------------------------------------------------
     */
     protected $hidden = [
+        'phone',
         'password',
         'remember_token',
         'phone_verification_code',
     ];
+
+    public function attributesToArray()
+    {
+        // Enforce privacy even for cached models serialized before phone was hidden.
+        $attributes = parent::attributesToArray();
+        unset($attributes['phone']);
+
+        return $attributes;
+    }
 
     /*
     |--------------------------------------------------------------------------

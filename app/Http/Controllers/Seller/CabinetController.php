@@ -237,7 +237,7 @@ class CabinetController extends Controller
         $setupChecklist = [
             [
                 'label' => 'Заполнить телефон магазина',
-                'done' => filled($user->shop?->phone),
+                'done' => filled($user->shop?->phoneContact()['phone']),
                 'href' => route('profile.edit'),
             ],
             [

@@ -132,7 +132,7 @@ class PhoneUniquenessTest extends TestCase
         });
     }
 
-    public function test_seller_registration_keeps_same_owner_user_shop_phone(): void
+    public function test_seller_registration_keeps_phone_only_on_user(): void
     {
         $this->post('/register', [
             'name' => 'Phone Seller',
@@ -146,7 +146,7 @@ class PhoneUniquenessTest extends TestCase
 
         $seller = User::where('email', 'phone-seller@example.test')->firstOrFail();
         $this->assertSame('+37377111007', $seller->phone);
-        $this->assertSame($seller->phone, $seller->shop->phone);
+        $this->assertNull($seller->shop->phone);
     }
 
     public function test_registration_rejects_phone_owned_by_another_shop(): void
@@ -186,7 +186,7 @@ class PhoneUniquenessTest extends TestCase
         $this->assertNull($buyer->fresh()->phone);
     }
 
-    public function test_admin_can_create_seller_with_same_phone_on_own_user_and_shop(): void
+    public function test_admin_creates_seller_without_shop_phone_copy(): void
     {
         $admin = User::factory()->admin()->create();
 
@@ -203,7 +203,7 @@ class PhoneUniquenessTest extends TestCase
 
         $seller = User::where('email', 'admin-created-seller@example.test')->firstOrFail();
         $this->assertSame('+37377111010', $seller->phone);
-        $this->assertSame($seller->phone, $seller->shop->phone);
+        $this->assertNull($seller->shop->phone);
     }
 
     private function expectPhoneConflict(callable $operation): void

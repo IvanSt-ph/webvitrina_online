@@ -311,11 +311,18 @@ public function updateShop(Request $request): RedirectResponse
 {
     abort_unless($request->user()->role === 'seller', 403);
 
+    if ($request->exists('phone') || $request->exists('phone_full') || $request->input('update_type') === 'phone') {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'phone' => 'Телефон магазина больше не редактируется отдельно. Измените личный номер в настройках аккаунта.',
+        ]);
+    }
+
     $data = $request->validate([
         'name'        => 'nullable|string|max:255',
         'city'        => 'nullable|string|max:255',
         'description' => 'nullable|string|max:1000',
-        'phone'       => 'nullable|string|max:50',
+        'phone_public' => 'sometimes|required|boolean',
+        'phone_public_for' => 'nullable|string|max:50',
         'banner'      => ImageUploadConstraints::rules(4096),
 
         'facebook'    => $this->externalUrlRules(),
@@ -326,23 +333,30 @@ public function updateShop(Request $request): RedirectResponse
         'remove_banner' => 'nullable|boolean',
     ]);
 
-    $hasPhone = array_key_exists('phone', $data);
-    $submittedPhone = $hasPhone ? $data['phone'] : null;
-    unset($data['phone'], $data['remove_banner']);
+    $hasVisibility = array_key_exists('phone_public', $data);
+    $public = (bool) ($data['phone_public'] ?? false);
+    $expectedPhone = $data['phone_public_for'] ?? null;
+    unset($data['phone_public'], $data['phone_public_for'], $data['remove_banner']);
 
-    $update = function (?string $normalizedPhone = null, ?PhoneAssignmentService $phones = null) use (
+    $update = function () use (
         $request,
         $data,
-        $hasPhone,
+        $hasVisibility,
+        $public,
+        $expectedPhone,
     ): void {
         // The seller row serializes first-shop creation and establishes one lock order
-        // for repeated requests: seller -> shop. Phone updates acquire their advisory
-        // phone lock before entering this transaction through PhoneAssignmentService.
+        // for repeated requests: seller -> shop, also serialized with phone changes.
         $seller = User::query()->whereKey($request->user()->getKey())->lockForUpdate()->firstOrFail();
-        $shop = Shop::query()->where('user_id', $seller->getKey())->lockForUpdate()->first();
+        abort_unless($seller->role === 'seller', 403);
+        $shop = Shop::query()->where('user_id', $seller->getKey())->orderBy('id')->lockForUpdate()->first();
 
         if (!$shop) {
             $shop = $seller->shop()->create([]);
+        }
+
+        if ($hasVisibility) {
+            app(\App\Services\ShopPhoneContact::class)->setVisibility($shop, $seller, $public, $expectedPhone);
         }
 
         $files = new ShopBannerOperation(
@@ -360,16 +374,6 @@ public function updateShop(Request $request): RedirectResponse
 
         $shop->fill($attributes);
 
-        if ($hasPhone && $shop->phone !== $normalizedPhone) {
-            $phones?->assertAvailableForShop($normalizedPhone, (int) $shop->user_id, (int) $shop->getKey());
-            $shop->forceFill([
-                'phone' => $normalizedPhone,
-                'phone_verified_at' => null,
-                'phone_verification_code' => null,
-                'phone_verification_expires_at' => null,
-            ]);
-        }
-
         $shop->save();
 
         if ($oldBanner && $oldBanner !== $shop->banner) {
@@ -377,11 +381,7 @@ public function updateShop(Request $request): RedirectResponse
         }
     };
 
-    if ($hasPhone) {
-        $this->phones->run($submittedPhone, $update);
-    } else {
-        DB::transaction(fn () => $update(), 3);
-    }
+    DB::transaction($update, 3);
 
     return Redirect::route('profile.edit')->with('status', 'shop-updated');
 }

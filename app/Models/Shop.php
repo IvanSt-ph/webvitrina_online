@@ -33,9 +33,34 @@ class Shop extends Model
     // Это вычисляемое поле, защищённое от массового присваивания
 
     protected $casts = [
+        'phone_public' => 'boolean',
         'phone_verified_at' => 'datetime',
         'phone_verification_expires_at' => 'datetime',
     ];
+
+    // Legacy phone data stays in storage, never in public model JSON.
+    protected $hidden = ['phone', 'phone_verified_at', 'phone_verification_code', 'phone_verification_expires_at'];
+
+    public function attributesToArray()
+    {
+        // Old serialized cache entries retain their old $hidden/$appends values.
+        $attributes = parent::attributesToArray();
+        unset($attributes['phone'], $attributes['phone_verified_at'],
+            $attributes['phone_verification_code'], $attributes['phone_verification_expires_at']);
+        $attributes['public_phone'] = $this->getPublicPhoneAttribute();
+
+        return $attributes;
+    }
+
+    public function phoneContact(): array
+    {
+        return app(\App\Services\ShopPhoneContact::class)->forShop($this);
+    }
+
+    public function getPublicPhoneAttribute(): ?string
+    {
+        return $this->phoneContact()['public_phone'];
+    }
 
     protected static function booted(): void
     {
@@ -75,7 +100,7 @@ class Shop extends Model
     // ✅ Аксессор для удобства (только для чтения)
     public function getIsPhoneVerifiedAttribute(): bool
     {
-        return !is_null($this->phone_verified_at);
+        return $this->phoneContact()['verified'];
     }
 
     // ✅ Метод для безопасной верификации
@@ -219,7 +244,7 @@ public function getReputationDescriptionAttribute(): string
     // ✅ Проверка, нужно ли подтверждение
     public function needsPhoneVerification(): bool
     {
-        return !$this->is_phone_verified && !is_null($this->phone);
+        return is_null($this->phone_verified_at) && !is_null($this->phone);
     }
 
     // ✅ Проверка, просрочен ли код

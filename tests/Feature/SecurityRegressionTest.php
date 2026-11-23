@@ -2517,7 +2517,7 @@ class SecurityRegressionTest extends TestCase
 
     public function test_seller_can_create_active_product(): void
     {
-        $seller = User::factory()->create(['role' => 'seller']);
+        $seller = User::factory()->verifiedSeller()->create();
 
         $payload = $this->validSellerProductPayload([
             'status' => 'active',
@@ -2557,7 +2557,7 @@ class SecurityRegressionTest extends TestCase
     public function test_admin_product_form_renders_and_saves_category_attributes(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $seller = User::factory()->create(['role' => 'seller']);
+        $seller = User::factory()->verifiedSeller()->create();
         $category = Category::factory()->create(['name' => 'Attribute category']);
         $country = \App\Models\Country::create(['name' => 'Attribute country']);
         $city = \App\Models\City::create([
@@ -3084,7 +3084,7 @@ class SecurityRegressionTest extends TestCase
     public function test_checkout_decrements_stock_when_order_is_created(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
-        $seller = User::factory()->create(['role' => 'seller']);
+        $seller = User::factory()->verifiedSeller()->create();
         $product = $this->createProduct($seller, [
             'stock' => 3,
             'status' => 'active',
@@ -3101,7 +3101,8 @@ class SecurityRegressionTest extends TestCase
                 'payment_method' => 'cash',
                 'delivery_method' => 'pickup',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
         $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
         $this->assertSame(1, $product->fresh()->stock);
@@ -3110,7 +3111,7 @@ class SecurityRegressionTest extends TestCase
     public function test_checkout_rejects_missing_empty_and_mismatched_tokens(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
-        $seller = User::factory()->create(['role' => 'seller']);
+        $seller = User::factory()->verifiedSeller()->create();
         $product = $this->createProduct($seller, ['stock' => 3]);
         $cart = [$this->checkoutCartRow($product)];
         $payload = ['payment_method' => 'cash', 'delivery_method' => 'pickup'];
@@ -3158,7 +3159,8 @@ class SecurityRegressionTest extends TestCase
 
         $this->actingAs($buyer)
             ->post(route('checkout.create'), $payload + ['checkout_token' => session('checkout_token')])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
         $this->assertSame(1, Order::where('user_id', $buyer->id)->count());
         $this->assertSame(2, $product->fresh()->stock);
@@ -3167,8 +3169,8 @@ class SecurityRegressionTest extends TestCase
     public function test_checkout_displays_free_pickup_for_each_seller_order(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
-        $firstSeller = User::factory()->create(['role' => 'seller', 'name' => 'First seller']);
-        $secondSeller = User::factory()->create(['role' => 'seller', 'name' => 'Second seller']);
+        $firstSeller = User::factory()->verifiedSeller()->create(['name' => 'First seller']);
+        $secondSeller = User::factory()->verifiedSeller()->create(['name' => 'Second seller']);
         $firstSeller->shop()->create(['name' => 'First shop']);
         $secondSeller->shop()->create(['name' => 'Second shop']);
         $firstProduct = $this->createProduct($firstSeller);
@@ -3192,7 +3194,8 @@ class SecurityRegressionTest extends TestCase
                 'payment_method' => 'cash',
                 'delivery_method' => 'pickup',
             ])
-            ->assertRedirect(route('orders.index'));
+            ->assertRedirect(route('orders.index'))
+            ->assertSessionHasNoErrors();
 
         $totals = Order::where('user_id', $buyer->id)
             ->orderBy('seller_id')
@@ -3233,7 +3236,7 @@ class SecurityRegressionTest extends TestCase
     public function test_checkout_token_cannot_create_the_same_order_twice(): void
     {
         $buyer = User::factory()->create(['role' => 'buyer']);
-        $seller = User::factory()->create(['role' => 'seller']);
+        $seller = User::factory()->verifiedSeller()->create();
         $product = $this->createProduct($seller, ['stock' => 3]);
         $cart = [$this->checkoutCartRow($product)];
 
@@ -3252,7 +3255,8 @@ class SecurityRegressionTest extends TestCase
 
         $this->actingAs($buyer)
             ->post(route('checkout.create'), $payload)
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
         $order = Order::where('user_id', $buyer->id)->sole();
         $notifications = DB::table('user_notifications')->orderBy('id')->get()->toArray();
@@ -3286,7 +3290,7 @@ class SecurityRegressionTest extends TestCase
         array_unshift($this->beforeApplicationDestroyedCallbacks, $cleanup);
 
         $buyer = User::factory()->create(['role' => 'buyer']);
-        $seller = User::factory()->create(['role' => 'seller']);
+        $seller = User::factory()->verifiedSeller()->create();
         $product = $this->createProduct($seller, ['stock' => 3]);
         $this->startCheckout($buyer, [$this->checkoutCartRow($product)]);
         $this->get(route('checkout.confirm'))->assertOk();
@@ -3465,7 +3469,7 @@ class SecurityRegressionTest extends TestCase
             ->assertHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()')
             ->assertHeader(
                 'content-security-policy',
-                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data: blob: https://ui-avatars.com https://*.tile.openstreetmap.org; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://nominatim.openstreetmap.org; frame-src 'self' https://www.youtube.com"
+                "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self' https://t.me; img-src 'self' data: blob: https://ui-avatars.com https://*.tile.openstreetmap.org; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://nominatim.openstreetmap.org; frame-src 'self' https://www.youtube.com"
             );
     }
 

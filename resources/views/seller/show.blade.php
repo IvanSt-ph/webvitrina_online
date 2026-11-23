@@ -5,6 +5,7 @@
     /** @var \Illuminate\Pagination\LengthAwarePaginator $products */
 
     $shop = $shop ?? $user->shop;
+    $phoneContact = $shop?->phoneContact() ?? ['phone' => null, 'verified' => false, 'public_phone' => null];
     $filter = $filter ?? 'all';
     $filterCounts = $filterCounts ?? ['all' => 0, 'new' => 0, 'sale' => 0, 'hit' => 0];
     $filters = [
@@ -79,8 +80,8 @@
         ],
         [
             'label' => 'Телефон',
-            'value' => $shop->is_phone_verified ? 'подтверждён' : 'не подтверждён',
-            'done' => (bool) $shop->is_phone_verified,
+            'value' => $phoneContact['verified'] ? 'подтверждён' : 'не подтверждён',
+            'done' => (bool) $phoneContact['verified'],
         ],
         [
             'label' => 'Продажи',
@@ -148,7 +149,7 @@
                 </div>
 
                 <!-- Бейдж верификации -->
-                @if($user->hasVerifiedEmail() && $shop->is_phone_verified)
+                @if($user->hasVerifiedEmail() && $phoneContact['verified'])
                 <div class="absolute -top-2 -left-2">
                     <div class="relative">
                         <div class="absolute w-7 h-7 bg-indigo-500 rounded-xl opacity-30 animate-ping"></div>
@@ -170,12 +171,12 @@
                     <div class="text-center md:text-left">
                         <h1 class="text-2xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2 flex-wrap">
                             {{ $user->name }}
-                            @if($user->hasVerifiedEmail() && $shop->is_phone_verified)
+                            @if($user->hasVerifiedEmail() && $phoneContact['verified'])
                                 <span class="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
                                     <i class="ri-shield-check-fill text-indigo-500 mr-0.5"></i>
                                     Проверенный
                                 </span>
-                            @elseif($user->hasVerifiedEmail() || $shop->is_phone_verified)
+                            @elseif($user->hasVerifiedEmail() || $phoneContact['verified'])
                                 <span class="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
                                     <i class="ri-shield-user-line text-indigo-500 mr-0.5"></i>
                                     Верифицирован
@@ -294,13 +295,17 @@
                         </span>
 
                         <!-- Телефон статус -->
-                        @if($shop->phone)
-                        <span class="flex items-center gap-1 text-xs {{ $shop->is_phone_verified ? 'text-indigo-600' : 'text-gray-400' }}" title="{{ $shop->is_phone_verified ? 'Телефон подтверждён' : 'Телефон не подтверждён' }}">
-                            <i class="ri-smartphone-{{ $shop->is_phone_verified ? 'fill' : 'line' }} text-base"></i>
+                        @if($phoneContact['phone'])
+                        <span class="flex items-center gap-1 text-xs {{ $phoneContact['verified'] ? 'text-indigo-600' : 'text-gray-400' }}" title="{{ $phoneContact['verified'] ? 'Телефон подтверждён' : 'Телефон не подтверждён' }}">
+                            <i class="ri-smartphone-{{ $phoneContact['verified'] ? 'fill' : 'line' }} text-base"></i>
                         </span>
                         @endif
 
                         <!-- Социальные сети -->
+                        @if($phoneContact['public_phone'])
+                            <a href="tel:{{ $phoneContact['public_phone'] }}" class="text-sm text-indigo-600">{{ $phoneContact['public_phone'] }}</a>
+                        @endif
+
                         @if($shop->facebook || $shop->instagram || $shop->telegram || $shop->whatsapp)
                         <span class="w-px h-4 bg-gray-200 mx-1"></span>
                         <div class="flex items-center gap-4">

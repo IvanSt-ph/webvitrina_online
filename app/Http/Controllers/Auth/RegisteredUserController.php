@@ -58,8 +58,7 @@ class RegisteredUserController extends Controller
                     }
 
                     if ($user->role === self::ROLE_SELLER) {
-                        $phones->assertAvailableForShop($phone, $user->id);
-                        $this->createShopForSeller($user, $phone);
+                        $this->createShopForSeller($user);
                     }
 
                     event(new Registered($user));
@@ -105,7 +104,7 @@ class RegisteredUserController extends Controller
 
 
 
-private function createShopForSeller(User $user, ?string $phone): Shop
+private function createShopForSeller(User $user): Shop
 {
     $shopName = !empty($user->name) 
         ? "Магазин {$user->name}" 
@@ -114,7 +113,6 @@ private function createShopForSeller(User $user, ?string $phone): Shop
     return Shop::create([
         'user_id' => $user->id,
         'name' => $shopName,
-        'phone' => $phone,
     ]);
 }
 

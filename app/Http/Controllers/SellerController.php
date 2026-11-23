@@ -141,7 +141,7 @@ class SellerController extends Controller
             $chatLatestReadOutgoingMessageId = $chatConversation->latestReadOutgoingMessageIdFor(auth()->user());
         }
 
-        return view('seller.show', compact(
+        return response()->view('seller.show', compact(
             'user',
             'shop',
             'products',
@@ -154,6 +154,6 @@ class SellerController extends Controller
             'chatLatestReadOutgoingMessageId',
             'isFollowingShop',
             'recommendedProducts'
-        ) + compact('filter', 'filterCounts'));
+        ) + compact('filter', 'filterCounts'))->header('Cache-Control', 'private, no-store');
     }
 }

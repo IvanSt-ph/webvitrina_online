@@ -119,26 +119,17 @@ class PhoneVerificationRaceTest extends TestCase
         );
     }
 
-    public function test_clearing_shop_phone_clears_all_verification_state(): void
+    public function test_legacy_clear_request_preserves_shop_phone_and_verification_history(): void
     {
         $seller = User::factory()->seller()->create();
         $shop = $seller->shop()->create([
-            'name' => 'Seller shop',
-            'phone' => '+37377111222',
-            'phone_verified_at' => now(),
-            'phone_verification_code' => '123456',
-            'phone_verification_expires_at' => now()->addMinutes(10),
+            'name' => 'Seller shop', 'phone' => '+37377111222', 'phone_verified_at' => now(),
+            'phone_verification_code' => '123456', 'phone_verification_expires_at' => now()->addMinutes(10),
         ]);
-
-        $this->actingAs($seller)
-            ->patch(route('profile.shop.update'), ['phone' => ''])
-            ->assertSessionHasNoErrors();
-
-        $shop->refresh();
-        $this->assertNull($shop->phone);
-        $this->assertNull($shop->phone_verified_at);
-        $this->assertNull($shop->phone_verification_code);
-        $this->assertNull($shop->phone_verification_expires_at);
+        $before = $shop->fresh()->getRawOriginal();
+        $this->actingAs($seller)->patch(route('profile.shop.update'), ['phone' => ''])
+            ->assertSessionHasErrors('phone');
+        $this->assertSame($before, $shop->fresh()->getRawOriginal());
     }
 
     public function test_current_user_phone_can_still_be_verified(): void

@@ -368,8 +368,7 @@ class UserController extends Controller
                         }
 
                         if ($user->role === 'seller') {
-                            $phones->assertAvailableForShop($phone, $user->id);
-                            $this->createShopForSeller($user, $phone);
+                            $this->createShopForSeller($user);
                         }
 
                         $this->activity->log('user.created', $user, 'Администратор создал пользователя.', [
@@ -412,7 +411,7 @@ class UserController extends Controller
     /**
      * Создание магазина для продавца
      */
-    private function createShopForSeller(User $user, ?string $phone): Shop
+    private function createShopForSeller(User $user): Shop
     {
         $shopName = !empty($user->name) 
             ? "Магазин {$user->name}" 
@@ -421,7 +420,6 @@ class UserController extends Controller
         return Shop::create([
             'user_id'   => $user->id,
             'name'      => $shopName,
-            'phone'     => $phone,
         ]);
     }
 }

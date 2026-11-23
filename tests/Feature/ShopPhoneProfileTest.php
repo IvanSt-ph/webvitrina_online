@@ -29,80 +29,21 @@ class ShopPhoneProfileTest extends TestCase
         ]);
     }
 
-    public function test_seller_can_add_shop_phone_without_current_password(): void
+    public function test_legacy_shop_phone_requests_are_rejected_without_changing_history(): void
     {
-        $seller = User::factory()->seller()->create(['phone' => null]);
-        $shop = $seller->shop()->create(['name' => 'Seller shop']);
-
-        $this->actingAs($seller)
-            ->patch(route('profile.shop.update'), [
-                'update_type' => 'phone',
-                'phone' => '+373 77 111 222',
-            ])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
-
-        $shop->refresh();
-        $this->assertSame('+37377111222', $shop->phone);
-        $this->assertNull($shop->phone_verified_at);
-        $this->assertNull($seller->fresh()->phone);
-    }
-
-    public function test_seller_can_change_verified_shop_phone_without_current_password_and_verification_is_reset(): void
-    {
-        $seller = User::factory()->seller()->create();
+        $seller = User::factory()->seller()->create(['phone' => '+37377111999', 'phone_verified_at' => now()]);
         $shop = $seller->shop()->create([
-            'name' => 'Seller shop',
-            'phone' => '+37377111222',
-            'phone_verified_at' => now(),
-            'phone_verification_code' => '123456',
-            'phone_verification_expires_at' => now()->addMinutes(10),
+            'name' => 'Seller shop', 'phone' => '+37377111222', 'phone_verified_at' => now(),
+            'phone_verification_code' => '123456', 'phone_verification_expires_at' => now()->addMinutes(10),
         ]);
-
-        $this->actingAs($seller)
-            ->patch(route('profile.shop.update'), [
-                'update_type' => 'phone',
-                'phone' => '+373 77 333 444',
-            ])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
-
-        $shop->refresh();
-        $this->assertSame('+37377333444', $shop->phone);
-        $this->assertNull($shop->phone_verified_at);
-        $this->assertNull($shop->phone_verification_code);
-        $this->assertNull($shop->phone_verification_expires_at);
-        $this->assertFalse($shop->is_phone_verified);
-        $this->assertTrue($shop->needsPhoneVerification());
-    }
-
-    public function test_unchanged_shop_phone_keeps_verification_state_without_current_password(): void
-    {
-        $seller = User::factory()->seller()->create();
-        $shop = $seller->shop()->create([
-            'name' => 'Seller shop',
-            'phone' => '+37377111222',
-            'phone_verified_at' => now(),
-            'phone_verification_code' => '123456',
-            'phone_verification_expires_at' => now()->addMinutes(10),
-        ]);
-        $verifiedAt = $shop->phone_verified_at;
-        $codeExpiresAt = $shop->phone_verification_expires_at;
-
-        $this->actingAs($seller)
-            ->patch(route('profile.shop.update'), [
-                'update_type' => 'phone',
-                'phone' => '+373 77 111 222',
-            ])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('profile.edit'));
-
-        $shop->refresh();
-        $this->assertSame('+37377111222', $shop->phone);
-        $this->assertTrue($shop->is_phone_verified);
-        $this->assertTrue($verifiedAt->equalTo($shop->phone_verified_at));
-        $this->assertSame('123456', $shop->phone_verification_code);
-        $this->assertTrue($codeExpiresAt->equalTo($shop->phone_verification_expires_at));
+        $before = $shop->fresh()->getRawOriginal();
+        $userBefore = $seller->fresh()->only(['phone', 'phone_verified_at']);
+        foreach (['+37377333444', '+37377111222', '', null] as $phone) {
+            $this->actingAs($seller)->patch(route('profile.shop.update'), ['phone' => $phone])
+                ->assertSessionHasErrors('phone');
+            $this->assertSame($before, $shop->fresh()->getRawOriginal());
+            $this->assertEquals($userBefore, $seller->fresh()->only(['phone', 'phone_verified_at']));
+        }
     }
 
     public function test_shop_phone_cannot_duplicate_another_shops_phone_without_current_password(): void
@@ -117,6 +58,17 @@ class ShopPhoneProfileTest extends TestCase
             ->assertSessionHasErrors('phone');
 
         $this->assertNull($shop->fresh()->phone);
+    }
+
+    public function test_legacy_aliases_cannot_add_a_phone_or_create_a_shop(): void
+    {
+        $seller = User::factory()->seller()->create(['phone' => null]);
+        foreach ([['phone' => '+37377111222'], ['phone_full' => '+37377111222'], ['update_type' => 'phone']] as $payload) {
+            $this->actingAs($seller)->patchJson(route('profile.shop.update'), $payload)
+                ->assertUnprocessable()->assertJsonValidationErrors('phone');
+            $this->assertNull($seller->fresh()->phone);
+            $this->assertFalse($seller->shop()->exists());
+        }
     }
 
     public function test_shop_phone_cannot_duplicate_another_users_phone_without_current_password(): void
