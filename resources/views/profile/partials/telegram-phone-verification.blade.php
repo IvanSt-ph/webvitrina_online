@@ -70,29 +70,31 @@
 function initSellerAccountPhone(form) {
     const input = form.querySelector('input[type="tel"]');
     if (!input || input.dataset.intlInitialized) return;
-    if (!window.intlTelInput) {
+    if (!window.initializePhoneInput) {
         document.addEventListener('DOMContentLoaded', () => initSellerAccountPhone(form), {once: true});
         return;
     }
-    input.dataset.intlInitialized = 'true';
-    const phone = window.intlTelInput(input, {
-        initialCountry: 'md', countryOrder: ['md', 'ua', 'ro', 'ru'],
-        separateDialCode: true, autoPlaceholder: 'aggressive',
-        formatAsYouType: true, strictMode: true, showFlags: true,
-        dropdownContainer: document.body,
-        loadUtils: window.loadIntlTelInputUtils,
-    });
-    phone.promise.then(() => {
-        const display = form.closest('[data-phone-verification]').querySelector('[data-account-phone-display]');
-        const utils = window.intlTelInput.utils;
-        if (display && utils && display.textContent.trim().startsWith('+')) {
-            display.textContent = utils.formatNumber(display.textContent.trim(), '', utils.numberFormat.INTERNATIONAL);
-        }
+    return window.initializePhoneInput(input, () => {
+        const phone = window.intlTelInput(input, {
+            initialCountry: 'md', countryOrder: ['md', 'ua', 'ro', 'ru'],
+            separateDialCode: true, autoPlaceholder: 'aggressive',
+            formatAsYouType: true, strictMode: true, showFlags: true,
+            dropdownContainer: document.body,
+            loadUtils: window.loadIntlTelInputUtils,
+        });
+        phone.promise.then(() => {
+            const display = form.closest('[data-phone-verification]').querySelector('[data-account-phone-display]');
+            const utils = window.intlTelInput.utils;
+            if (display && utils && display.textContent.trim().startsWith('+')) {
+                display.textContent = utils.formatNumber(display.textContent.trim(), '', utils.numberFormat.INTERNATIONAL);
+            }
     }).catch(() => {}); // Keep the server-rendered number if formatting is unavailable.
     form.addEventListener('submit', () => {
         const fullNumber = phone.getNumber();
         if (fullNumber) input.value = fullNumber;
     });
+    return phone;
+    }).catch(() => window.showSiteToast?.('Не удалось загрузить поле телефона. Повторите попытку.', 'error'));
 }
 async function refreshPhoneVerification(button) {
     if (!button || button.disabled) return;

@@ -2,3 +2,4 @@
 // seller form sees Leaflet. Only product create/edit pages use this entry.
 import './runtime/leaflet';
 import './app';
+import './seller-product-form';

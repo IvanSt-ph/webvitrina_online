@@ -310,7 +310,7 @@
                data-lat="{{ $product->latitude ?? 47.0105 }}"
                data-lng="{{ $product->longitude ?? 28.8638 }}"
                data-zoom="{{ $product->latitude ? 14 : 7 }}"
-               class="h-72 w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100"></div>
+               class="isolate h-72 w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100"></div>
 
           <input type="hidden" id="latitude" name="latitude"
                  value="{{ old('latitude', $product->latitude) }}">

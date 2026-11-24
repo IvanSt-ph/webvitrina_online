@@ -148,13 +148,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const phoneInput = document.querySelector('#phone');
-    if (!phoneInput || phoneInput.closest('.iti') || !window.intlTelInput) return;
-    const iti = window.intlTelInput(phoneInput, { initialCountry: 'md', separateDialCode: false, nationalMode: false, hiddenInput: function () { return { phone: 'phone_full' }; }, placeholderNumberType: 'MOBILE', dropdownContainer: document.body, loadUtils: window.loadIntlTelInputUtils });
-    const savedPhone = phoneInput.value.trim(); if (savedPhone) iti.setNumber(savedPhone);
-    const phoneDirtyInput = document.querySelector('#phone_dirty');
-    const markPhoneDirty = function () { if (phoneDirtyInput) phoneDirtyInput.value = '1'; };
-    phoneInput.addEventListener('input', markPhoneDirty); phoneInput.addEventListener('countrychange', markPhoneDirty);
-    const form = phoneInput.closest('form'); if (form) form.addEventListener('submit', function () { const fullPhone = iti.getNumber(); if (fullPhone) phoneInput.value = fullPhone; });
+    if (!phoneInput || phoneInput.closest('.iti')) return;
+    window.initializePhoneInput(phoneInput, () => {
+        const iti = window.intlTelInput(phoneInput, { initialCountry: 'md', separateDialCode: false, nationalMode: false, hiddenInput: function () { return { phone: 'phone_full' }; }, placeholderNumberType: 'MOBILE', dropdownContainer: document.body, loadUtils: window.loadIntlTelInputUtils });
+        const savedPhone = phoneInput.value.trim(); if (savedPhone) iti.setNumber(savedPhone);
+        const phoneDirtyInput = document.querySelector('#phone_dirty');
+        const markPhoneDirty = function () { if (phoneDirtyInput) phoneDirtyInput.value = '1'; };
+        phoneInput.addEventListener('input', markPhoneDirty); phoneInput.addEventListener('countrychange', markPhoneDirty);
+        const form = phoneInput.closest('form'); if (form) form.addEventListener('submit', function () { const fullPhone = iti.getNumber(); if (fullPhone) phoneInput.value = fullPhone; });
+        return iti;
+    }).catch(() => window.showSiteToast?.('Не удалось загрузить поле телефона. Повторите попытку.', 'error'));
 });
 </script>
 @endsection

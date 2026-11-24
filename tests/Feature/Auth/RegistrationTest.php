@@ -74,7 +74,7 @@ public function test_new_users_can_register(): void
 
     public function test_registration_phone_widget_uses_current_intl_tel_input_api(): void
     {
-        $javascript = file_get_contents(resource_path('js/app.js'));
+        $javascript = file_get_contents(resource_path('js/phone-input-runtime.js'));
         $styles = file_get_contents(resource_path('css/app.css'));
 
         $this->assertStringContainsString("loadUtils: window.loadIntlTelInputUtils", $javascript);
