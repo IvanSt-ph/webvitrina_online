@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="scripts/full-test-preflight.php"
+         colors="true">
+    <!-- Complete suites, without the local database defaults in phpunit.xml. -->
+    <testsuites>
+        <testsuite name="Unit"><directory>tests/Unit</directory></testsuite>
+        <testsuite name="Feature"><directory>tests/Feature</directory></testsuite>
+    </testsuites>
+    <source><include><directory>app</directory></include></source>
+    <php>
+        <!-- DB settings and password come only from the disposable container.
+             The bootstrap rejects missing or changed values before any tests. -->
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="MAIL_FROM_ADDRESS" value="web_vitrina@mail.ru"/>
+        <env name="MAIL_FROM_NAME" value="WebVitrina"/>
+    </php>
+</phpunit>

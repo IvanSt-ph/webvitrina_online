@@ -30,6 +30,16 @@ abstract class TestCase extends BaseTestCase
 
     public function createApplication()
     {
+        if (getenv('WV_DISPOSABLE_FULL_TEST') === '1') {
+            Support\DisposableTestEnvironment::assertIsolation();
+            $app = require dirname(__DIR__).'/bootstrap/app.php';
+            $this->traitsUsedByTest = array_flip(class_uses_recursive(static::class));
+            $app->afterBootstrapping(\Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
+                static fn ($app) => Support\DisposableDatabaseMode::install($app));
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+            return $app;
+        }
         $rollbackMode = getenv('WV_TEST_RUN_MODE') === 'attribute-rollback';
         if (! Support\ExistingSchemaMode::enabled() && ! $rollbackMode) {
             return parent::createApplication();
@@ -130,6 +140,12 @@ abstract class TestCase extends BaseTestCase
     public static function assertSafeTestDatabaseConfiguration(string $environment, array $databaseConfig): void
     {
         $connection = $databaseConfig['connections']['mysql'] ?? [];
+
+        if (($connection['database'] ?? null) === Support\DisposableTestEnvironment::DATABASE) {
+            Support\DisposableTestEnvironment::assertConfiguration($environment, $databaseConfig);
+
+            return;
+        }
 
         if ($environment !== 'testing'
             || ($databaseConfig['default'] ?? null) !== 'mysql'

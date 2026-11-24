@@ -72,6 +72,11 @@ final class SafeTestTargetTest extends TestCase
     {
         $process = new \Symfony\Component\Process\Process([PHP_BINARY, 'scripts/run-safe-feature-tests.php',
             '--mode=attribute-rollback', '--file=tests/Feature/ProductAttributeValidationTest.php'], dirname(__DIR__, 2), [
+                // This child tests the local runner contract, not the parent Docker target.
+                'APP_ENV' => 'testing', 'DB_CONNECTION' => 'mysql',
+                'DB_DATABASE' => 'webv3_testing', 'DB_USERNAME' => 'webvitrina_test',
+                'DB_HOST' => '127.127.126.9', 'DB_PORT' => '3306',
+                'WV_DISPOSABLE_FULL_TEST' => false,
                 'WV_EXISTING_SCHEMA' => false, 'WV_TEST_RUN_MODE' => false, 'WV_ALLOW_ATTRIBUTE_SEEDER_TEST' => false,
                 'DB_URL' => false, 'DB_SOCKET' => false,
                 // Would fail authentication if the descriptive path tried to connect.
@@ -87,6 +92,11 @@ final class SafeTestTargetTest extends TestCase
     {
         $process = new \Symfony\Component\Process\Process([PHP_BINARY, 'scripts/run-safe-feature-tests.php',
             '--mode=existing-schema', '--file=tests/Feature/ProductMutationConcurrencyTest.php', '--run'], dirname(__DIR__, 2), [
+                // Reach the missing-ack check with a valid, process-local environment.
+                'APP_ENV' => 'testing', 'DB_CONNECTION' => 'mysql',
+                'DB_DATABASE' => 'webv3_testing', 'DB_USERNAME' => 'webvitrina_test',
+                'DB_HOST' => '127.127.126.9', 'DB_PORT' => '3306',
+                'WV_DISPOSABLE_FULL_TEST' => false,
                 'WV_EXISTING_SCHEMA' => false, 'WV_TEST_RUN_MODE' => false, 'WV_ALLOW_ATTRIBUTE_SEEDER_TEST' => false,
                 'DB_URL' => false, 'DB_SOCKET' => false, 'DB_PASSWORD' => 'nonexistent-test-password',
             ]);

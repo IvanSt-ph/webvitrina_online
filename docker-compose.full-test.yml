@@ -1,0 +1,85 @@
+name: webvitrina-full-test
+
+services:
+  mysql-full-test:
+    image: mysql:8.4
+    restart: "no"
+    environment:
+      MYSQL_DATABASE: webv3_full_testing
+      MYSQL_USER: webvitrina_full_test
+      MYSQL_PASSWORD_FILE: /run/secrets/full_test_db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/full_test_db_root_password
+    secrets:
+      - full_test_db_password
+      - full_test_db_root_password
+    tmpfs:
+      - /var/lib/mysql:rw,noexec,nosuid,size=1g
+      - /tmp:rw,noexec,nosuid,size=128m
+    volumes:
+      - full-test-mysql-socket:/var/run/mysqld
+    network_mode: none
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - MYSQL_PWD="$$(cat /run/secrets/full_test_db_password)" mysqladmin ping --host=127.0.0.1 --user=webvitrina_full_test --silent
+      interval: 2s
+      timeout: 3s
+      retries: 45
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+
+  full-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.full-test
+    restart: "no"
+    depends_on:
+      mysql-full-test:
+        condition: service_healthy
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: localhost
+      DB_PORT: "3306"
+      DB_SOCKET: /var/run/mysqld/mysqld.sock
+      DB_DATABASE: webv3_full_testing
+      DB_USERNAME: webvitrina_full_test
+      DB_PASSWORD_FILE: /run/secrets/full_test_db_password
+      DB_URL: ""
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      BROADCAST_CONNECTION: log
+      FILESYSTEM_DISK: local
+      TELESCOPE_ENABLED: "false"
+      PULSE_ENABLED: "false"
+      NIGHTWATCH_ENABLED: "false"
+      WV_DISPOSABLE_FULL_TEST: "1"
+      WV_FULL_TEST_EXECUTE: "${WV_FULL_TEST_EXECUTE:-0}"
+      WV_FULL_TEST_FILTER: "${WV_FULL_TEST_FILTER:-}"
+    secrets:
+      - full_test_db_password
+    volumes:
+      - full-test-mysql-socket:/var/run/mysqld
+    network_mode: none
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+
+volumes:
+  full-test-mysql-socket:
+
+secrets:
+  full_test_db_password:
+    file: ${WV_FULL_TEST_DB_PASSWORD_FILE:?Set WV_FULL_TEST_DB_PASSWORD_FILE to a protected temporary file}
+  full_test_db_root_password:
+    file: ${WV_FULL_TEST_DB_ROOT_PASSWORD_FILE:?Set WV_FULL_TEST_DB_ROOT_PASSWORD_FILE to a protected temporary file}
+

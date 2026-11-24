@@ -14,7 +14,7 @@ final class TestDatabaseSafety
         // Keep the original allowlist as the first, mandatory check.
         TestCase::assertSafeTestDatabaseConfiguration($environment, $database);
         $mysql = $database['connections']['mysql'];
-        if (! empty($mysql['unix_socket']) || ! empty($mysql['prefix'])
+        if (($mysql['database'] !== DisposableTestEnvironment::DATABASE && ! empty($mysql['unix_socket'])) || ! empty($mysql['prefix'])
             || ! empty($mysql['options'][PDO::ATTR_PERSISTENT])
             || (defined('PDO::MYSQL_ATTR_INIT_COMMAND')
                 && isset($mysql['options'][constant('PDO::MYSQL_ATTR_INIT_COMMAND')]))) {
@@ -28,7 +28,7 @@ final class TestDatabaseSafety
         self::assertConfiguration($environment, [
             'default' => 'mysql', 'connections' => ['mysql' => $connection->getConfig()],
         ]);
-        if ($connection->getDatabaseName() !== 'webv3_testing'
+        if ($connection->getDatabaseName() !== $database['connections']['mysql']['database']
             || $connection->getTablePrefix() !== '') {
             throw new RuntimeException('Resolved test connection does not match the approved database.');
         }
@@ -42,6 +42,11 @@ final class TestDatabaseSafety
         $pdo = $connection->getRawPdo();
         if (! $pdo instanceof PDO || ($expectedPdo !== null && $pdo !== $expectedPdo)) {
             throw new RuntimeException('Test cleanup requires the original connected PDO.');
+        }
+        if ($database['connections']['mysql']['database'] === DisposableTestEnvironment::DATABASE) {
+            DisposableTestEnvironment::assertPdo($pdo);
+
+            return $pdo;
         }
         if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
             throw new RuntimeException('Test cleanup requires a MySQL PDO.');

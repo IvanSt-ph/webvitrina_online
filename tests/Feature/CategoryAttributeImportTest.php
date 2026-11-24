@@ -31,7 +31,8 @@ final class CategoryAttributeImportTest extends AttributeFeatureTestCase
         TestDatabaseSafety::assertMetadata(app()->environment(), config('database'), $connection);
         $connection->getPdo();
         TestDatabaseSafety::assertConnected(app()->environment(), config('database'), $connection);
-        config(['attribute_import.allowed_database' => 'webv3_testing']);
+        // Use only the target whose configuration AND live PDO were verified above.
+        config(['attribute_import.allowed_database' => $connection->getDatabaseName()]);
         DB::beginTransaction();
         $this->rollBackTestTransactionsBeforeApplicationDestroyed();
         $this->category = Category::factory()->create();

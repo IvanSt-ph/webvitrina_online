@@ -22,6 +22,9 @@ final class TestWorkerBootstrap
             TestDatabaseSafety::assertConfiguration($app->environment(), $database);
             $database['connections'] = ['mysql' => $database['connections']['mysql']];
             $app['config']->set('database', $database);
+            if (getenv('WV_DISPOSABLE_FULL_TEST') === '1') {
+                DisposableDatabaseMode::install($app);
+            }
             if (ExistingSchemaMode::enabled()) {
                 ExistingSchemaMode::install($app);
             }
