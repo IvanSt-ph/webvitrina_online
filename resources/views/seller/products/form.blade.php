@@ -7,7 +7,7 @@
     </p>
 @endunless
 
-<div class="seller-product-page min-h-screen w-full bg-white px-3 py-4 pb-28 text-neutral-900 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8"
+<div data-seller-product-form class="seller-product-page min-h-screen w-full bg-white px-3 py-4 pb-28 text-neutral-900 sm:px-6 sm:py-6 sm:pb-28 lg:px-8 lg:py-8 lg:pb-8"
      data-country="{{ old('country_id', optional($product->city)->country_id) }}"
      data-city="{{ old('city_id', $product->city_id) }}">
 

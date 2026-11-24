@@ -90,7 +90,7 @@ function avatarCropper() {
             this.currentAvatar = this.$refs.avatarImage.src;
         },
         
-        openCropper(event) {
+        async openCropper(event) {
             const file = event.target.files[0];
             if (!file) return;
             
@@ -100,6 +100,13 @@ function avatarCropper() {
                 return;
             }
             
+            let Cropper;
+            try { Cropper = await window.loadCropper(); }
+            catch {
+                this.showNotification('Не удалось загрузить редактор изображения. Повторите попытку.', 'error');
+                return;
+            }
+            if (event.target.files[0] !== file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 this.imageToCrop = e.target.result;

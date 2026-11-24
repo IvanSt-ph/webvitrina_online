@@ -278,7 +278,7 @@
 
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const gallery = document.getElementById('admin-gallery-container');
     if (gallery && gallery.dataset.deleteBound !== '1') {
         gallery.dataset.deleteBound = '1';
@@ -312,93 +312,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const productLat = {{ $product->latitude ?? 'null' }};
-    const productLng = {{ $product->longitude ?? 'null' }};
-    let lat = Number.parseFloat(@js(old('latitude')) ?? productLat ?? 47.0105);
-    let lng = Number.parseFloat(@js(old('longitude')) ?? productLng ?? 28.8638);
-    if (!Number.isFinite(lat)) lat = productLat ?? 47.0105;
-    if (!Number.isFinite(lng)) lng = productLng ?? 28.8638;
-    if (!lat || isNaN(lat)) lat = productLat ?? 47.0105;
-    if (!lng || isNaN(lng)) lng = productLng ?? 28.8638;
-
-    const mapEl = document.getElementById('map');
-    if (!mapEl || typeof L === 'undefined') return;
-    if (L.DomUtil.get('map') !== null) L.DomUtil.get('map')._leaflet_id = null;
-
-    const map = L.map('map').setView([lat, lng], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-    const updateCoords = (latlng) => {
-        document.getElementById('latitude').value = latlng.lat.toFixed(6);
-        document.getElementById('longitude').value = latlng.lng.toFixed(6);
-    };
-    updateCoords(marker.getLatLng());
-
-    const shortAddress = (addr) => {
-        const parts = [];
-        if (addr.road) parts.push(addr.road);
-        if (addr.house_number) parts.push(addr.house_number);
-        if (addr.city) parts.push(addr.city);
-        else if (addr.town) parts.push(addr.town);
-        else if (addr.village) parts.push(addr.village);
-        if (addr.country) parts.push(addr.country);
-        return parts.join(', ');
-    };
-
-    const reverse = async (latlng) => {
-        updateCoords(latlng);
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`);
-            const data = await res.json();
-            if (data?.address) document.getElementById('address').value = shortAddress(data.address);
-        } catch (_) {}
-    };
-
-    marker.on('dragend', (e) => reverse(e.target.getLatLng()));
-    map.on('click', (e) => {
-        marker.setLatLng(e.latlng);
-        reverse(e.latlng);
-    });
-
-    document.getElementById('searchAddress')?.addEventListener('click', async () => {
-        let query = document.getElementById('address').value.trim();
-        const errorBox = document.getElementById('addressError');
-        errorBox.classList.add('hidden');
-        errorBox.textContent = '';
-
-        const country = document.querySelector('[name="country_id"]');
-        const city = document.querySelector('[name="city_id"]');
-        const countryText = country?.options[country.selectedIndex]?.text || '';
-        const cityText = city?.options[city.selectedIndex]?.text || '';
-        if (!query && cityText) query = `${cityText}, ${countryText}`;
-
-        if (!query) {
-            errorBox.textContent = 'Введите адрес или выберите город';
-            errorBox.classList.remove('hidden');
-            return;
-        }
-
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
-            const data = await res.json();
-            if (!data.length) {
-                errorBox.textContent = 'Такой адрес не найден.';
-                errorBox.classList.remove('hidden');
-                return;
-            }
-            const found = data[0];
-            const latlng = [parseFloat(found.lat), parseFloat(found.lon)];
-            map.setView(latlng, 14);
-            marker.setLatLng(latlng);
-            updateCoords({ lat: latlng[0], lng: latlng[1] });
-        } catch (_) {
-            errorBox.textContent = 'Не удалось проверить адрес.';
-            errorBox.classList.remove('hidden');
-        }
-    });
+    try {
+        await window.initAdminProductMap(document.getElementById('map'), {
+            latitude: @js(old('latitude', $product->latitude)), longitude: @js(old('longitude', $product->longitude)), zoom: 13
+        });
+    } catch (error) {
+        console.error('Unable to initialize admin product map', error);
+    }
 });
 
 function slugHelper() {

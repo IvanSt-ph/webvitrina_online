@@ -48,6 +48,7 @@
     @stack('styles')
 </head>
 <body class="overflow-x-hidden bg-slate-50 font-sans antialiased"
+      data-authenticated="{{ auth()->check() ? 'true' : 'false' }}"
       data-search-query="{{ request('q') }}"
       data-currency="{{ session('currency', 'PRB') }}">
 

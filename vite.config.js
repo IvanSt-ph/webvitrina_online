@@ -12,6 +12,7 @@ export default defineConfig({
                 'resources/css/manrope.css',
                 'resources/css/instrument-sans.css',
                 'resources/js/app.js',
+                'resources/js/seller-product-runtime.js',
                 'resources/js/seller-product-form.js',
             ],
             refresh: true,

@@ -1,4 +1,5 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const Chart = await window.loadChart();
 
     // ===============================
     // Общие настройки для ВСЕХ графиков

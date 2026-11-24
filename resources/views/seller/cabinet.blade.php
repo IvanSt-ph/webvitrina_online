@@ -457,7 +457,8 @@
 
   {{-- 📊 Chart.js --}}
   <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const Chart = await window.loadChart();
     const ctx = document.getElementById('salesChart');
     new Chart(ctx, {
       type: 'line',

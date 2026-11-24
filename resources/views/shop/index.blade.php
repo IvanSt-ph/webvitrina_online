@@ -3,13 +3,16 @@
 
 @php
 $firstBanner = $bannerItems->first();
-$firstImage = $firstBanner?->imageUrl();
 @endphp
 
 {{-- ✅ Предзагрузка первого баннера для ускорения --}}
-@if($firstImage)
-<link rel="preload" as="image" href="{{ $firstImage }}">
+@push('meta')
+@if($firstBanner)
+<link rel="preload" as="image" href="{{ $firstBanner->imageUrl('mobile') }}" media="(width <= 768px)">
+<link rel="preload" as="image" href="{{ $firstBanner->imageUrl('tablet') }}" media="(768px < width <= 1280px)">
+<link rel="preload" as="image" href="{{ $firstBanner->imageUrl('desktop') }}" media="(width > 1280px)">
 @endif
+@endpush
 
 <x-app-layout title="Каталог">
 
@@ -124,84 +127,6 @@ $firstImage = $firstBanner?->imageUrl();
     </div>
   </div>
 
-  {{-- 🧭 Панель сортировки / info --}}
-  <div class="max-w-[90rem] mx-auto px-2 sm:px-4 lg:px-6 mt-6">
-    @php
-      $currentSort = request('sort', 'popular');
-      $showSellerCategoryButton = auth()->check() && auth()->user()->isSeller();
-      $labels = [
-          'popular'     => 'По популярности',
-          'rating'      => 'По рейтингу',
-          'price_asc'   => 'По возрастанию цены',
-          'price_desc'  => 'По убыванию цены',
-          'new'         => 'По новинкам',
-          'benefit'     => 'Сначала выгодные',
-      ];
-    @endphp
-
-    <div class="flex min-h-9 {{ $showSellerCategoryButton ? 'items-end sm:items-center' : 'items-center' }} justify-between gap-2 sm:gap-3">
-      <div class="min-w-0">
-        <h1 class="m-0 leading-none text-xl sm:text-2xl font-semibold text-gray-900">
-          Каталог товаров
-        </h1>
-
-        @if($showSellerCategoryButton)
-          <button type="button"
-                  @click="open = true"
-                  class="mt-2 inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 active:bg-indigo-100 sm:hidden">
-            <i class="ri-apps-2-line text-base" aria-hidden="true"></i>
-            <span>Категории</span>
-          </button>
-        @endif
-      </div>
-
-      <div x-data="{ openSort: false }" class="relative shrink-0 sm:hidden">
-        <button type="button"
-                @click="openSort = !openSort"
-                class="flex h-9 items-center gap-1.5 rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-sm font-medium text-indigo-700">
-          <span class="max-w-[128px] truncate">{{ $labels[$currentSort] ?? 'По популярности' }}</span>
-          <svg class="h-4 w-4 shrink-0 transition-transform"
-               :class="{ 'rotate-180': openSort }"
-               fill="none"
-               stroke="currentColor"
-               viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        <div x-show="openSort"
-             x-cloak
-             x-transition
-             @click.away="openSort = false"
-             class="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-200 bg-white p-1 shadow-xl">
-          @foreach($labels as $value => $label)
-            <a href="?{{ http_build_query(request()->except('sort', 'page') + ['sort' => $value]) }}"
-               class="block rounded-xl px-3 py-2 text-sm transition-colors {{ $currentSort === $value ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-700 hover:bg-gray-50' }}">
-              {{ $label }}
-            </a>
-          @endforeach
-        </div>
-      </div>
-
-      <form method="GET" class="hidden h-9 shrink-0 items-center gap-2 text-sm sm:flex">
-        @foreach(request()->except('sort', 'page') as $key => $value)
-          <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-        @endforeach
-
-        <span class="hidden sm:inline text-gray-500">Сортировать:</span>
-        <select 
-          name="sort" 
-          class="h-9 max-w-[155px] sm:max-w-none border-gray-200 rounded-lg text-sm leading-none pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
-          onchange="this.form.submit()"
-        >
-          @foreach($labels as $value => $label)
-            <option value="{{ $value }}" @selected($currentSort === $value)>{{ $label }}</option>
-          @endforeach
-        </select>
-      </form>
-    </div>
-  </div>
-
   {{-- 📦 Основной контент --}}
   <div class="max-w-[90rem] mx-auto px-2 sm:px-4 lg:px-6 mt-6 mb-12">
     @php
@@ -224,12 +149,12 @@ $firstImage = $firstBanner?->imageUrl();
       <section class="mb-8 space-y-6">
         @if($hasRecommendedProducts)
           <div class="space-y-3" x-data="recommendedCarousel" role="region" aria-label="Рекомендуемые товары">
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 class="text-lg font-bold text-slate-950 sm:text-xl">Рекомендуемые товары</h2>
                 <p class="text-sm text-slate-500">Подборка WebVitrina и товары с высоким рейтингом</p>
               </div>
-              <div class="flex shrink-0 items-center gap-2">
+              <div class="recommended-carousel-controls flex flex-wrap items-center gap-2">
                 @if($recommendedProductsCount > $recommendedVisibleLimit)
                   <a href="{{ route('recommendations.index') }}"
                      class="hidden h-9 items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-xs font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-50 sm:inline-flex">
@@ -238,12 +163,10 @@ $firstImage = $firstBanner?->imageUrl();
                   </a>
                 @endif
                 <span class="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Подборка</span>
+                <button type="button" class="text-xs font-bold" x-cloak @click="togglePause()" :aria-pressed="paused" x-show="!reduced" x-text="paused ? 'Возобновить' : 'Пауза'" aria-label="Пауза автоматической прокрутки">Пауза</button>
               </div>
             </div>
 
-            <div class="recommended-carousel-controls flex justify-end gap-2" x-cloak>
-              <button type="button" @click="togglePause()" :aria-pressed="paused" x-show="!reduced" x-text="paused ? 'Возобновить' : 'Пауза'" aria-label="Пауза автоматической прокрутки">Пауза</button>
-            </div>
             <div class="recommended-carousel-viewport">
               <button type="button" class="recommended-carousel-arrow recommended-carousel-arrow--previous" @click="scroll(-1)" aria-label="Предыдущие товары" aria-controls="recommended-track" x-cloak>
                 <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
@@ -371,6 +294,84 @@ $firstImage = $firstBanner?->imageUrl();
       </section>
     @endif
     
+    {{-- 🧭 Панель сортировки / info --}}
+    <div class="mb-6">
+      @php
+        $currentSort = request('sort', 'popular');
+        $showSellerCategoryButton = auth()->check() && auth()->user()->isSeller();
+        $labels = [
+            'popular'     => 'По популярности',
+            'rating'      => 'По рейтингу',
+            'price_asc'   => 'По возрастанию цены',
+            'price_desc'  => 'По убыванию цены',
+            'new'         => 'По новинкам',
+            'benefit'     => 'Сначала выгодные',
+        ];
+      @endphp
+
+      <div class="flex min-h-9 {{ $showSellerCategoryButton ? 'items-end sm:items-center' : 'items-center' }} justify-between gap-2 sm:gap-3">
+        <div class="min-w-0">
+          <h1 class="m-0 leading-none text-xl sm:text-2xl font-semibold text-gray-900">
+            Каталог товаров
+          </h1>
+
+          @if($showSellerCategoryButton)
+            <button type="button"
+                    @click="open = true"
+                    class="mt-2 inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 active:bg-indigo-100 sm:hidden">
+              <i class="ri-apps-2-line text-base" aria-hidden="true"></i>
+              <span>Категории</span>
+            </button>
+          @endif
+        </div>
+
+        <div x-data="{ openSort: false }" class="relative shrink-0 sm:hidden">
+          <button type="button"
+                  @click="openSort = !openSort"
+                  class="flex h-9 items-center gap-1.5 rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-sm font-medium text-indigo-700">
+            <span class="max-w-[128px] truncate">{{ $labels[$currentSort] ?? 'По популярности' }}</span>
+            <svg class="h-4 w-4 shrink-0 transition-transform"
+                 :class="{ 'rotate-180': openSort }"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div x-show="openSort"
+               x-cloak
+               x-transition
+               @click.away="openSort = false"
+               class="absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-200 bg-white p-1 shadow-xl">
+            @foreach($labels as $value => $label)
+              <a href="?{{ http_build_query(request()->except('sort', 'page') + ['sort' => $value]) }}"
+                 class="block rounded-xl px-3 py-2 text-sm transition-colors {{ $currentSort === $value ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-gray-700 hover:bg-gray-50' }}">
+                {{ $label }}
+              </a>
+            @endforeach
+          </div>
+        </div>
+
+        <form method="GET" class="hidden h-9 shrink-0 items-center gap-2 text-sm sm:flex">
+          @foreach(request()->except('sort', 'page') as $key => $value)
+            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+          @endforeach
+
+          <span class="hidden sm:inline text-gray-500">Сортировать:</span>
+          <select
+            name="sort"
+            class="h-9 max-w-[155px] sm:max-w-none border-gray-200 rounded-lg text-sm leading-none pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
+            onchange="this.form.submit()"
+          >
+            @foreach($labels as $value => $label)
+              <option value="{{ $value }}" @selected($currentSort === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+        </form>
+      </div>
+    </div>
+
     <div data-load-more-root="home-products">
       {{-- 🎯 Сетка карточек — 6 колонок максимум (чтобы карточки не были слишком узкими) --}}
       <div id="products-grid"

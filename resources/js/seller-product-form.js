@@ -1,7 +1,9 @@
 import { renderAttributeFields, snapshotAttributeFields, updateColorSummary, captureAttributeDrafts, restoreAttributeDrafts, resetAttributeColor } from './seller-attribute-fields.js';
 import { getCurrencyRates } from './currency-rates.js';
+import { geocodeLocation } from './product-geocoding.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (!document.querySelector('[data-seller-product-form]')) return;
   if (window.__sellerProductFormInitialized) return;
   window.__sellerProductFormInitialized = true;
 
@@ -228,18 +230,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function geocodeAndMove(cityName, countryName, zoom = 13) {
     if (!cityName) return;
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(
-          `${cityName}, ${countryName || ''}`
-        )}`,
-        { headers: { 'Accept-Language': 'ru' } }
-      );
-      const data = await res.json();
+      const coords = await geocodeLocation(`${cityName}, ${countryName || ''}`);
 
-      if (Array.isArray(data) && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
-        const coords = { lat, lng: lon };
+      if (coords) {
 
         if (mapInstance && markerInstance) {
           mapInstance.setView(coords, zoom);
@@ -290,21 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(
-              query
-            )}`,
-            { headers: { 'Accept-Language': 'ru' } }
-          );
-          const data = await res.json();
-          if (!data.length) {
+          const coords = await geocodeLocation(query);
+          if (!coords) {
             errorBox?.classList?.remove('hidden');
             if (errorBox) errorBox.textContent = 'Адрес не найден';
             return;
           }
-
-          const { lat, lon } = data[0];
-          const coords = { lat: parseFloat(lat), lng: parseFloat(lon) };
 
           mapInstance.setView(coords, 14);
           markerInstance.setLatLng(coords);

@@ -183,9 +183,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let cropper;
 
   // 🖼️ Загрузка файла
-  input.addEventListener('change', e => {
+  input.addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
+    let Cropper;
+    try { Cropper = await window.loadCropper(); }
+    catch {
+      window.showAppToast('Не удалось загрузить редактор изображения. Повторите попытку.', 'error');
+      return;
+    }
+    if (e.target.files[0] !== file) return;
     const reader = new FileReader();
     reader.onload = () => {
       img.src = reader.result;

@@ -9,7 +9,9 @@
   <title>{{ $title ? $title . ' — WebVitrina Seller' : 'WebVitrina Seller' }}</title>
 
   {{-- ⚡ Подключаем уже готовые стили/скрипты (один раз через app.blade.php) --}}
-  @vite(['resources/css/app.css', 'resources/js/app.js'])
+  @vite(['resources/css/app.css', request()->routeIs('seller.products.create', 'seller.products.edit')
+      ? 'resources/js/seller-product-runtime.js'
+      : 'resources/js/app.js'])
 </head>
 <body class="bg-neutral-50 text-gray-800 font-sans antialiased">
   <x-toast-stack />

@@ -124,10 +124,17 @@ window.showAppToast = (message, type = 'success') => {
 
 // 🧮 Актуализация счетчиков товаров на карточках после возврата назад
 // Браузер может восстановить главную из bfcache, поэтому Blade-значения становятся устаревшими.
+let cartQuantitiesInFlight = false
+let cartQuantitiesUnauthorized = false
+
 window.refreshProductCartQuantities = async () => {
+  if (document.body.dataset.authenticated !== 'true'
+    || cartQuantitiesUnauthorized || cartQuantitiesInFlight) return
+
   const productCards = document.querySelectorAll('.pc-card')
   if (!productCards.length) return
 
+  cartQuantitiesInFlight = true
   try {
     const url = new URL('/cart-quantities', window.location.origin)
     url.searchParams.set('_', Date.now().toString())
@@ -141,6 +148,11 @@ window.refreshProductCartQuantities = async () => {
       },
     })
 
+    if (response.status === 401) {
+      // A restored page may outlive its session. Only a new document resets this.
+      cartQuantitiesUnauthorized = true
+      return
+    }
     if (!response.ok) return
 
     const data = await response.json()
@@ -149,6 +161,8 @@ window.refreshProductCartQuantities = async () => {
     }))
   } catch (error) {
     void error
+  } finally {
+    cartQuantitiesInFlight = false
   }
 }
 

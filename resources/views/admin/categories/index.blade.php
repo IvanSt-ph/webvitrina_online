@@ -138,7 +138,8 @@
         {{-- Chart.js код --}}
         @push('charts')
         <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+          const Chart = await window.loadChart();
           const ctx = document.getElementById('chart-{{ $cat->id }}');
           if (!ctx) return;
 

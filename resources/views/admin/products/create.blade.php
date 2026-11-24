@@ -207,124 +207,14 @@
 {{-- Подключение leaflet --}}
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    let lat = Number.parseFloat(@js(old('latitude', 47.0105)));
-    let lng = Number.parseFloat(@js(old('longitude', 28.8638)));
-    if (!Number.isFinite(lat)) lat = 47.0105;
-    if (!Number.isFinite(lng)) lng = 28.8638;
-    let zoom = {{ old('latitude') ? 14 : 7 }};
-
-    if (L.DomUtil.get('map') !== null) {
-    L.DomUtil.get('map')._leaflet_id = null;
-}
-
-
-    let map = L.map('map').setView([lat, lng], zoom);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    let marker = L.marker([lat, lng], {draggable:true}).addTo(map);
-
-    function updateCoords(latlng) {
-        document.getElementById('latitude').value = latlng.lat.toFixed(6);
-        document.getElementById('longitude').value = latlng.lng.toFixed(6);
+document.addEventListener("DOMContentLoaded", async function() {
+    try {
+        await window.initAdminProductMap(document.getElementById('map'), {
+            latitude: @js(old('latitude', 47.0105)), longitude: @js(old('longitude', 28.8638)), zoom: {{ old('latitude') ? 14 : 7 }}
+        });
+    } catch (error) {
+        console.error('Unable to initialize admin product map', error);
     }
-    updateCoords(marker.getLatLng());
-
-    function shortAddress(addr) {
-        let parts = [];
-        if (addr.road) parts.push(addr.road);
-        if (addr.house_number) parts.push(addr.house_number);
-        if (addr.city) parts.push(addr.city);
-        else if (addr.town) parts.push(addr.town);
-        else if (addr.village) parts.push(addr.village);
-        if (addr.country) parts.push(addr.country);
-        return parts.join(', ');
-    }
-
-    marker.on('dragend', async function(e) {
-        let latlng = e.target.getLatLng();
-        updateCoords(latlng);
-        let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}&zoom=18&addressdetails=1`;
-        let res = await fetch(url);
-        let data = await res.json();
-        if (data && data.address) {
-            document.getElementById('address').value = shortAddress(data.address);
-        }
-    });
-
-    map.on('click', async function(e) {
-        marker.setLatLng(e.latlng);
-        updateCoords(e.latlng);
-        let url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`;
-        let res = await fetch(url);
-        let data = await res.json();
-        if (data && data.address) {
-            document.getElementById('address').value = shortAddress(data.address);
-        }
-    });
-
-    document.getElementById('searchAddress').addEventListener('click', async function() {
-        let query = document.getElementById('address').value.trim();
-        let errorBox = document.getElementById('addressError');
-        errorBox.classList.add('hidden');
-        errorBox.textContent = "";
-
-        let country = document.querySelector('[name="country_id"]');
-        let city    = document.querySelector('[name="city_id"]');
-        let countryText = country?.options[country.selectedIndex]?.text || '';
-        let cityText    = city?.options[city.selectedIndex]?.text || '';
-
-        if (!query && cityText) {
-            query = `${cityText}, ${countryText}`;
-        }
-        if (!query) {
-            errorBox.textContent = "Введите адрес или выберите город";
-            errorBox.classList.remove('hidden');
-            return;
-        }
-
-        let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-        let res = await fetch(url);
-        let data = await res.json();
-
-        if (data.length === 0) {
-            errorBox.textContent = "❌ Такой адрес не найден.";
-            errorBox.classList.remove('hidden');
-            return;
-        }
-
-        let found = data[0];
-        let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
-        map.setView(latlng, 14);
-        marker.setLatLng(latlng);
-        updateCoords({lat: latlng[0], lng: latlng[1]});
-        if (found.address) {
-            document.getElementById('address').value = shortAddress(found.address);
-        }
-    });
-
-    document.querySelector('[name="city_id"]').addEventListener('change', async function() {
-        let country = document.querySelector('[name="country_id"]');
-        let city    = document.querySelector('[name="city_id"]');
-        let countryText = country?.options[country.selectedIndex]?.text || '';
-        let cityText    = city?.options[city.selectedIndex]?.text || '';
-        if (!cityText) return;
-
-        let query = `${cityText}, ${countryText}`;
-        let url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-        let res = await fetch(url);
-        let data = await res.json();
-        if (data.length > 0) {
-            let found = data[0];
-            let latlng = [parseFloat(found.lat), parseFloat(found.lon)];
-            map.setView(latlng, 13);
-            marker.setLatLng(latlng);
-            updateCoords({lat: latlng[0], lng: latlng[1]});
-            document.getElementById('address').value = `${cityText}, ${countryText}`;
-        }
-    });
 });
 </script>
 

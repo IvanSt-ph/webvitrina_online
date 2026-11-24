@@ -73,25 +73,32 @@
         {{-- Leaflet JS --}}
 
         <script>
-            window.initProductMap = window.initProductMap || function (el) {
-                if (!el || el.dataset.inited) return;
+            window.initProductMap = window.initProductMap || async function (el) {
+                if (!el || el.dataset.inited || el.dataset.loading) return;
+                el.dataset.loading = '1';
+                try {
+                    const L = await window.loadLeaflet();
 
-                el.dataset.inited = '1';
+                    const lat   = parseFloat(el.dataset.lat);
+                    const lng   = parseFloat(el.dataset.lng);
+                    const title = el.dataset.title || '';
 
-                const lat   = parseFloat(el.dataset.lat);
-                const lng   = parseFloat(el.dataset.lng);
-                const title = el.dataset.title || '';
+                    const map = L.map(el).setView([lat, lng], 15);
 
-                const map = L.map(el).setView([lat, lng], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(map);
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
+                    map.attributionControl.setPrefix(false);
+                    map.attributionControl.setPosition('bottomleft');
 
-                map.attributionControl.setPrefix(false);
-                map.attributionControl.setPosition('bottomleft');
-
-                L.marker([lat, lng]).addTo(map).bindPopup(title);
+                    L.marker([lat, lng]).addTo(map).bindPopup(title);
+                    el.dataset.inited = '1';
+                } catch (error) {
+                    console.error('Unable to initialize product map', error);
+                } finally {
+                    delete el.dataset.loading;
+                }
             };
 
             document.addEventListener('DOMContentLoaded', () => {

@@ -417,7 +417,8 @@
 
 <!-- Chart.js -->
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const Chart = await window.loadChart();
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
