@@ -283,7 +283,11 @@
               Телефон
             </p>
             @php
-              $phoneContact = $shop->phoneContact();
+              $phoneContact = $shop?->phoneContact() ?? [
+                    'phone' => null,
+                    'verified' => false,
+                    'public_phone' => null,
+                ];
               $rawPhone = preg_replace('/\D+/', '', $phoneContact['phone'] ?? '');
               $formatted = null;
               if (str_starts_with($phoneContact['phone'] ?? '', '+373')) {
