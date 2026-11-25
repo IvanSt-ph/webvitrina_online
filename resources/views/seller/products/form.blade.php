@@ -296,7 +296,7 @@
                    class="seller-input flex-1">
             <button type="button" id="searchAddress"
                     class="seller-primary-button inline-flex items-center justify-center gap-2 px-5 py-3">
-              <i class="ri-map-pin-search-line text-base"></i>
+              <i class="ri-map-pin-line text-base"></i>
               <span>Найти</span>
             </button>
           </div>

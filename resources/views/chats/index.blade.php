@@ -33,7 +33,7 @@
             <details class="mt-4 rounded-xl border border-neutral-200 bg-neutral-50/60" @if($search !== '' || $activeFilter) open @endif>
                 <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-sm font-semibold text-neutral-700">
                     <span class="flex items-center gap-2">
-                        <i class="ri-equalizer-3-line text-brand-500"></i>
+                        <i class="ri-equalizer-line text-brand-500"></i>
                         Поиск и фильтры
                         @if($search !== '' || $activeFilter)
                             <span class="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-bold text-brand-700">активно</span>

@@ -315,7 +315,7 @@
                     <p class="text-xs text-gray-500 mt-1" x-text="selectMode && selected.length > 0 ? 'По выбранным товарам' : 'По всей корзине'"></p>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                    <i class="ri-receipt-line text-xl"></i>
+                    <i class="ri-file-list-3-line text-xl"></i>
                 </div>
             </div>
 

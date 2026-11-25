@@ -380,7 +380,7 @@
                              class="h-16 w-16 shrink-0 rounded-xl border border-neutral-200 object-cover sm:h-24 sm:w-24">
                     @else
                         <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-xl border bg-gray-100 flex items-center justify-center shrink-0 text-gray-400">
-                            <i class="ri-image-off-line text-2xl"></i>
+                            <i class="ri-image-line text-2xl"></i>
                         </div>
                     @endif
 

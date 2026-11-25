@@ -105,7 +105,7 @@
         [
             'label' => 'Политика cookies',
             'href' => route('legal.cookies'),
-            'icon' => 'ri-cookie-line',
+            'icon' => 'ri-file-text-line',
         ],
         [
             'label' => 'Запрещённые товары',

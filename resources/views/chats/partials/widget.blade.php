@@ -190,7 +190,7 @@
                         @click="expanded = !expanded; $nextTick(() => scrollToBottom())"
                         class="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/10 transition hover:bg-white/20"
                         :title="expanded ? 'Свернуть' : 'Развернуть'">
-                    <i :class="expanded ? 'ri-collapse-diagonal-line' : 'ri-expand-diagonal-line'"></i>
+                    <i :class="expanded ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'"></i>
                 </button>
                 <button type="button"
                         @click="close()"
