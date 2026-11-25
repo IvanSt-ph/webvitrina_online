@@ -4,6 +4,7 @@ import './phone-inputs';
 import Alpine from 'alpinejs'
 import orderCancellationReason from './order-cancellation-reason'
 import recommendedCarousel from './recommended-carousel'
+import { productCard, productQuickView } from './product-quick-view'
 import '../css/recommended-carousel.css'
 
 window.Alpine = Alpine
@@ -69,6 +70,8 @@ Alpine.data('mobileHeader', () => ({
 
 Alpine.data('orderCancellationReason', orderCancellationReason)
 Alpine.data('recommendedCarousel', () => recommendedCarousel(Alpine))
+Alpine.data('productCard', productCard)
+Alpine.data('productQuickView', productQuickView)
 
 Alpine.start()
 

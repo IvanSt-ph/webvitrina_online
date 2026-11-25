@@ -155,6 +155,7 @@
 
 {{-- Модалки (поиск, фильтры, настройки) --}}
 @include('layouts.modals')
+<x-product-quick-view />
 
 </div>
 
