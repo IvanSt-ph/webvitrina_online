@@ -1,5 +1,7 @@
 <!-- Выдвижное боковое меню категорий -->
 <div
+    x-data="categoryMenu"
+    data-tree-url="{{ route('category.menu') }}"
     x-show="open"
     class="fixed inset-0 z-50 flex"
     x-cloak
@@ -56,21 +58,24 @@
         </header>
 
         <div class="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar">
-            @if(($categories ?? collect())->isNotEmpty())
-                <ul class="space-y-1.5">
-                    @foreach($categories as $cat)
-                        <x-category-item :category="$cat" />
-                    @endforeach
-                </ul>
-            @else
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
-                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm">
-                        <i class="ri-folder-warning-line text-xl"></i>
-                    </div>
-                    <h3 class="mt-3 text-sm font-bold text-slate-950">Категории пока не добавлены</h3>
-                    <p class="mt-1 text-sm leading-5 text-slate-500">Когда появятся разделы каталога, они будут здесь.</p>
-                </div>
-            @endif
+            <div x-show="loading" role="status" class="p-5 text-center text-sm text-slate-500">
+                Загрузка категорий…
+            </div>
+            <div x-show="failed" x-cloak role="alert" class="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
+                <p class="text-sm text-slate-500">Не удалось загрузить категории.</p>
+                <button type="button" @click="loadTree()" class="mt-3 text-sm font-bold text-indigo-600">
+                    Попробовать снова
+                </button>
+            </div>
+            <div x-html="html" :aria-busy="loading"></div>
         </div>
     </aside>
 </div>
+
+@once
+    @push('styles')
+        <style>
+            .category-menu-media-failed .category-menu-fallback { display: inline !important; }
+        </style>
+    @endpush
+@endonce

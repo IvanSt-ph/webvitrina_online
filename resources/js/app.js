@@ -2,6 +2,7 @@ import './runtime-libraries';
 import './image-fallback';
 import './phone-inputs';
 import Alpine from 'alpinejs'
+import categoryMenu from './category-menu'
 import orderCancellationReason from './order-cancellation-reason'
 import recommendedCarousel from './recommended-carousel'
 import { productCard, productQuickView } from './product-quick-view'
@@ -16,6 +17,8 @@ window.showSiteToast = (message, type = 'info') => {
 }
 
 Alpine.store('specs', { open: false })
+
+Alpine.data('categoryMenu', categoryMenu)
 
 Alpine.data('appShell', () => ({
   open: false,

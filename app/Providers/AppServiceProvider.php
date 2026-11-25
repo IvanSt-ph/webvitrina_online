@@ -9,7 +9,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
-use App\Models\Category;
 use App\Models\CartItem;
 use App\Models\Favorite;
 use App\Models\Message;
@@ -102,22 +101,6 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('currency-rates', function (Request $request) {
             return Limit::perMinute(60)->by($request->ip());
-        });
-
-        /*
-        |--------------------------------------------------------------------------
-        | 📌 Автоматическая загрузка категорий в меню
-        |--------------------------------------------------------------------------
-        */
-        View::composer('profile.partials.category-menu', function ($view) {
-
-            // Оптимальная загрузка: только корневые и дочерние
-            $categories = Category::whereNull('parent_id')
-                ->with('children.children')
-                ->orderBy('sort_order')
-                ->get();
-
-            $view->with('categories', $categories);
         });
 
         View::composer([

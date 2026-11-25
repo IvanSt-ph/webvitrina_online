@@ -159,6 +159,7 @@ Route::get('/p/{identifier}', [ProductController::class, 'show'])
 
     
 // 📂 Категории
+Route::get('/category-menu', \App\Http\Controllers\CategoryMenuController::class)->name('category.menu');
 Route::get('/category',        [CategoryController::class, 'index'])->name('category.index')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show')->middleware(\App\Http\Middleware\NormalizeCatalogInput::class);
 
