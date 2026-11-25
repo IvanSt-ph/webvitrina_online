@@ -7,6 +7,7 @@ $firstBanner = $bannerItems->first();
 
 {{-- ✅ Предзагрузка первого баннера для ускорения --}}
 @push('meta')
+<meta name="description" content="WebVitrina — товары и магазины вашего города. Находите предложения местных продавцов, сравнивайте цены и выбирайте товары рядом с вами.">
 @if($firstBanner)
 <link rel="preload" as="image" href="{{ $firstBanner->imageUrl('mobile') }}" media="(width <= 768px)">
 <link rel="preload" as="image" href="{{ $firstBanner->imageUrl('tablet') }}" media="(768px < width <= 1280px)">
@@ -20,8 +21,7 @@ $firstBanner = $bannerItems->first();
   {{-- ⚠️ ВНИМАНИЕ: .banner-container не должен иметь padding, иначе absolute блок "поплывёт" --}}
   <div class="relative -mt-[15px] w-full flex justify-center bg-transparent">
     <div 
-      class="w-[92%] max-w-[1440px] overflow-hidden rounded-b-2xl relative banner-container
-             opacity-0 translate-y-3 animate-[fadeBannerIn_0.9s_ease-out_forwards]"
+      class="w-[92%] max-w-[1440px] overflow-hidden rounded-b-2xl relative banner-container"
     >
       @if($bannerItems->isNotEmpty())
       <div 
@@ -71,29 +71,39 @@ $firstBanner = $bannerItems->first();
             }
           }
         }"
-        x-init="init()"
-        x-cloak
         @mouseenter="paused = true"
         @mouseleave="paused = false"
         class="absolute inset-0 z-[1] overflow-hidden rounded-b-2xl bg-gray-100"
       >
         <a 
+          href="{{ $firstBanner->link ?: '#' }}"
           :href="slides[active].link" 
           class="banner-bg block w-full h-full"
         >
-          <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
-            class="w-full h-full object-cover select-none pointer-events-auto
-                   transition-transform duration-700 ease-out will-change-transform"
-            :data-image-candidates="JSON.stringify(slides[active].candidates[screen <= 768 ? 'mobile' : screen <= 1280 ? 'tablet' : 'desktop'])" :src="srcFor(slides[active])"
-            :alt="`banner-${active}`"
-            :loading="active === 0 ? 'eager' : 'lazy'"
-          >
+          <picture class="block w-full h-full">
+            <source media="(width <= 768px)"
+              srcset="{{ $firstBanner->imageUrl('mobile') }}"
+              :srcset="slides[active].mobile">
+            <source media="(768px < width <= 1280px)"
+              srcset="{{ $firstBanner->imageUrl('tablet') }}"
+              :srcset="slides[active].tablet">
+            <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+              src="{{ $firstBanner->imageUrl('desktop') }}"
+              alt="banner-0"
+              loading="eager"
+              class="w-full h-full object-cover select-none pointer-events-auto
+                     transition-transform duration-700 ease-out will-change-transform"
+              :data-image-candidates="JSON.stringify(slides[active].candidates[screen <= 768 ? 'mobile' : screen <= 1280 ? 'tablet' : 'desktop'])" :src="srcFor(slides[active])"
+              :alt="`banner-${active}`"
+              :loading="active === 0 ? 'eager' : 'lazy'"
+            >
+          </picture>
         </a>
 
         <button 
           @click="prev()" 
           class="hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 items-center justify-center 
-                 w-9 h-9 rounded-full bg-black/40 text-white text-xl
+                 w-9 h-9 rounded-full bg-black/40 text-white text-xl banner-control-arrow z-10
                  transition hover:bg-black/70 focus:outline-none backdrop-blur-sm"
           aria-label="Предыдущий баннер"
         >
@@ -103,21 +113,23 @@ $firstBanner = $bannerItems->first();
         <button 
           @click="next()" 
           class="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 items-center justify-center 
-                 w-9 h-9 rounded-full bg-black/40 text-white text-xl
+                 w-9 h-9 rounded-full bg-black/40 text-white text-xl banner-control-arrow z-10
                  transition hover:bg-black/70 focus:outline-none backdrop-blur-sm"
           aria-label="Следующий баннер"
         >
           <span aria-hidden="true" class="-mt-0.5">&rsaquo;</span>
         </button>
 
-        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-sm">
+        <div class="absolute bottom-[11px] inset-x-0 mx-auto z-10 flex w-max flex-wrap justify-center max-w-[calc(100%-16px)] gap-0 px-3 rounded-xl bg-black/30 backdrop-blur-sm">
           <template x-for="(slide, index) in slides" :key="index">
-            <button 
+            <button type="button"
               @click="active = index"
-              class="w-2.5 h-2.5 rounded-full transition-all duration-200"
-              :class="active === index ? 'bg-white scale-[1.15]' : 'bg-white/60 hover:bg-white/90'"
+              class="banner-control-dot"
               :aria-label="`Перейти к слайду ${index + 1}`"
-            ></button>
+            >
+              <span aria-hidden="true" class="block w-2.5 h-2.5 rounded-full transition-all duration-200"
+                    :class="active === index ? 'bg-white scale-[1.15]' : 'bg-white/60'"></span>
+            </button>
           </template>
         </div>
       </div>
@@ -401,10 +413,28 @@ $firstBanner = $bannerItems->first();
 <style>
   [x-cloak] { display: none !important; }
 
-  @keyframes fadeBannerIn {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
+  /* Scale only the visual dot; adjacent real button boxes never overlap. */
+  .banner-control-dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
+  .banner-control-dot:hover > span { background: rgb(255 255 255 / 90%); }
+  .banner-control-dot:focus-visible { outline: 2px solid white; outline-offset: -2px; }
+  .banner-control-arrow::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .banner-control-arrow::after { width: 44px; height: 44px; }
 
   /* ✅ Адаптивный aspect-ratio: чуть ниже, чтобы главная быстрее показывала каталог */
   .banner-container {

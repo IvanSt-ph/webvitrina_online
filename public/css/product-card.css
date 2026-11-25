@@ -258,7 +258,7 @@
 .pc-body { padding: 5px 9px 7px; display: flex; flex-direction: column; flex: 1; }
 .pc-meta-top { margin-bottom: 3px; }
 .pc-shop-name {
-    font-size: 11px; font-weight: 500; color: #b0b0bc;
+    font-size: 11px; font-weight: 500; color: #64748b;
     text-decoration: none; transition: color 0.2s;
     display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     position: relative; z-index: 2;
@@ -270,7 +270,7 @@
     }
 }
 .pc-shop-name:hover { color: #4f46e5; }
-.pc-shop-name--empty { cursor: default; color: #d0d0da; }
+.pc-shop-name--empty { cursor: default; color: #64748b; }
 .pc-title {
     font-size: 15px; 
     font-weight: 600;
@@ -295,12 +295,12 @@
 .pc-star { width: 11px; height: 11px; flex-shrink: 0; }
 .pc-star--on  { color: #f5c518; }
 .pc-star--off { color: #e0e0e8; }
-.pc-rating-text { font-size: 10px; color: #888; margin-left: 4px; font-weight: 600; }
-.pc-rating-count { font-size: 10px; color: #b0b0bc; margin-left: 2px; }
-.pc-rating-empty { font-size: 10px; color: #c0c0cc; margin-left: 4px; }
+.pc-rating-text { font-size: 10px; color: #64748b; margin-left: 4px; font-weight: 600; }
+.pc-rating-count { font-size: 10px; color: #64748b; margin-left: 2px; }
+.pc-rating-empty { font-size: 10px; color: #64748b; margin-left: 4px; }
 .pc-price-row { display: flex; align-items: baseline; gap: 7px; margin-bottom: 5px; }
 .pc-price { font-size: 18px; font-weight: 700; color: #1a1a2e; letter-spacing: -.02em; }
-.pc-old-price { font-size: 11px; font-weight: 500; color: #c4c4cc; text-decoration: line-through; }
+.pc-old-price { font-size: 11px; font-weight: 500; color: #64748b; text-decoration: line-through; }
 
 /* Card actions — one row */
 .pc-actions { display: flex; flex-direction: row; gap: 6px; margin-top: auto; align-items: stretch; }
@@ -356,7 +356,7 @@
 
 /* Buy — indigo, dominant */
 .pc-btn--buy {
-    background: #6366f1;
+    background: #4f46e5;
     color: #fff;
     box-shadow: 0 3px 12px rgba(79,70,229,0.32);
     height: 36px;           /* Фиксированная высота как у корзины */
