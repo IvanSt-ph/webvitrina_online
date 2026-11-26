@@ -107,6 +107,36 @@
 
 @else
 
+@php
+    $shopSeoParameters = ['identifier' => $shop->slug ?: $user->id];
+    if ($filter !== 'all') {
+        $shopSeoParameters['filter'] = $filter;
+    }
+    if ($products->currentPage() > 1) {
+        $shopSeoParameters['page'] = $products->currentPage();
+    }
+    $shopSeoUrl = route('seller.show', $shopSeoParameters);
+    $shopSeoTitle = $shop->name . ' — ' . config('app.name', 'WebVitrina');
+    $shopSeoDescription = \Illuminate\Support\Str::limit(
+        trim(strip_tags($shop->name . '. ' . ($shop->description ?? ''))), 160
+    );
+    $shopBannerPath = \App\Support\PublicImage::path($shop->banner);
+    $shopSeoImage = $shopBannerPath !== null && \Illuminate\Support\Facades\Storage::disk('public')->exists($shopBannerPath)
+        ? $shop->banner_url
+        : null;
+@endphp
+@push('meta')
+    <meta name="description" content="{{ $shopSeoDescription }}">
+    <link rel="canonical" href="{{ $shopSeoUrl }}">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $shopSeoTitle }}">
+    <meta property="og:description" content="{{ $shopSeoDescription }}">
+    <meta property="og:url" content="{{ $shopSeoUrl }}">
+    @if($shopSeoImage)
+        <meta property="og:image" content="{{ $shopSeoImage }}">
+    @endif
+@endpush
+
 <x-app-layout :title="$shop->name">
 
     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
