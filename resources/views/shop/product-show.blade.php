@@ -20,6 +20,26 @@
     <meta property="product:price:currency" content="{{ $product->currency ?? 'PRB' }}">
     <script type="application/ld+json">
         @php
+        // Read only eager-loaded attributes; never lazy-load data for SEO.
+        $seoBrand = null;
+        if ($product->relationLoaded('attributes')) {
+            $brandAttributes = $product->getRelation('attributes')->filter(
+                fn ($attribute) => mb_strtolower(trim($attribute->name)) === 'бренд'
+            );
+            if ($brandAttributes->count() === 1) {
+                $brandAttribute = $brandAttributes->first();
+                $brandValue = $brandAttribute->relationLoaded('pivot')
+                    ? $brandAttribute->getRelation('pivot')->value
+                    : null;
+                if (in_array($brandAttribute->type, ['text', 'string', 'select'], true) && is_string($brandValue)) {
+                    $brandValue = trim($brandValue);
+                    if (! in_array(mb_strtolower($brandValue), ['', '-', '—', 'другое', 'другой', 'без бренда', 'не указан', 'неизвестно'], true)) {
+                        $seoBrand = $brandValue;
+                    }
+                }
+            }
+        }
+
         $structuredData = [
             '@context' => 'https://schema.org',
             '@type' => 'Product',
@@ -28,10 +48,6 @@
             'image' => [$seoImage],
             'sku' => $product->sku,
             'category' => $product->category?->name,
-            'brand' => [
-                '@type' => 'Brand',
-                'name' => $product->seller?->shop?->name ?? config('app.name'),
-            ],
             'offers' => [
                 '@type' => 'Offer',
                 'url' => $seoUrl,
@@ -49,6 +65,12 @@
                 'reviewCount' => (int) $product->reviews_count,
             ] : null,
         ];
+        if ($seoBrand !== null) {
+            $structuredData['brand'] = ['@type' => 'Brand', 'name' => $seoBrand];
+        }
+        if ($structuredData['aggregateRating'] === null) {
+            unset($structuredData['aggregateRating']);
+        }
     @endphp
     {!! \Illuminate\Support\Js::encode($structuredData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
     </script>
