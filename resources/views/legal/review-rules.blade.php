@@ -35,8 +35,14 @@
     ];
 @endphp
 
+@php
+    $documentTitle = 'Правила публикации отзывов';
+    $documentSummary = 'Кто может оставить отзыв на WebVitrina, как проходит модерация и какие требования предъявляются к содержанию.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'legal.review-rules'])
+
 <x-legal-document
-    title="Правила публикации отзывов"
-    summary="Кто может оставить отзыв на WebVitrina, как проходит модерация и какие требования предъявляются к содержанию."
+    :title="$documentTitle"
+    :summary="$documentSummary"
     :sections="$sections"
 />

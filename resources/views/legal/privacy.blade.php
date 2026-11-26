@@ -57,8 +57,14 @@
 {{-- TODO LEGAL: определить необходимые сведения о владельце/операторе данных перед production. --}}
 {{-- TODO LEGAL: после создания публичного email добавить отдельный контакт для обращений по вопросам персональных данных. --}}
 
+@php
+    $documentTitle = 'Политика конфиденциальности';
+    $documentSummary = 'Какие данные обрабатываются при использовании WebVitrina, для каких целей они используются и кому могут передаваться.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'legal.privacy'])
+
 <x-legal-document
-    title="Политика конфиденциальности"
-    summary="Какие данные обрабатываются при использовании WebVitrina, для каких целей они используются и кому могут передаваться."
+    :title="$documentTitle"
+    :summary="$documentSummary"
     :sections="$sections"
 />

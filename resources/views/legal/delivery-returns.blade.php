@@ -47,8 +47,14 @@
     ];
 @endphp
 
+@php
+    $documentTitle = 'Правила покупок, заказов и отмен';
+    $documentSummary = 'Как на WebVitrina оформляются и обрабатываются заказы, а также работают отмена, получение товара и обращение в поддержку.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'legal.delivery-returns'])
+
 <x-legal-document
-    title="Правила покупок, заказов и отмен"
-    summary="Как на WebVitrina оформляются и обрабатываются заказы, а также работают отмена, получение товара и обращение в поддержку."
+    :title="$documentTitle"
+    :summary="$documentSummary"
     :sections="$sections"
 />

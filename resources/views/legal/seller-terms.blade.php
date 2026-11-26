@@ -49,8 +49,14 @@
 
 {{-- TODO LEGAL: перед production определить окончательный порядок рассмотрения жалоб продавцов на решения модерации. --}}
 
+@php
+    $documentTitle = 'Правила для продавцов';
+    $documentSummary = 'Требования к магазинам, размещению товаров, обработке заказов и взаимодействию с покупателями.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'legal.seller-terms'])
+
 <x-legal-document
-    title="Правила для продавцов"
-    summary="Требования к магазинам, размещению товаров, обработке заказов и взаимодействию с покупателями."
+    :title="$documentTitle"
+    :summary="$documentSummary"
     :sections="$sections"
 />

@@ -20,9 +20,15 @@
 {{-- TODO LEGAL: перед публичным запуском определить необходимые сведения о владельце платформы. --}}
 {{-- TODO LEGAL: добавить отдельный публичный email поддержки и контакт для обращений по вопросам персональных данных. --}}
 
+@php
+    $documentTitle = 'Контакты WebVitrina';
+    $documentSummary = 'Информация о WebVitrina и способы обращения в поддержку.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'contacts'])
+
 <x-legal-document
-    title="Контакты WebVitrina"
+    :title="$documentTitle"
     eyebrow="Поддержка"
-    summary="Информация о WebVitrina и способы обращения в поддержку."
+    :summary="$documentSummary"
     :sections="$sections"
 />

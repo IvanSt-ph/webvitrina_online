@@ -52,9 +52,15 @@
     ];
 @endphp
 
+@php
+    $documentTitle = 'Условия использования WebVitrina';
+    $documentSummary = 'Правила использования WebVitrina покупателями, продавцами и другими посетителями.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'legal.rules'])
+
 <x-legal-document
-    title="Условия использования WebVitrina"
+    :title="$documentTitle"
     eyebrow="Пользовательское соглашение"
-    summary="Правила использования WebVitrina покупателями, продавцами и другими посетителями."
+    :summary="$documentSummary"
     :sections="$sections"
 />

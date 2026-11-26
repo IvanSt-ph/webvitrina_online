@@ -40,8 +40,14 @@
 {{-- TODO LEGAL: перед разрешением регулируемых или возрастных категорий отдельно проверить
      применимые требования и наличие необходимых технических механизмов на WebVitrina. --}}
 
+@php
+    $documentTitle = 'Политика запрещённых товаров';
+    $documentSummary = 'Правила размещения товаров и ограничения, действующие на WebVitrina.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'legal.prohibited-products'])
+
 <x-legal-document
-    title="Политика запрещённых товаров"
-    summary="Правила размещения товаров и ограничения, действующие на WebVitrina."
+    :title="$documentTitle"
+    :summary="$documentSummary"
     :sections="$sections"
 />

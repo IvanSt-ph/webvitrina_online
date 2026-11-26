@@ -41,8 +41,14 @@
 
 {{-- TODO LEGAL: при подключении сторонней аналитики, рекламных или иных необязательных cookies повторно проверить необходимость механизма согласия. --}}
 
+@php
+    $documentTitle = 'Политика cookies';
+    $documentSummary = 'Какие cookies и технологии браузерного хранения используются WebVitrina и для чего они необходимы.';
+@endphp
+@include('partials.legal-seo', ['documentRoute' => 'legal.cookies'])
+
 <x-legal-document
-    title="Политика cookies"
-    summary="Какие cookies и технологии браузерного хранения используются WebVitrina и для чего они необходимы."
+    :title="$documentTitle"
+    :summary="$documentSummary"
     :sections="$sections"
 />
