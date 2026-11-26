@@ -23,11 +23,10 @@
 @endphp
 
 <div class="lg:hidden" 
-     x-data="mobileHeader"
-     x-init="init()">
+     x-data="mobileHeader">
     
     <!-- Поисковая строка -->
-    <div class="fixed top-0 left-0 z-40 w-full border-b border-gray-100 bg-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+    <div x-ref="topbar" class="fixed top-0 left-0 z-40 w-full border-b border-gray-100 bg-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl">
         <div class="px-3 py-2">
             <div class="mobile-topbar-row flex items-stretch gap-2">
                 <form action="{{ route('home') }}" method="GET" class="min-w-0 flex-1">
@@ -61,7 +60,7 @@
                     </div>
                 </form>
 
-                <button @click="settingsOpen = true"
+                <button type="button" x-ref="settingsTrigger" @click="settingsOpen ? closeSettings() : openSettings()" aria-controls="mobile-settings" :aria-expanded="settingsOpen" aria-haspopup="dialog" aria-label="Регион и валюта"
                         class="mobile-topbar-settings relative flex w-11 shrink-0 items-center justify-center self-stretch rounded-2xl border border-slate-200 bg-white
                                text-slate-700 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
                         title="Регион и валюта">
@@ -83,50 +82,37 @@
 
     <div class="h-[60px]"></div>
 
-    <!-- Модалка выбора страны/города (без изменений, она и так нормальная) -->
-    <div x-show="filtersOpen" 
-         x-cloak
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50"
-         @keydown.escape.window="filtersOpen = false">
-        
-        <!-- Затемнение -->
-        <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="filtersOpen = false"></div>
-        
-        <!-- Модалка снизу -->
-        <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl p-4 border-t border-gray-100 max-h-[90vh] overflow-y-auto mb-10 mx-1"
-             style="padding-bottom: calc(var(--seller-bottom-nav-offset, 0px) + 1rem);"
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 translate-y-full"
-             x-transition:enter-end="opacity-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100 translate-y-0"
-             x-transition:leave-end="opacity-0 translate-y-full">
-            
-            <!-- Заголовок -->
-            <div class="flex items-center justify-between mb-4 sticky top-0 bg-white pt-1">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-                    </svg>
-                    <span class="text-base font-medium text-gray-900">Выбор региона</span>
+    <!-- Единый мобильный инструмент: валюта, страна и город -->
+    <div x-cloak x-show="settingsOpen" class="wv-mobile-settings-clip"
+         :style="{ top: panelTop + 'px', height: panelHeight + 'px' }"
+         @keydown.escape.window="if (settingsOpen) closeSettings()">
+        <div class="absolute inset-0" @click="closeSettings()" aria-hidden="true"></div>
+        <section x-show="settingsOpen" x-ref="settingsPanel" id="mobile-settings" role="dialog"
+                 aria-labelledby="mobile-settings-title" tabindex="-1" class="wv-mobile-settings"
+                 x-transition:enter="wv-mobile-panel-enter" x-transition:enter-start="-translate-y-full" x-transition:enter-end="translate-y-0"
+                 x-transition:leave="wv-mobile-panel-leave" x-transition:leave-start="translate-y-0" x-transition:leave-end="-translate-y-full">
+            <header class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                <div><h2 id="mobile-settings-title" class="text-base font-semibold text-slate-900">Регион и валюта</h2>
+                    <p class="text-sm text-slate-500">Настройте показ товаров</p></div>
+                <button type="button" @click="closeSettings()" aria-label="Закрыть настройки" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"><span aria-hidden="true" class="text-2xl">×</span></button>
+            </header>
+            <div class="min-h-0 overflow-y-auto overscroll-contain p-4">
+                <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Валюта</h3>
+                <div class="mb-5 grid grid-cols-3 gap-2" role="group" aria-label="Валюта показа товаров">
+                    <button type="button" @click="setCurrency('PRB')" :aria-pressed="currency === 'PRB'" class="wv-mobile-currency" :class="currency === 'PRB' ? 'is-selected' : ''">
+                        <span class="text-lg font-semibold" aria-hidden="true">₽</span>
+                        <span class="font-semibold">RUB</span><span class="text-xs text-slate-500">Рубль</span>
+                    </button>
+                    <button type="button" @click="setCurrency('MDL')" :aria-pressed="currency === 'MDL'" class="wv-mobile-currency" :class="currency === 'MDL' ? 'is-selected' : ''">
+                        <span class="text-lg font-semibold" aria-hidden="true">L</span>
+                        <span class="font-semibold">MDL</span><span class="text-xs text-slate-500">Лей</span>
+                    </button>
+                    <button type="button" @click="setCurrency('UAH')" :aria-pressed="currency === 'UAH'" class="wv-mobile-currency" :class="currency === 'UAH' ? 'is-selected' : ''">
+                        <span class="text-lg font-semibold" aria-hidden="true">₴</span>
+                        <span class="font-semibold">UAH</span><span class="text-xs text-slate-500">Гривна</span>
+                    </button>
                 </div>
-                <button @click="filtersOpen = false" 
-                        class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 
-                               hover:bg-gray-100 rounded-lg transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Иерархический выбор (без изменений) -->
+                <div class="mb-2 flex items-center justify-between"><h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Регион</h3><span class="max-w-[65%] truncate rounded-full bg-indigo-50 px-2 py-1 text-xs text-indigo-700">{{ $filterButtonText ?: 'Все страны' }}</span></div>
             <div x-data="{
                     step: 'country',
                     selectedCountry: {{ $currentCountry ?: 'null' }},
@@ -165,13 +151,17 @@
                     applySelection() {
                         let url = new URL(window.location.href);
                         if (this.selectedCountry) {
+                            url.searchParams.delete('clear_location');
                             url.searchParams.set('country_id', this.selectedCountry);
                         } else {
                             url.searchParams.delete('country_id');
+                            url.searchParams.set('clear_location', '1');
                         }
                         
                         if (this.selectedCity) {
                             url.searchParams.set('city_id', this.selectedCity);
+                        } else if (this.selectedCountry) {
+                            url.searchParams.set('city_id', '');
                         } else {
                             url.searchParams.delete('city_id');
                         }
@@ -191,6 +181,7 @@
                         let url = new URL(window.location.href);
                         url.searchParams.delete('country_id');
                         url.searchParams.delete('city_id');
+                        url.searchParams.set('clear_location', '1');
                         window.location.href = url.toString();
                     }
                 }">
@@ -198,7 +189,7 @@
                 <!-- Навигация назад -->
                 <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100 min-h-[40px]">
                     <template x-if="step === 'city'">
-                        <button @click="goBack" 
+                        <button type="button" @click="goBack"
                                 class="flex items-center gap-1 text-sm text-gray-600 hover:text-indigo-600">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -215,7 +206,7 @@
                 <template x-if="step === 'country'">
                     <div class="space-y-1">
                         <!-- Все страны -->
-                        <button @click="selectedCountry = null; selectedCity = null; applySelection()"
+                        <button type="button" @click="selectedCountry = null; selectedCity = null; applySelection()"
                                 class="w-full text-left px-3 py-3 hover:bg-gray-50 rounded-xl flex items-center gap-3 transition-colors"
                                 :class="{ 'bg-indigo-50': !selectedCountry }">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,7 +219,7 @@
                         
                         <!-- Список стран -->
                         <template x-for="country in countries" :key="country.id">
-                            <button @click="selectCountry(country.id)"
+                            <button type="button" @click="selectCountry(country.id)"
                                     class="w-full text-left px-3 py-3 hover:bg-gray-50 rounded-xl flex items-center gap-3 transition-colors"
                                     :class="{ 'bg-indigo-50': selectedCountry === country.id }">
                                 <img :src="'{{ asset('flags') }}/' + country.slug + '.png'" 
@@ -244,7 +235,7 @@
                 <template x-if="step === 'city' && selectedCountryData">
                     <div class="space-y-1">
                         <!-- Все города выбранной страны -->
-                        <button @click="selectedCity = null; applySelection()"
+                        <button type="button" @click="selectedCity = null; applySelection()"
                                 class="w-full text-left px-3 py-3 hover:bg-gray-50 rounded-xl flex items-center gap-3 transition-colors"
                                 :class="{ 'bg-indigo-50': !selectedCity }">
                             <img :src="'{{ asset('flags') }}/' + selectedCountryData.slug + '.png'" 
@@ -254,7 +245,7 @@
                         
                         <!-- Города -->
                         <template x-for="city in selectedCountryData.cities" :key="city.id">
-                            <button @click="selectCity(city.id)"
+                            <button type="button" @click="selectCity(city.id)"
                                     class="w-full text-left px-3 py-3 hover:bg-gray-50 rounded-xl flex items-center gap-3 transition-colors pl-11"
                                     :class="{ 'bg-indigo-50': selectedCity === city.id }">
                                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,11 +258,9 @@
                         </template>
                     </div>
                 </template>
-            </div>
-            
             <!-- Кнопка сброса -->
             <div x-show="selectedCountry || selectedCity" class="mt-4 pt-3 border-t border-gray-100">
-                <button @click="clearAll"
+                <button type="button" @click="clearAll"
                         class="w-full py-3 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -280,100 +269,7 @@
                 </button>
             </div>
         </div>
-    </div>
-
-    <!-- Модалка настроек -->
-    <div x-show="settingsOpen"
-         x-cloak
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50"
-         @keydown.escape.window="settingsOpen = false">
-        <div class="absolute inset-0 bg-black/20 backdrop-blur-sm" @click="settingsOpen = false"></div>
-
-        <div class="absolute left-0 right-0 mx-1 flex flex-col overflow-hidden rounded-t-3xl border-t border-gray-100 bg-white p-4 shadow-2xl {{ $showSellerMobileBottomNav ? '' : 'bottom-0 mb-10' }}"
-             @if($showSellerMobileBottomNav) style="bottom: var(--seller-bottom-nav-offset); max-height: calc(100dvh - var(--seller-bottom-nav-offset));" @endif
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0 translate-y-full"
-             x-transition:enter-end="opacity-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100 translate-y-0"
-             x-transition:leave-end="opacity-0 translate-y-full">
-            <div class="mb-4 flex shrink-0 items-center justify-between">
-                <div>
-                    <div class="text-base font-semibold text-slate-900">Настройки</div>
-                    <div class="text-sm text-slate-500">Регион и валюта показа товаров</div>
-                </div>
-                <button @click="settingsOpen = false"
-                        class="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
             </div>
-
-            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                <button @click="settingsOpen = false; filtersOpen = true"
-                    class="mb-4 flex w-full items-center gap-3 rounded-2xl border border-indigo-100 bg-gradient-to-r
-                           from-indigo-50 to-violet-50 px-3 py-3 text-left transition-colors hover:from-indigo-100 hover:to-violet-100">
-                <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
-                    @if($selectedCountry && $selectedCountry->slug)
-                        <img src="{{ asset('flags/' . $selectedCountry->slug . '.png') }}"
-                             alt="{{ $selectedCountry->name }}"
-                             class="h-5 w-5 rounded-sm object-cover">
-                    @else
-                        <svg class="h-5 w-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                                  d="M12 21a9 9 0 100-18 9 9 0 000 18zm0 0c2.2-2.4 3.4-5.4 3.4-9S14.2 5.4 12 3m0 18c-2.2-2.4-3.4-5.4-3.4-9S9.8 5.4 12 3M3 12h18"/>
-                        </svg>
-                    @endif
-                </span>
-                <span class="min-w-0">
-                    <span class="block text-xs uppercase tracking-[0.16em] text-slate-400">Регион</span>
-                    <span class="block truncate font-semibold text-slate-900">{{ $filterButtonText ?: 'Все страны' }}</span>
-                </span>
-                <svg class="ml-auto h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
-
-            <div class="mb-2 text-xs uppercase tracking-[0.16em] text-slate-400">Валюта</div>
-            <div class="space-y-2">
-                <button @click="setCurrency('PRB')"
-                        class="flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-colors"
-                        :class="currency === 'PRB' ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 hover:bg-slate-50'">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-lg font-bold">₽</span>
-                    <span>
-                        <span class="block font-semibold text-slate-900">Рубль</span>
-                        <span class="block text-sm text-slate-500">RUB</span>
-                    </span>
-                </button>
-
-                <button @click="setCurrency('MDL')"
-                        class="flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-colors"
-                        :class="currency === 'MDL' ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 hover:bg-slate-50'">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-lg font-bold">L</span>
-                    <span>
-                        <span class="block font-semibold text-slate-900">Молдавский лей</span>
-                        <span class="block text-sm text-slate-500">MDL</span>
-                    </span>
-                </button>
-
-                <button @click="setCurrency('UAH')"
-                        class="flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-colors"
-                        :class="currency === 'UAH' ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 hover:bg-slate-50'">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-lg font-bold">₴</span>
-                    <span>
-                        <span class="block font-semibold text-slate-900">Украинская гривна</span>
-                        <span class="block text-sm text-slate-500">UAH</span>
-                    </span>
-                </button>
-                </div>
-            </div>
-        </div>
+        </section>
     </div>
 </div>

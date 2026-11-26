@@ -37,12 +37,50 @@ Alpine.data('appShell', () => ({
 
 Alpine.data('mobileHeader', () => ({
   search: document.body.dataset.searchQuery ?? '',
-  filtersOpen: false,
   settingsOpen: false,
   currency: document.body.dataset.currency ?? 'PRB',
+  panelTop: 0,
+  panelHeight: 0,
 
   init() {
-    // Reserved for future mobile header initialization.
+    this.measurePanel = () => {
+      const rect = this.$refs.topbar.getBoundingClientRect()
+      const viewport = window.visualViewport
+      let bottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight)
+      document.querySelectorAll('[data-mobile-bottom-nav], [data-mobile-bottom-seller-nav]').forEach(nav => {
+        const bounds = nav.getBoundingClientRect()
+        if (bounds.height && bounds.top > 0) bottom = Math.min(bottom, bounds.top)
+      })
+      this.panelTop = Math.max(0, rect.bottom)
+      this.panelHeight = Math.max(0, bottom - this.panelTop)
+      if (window.innerWidth >= 1024) this.settingsOpen = false
+    }
+    this.panelObserver = new ResizeObserver(this.measurePanel)
+    this.panelObserver.observe(this.$refs.topbar)
+    window.addEventListener('resize', this.measurePanel)
+    window.addEventListener('scroll', this.measurePanel, { passive: true })
+    window.visualViewport?.addEventListener('resize', this.measurePanel)
+    window.visualViewport?.addEventListener('scroll', this.measurePanel)
+    this.$nextTick(this.measurePanel)
+  },
+
+  openSettings() {
+    this.measurePanel()
+    this.settingsOpen = true
+    this.$nextTick(() => this.$refs.settingsPanel.focus({ preventScroll: true }))
+  },
+
+  closeSettings() {
+    this.settingsOpen = false
+    this.$refs.settingsTrigger.focus({ preventScroll: true })
+  },
+
+  destroy() {
+    this.panelObserver.disconnect()
+    window.removeEventListener('resize', this.measurePanel)
+    window.removeEventListener('scroll', this.measurePanel)
+    window.visualViewport?.removeEventListener('resize', this.measurePanel)
+    window.visualViewport?.removeEventListener('scroll', this.measurePanel)
   },
 
   submitSearch() {

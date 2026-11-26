@@ -166,10 +166,10 @@ $firstBanner = $bannerItems->first();
                 <h2 class="text-lg font-bold text-slate-950 sm:text-xl">Рекомендуемые товары</h2>
                 <p class="text-sm text-slate-500">Подборка WebVitrina и товары с высоким рейтингом</p>
               </div>
-              <div class="recommended-carousel-controls flex flex-wrap items-center gap-2">
+              <div class="recommended-carousel-controls flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 @if($recommendedProductsCount > $recommendedVisibleLimit)
                   <a href="{{ route('recommendations.index') }}"
-                     class="hidden h-9 items-center gap-2 rounded-xl border border-indigo-100 bg-white px-3 text-xs font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-50 sm:inline-flex">
+                     class="order-last ml-auto inline-flex min-h-9 items-center gap-1 rounded-lg text-xs font-bold text-indigo-700 transition-colors hover:text-indigo-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 sm:order-none sm:ml-0 sm:gap-2 sm:rounded-xl sm:border sm:border-indigo-100 sm:bg-white sm:px-3 sm:shadow-sm sm:hover:bg-indigo-50">
                     Все рекомендации
                     <i class="ri-arrow-right-line"></i>
                   </a>
@@ -218,15 +218,6 @@ $firstBanner = $bannerItems->first();
             </div>
             </div>
 
-            @if($recommendedProductsCount > $recommendedVisibleLimit)
-              <div class="flex justify-center sm:hidden">
-                <a href="{{ route('recommendations.index') }}"
-                   class="inline-flex h-10 items-center gap-2 rounded-xl border border-indigo-100 bg-white px-4 text-sm font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-50">
-                  Все рекомендации
-                  <i class="ri-arrow-right-line"></i>
-                </a>
-              </div>
-            @endif
           </div>
         @endif
 

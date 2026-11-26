@@ -1,4 +1,4 @@
-<div data-toast-bottom-nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50">
+<div data-toast-bottom-nav class="wv-mobile-dock lg:hidden fixed bottom-0 left-0 right-0 z-50">
     {{-- Стильный фон с блюром — ТЕПЕРЬ БЕЗ ОТСТУПОВ СНИЗУ --}}
     <div class="bg-white/95 backdrop-blur-xl border-t border-white/20 shadow-2xl shadow-black/5" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
         <div class="flex justify-around items-center py-2 px-1">
@@ -150,6 +150,103 @@
 </div>
 
 <style>
+    /* Local presentation only: preserve navigation routes, state and counters. */
+    .wv-mobile-dock > div {
+        background: #fff;
+        border-top: 1px solid #e2e8f0;
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 -6px 24px -12px rgb(15 23 42 / 16%);
+        backdrop-filter: none;
+    }
+
+    .wv-mobile-dock > div > div {
+        height: 60px;
+        padding: 6px 2px;
+        gap: 0;
+    }
+
+    .wv-mobile-dock a, .wv-mobile-dock button {
+        height: 48px;
+        min-height: 44px;
+        gap: 4px;
+        border-radius: 12px;
+        transform: none;
+        transition: color 180ms ease, background-color 180ms ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .wv-mobile-dock a:focus-visible, .wv-mobile-dock button:focus-visible {
+        outline: 2px solid #4f46e5;
+        outline-offset: -2px;
+    }
+
+    .wv-mobile-dock a:active, .wv-mobile-dock button:active {
+        background-color: #f1f5f9;
+    }
+
+    .wv-mobile-dock a > div:first-child, .wv-mobile-dock button > div:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 26px;
+        border-radius: 10px;
+        transition: background-color 180ms ease;
+    }
+
+    .wv-mobile-dock a > div:first-child:has(.text-indigo-600),
+    .wv-mobile-dock a > div:first-child:has(.border-indigo-500) {
+        background: #eef2ff;
+    }
+
+    .wv-mobile-dock a:hover > div:first-child, .wv-mobile-dock button:hover > div:first-child {
+        background: #f1f5f9;
+    }
+
+    .wv-mobile-dock svg, .wv-mobile-dock img {
+        width: 22px;
+        height: 22px;
+        transform: none;
+        filter: none;
+        transition: color 180ms ease, border-color 180ms ease;
+    }
+
+    .wv-mobile-dock i { font-size: 22px; line-height: 22px; }
+    .wv-mobile-dock .text-neutral-500 { color: #64748b; }
+    .wv-mobile-dock .text-indigo-600 { color: #4f46e5; }
+
+    .wv-mobile-dock a > span, .wv-mobile-dock button > span {
+        font-size: 10px;
+        line-height: 13px;
+        font-weight: 600;
+        letter-spacing: 0;
+        transform: none;
+        white-space: nowrap;
+        transition: color 180ms ease;
+    }
+
+    .wv-mobile-dock .blur-xl, .wv-mobile-dock .animate-ping,
+    .wv-mobile-dock a > div:last-child:not(:first-child) { display: none; }
+
+    .wv-mobile-dock .animate-pulse { animation: none; }
+    .wv-mobile-dock span.absolute:not(.animate-ping) {
+        top: -3px;
+        right: -1px;
+        width: auto;
+        min-width: 15px;
+        height: 15px;
+        padding: 0 3px;
+        background: #ef4444;
+        color: #fff;
+        font-size: 9px;
+        line-height: 15px;
+        box-shadow: 0 0 0 2px #fff;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .wv-mobile-dock *, .wv-mobile-dock a > div:first-child,
+        .wv-mobile-dock button > div:first-child { transition: none; animation: none; }
+    }
     
     @keyframes float {
         0%, 100% { transform: translateY(0px); }

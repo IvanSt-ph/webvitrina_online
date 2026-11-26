@@ -4,13 +4,108 @@
       --seller-bottom-nav-height: 4.5rem;
       --seller-bottom-nav-offset: calc(var(--seller-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
     }
+
+    .wv-seller-dock {
+      background: #fff;
+      border-top: 1px solid #e2e8f0;
+      border-radius: 0;
+      box-shadow: 0 -6px 24px -12px rgb(15 23 42 / 16%);
+    }
+    .wv-seller-dock > nav {
+      position: relative;
+      z-index: 50;
+      background: #fff;
+      border-radius: inherit;
+    }
+    .wv-seller-dock > nav > a, .wv-seller-dock > nav > button {
+      gap: 4px;
+      border-radius: 12px;
+      color: #64748b;
+      transition: color 180ms ease, background-color 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wv-seller-dock > nav > .text-indigo-600,
+    .wv-seller-dock > nav > [aria-expanded="true"] { color: #4f46e5; }
+    .wv-seller-dock > nav > a > i, .wv-seller-dock > nav > button > i {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 26px;
+      border-radius: 10px;
+      font-size: 22px;
+      line-height: 26px;
+      transition: background-color 180ms ease;
+    }
+    .wv-seller-dock > nav > .text-indigo-600 > i,
+    .wv-seller-dock > nav > [aria-expanded="true"] > i { background: #eef2ff; }
+    .wv-seller-dock > nav > a:hover > i,
+    .wv-seller-dock > nav > button:hover > i { background: #eef2ff; }
+    .wv-seller-dock > nav > a:active,
+    .wv-seller-dock > nav > button:active { background: #f1f5f9; }
+    .wv-seller-dock > nav > a > span:not(.absolute),
+    .wv-seller-dock > nav > button > span {
+      font-size: 11px;
+      line-height: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .wv-seller-dock > nav .absolute {
+      top: calc((var(--seller-bottom-nav-height) - 44px) / 2 - 3px);
+      right: auto;
+      left: calc(50% + 6px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 15px;
+      height: 15px;
+      padding: 0 3px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 9px;
+      line-height: 15px;
+      box-shadow: 0 0 0 2px #fff;
+    }
+    .wv-seller-dock a:focus-visible, .wv-seller-dock button:focus-visible {
+      outline: 2px solid #4f46e5;
+      outline-offset: -2px;
+    }
+    .wv-seller-dock > [id] {
+      border-color: #e2e8f0;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -8px 24px -12px rgb(15 23 42 / 16%);
+    }
+    .wv-seller-dock > [id] ul { --tw-space-y-reverse: 0; }
+    .wv-seller-dock > [id] li + li { margin-top: 6px; }
+    .wv-seller-dock > [id] li > a,
+    .wv-seller-dock > [id] form > button {
+      padding: 8px 10px;
+      gap: 10px;
+      border-radius: 12px;
+      transition: color 180ms ease, background-color 180ms ease;
+    }
+    .wv-seller-dock > [id] li > a > i { color: #64748b; }
+    .wv-seller-dock > [id] li > a:hover { background: #eef2ff; color: #4f46e5; }
+    .wv-seller-dock > [id] li > a:hover > i { color: inherit; }
+    .wv-seller-dock > [id] form > button:hover { background: #fff1f2; }
+    .wv-seller-dock > [id] > div > button { border-radius: 12px; }
+    .wv-seller-dock > [id] > div > button:hover { background: #f1f5f9; }
+    @media (prefers-reduced-motion: reduce) {
+      .wv-seller-dock *, .wv-seller-dock > [id] li > a,
+      .wv-seller-dock > [id] form > button,
+      .wv-seller-dock > nav > a, .wv-seller-dock > nav > button,
+      .wv-seller-dock > nav > a > i, .wv-seller-dock > nav > button > i {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
   </style>
 @endonce
 
 <div data-toast-bottom-nav data-mobile-bottom-seller-nav
   x-data="{ openOrdersMenu: false, openCabinetMenu: false }"
   @keydown.escape.window="if (openOrdersMenu) { openOrdersMenu = false; $refs.ordersToggle.focus() } else if (openCabinetMenu) { openCabinetMenu = false; $refs.cabinetToggle.focus() }"
-  class="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-200 bg-white/90 backdrop-blur-md"
+  class="wv-seller-dock lg:hidden fixed bottom-0 left-0 right-0 z-50"
   style="padding-bottom: env(safe-area-inset-bottom, 0px);">
 
   <nav class="grid grid-cols-5 items-stretch text-xs font-medium" style="height: var(--seller-bottom-nav-height);">
