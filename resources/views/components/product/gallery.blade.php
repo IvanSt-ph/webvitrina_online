@@ -68,6 +68,7 @@
             x-on:touchend="handleTouchEnd($event)"
         >
             <img alt="{{ $product->title }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}"
+                src="{{ $product->image_url }}"
                 :src="activeImage"
                 loading="eager"
                 class="w-full h-full object-contain transition-transform duration-300 ease-in-out"
@@ -151,6 +152,7 @@
                        overflow-hidden w-full relative"
             >
                 <img alt="{{ $product->title }}" data-image-fallback="{{ asset(\App\Models\Product::IMAGE_FALLBACK_ASSET) }}"
+                    src="{{ $product->image_url }}"
                     :src="activeImage"
                     loading="eager"
                     class="object-contain w-full h-full transition-transform duration-300 hover:scale-105"
