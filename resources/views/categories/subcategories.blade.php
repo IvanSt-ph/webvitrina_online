@@ -1,12 +1,13 @@
 @php
-  $seoUrl = route('category.show', $category->slug);
+  $catalogSeo = \App\Support\CatalogSeo::forListing(request(), route('category.show', $category->slug));
+  $seoUrl = $catalogSeo['url'];
   $seoDescription = 'Раздел “' . $category->name . '” на WebVitrina: подкатегории, товары продавцов, цены, наличие и условия покупки.';
   $seoImage = $category->image_url;
 @endphp
 
 @push('meta')
   <meta name="description" content="{{ $seoDescription }}">
-  <link rel="canonical" href="{{ $seoUrl }}">
+  @include('partials.catalog-seo')
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{ $category->name }} — {{ config('app.name') }}">
   <meta property="og:description" content="{{ $seoDescription }}">

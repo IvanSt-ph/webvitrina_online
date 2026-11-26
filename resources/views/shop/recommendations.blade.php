@@ -1,11 +1,12 @@
 @php
-  $seoUrl = route('recommendations.index');
+  $catalogSeo = \App\Support\CatalogSeo::forListing(request(), route('recommendations.index'), $products->currentPage());
+  $seoUrl = $catalogSeo['url'];
   $seoDescription = 'Рекомендованные товары WebVitrina: ручная подборка площадки, продвигаемые товары и позиции с высоким рейтингом.';
 @endphp
 
 @push('meta')
   <meta name="description" content="{{ $seoDescription }}">
-  <link rel="canonical" href="{{ $seoUrl }}">
+  @include('partials.catalog-seo')
   <meta property="og:type" content="website">
   <meta property="og:title" content="Рекомендованные товары — {{ config('app.name') }}">
   <meta property="og:description" content="{{ $seoDescription }}">

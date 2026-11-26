@@ -3,10 +3,12 @@
 
 @php
 $firstBanner = $bannerItems->first();
+$catalogSeo = \App\Support\CatalogSeo::forListing(request(), route(request()->routeIs('search') ? 'search' : 'home'), $products->currentPage());
 @endphp
 
 {{-- ✅ Предзагрузка первого баннера для ускорения --}}
 @push('meta')
+@include('partials.catalog-seo')
 <meta name="description" content="WebVitrina — товары и магазины вашего города. Находите предложения местных продавцов, сравнивайте цены и выбирайте товары рядом с вами.">
 @if($firstBanner)
 <link rel="preload" as="image" href="{{ $firstBanner->imageUrl('mobile') }}" media="(width <= 768px)">
