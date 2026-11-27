@@ -1,0 +1,17 @@
+-- MANUAL PROVISIONING ONLY, AFTER SEPARATE APPROVAL. Tests never execute this file.
+-- Opt-in: WV_SITEMAP_MYSQL_TEST=1, WV_SITEMAP_TEST_DATABASE=webvitrina_sitemap_testing,
+-- WV_SITEMAP_TEST_USERNAME=webvitrina_sitemap_test, WV_SITEMAP_TEST_PASSWORD and optional WV_SITEMAP_TEST_PORT.
+-- Use a dedicated MySQL instance/account with grants ONLY on webvitrina_sitemap_testing.
+-- Create that database/account separately. No credentials or production data belong here.
+-- This minimal schema tests the generator query contract, not the full migration chain.
+USE webvitrina_sitemap_testing;
+CREATE TABLE users (id BIGINT UNSIGNED PRIMARY KEY, deleted_at TIMESTAMP NULL) ENGINE=InnoDB;
+CREATE TABLE categories (id BIGINT UNSIGNED PRIMARY KEY, slug VARCHAR(255) NULL UNIQUE, is_active BOOLEAN NOT NULL) ENGINE=InnoDB;
+CREATE TABLE shops (id BIGINT UNSIGNED PRIMARY KEY, slug VARCHAR(255) NULL UNIQUE, user_id BIGINT UNSIGNED NOT NULL, INDEX (user_id)) ENGINE=InnoDB;
+CREATE TABLE products (
+    id BIGINT UNSIGNED PRIMARY KEY,
+    slug VARCHAR(255) NULL UNIQUE,
+    status VARCHAR(32) NOT NULL,
+    deleted_at TIMESTAMP NULL,
+    INDEX idx_products_active_latest (status, deleted_at, id)
+) ENGINE=InnoDB;
