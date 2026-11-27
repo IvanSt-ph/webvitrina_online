@@ -25,12 +25,14 @@
                     <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{{ $title }}</h1>
                     <p class="mt-4 max-w-3xl text-base leading-7 text-slate-600">{{ $summary }}</p>
                     {{-- TODO LEGAL: заполнить и юридически проверить перед production. --}}
+                    {{--
                     <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
                         Технический проект документа. Владелец: <strong>[НАЗВАНИЕ ВЛАДЕЛЬЦА]</strong>,
                         форма: <strong>[ЮРИДИЧЕСКАЯ ФОРМА]</strong>, регистрационный номер:
                         <strong>[РЕГИСТРАЦИОННЫЙ НОМЕР]</strong>. Дата вступления в силу:
                         <strong>[ДАТА ВСТУПЛЕНИЯ В СИЛУ]</strong>.
                     </div>
+                    --}}
                 </header>
 
                 <div class="space-y-10 px-5 py-8 sm:px-8 sm:py-10">
