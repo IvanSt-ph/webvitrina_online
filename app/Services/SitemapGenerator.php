@@ -85,7 +85,8 @@ final class SitemapGenerator
             }
             $temporary = null;
 
-            // Stage 1 deliberately has no current-pointer switch, HTTP publication or retention deletion.
+            // HTTP readers discover finalized directories only; this rename is the publication point.
+            // Keep older generations for clients that already fetched their index.
             return ['generation' => $generation, 'files' => count($files), 'urls' => array_sum($files) - $files['sitemap.xml']];
         } finally {
             if ($connection !== null) {

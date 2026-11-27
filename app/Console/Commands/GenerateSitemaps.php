@@ -10,7 +10,7 @@ class GenerateSitemaps extends Command
 {
     protected $signature = 'sitemap:generate';
 
-    protected $description = 'Prepare a validated private sitemap generation without changing public routes.';
+    protected $description = 'Publish a validated sitemap generation for the public sitemap routes.';
 
     public function handle(SitemapGenerator $generator): int
     {
@@ -18,7 +18,7 @@ class GenerateSitemaps extends Command
             $result = $generator->generate();
             $this->info('Prepared sitemap generation: '.$result['generation']);
             $this->line('Files: '.$result['files'].'; URLs: '.$result['urls']);
-            $this->line('Public sitemap and scheduler were not changed.');
+            $this->line('Finalized generations are available through the public sitemap routes. Scheduler was not changed.');
 
             return self::SUCCESS;
         } catch (Throwable $exception) {

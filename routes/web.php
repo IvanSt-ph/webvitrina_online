@@ -140,15 +140,6 @@ Route::get('/robots.txt', function () {
         ->header('Content-Type', 'text/plain');
 })->name('robots');
 
-Route::get('/sitemap.xml', function () {
-    $products = \App\Models\Product::query()->active()->latest('updated_at')->limit(1000)->get(['slug', 'updated_at']);
-    $categories = \App\Models\Category::query()->where('is_active', true)->latest('updated_at')->limit(1000)->get(['slug', 'updated_at']);
-    $shops = \App\Models\Shop::query()->whereNotNull('slug')->latest('updated_at')->limit(1000)->get(['slug', 'updated_at']);
-
-    return response()
-        ->view('sitemap', compact('products', 'categories', 'shops'))
-        ->header('Content-Type', 'application/xml');
-})->name('sitemap');
 
 
 // 🛍 Товар
