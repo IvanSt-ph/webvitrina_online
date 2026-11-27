@@ -21,6 +21,13 @@ Schedule::command('queue:health-check --timeout=15')
 
 Schedule::command('products:purge-old')->dailyAt('03:30');
 
+// Local wall-clock schedule: DST can skip/repeat 03:30. The generator also holds a filesystem lock.
+Schedule::command('sitemap:generate')
+    ->dailyAt('03:30')
+    ->timezone('Europe/Chisinau')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 Schedule::command('backup:run')
     ->dailyAt((string) config('backup.daily_at', '03:15'))
     ->withoutOverlapping();

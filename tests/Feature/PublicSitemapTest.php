@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Services\PublishedSitemaps;
 use App\Services\SitemapGenerator;
+use App\Services\SitemapPublication;
 use App\Services\SitemapXmlFile;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Http\Request;
@@ -64,6 +65,8 @@ final class PublicSitemapTest extends SitemapGeneratorTestCase
         $new = $this->publish(self::NEW, temporary: true);
         $this->assertSame(file_get_contents($old.'/sitemap.xml'), $this->body($this->get('/sitemap.xml')));
         rename($new, config('sitemap.directory').'/'.self::NEW);
+        $this->assertSame(file_get_contents($old.'/sitemap.xml'), $this->body($this->get('/sitemap.xml')));
+        (new SitemapPublication())->publish(config('sitemap.directory'), self::NEW);
         $this->assertStringContainsString(self::NEW, $this->body($this->get('/sitemap.xml')));
         $this->assertSame(200, $this->get('/sitemaps/'.self::OLD.'/static.xml')->getStatusCode());
     }
@@ -80,6 +83,89 @@ final class PublicSitemapTest extends SitemapGeneratorTestCase
             $this->assertSame(7100, $exception->getCode());
         }
         $this->assertSame([], glob(config('sitemap.directory').'/.tmp-*'));
+        $this->assertSame(file_get_contents($old.'/sitemap.xml'), $this->body($this->get('/sitemap.xml')));
+    }
+
+    public function test_pointer_orders_publications_in_same_second_independently_of_suffix(): void
+    {
+        $first = '20261127T120000Z-ffffffffffffffff';
+        $last = '20261127T120000Z-0000000000000000';
+        $this->publish($first);
+        $this->publish($last);
+        $this->assertStringContainsString($last, $this->body($this->get('/sitemap.xml')));
+        $this->assertSame(200, $this->get('/sitemaps/'.$first.'/static.xml')->getStatusCode());
+    }
+
+    public static function brokenPointers(): array
+    {
+        return [[null], [''], ["../secret\n"], ['.tmp-'.self::NEW], [self::NEW.'extra'], [str_repeat('x', 200)]];
+    }
+
+    #[DataProvider('brokenPointers')]
+    public function test_missing_or_invalid_current_uses_previous_pointer(?string $value): void
+    {
+        $this->publish(self::OLD);
+        $this->publish(self::NEW);
+        $pointer = config('sitemap.directory').'/current';
+        if ($value === null) {
+            unlink($pointer);
+        } else {
+            file_put_contents($pointer, $value);
+        }
+        $this->assertStringContainsString(self::OLD, $this->body($this->get('/sitemap.xml')));
+    }
+
+    public function test_corrupt_current_generation_uses_previous_publication(): void
+    {
+        $this->publish(self::OLD);
+        $directory = $this->publish(self::NEW);
+        file_put_contents($directory.'/products-0001.xml', '<urlset>');
+        $this->assertStringContainsString(self::OLD, $this->body($this->get('/sitemap.xml')));
+    }
+
+    public static function pointerReplacementFailures(): array
+    {
+        return [['previous'], ['current']];
+    }
+
+    #[DataProvider('pointerReplacementFailures')]
+    public function test_pointer_failure_keeps_previous_and_does_not_discover_unpublished_directory(string $pointer): void
+    {
+        $this->publish(self::OLD);
+        $directory = $this->publish(self::NEW, temporary: true);
+        rename($directory, config('sitemap.directory').'/'.self::NEW);
+        // A directory prevents atomic replacement, even under privileged Windows users.
+        if ($pointer === 'current') {
+            rename(config('sitemap.directory').'/current', config('sitemap.directory').'/previous');
+        }
+        mkdir(config('sitemap.directory').'/'.$pointer);
+        try {
+            (new SitemapPublication())->publish(config('sitemap.directory'), self::NEW);
+            $this->fail('Expected pointer replacement failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame(7100, $exception->getCode());
+        }
+        $this->assertStringContainsString(self::OLD, $this->body($this->get('/sitemap.xml')));
+        $this->assertSame([], glob(config('sitemap.directory').'/.pointer-*'));
+        rmdir(config('sitemap.directory').'/'.$pointer);
+        foreach (['current', 'previous'] as $name) {
+            if (is_file(config('sitemap.directory').'/'.$name)) {
+                unlink(config('sitemap.directory').'/'.$name);
+            }
+        }
+        $this->assertNull((new PublishedSitemaps())->index());
+    }
+
+    public function test_legacy_fallback_skips_ambiguous_timestamps_and_damaged_generations(): void
+    {
+        $old = $this->publish(self::OLD, legacy: true);
+        $this->publish('20261127T120000Z-ffffffffffffffff', legacy: true);
+        $this->publish('20261127T120000Z-0000000000000000', legacy: true);
+        $damaged = $this->publish('20261128T120000Z-0000000000000000', legacy: true);
+        unlink($damaged.'/static.xml');
+        file_put_contents(config('sitemap.directory').'/current', 'invalid');
+        $this->assertSame(file_get_contents($old.'/sitemap.xml'), $this->body($this->get('/sitemap.xml')));
+        unlink(config('sitemap.directory').'/current');
         $this->assertSame(file_get_contents($old.'/sitemap.xml'), $this->body($this->get('/sitemap.xml')));
     }
 
@@ -204,10 +290,13 @@ final class PublicSitemapTest extends SitemapGeneratorTestCase
         }
     }
 
-    private function publish(string $generation, bool $temporary = false): string
+    private function publish(string $generation, bool $temporary = false, bool $legacy = false): string
     {
         $directory = config('sitemap.directory').'/'.($temporary ? '.tmp-' : '').$generation;
         mkdir($directory, 0700, true);
+        if (! $legacy) {
+            file_put_contents($directory.'/'.SitemapPublication::MARKER, '1');
+        }
         $files = ['static.xml', 'products-0001.xml', 'categories-0001.xml', 'shops-0001.xml'];
         foreach ($files as $file) {
             $writer = new SitemapXmlFile($directory.'/'.$file, 'urlset', 5000, 1048576);
@@ -219,6 +308,10 @@ final class PublicSitemapTest extends SitemapGeneratorTestCase
             $writer->append(config('sitemap.origin').'/sitemaps/'.$generation.'/'.$file);
         }
         $writer->finish();
+
+        if (! $temporary && ! $legacy) {
+            (new SitemapPublication())->publish(config('sitemap.directory'), $generation);
+        }
 
         return $directory;
     }

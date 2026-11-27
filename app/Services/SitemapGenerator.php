@@ -47,6 +47,9 @@ final class SitemapGenerator
                 throw new RuntimeException('Cannot create temporary sitemap directory.', 7100);
             }
             $temporary = $candidate; // Cleanup ownership starts only after successful creation.
+            if (file_put_contents($temporary.DIRECTORY_SEPARATOR.SitemapPublication::MARKER, '1') !== 1) {
+                throw new RuntimeException('Cannot mark sitemap generation for pointer publication.', 7100);
+            }
 
             // A dedicated connection avoids changing isolation/session state of the application connection.
             $configuration = config('database.connections.'.config('database.default'));
@@ -85,8 +88,8 @@ final class SitemapGenerator
             }
             $temporary = null;
 
-            // HTTP readers discover finalized directories only; this rename is the publication point.
-            // Keep older generations for clients that already fetched their index.
+            // Files are complete, but become current only after the atomic pointer replacement.
+            (new SitemapPublication())->publish($root, $generation);
             return ['generation' => $generation, 'files' => count($files), 'urls' => array_sum($files) - $files['sitemap.xml']];
         } finally {
             if ($connection !== null) {
@@ -106,6 +109,10 @@ final class SitemapGenerator
             }
             $cleanupFailed = false;
             if ($temporary !== null) {
+                $marker = $temporary.DIRECTORY_SEPARATOR.SitemapPublication::MARKER;
+                if (is_file($marker) && ! is_link($marker) && ! @unlink($marker)) {
+                    $cleanupFailed = true;
+                }
                 // Flat, exclusively owned random directory only. Never recurse or follow symlinks.
                 foreach (glob($temporary.DIRECTORY_SEPARATOR.'*.xml') ?: [] as $file) {
                     if (is_file($file) && ! is_link($file)) {

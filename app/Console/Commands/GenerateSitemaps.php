@@ -16,9 +16,9 @@ class GenerateSitemaps extends Command
     {
         try {
             $result = $generator->generate();
-            $this->info('Prepared sitemap generation: '.$result['generation']);
+            $this->info('Published sitemap generation: '.$result['generation']);
             $this->line('Files: '.$result['files'].'; URLs: '.$result['urls']);
-            $this->line('Finalized generations are available through the public sitemap routes. Scheduler was not changed.');
+            $this->line('The public sitemap now uses this generation. Previous XML URLs remain available.');
 
             return self::SUCCESS;
         } catch (Throwable $exception) {
