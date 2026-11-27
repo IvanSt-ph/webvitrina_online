@@ -142,7 +142,69 @@ $catalogSeo = \App\Support\CatalogSeo::forListing(request(), route(request()->ro
   </div>
 
   {{-- 📦 Основной контент --}}
-  <div class="max-w-[90rem] mx-auto px-2 sm:px-4 lg:px-6 mt-6 mb-12">
+  <div class="max-w-[90rem] mx-auto px-2 sm:px-4 lg:px-6 mt-4 sm:mt-6 mb-12">
+    {{-- Desktop category carousel follows the banner and precedes recommendations. --}}
+    @if($homeCategories->isNotEmpty())
+      <section class="home-category-section">
+      <h2 class="home-category-heading">Категории</h2>
+      <nav data-home-category-carousel x-data="categoryCarousel" aria-label="Категории товаров" class="home-category-carousel" role="region">
+        <button type="button" class="home-category-carousel__arrow home-category-carousel__arrow--left" aria-label="Прокрутить категории влево" @click="scroll(-1)"><i class="ri-arrow-left-s-line" aria-hidden="true"></i></button>
+        <div x-ref="track" class="home-category-carousel__track" tabindex="0" aria-label="Лента категорий">
+          @foreach($homeCategories as $category)
+            <a href="{{ route('category.show', $category->slug) }}" class="home-category-carousel__item">
+              <span class="home-category-carousel__image">
+                @if(filled($category->image))
+                  <img data-image-candidates="{{ json_encode($category->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                    src="{{ $category->image_thumb_url }}" alt="{{ $category->name }}" loading="lazy" decoding="async">
+                @elseif(filled($category->icon))
+                  <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                    src="{{ $category->icon_url }}" alt="{{ $category->name }}" loading="lazy" decoding="async">
+                @else
+                  <span aria-hidden="true">{{ mb_substr($category->name, 0, 1) }}</span>
+                @endif
+              </span>
+              <span class="home-category-carousel__label">{{ $category->name }}</span>
+            </a>
+          @endforeach
+        </div>
+        <button type="button" class="home-category-carousel__arrow home-category-carousel__arrow--right" aria-label="Прокрутить категории вправо" @click="scroll(1)"><i class="ri-arrow-right-s-line" aria-hidden="true"></i></button>
+      </nav>
+      </section>
+    @endif
+
+    @push('styles')
+      <style>
+        .home-category-carousel { --category-gap: .75rem; position: relative; height: 8.75rem; margin-bottom: 1.5rem; overflow: hidden; }
+        .home-category-carousel__track { display: flex; width: 100%; min-width: 0; height: 100%; gap: var(--category-gap); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+        .home-category-carousel__track::-webkit-scrollbar { display: none; }
+        .home-category-carousel__item { display: flex; width: 7.25rem; height: 8rem; flex: 0 0 7.25rem; flex-direction: column; align-items: center; justify-content: center; gap: .45rem; overflow: hidden; border: 1px solid #e2e8f0; border-radius: .875rem; background: #fff; color: #334155; text-decoration: none; }
+        .home-category-carousel__item:hover, .home-category-carousel__item:focus-visible { border-color: #c7d2fe; color: #4F46E5; }
+        .home-category-carousel__image { display: flex; width: 5.25rem; height: 5.25rem; flex: none; align-items: center; justify-content: center; overflow: hidden; border-radius: .625rem; background: #f8fafc; font-size: 1.5rem; font-weight: 700; color: #4F46E5; }
+        .home-category-carousel__image img { width: 100%; height: 100%; object-fit: cover; }
+        .home-category-carousel__label { max-width: 100%; padding: 0 .35rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; line-height: 1rem; }
+        .home-category-carousel__arrow { position: absolute; top: 50%; z-index: 1; display: flex; width: 1.75rem; height: 1.75rem; transform: translateY(-50%); align-items: center; justify-content: center; border: 1px solid #e2e8f0; border-radius: 9999px; background: #fff; color: #4F46E5; }
+        .home-category-carousel__arrow--left { left: .25rem; }
+        .home-category-carousel__arrow--right { right: .25rem; }
+        .home-category-carousel__arrow:hover { background: #eef2ff; }
+        .home-category-carousel__track.is-dragging,
+        .home-category-carousel__track.is-dragging * { cursor: grabbing; user-select: none; }
+        .home-category-heading { margin: 0 0 .5rem; font-size: 1rem; font-weight: 700; line-height: 1.5rem; color: #0f172a; }
+        .home-category-section { margin-bottom: 0; }
+        @media (max-width: 767px) {
+          .home-category-section { margin-bottom: .75rem; }
+          .home-category-heading { margin: 0 0 .25rem .125rem; font-size: .875rem; line-height: 1.25rem; }
+          .home-category-carousel { height: 6.25rem; margin-bottom: 0; }
+          .home-category-carousel { --category-gap: .375rem; }
+          .home-category-carousel__track { scroll-behavior: auto; }
+          .home-category-carousel__item { width: clamp(95px, 27vw, 105px); height: 5.75rem; flex-basis: clamp(95px, 27vw, 105px); gap: .25rem; border-radius: .75rem; }
+          .home-category-carousel__image { width: 3.75rem; height: 3.75rem; border-radius: .5rem; }
+          .home-category-carousel__label { font-size: .75rem; line-height: 1rem; }
+          .home-category-carousel__arrow { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) { .home-category-carousel__track { scroll-behavior: auto; } }
+      </style>
+    @endpush
+
     @php
       $featuredProductAds = ($homeAdCampaigns ?? collect())->get(\App\Models\AdSlot::HOME_FEATURED_PRODUCTS, collect());
       $weeklyShopAds = ($homeAdCampaigns ?? collect())->get(\App\Models\AdSlot::HOME_WEEKLY_SHOPS, collect());
@@ -160,13 +222,12 @@ $catalogSeo = \App\Support\CatalogSeo::forListing(request(), route(request()->ro
     @endphp
 
     @if($hasRecommendedProducts || $weeklyShopAds->isNotEmpty())
-      <section class="mb-8 space-y-6">
+      <section class="mb-6 space-y-4 sm:mb-8 sm:space-y-6">
         @if($hasRecommendedProducts)
-          <div class="space-y-3" x-data="recommendedCarousel" role="region" aria-label="Рекомендуемые товары">
-            <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="space-y-2 sm:space-y-3" x-data="recommendedCarousel" role="region" aria-label="Рекомендуемые товары">
+            <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
               <div>
                 <h2 class="text-lg font-bold text-slate-950 sm:text-xl">Рекомендуемые товары</h2>
-                <p class="text-sm text-slate-500">Подборка WebVitrina и товары с высоким рейтингом</p>
               </div>
               <div class="recommended-carousel-controls flex w-full flex-wrap items-center gap-2 sm:w-auto">
                 @if($recommendedProductsCount > $recommendedVisibleLimit)

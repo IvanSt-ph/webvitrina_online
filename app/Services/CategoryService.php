@@ -51,10 +51,10 @@ class CategoryService
      */
     public function root()
     {
-        return Cache::remember('cat.root', 3600, function () {
+        $load = function () {
             return Category::query()
                 ->whereNull('parent_id')
-                ->select('id', 'name', 'slug', 'icon', 'image', 'parent_id')
+                ->select('id', 'name', 'slug', 'icon', 'image', 'parent_id', 'is_active', 'sort_order')
                 ->with([
                     'children' => function ($q) {
                         $q->select('id', 'name', 'slug', 'icon', 'image', 'parent_id')
@@ -63,7 +63,20 @@ class CategoryService
                 ])
                 ->orderBy('name')
                 ->get();
-        });
+        };
+
+        $categories = Cache::remember('cat.root', 3600, $load);
+        $hasLegacyAttributes = $categories->contains(fn (Category $category) =>
+            ! array_key_exists('is_active', $category->getAttributes())
+            || ! array_key_exists('sort_order', $category->getAttributes())
+        );
+
+        if ($hasLegacyAttributes) {
+            Cache::forget('cat.root');
+            $categories = Cache::remember('cat.root', 3600, $load);
+        }
+
+        return $categories;
     }
 
     /**

@@ -240,3 +240,180 @@ export default function recommendedCarousel(Alpine) {
         },
     };
 }
+
+export function categoryCarousel(Alpine) {
+    let engine, track, root, frame = 0, previous = null, remainder = 0;
+    let observer, resize, media, resumeTimer, touchStartX = 0, touchMoved = false;
+    let originals = [], generatedSets = 1, fillLoopBuffer = () => {}, interact = () => {};
+    let blockedTouchClick = null;
+    const cleanups = [];
+    const state = { looping: false, visible: false, hidden: false, reduced: false,
+        paused: false, hovered: false, focused: false, interacting: false, touching: false, dragging: false };
+
+    function listen(target, name, callback, options) {
+        target.addEventListener(name, callback, options);
+        cleanups.push(() => target.removeEventListener(name, callback, options));
+    }
+
+    function sync() {
+        if (!canAnimate(state)) {
+            cancelAnimationFrame(frame);
+            frame = 0;
+            previous = null;
+            remainder = 0;
+        } else if (!frame) frame = requestAnimationFrame(tick);
+    }
+
+    function tick(time) {
+        frame = 0;
+        if (!canAnimate(state)) return;
+        if (previous !== null) {
+            remainder += Math.min(time - previous, 50) * 0.012; // 12 px/second, opposite to recommendations.
+            const applied = engine.move(-remainder);
+            remainder = Math.max(0, remainder + applied);
+        }
+        previous = time;
+        frame = requestAnimationFrame(tick);
+    }
+
+    return {
+        init() {
+            root = this.$el;
+            track = this.$refs.track;
+            originals = [...track.children];
+            if (!originals.length) return;
+
+            const duplicate = source => {
+                const clone = source.cloneNode(true);
+                clone.setAttribute('aria-hidden', 'true');
+                clone.tabIndex = -1;
+                clone.querySelectorAll('a, button, [tabindex]').forEach(element => { element.tabIndex = -1; });
+                return clone;
+            };
+
+            engine = createCarousel(track, { mutate: fn => Alpine.mutateDom(fn) });
+            engine.measure();
+
+            fillLoopBuffer = () => {
+                // Append complete ordered rounds so edge-node recycling always preserves the cycle.
+                while (generatedSets < 256) {
+                    engine.measure();
+                    if (engine.looping || !engine.step) return;
+                    originals.forEach(category => track.appendChild(duplicate(category)));
+                    generatedSets++;
+                }
+                engine.measure();
+            };
+
+            fillLoopBuffer();
+            track.scrollLeft = engine.step;
+            engine.measure();
+            state.looping = engine.looping;
+
+            interact = () => {
+                state.interacting = true;
+                clearTimeout(resumeTimer);
+                sync();
+                resumeTimer = setTimeout(() => {
+                    if (state.touching || state.dragging) return;
+                    state.interacting = false;
+                    sync();
+                }, 1500);
+            };
+
+            media = window.matchMedia('(prefers-reduced-motion: reduce)');
+            const motion = () => { state.reduced = media.matches; sync(); };
+            motion();
+            listen(media, 'change', motion);
+            const visibility = () => { state.hidden = document.hidden; sync(); };
+            visibility();
+            listen(document, 'visibilitychange', visibility);
+            listen(root, 'mouseenter', () => { state.hovered = true; sync(); });
+            listen(root, 'mouseleave', () => { state.hovered = false; sync(); });
+            listen(root, 'focusin', () => {
+                state.focused = track.contains(document.activeElement);
+                sync();
+            });
+            listen(root, 'focusout', () => queueMicrotask(() => {
+                state.focused = track.contains(document.activeElement);
+                sync();
+            }));
+            listen(track, 'scroll', () => {
+                engine.normalize();
+                if (state.interacting) interact();
+            }, { passive: true });
+            listen(track, 'wheel', event => {
+                interact();
+                if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+                    event.preventDefault();
+                    engine.move(event.deltaX * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? track.clientWidth : 1));
+                }
+            }, { passive: false });
+            listen(track, 'touchstart', event => {
+                state.touching = true;
+                touchStartX = event.touches[0]?.clientX ?? 0;
+                touchMoved = false;
+                blockedTouchClick = null;
+                interact();
+            }, { passive: true });
+            listen(track, 'touchmove', event => {
+                if (Math.abs((event.touches[0]?.clientX ?? touchStartX) - touchStartX) > 8) touchMoved = true;
+            }, { passive: true });
+            const endTouch = event => {
+                state.touching = false;
+                if (touchMoved) blockedTouchClick = { expires: event.timeStamp + 600 };
+                interact();
+            };
+            listen(track, 'touchend', endTouch, { passive: true });
+            listen(track, 'touchcancel', endTouch, { passive: true });
+            listen(track, 'click', event => {
+                if (!blockedTouchClick || event.detail === 0 || !event.target.closest?.('a')) return;
+                const shouldBlock = event.timeStamp <= blockedTouchClick.expires;
+                blockedTouchClick = null;
+                if (!shouldBlock) return;
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }, true);
+            cleanups.push(installMouseDrag(track, {
+                move: distance => engine.move(distance),
+                interaction: active => { state.dragging = active; interact(); },
+            }));
+            listen(track, 'keydown', event => {
+                if (event.target !== track || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+                event.preventDefault();
+                this.scroll(event.key === 'ArrowLeft' ? -1 : 1);
+            });
+
+            resize = new ResizeObserver(() => {
+                fillLoopBuffer();
+                engine.measure();
+                state.looping = engine.looping;
+                sync();
+            });
+            resize.observe(track);
+            observer = new IntersectionObserver(entries => {
+                state.visible = entries[0].isIntersecting;
+                sync();
+            });
+            observer.observe(root);
+        },
+        scroll(direction) {
+            if (!engine) return;
+            fillLoopBuffer();
+            engine.measure();
+            state.looping = engine.looping;
+            if (!engine.looping) return;
+            interact();
+            engine.move(direction * engine.step);
+            sync();
+        },
+        destroy() {
+            state.visible = false;
+            sync();
+            clearTimeout(resumeTimer);
+            observer?.disconnect();
+            resize?.disconnect();
+            cleanups.splice(0).forEach(cleanup => cleanup());
+        },
+    };
+}

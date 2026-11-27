@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Repositories\ProductRepository;
 use App\Services\ReviewRatingCache;
+use App\Services\CategoryService;
 use App\Models\Banner;
 use App\Models\Category;
 use App\Models\ProductStat;
@@ -23,7 +24,7 @@ class ProductController extends Controller
 {
     private const RECENT_MESSAGES_LIMIT = 50;
 
-    public function __construct(protected ProductRepository $products) {}
+    public function __construct(protected ProductRepository $products, protected CategoryService $categories) {}
 
     /* ============================================================
      | 🛍️ Главная витрина
@@ -31,6 +32,10 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = $this->products->getFilteredProducts($request);
+        $homeCategories = $this->categories->root()
+            ->where('is_active', true)
+            ->sortBy([['sort_order', 'asc'], ['id', 'asc']])
+            ->values();
         $bannerItems = Cache::remember('slides_home.images-v2', 3600, function () {
             return Banner::where('active', true)
                 ->orderBy('sort_order')
@@ -131,7 +136,7 @@ class ProductController extends Controller
             }
         }
 
-        return view('shop.index', compact('products', 'bannerItems', 'homeAdCampaigns', 'recommendedFallbackProducts', 'recommendedCatalogProducts', 'recommendedProductLimit'));
+        return view('shop.index', compact('products', 'bannerItems', 'homeAdCampaigns', 'recommendedFallbackProducts', 'recommendedCatalogProducts', 'recommendedProductLimit', 'homeCategories'));
     }
 
     public function recommendations(Request $request)
