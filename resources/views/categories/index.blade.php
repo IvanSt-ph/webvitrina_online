@@ -59,11 +59,22 @@
             $initial = mb_substr($cat->name, 0, 1);
             $hasImage = filled($cat->image);
             $hasIcon = filled($cat->icon);
+            $svgUrl = $cat->category_svg_url;
+            $useSvg = $svgUrl && !$hasImage;
           @endphp
           <a href="{{ route('category.show', $cat->slug) }}"
              class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg">
             <div data-category-media class="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-slate-100">
-              @if($hasImage)
+              @if($useSvg)
+                <img data-image-candidates="{{ json_encode(array_merge([$svgUrl], $cat->image_candidates)) }}"
+                  data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                  src="{{ $svgUrl }}"
+                  alt="{{ $cat->name }}"
+                  class="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 object-contain"
+                  loading="lazy"
+                  decoding="async"
+                >
+              @elseif($hasImage)
                 <img data-image-candidates="{{ json_encode($cat->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                   src="{{ $cat->image_thumb_url }}"
                   alt="{{ $cat->name }}"
@@ -81,7 +92,7 @@
                 >
               @endif
 
-              <div class="{{ ($hasImage || $hasIcon) ? 'hidden category-fallback' : 'category-fallback' }} absolute inset-0 flex items-center justify-center">
+              <div class="{{ ($useSvg || $hasImage || $hasIcon) ? 'hidden category-fallback' : 'category-fallback' }} absolute inset-0 flex items-center justify-center">
                 <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-2xl font-black text-indigo-600 shadow-sm ring-1 ring-indigo-100">
                   {{ $initial }}
                 </span>

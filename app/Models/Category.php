@@ -132,6 +132,11 @@ class Category extends Model
         return \App\Support\PublicImage::url($path, 'images/image-placeholder.svg');
     }
 
+    public function getCategorySvgUrlAttribute(): ?string
+    {
+        return \App\Support\CategorySvg::urlForSlug($this->slug);
+    }
+
     public function getImageUrlAttribute(): string
     {
         return $this->image_candidates[0];

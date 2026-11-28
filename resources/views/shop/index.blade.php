@@ -147,7 +147,7 @@ $catalogSeo = \App\Support\CatalogSeo::forListing(request(), route(request()->ro
     @if($homeCategories->isNotEmpty())
       <section class="home-category-section">
       <h2 class="home-category-heading">Категории</h2>
-      <nav data-home-category-carousel x-data="categoryCarousel" aria-label="Категории товаров" class="home-category-carousel" role="region">
+      <nav data-home-category-carousel x-data="categoryCarousel" aria-label="Категории товаров" class="home-category-carousel">
         <button type="button" class="home-category-carousel__arrow home-category-carousel__arrow--left" aria-label="Прокрутить категории влево" @click="scroll(-1)"><i class="ri-arrow-left-s-line" aria-hidden="true"></i></button>
         <div x-ref="track" class="home-category-carousel__track" tabindex="0" aria-label="Лента категорий">
           @foreach($homeCategories as $category)

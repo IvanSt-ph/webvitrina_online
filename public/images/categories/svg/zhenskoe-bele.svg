@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none" stroke="#5149A8" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(0 13)">
+  <path d="M20 56c0 22 10 30 22 30s22-10 22-24c-6-6-18-14-24-28-7 9-16 12-20 22z"/><path d="M40 34V16M20 62H8M26 62q8 12 28 8"/><g transform="matrix(-1 0 0 1 128 0)"><path d="M20 56c0 22 10 30 22 30s22-10 22-24c-6-6-18-14-24-28-7 9-16 12-20 22z"/><path d="M40 34V16M20 62H8M26 62q8 12 28 8"/></g>
+  <path d="M64 62l-6-5v10zM64 62l6-5v10z"/>
+  </g>
+</svg>

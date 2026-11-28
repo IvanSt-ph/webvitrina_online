@@ -6,6 +6,7 @@
   $keep = http_build_query(request()->except('page'));
   $link = route('category.show', $category->slug) . ($keep ? '?' . $keep : '');
   $initial = mb_substr($category->name, 0, 1);
+  $svgUrl = $category->category_svg_url;
 @endphp
 
 <li x-data="{ open: {{ $isActive ? 'true' : 'false' }} }">
@@ -21,7 +22,16 @@
            class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
       @endif
         <span data-category-media class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50 text-sm font-semibold text-slate-600 ring-1 ring-slate-100">
-          @if(filled($category->icon))
+          @if($svgUrl)
+            <img data-image-candidates="{{ json_encode(array_merge([$svgUrl], $category->image_candidates)) }}"
+              data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+              src="{{ $svgUrl }}"
+              alt="{{ $category->name }}"
+              class="h-6 w-6 object-contain"
+              loading="lazy"
+              decoding="async"
+            >
+          @elseif(filled($category->icon))
             <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
               src="{{ $category->icon_url }}"
               alt="{{ $category->name }}"
@@ -39,7 +49,7 @@
             >
           @endif
 
-          <span class="{{ (filled($category->icon) || filled($category->image)) ? 'hidden category-menu-fallback' : 'category-menu-fallback' }}">
+          <span class="{{ ($svgUrl || filled($category->icon) || filled($category->image)) ? 'hidden category-menu-fallback' : 'category-menu-fallback' }}">
             {{ $initial }}
           </span>
         </span>

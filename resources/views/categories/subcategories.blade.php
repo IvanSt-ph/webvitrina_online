@@ -55,18 +55,29 @@
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
 
       @foreach($category->children as $child)
+        @php($svgUrl = $child->category_svg_url)
+        @php($useSvg = $svgUrl && empty($child->image))
         <a href="{{ route('category.show', $child->slug) }}"
            class="group block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-indigo-200 hover:shadow-md">
 
           {{-- 🔹 Плитка изображения --}}
-          <div class="flex aspect-[4/3] items-center justify-center overflow-hidden bg-slate-50 sm:aspect-square">
+          <div class="flex h-28 items-center justify-center overflow-hidden bg-slate-50 sm:h-32">
 
-              @if(!empty($child->image))
+              @if($useSvg)
+                  <img data-image-candidates="{{ json_encode(array_merge([$svgUrl], $child->image_candidates)) }}"
+                      data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
+                      src="{{ $svgUrl }}"
+                      alt="{{ $child->name }}"
+                      class="h-[72px] w-[72px] object-contain sm:h-24 sm:w-24"
+                      loading="lazy"
+                      decoding="async">
+
+              @elseif(!empty($child->image))
                   <picture>
                       <img data-image-candidates="{{ json_encode($child->image_candidates) }}" data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
                           src="{{ $child->image_thumb_url }}"
                           alt="{{ $child->name }}"
-                          class="h-full w-full object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-105"
+                          class="h-full w-full object-contain opacity-0 transition-all duration-700 ease-out group-hover:scale-105"
                           loading="lazy"
                           decoding="async"
                           onload="this.style.opacity=1">
