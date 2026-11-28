@@ -15,7 +15,7 @@
         @click="open = false"
     ></div>
 
-    <aside
+        <aside
         class="relative z-50 flex h-full w-full max-w-[390px] flex-col overflow-hidden bg-white shadow-2xl shadow-slate-950/20 transition-transform duration-300 sm:max-w-[420px]"
         x-show="open"
         x-transition:enter="transition ease-out duration-300"
@@ -28,36 +28,32 @@
         aria-modal="true"
         aria-label="Категории"
     >
-        <header class="border-b border-slate-100 bg-gradient-to-br from-indigo-50 via-white to-slate-50 px-4 py-4">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Каталог</p>
-                    <h2 class="mt-1 text-xl font-black text-slate-950">Категории</h2>
-                    <p class="mt-1 text-sm leading-5 text-slate-500">Быстрый переход по разделам WebVitrina.</p>
-                </div>
+        <header class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3">
+            <h2 class="text-base font-semibold text-slate-900">Категории</h2>
 
                 <button
                     type="button"
                     @click="open = false"
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
                     aria-label="Закрыть меню категорий"
                 >
-                    <i class="ri-close-line text-xl"></i>
+                    <span aria-hidden="true" class="text-2xl">×</span>
                 </button>
-            </div>
-
-            <a href="{{ route('category.index') }}"
-               @click="open = false"
-               class="mt-4 flex h-11 items-center justify-between rounded-2xl bg-slate-950 px-4 text-sm font-bold text-white shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-indigo-600">
-                <span class="inline-flex items-center gap-2">
-                    <i class="ri-layout-grid-line text-lg"></i>
-                    Все категории
-                </span>
-                <i class="ri-arrow-right-line"></i>
-            </a>
         </header>
 
-        <div class="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar">
+        <div class="shrink-0 border-b border-slate-100 px-3 py-3">
+            <a href="{{ route('category.index') }}"
+               @click="open = false"
+               class="flex h-11 items-center justify-between rounded-xl bg-indigo-50 px-3 text-sm font-medium text-slate-900 transition-colors hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
+                <span class="inline-flex items-center gap-3">
+                    <i class="ri-layout-grid-line text-lg text-slate-500"></i>
+                    Все категории
+                </span>
+                <i class="ri-arrow-right-line text-slate-400"></i>
+            </a>
+        </div>
+
+        <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 custom-scrollbar">
             <div x-show="loading" role="status" class="p-5 text-center text-sm text-slate-500">
                 Загрузка категорий…
             </div>

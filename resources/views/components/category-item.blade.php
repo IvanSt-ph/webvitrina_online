@@ -9,18 +9,18 @@
 @endphp
 
 <li x-data="{ open: {{ $isActive ? 'true' : 'false' }} }">
-  <div class="group rounded-2xl border transition {{ $isActive ? 'border-indigo-200 bg-indigo-50' : 'border-transparent bg-white hover:border-slate-200 hover:bg-slate-50' }}">
-    <div class="flex items-center gap-2 p-2">
+  <div class="group rounded-xl transition-colors {{ $isActive ? 'bg-indigo-50' : 'bg-white hover:bg-slate-50' }}">
+    <div class="flex min-h-11 items-center gap-2 px-2">
       @if($hasChildren)
         <button type="button"
            @click="open = !open"
-           class="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1.5 text-left">
+           class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1 py-1.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
       @else
         <a href="{{ $link }}"
            @click="$dispatch('category-menu-close')"
-           class="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-1.5">
+           class="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl px-1 py-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
       @endif
-        <span data-category-media class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-slate-100 text-sm font-black text-indigo-600 shadow-sm ring-1 ring-slate-100">
+        <span data-category-media class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50 text-sm font-semibold text-slate-600 ring-1 ring-slate-100">
           @if(filled($category->icon))
             <img data-image-fallback="{{ asset('images/image-placeholder.svg') }}"
               src="{{ $category->icon_url }}"
@@ -44,15 +44,10 @@
           </span>
         </span>
 
-        <span class="min-w-0">
-          <span class="block truncate text-sm font-bold {{ $isActive ? 'text-indigo-800' : 'text-slate-800 group-hover:text-indigo-700' }}">
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-[14px] font-medium leading-5 {{ $isActive ? 'text-slate-900' : 'text-slate-800' }}">
             {{ $category->name }}
           </span>
-          @if($hasChildren)
-            <span class="mt-0.5 block text-xs text-slate-400">{{ $category->children->count() }} подразделов</span>
-          @else
-            <span class="mt-0.5 block text-xs text-slate-400">Перейти к товарам</span>
-          @endif
         </span>
       @if($hasChildren)
         </button>
@@ -63,13 +58,13 @@
       @if($hasChildren)
         <a href="{{ $link }}"
            @click="$dispatch('category-menu-close')"
-           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white hover:text-indigo-600"
+           class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600"
            title="Перейти в категорию {{ $category->name }}"
            aria-label="Перейти в категорию {{ $category->name }}">
           <i class="ri-arrow-right-line text-lg"></i>
         </a>
       @else
-        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-300 transition group-hover:text-indigo-500">
+        <span aria-hidden="true" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition group-hover:text-slate-600">
           <i class="ri-arrow-right-line"></i>
         </span>
       @endif
