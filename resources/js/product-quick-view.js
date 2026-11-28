@@ -105,6 +105,7 @@ export function productQuickView() {
   return {
     ...actions(),
     open: false,
+    releaseScrollLock: null,
     product: null,
     productId: null,
     cartCount: 0,
@@ -114,6 +115,16 @@ export function productQuickView() {
     gallery: [],
     current: 0,
     touchStartX: null,
+    init() {
+      this.stopWatchingOpen = this.$watch('open', value => {
+        if (value) {
+          this.releaseScrollLock = window.wvScrollLock.acquire()
+        } else {
+          this.releaseScrollLock?.()
+          this.releaseScrollLock = null
+        }
+      })
+    },
     show(detail) {
       clearTimeout(this.animationTimer)
       this.anim = ''
@@ -139,6 +150,11 @@ export function productQuickView() {
       const dx = event.changedTouches[0].clientX - this.touchStartX
       this.touchStartX = null
       if (Math.abs(dx) > 40) dx < 0 ? this.next() : this.prev()
+    },
+    destroy() {
+      this.stopWatchingOpen?.()
+      this.releaseScrollLock?.()
+      clearTimeout(this.animationTimer)
     },
   }
 }

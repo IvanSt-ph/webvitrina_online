@@ -3,11 +3,31 @@ export default () => ({
   loaded: false,
   loading: false,
   failed: false,
+  releaseScrollLock: null,
 
   init() {
-    this.$watch('open', value => {
-      if (value) this.loadTree()
+    this.stopWatchingOpen = this.$watch('open', value => {
+      if (value) {
+        this.releaseScrollLock = window.wvScrollLock.acquire()
+        this.loadTree()
+      } else {
+        this.unlockPage()
+      }
     })
+    if (this.open) {
+      this.releaseScrollLock = window.wvScrollLock.acquire()
+      this.loadTree()
+    }
+  },
+
+  unlockPage() {
+    this.releaseScrollLock?.()
+    this.releaseScrollLock = null
+  },
+
+  destroy() {
+    this.stopWatchingOpen?.()
+    this.unlockPage()
   },
 
   async loadTree() {

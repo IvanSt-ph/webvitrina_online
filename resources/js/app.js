@@ -3,12 +3,14 @@ import './image-fallback';
 import './phone-inputs';
 import Alpine from 'alpinejs'
 import categoryMenu from './category-menu'
+import scrollLock from './scroll-lock'
 import orderCancellationReason from './order-cancellation-reason'
 import recommendedCarousel, { categoryCarousel } from './recommended-carousel'
 import { productCard, productQuickView } from './product-quick-view'
 import '../css/recommended-carousel.css'
 
 window.Alpine = Alpine
+window.wvScrollLock = scrollLock
 
 window.showSiteToast = (message, type = 'info') => {
   window.dispatchEvent(new CustomEvent('wv-toast', {
